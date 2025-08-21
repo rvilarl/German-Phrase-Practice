@@ -1,32 +1,46 @@
 import React from 'react';
 import type { Phrase } from '../types';
+import GraduationCapIcon from './icons/GraduationCapIcon';
 
 interface PhrasePreviewModalProps {
   phrase: Phrase | null;
   onClose: () => void;
+  onStartPractice: (phrase: Phrase) => void;
 }
 
-const PhrasePreviewModal: React.FC<PhrasePreviewModalProps> = ({ phrase, onClose }) => {
+const PhrasePreviewModal: React.FC<PhrasePreviewModalProps> = ({ phrase, onClose, onStartPractice }) => {
   if (!phrase) return null;
+
+  const handlePractice = () => {
+    onStartPractice(phrase);
+    onClose();
+  };
 
   return (
     <div 
-        className="fixed inset-0 bg-black/70 z-50 flex justify-center items-center backdrop-blur-sm p-4" 
+        className="fixed inset-0 bg-black/70 z-50 flex flex-col justify-center items-center backdrop-blur-sm p-4" 
         onClick={onClose}
     >
         <div className="[perspective:1000px] w-full max-w-md h-64" onClick={e => e.stopPropagation()}>
             <div className="relative w-full h-full [transform-style:preserve-3d] slow-rotate-animation">
                 {/* Front Side (Russian) */}
-                <div className="absolute inset-0 [backface-visibility:hidden] bg-gradient-to-br from-slate-700 to-slate-800 border border-slate-600 rounded-xl p-6 flex flex-col justify-center items-center text-center">
+                <div className="card-face bg-gradient-to-br from-slate-700 to-slate-800 border border-slate-600">
                     <h2 className="text-3xl font-semibold text-slate-100">{phrase.russian}</h2>
                 </div>
                 
                 {/* Back Side (German) */}
-                <div className="absolute inset-0 [backface-visibility:hidden] [transform:rotateY(180deg)] bg-gradient-to-br from-purple-600 to-blue-600 border border-purple-500 rounded-xl p-6 flex flex-col justify-center items-center text-center">
+                <div className="card-face [transform:rotateY(180deg)] bg-gradient-to-br from-purple-600 to-blue-600 border border-purple-500">
                     <h2 className="text-3xl font-bold text-white">{phrase.german}</h2>
                 </div>
             </div>
         </div>
+        <button
+            onClick={handlePractice}
+            className="mt-8 px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-md text-white font-bold transition-colors shadow-lg flex items-center space-x-2"
+        >
+            <GraduationCapIcon className="w-5 h-5" />
+            <span>Учить эту фразу</span>
+        </button>
     </div>
   );
 };

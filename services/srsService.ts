@@ -19,36 +19,48 @@ export const isPhraseMastered = (phrase: Phrase): boolean => {
 };
 
 export const selectNextPhrase = (phrases: Phrase[], currentPhraseId: string | null = null): Phrase | null => {
-  const unmasteredPhrases = phrases.filter(p => !p.isMastered && p.lastReviewedAt !== undefined);
+  // Guard against empty or invalid input
+  if (!phrases || phrases.length === 0) {
+    return null;
+  }
+  
+  // Filter for phrases that are not null and not mastered
+  const unmasteredPhrases = phrases.filter(p => p && !p.isMastered);
   if (unmasteredPhrases.length === 0) return null;
   
-  // Filter out the current phrase to avoid immediate repetition, unless it's the only one available.
+  // Avoid immediate repetition unless it's the only option
   const availablePhrasesPool = unmasteredPhrases.length > 1 && currentPhraseId
     ? unmasteredPhrases.filter(p => p.id !== currentPhraseId)
     : unmasteredPhrases;
-
+  
   if (availablePhrasesPool.length === 0) {
-      // This can happen if only one unmastered phrase remains
-      return unmasteredPhrases[0];
+      return unmasteredPhrases[0] || null;
   }
 
   const now = Date.now();
   
-  const dueForReview = availablePhrasesPool.filter(p => p.nextReviewAt <= now);
-  
+  // Priority 1: Phrases due for review (must have been reviewed before)
+  const dueForReview = availablePhrasesPool.filter(p => p.lastReviewedAt !== null && p.nextReviewAt <= now);
   if (dueForReview.length > 0) {
-    // Return the one with the lowest mastery level among those due
+    // Prioritize the one with the lowest mastery level
     return dueForReview.sort((a, b) => a.masteryLevel - b.masteryLevel)[0];
   }
 
-  // If nothing is due for review, check for completely new phrases that haven't been reviewed at all
+  // Priority 2: Completely new phrases
   const newPhrases = availablePhrasesPool.filter(p => p.lastReviewedAt === null);
   if (newPhrases.length > 0) {
-    return newPhrases[0];
+    // Pick a random new phrase to avoid always showing them in the same order
+    return newPhrases[Math.floor(Math.random() * newPhrases.length)];
   }
 
-  // If all cards have been reviewed and nothing is due, return the one that is due next (soonest)
-  return availablePhrasesPool.sort((a, b) => a.nextReviewAt - b.nextReviewAt)[0];
+  // Priority 3: If nothing is due and no new cards, pick the one scheduled soonest
+  const upcomingPhrases = availablePhrasesPool.filter(p => p.lastReviewedAt !== null);
+  if (upcomingPhrases.length > 0) {
+    return upcomingPhrases.sort((a, b) => a.nextReviewAt - b.nextReviewAt)[0];
+  }
+
+  // Fallback: should not be reached if there are unmastered phrases, but as a safeguard.
+  return availablePhrasesPool.length > 0 ? availablePhrasesPool[0] : null;
 };
 
 type UserAction = 'know' | 'forgot' | 'dont_know';

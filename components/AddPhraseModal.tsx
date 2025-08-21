@@ -187,7 +187,7 @@ const AddPhraseModal: React.FC<AddPhraseModalProps> = ({ isOpen, onClose, onGene
               </div>
             )}
 
-            <div className="flex-shrink-0 mt-4">
+            <div className="flex-shrink-0 mt-4 flex items-center space-x-2">
               <button 
                   onClick={handleToggleMode}
                   className="p-3 rounded-full hover:bg-slate-700/50 transition-colors"
@@ -199,6 +199,17 @@ const AddPhraseModal: React.FC<AddPhraseModalProps> = ({ isOpen, onClose, onGene
                       <MicrophoneIcon className="w-7 h-7 text-slate-300" />
                   )}
               </button>
+              {mode === 'voice' && (
+                  <button
+                      type="button"
+                      onClick={() => handleSubmit(inputText)}
+                      disabled={!inputText.trim()}
+                      className="p-3 bg-purple-600 rounded-full hover:bg-purple-700 disabled:bg-slate-600 disabled:cursor-not-allowed transition-colors flex-shrink-0"
+                      aria-label="Отправить"
+                  >
+                      <SendIcon className="w-6 h-6 text-white" />
+                  </button>
+              )}
             </div>
           </>
         )}

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
   <head>
     <meta charset="UTF-8" />
     <!-- PWA Manifest and Theme -->
@@ -86,7 +86,38 @@
     to { transform: rotateY(360deg); }
   }
   .slow-rotate-animation {
-    animation: slow-rotate 15s linear infinite;
+    animation: slow-rotate 6s linear infinite;
+  }
+  
+  /* New shine effect for 3D card */
+  @keyframes shine-effect {
+    0% { transform: translateX(-150%) skewX(-25deg); }
+    100% { transform: translateX(150%) skewX(-25deg); }
+  }
+  .card-face {
+    position: absolute;
+    inset: 0;
+    backface-visibility: hidden;
+    border-radius: 0.75rem; /* rounded-xl */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 1.5rem; /* p-6 */
+    overflow: hidden; /* Important for shine effect */
+  }
+  .card-face::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 70%;
+    height: 100%;
+    background: linear-gradient(to right, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.2) 50%, rgba(255, 255, 255, 0) 100%);
+    transform: translateX(-150%) skewX(-25deg);
+    animation: shine-effect 3s infinite;
+    animation-delay: 0.5s;
   }
 </style>
 </head>

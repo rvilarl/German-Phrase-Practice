@@ -33,6 +33,7 @@ const App: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<View>('practice');
+  const [practicePhraseOverride, setPracticePhraseOverride] = useState<Phrase | null>(null);
   
   const [isChatModalOpen, setIsChatModalOpen] = useState(false);
   const [chatContextPhrase, setChatContextPhrase] = useState<Phrase | null>(null);
@@ -123,17 +124,36 @@ const App: React.FC = () => {
         try {
             const storedPhrases = localStorage.getItem(PHRASES_STORAGE_KEY);
             if (storedPhrases) {
-                const parsedPhrases: Phrase[] = JSON.parse(storedPhrases);
-                loadedPhrases = parsedPhrases.map(p => ({
-                    ...p,
-                    id: p.id ?? Math.random().toString(36).substring(2, 9),
-                    knowCount: p.knowCount ?? 0,
-                    knowStreak: p.knowStreak ?? 0,
-                    lastReviewedAt: p.lastReviewedAt ?? null,
-                    isMastered: p.isMastered ?? srsService.isPhraseMastered(p),
-                }));
+                const parsedData = JSON.parse(storedPhrases);
+                if (Array.isArray(parsedData)) {
+                    loadedPhrases = parsedData
+                        .filter((p): p is Partial<Phrase> => p && typeof p === 'object' && 'german' in p && 'russian' in p)
+                        .map(p => {
+                            const knowCount = p.knowCount ?? 0;
+                            const knowStreak = p.knowStreak ?? 0;
+                            const masteryLevel = p.masteryLevel ?? 0;
+                            const phraseData = {
+                                russian: p.russian!,
+                                german: p.german!,
+                                id: p.id ?? Math.random().toString(36).substring(2, 9),
+                                knowCount,
+                                knowStreak,
+                                masteryLevel,
+                                lastReviewedAt: p.lastReviewedAt ?? null,
+                                nextReviewAt: p.nextReviewAt ?? Date.now(),
+                                isMastered: p.isMastered ?? false,
+                            };
+                            return {
+                                ...phraseData,
+                                isMastered: p.isMastered ?? srsService.isPhraseMastered(phraseData),
+                            };
+                        });
+                }
             }
-        } catch (e) { console.error("Failed to load or parse phrases from storage", e); }
+        } catch (e) {
+            console.error("Failed to load/parse phrases, clearing invalid data.", e);
+            localStorage.removeItem(PHRASES_STORAGE_KEY);
+        }
 
         if (loadedPhrases.length === 0) {
             loadedPhrases = defaultPhrases.map(p => ({
@@ -401,10 +421,15 @@ const App: React.FC = () => {
     setIsEditModalOpen(true);
   };
 
-  const handleDeletePhrase = (phraseId: string) => {
+  const handleDeletePhrase = useCallback((phraseId: string) => {
     if (window.confirm('Вы уверены, что хотите удалить эту фразу?')) {
-      updateAndSavePhrases(prev => prev.filter(p => p.id !== phraseId));
+      updateAndSavePhrases(prev => prev.filter(p => p && p.id !== phraseId));
     }
+  }, [updateAndSavePhrases]);
+
+  const handleStartPracticeWithPhrase = (phraseToPractice: Phrase) => {
+    setPracticePhraseOverride(phraseToPractice);
+    setView('practice');
   };
 
   const getProviderDisplayName = () => {
@@ -433,6 +458,8 @@ const App: React.FC = () => {
              isGenerating={isGenerating}
              settings={settings}
              apiProviderAvailable={!!apiProvider}
+             practicePhraseOverride={practicePhraseOverride}
+             onPracticePhraseConsumed={() => setPracticePhraseOverride(null)}
              onOpenChat={openChatForPhrase}
              onOpenDeepDive={handleOpenDeepDive}
              onOpenMovieExamples={handleOpenMovieExamples}
@@ -447,6 +474,7 @@ const App: React.FC = () => {
             onDeletePhrase={handleDeletePhrase}
             onFindDuplicates={handleFindDuplicates}
             updateAndSavePhrases={updateAndSavePhrases}
+            onStartPractice={handleStartPracticeWithPhrase}
           />
         )}
       </main>

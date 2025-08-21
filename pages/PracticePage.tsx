@@ -24,6 +24,8 @@ interface PracticePageProps {
   isGenerating: boolean;
   settings: { autoSpeak: boolean };
   apiProviderAvailable: boolean;
+  practicePhraseOverride: Phrase | null;
+  onPracticePhraseConsumed: () => void;
   onOpenChat: (phrase: Phrase) => void;
   onOpenDeepDive: (phrase: Phrase) => void;
   onOpenMovieExamples: (phrase: Phrase) => void;
@@ -35,8 +37,8 @@ interface PracticePageProps {
 const PracticePage: React.FC<PracticePageProps> = (props) => {
   const {
     allPhrases, updateAndSavePhrases, fetchNewPhrases, isLoading, error, isGenerating, settings,
-    apiProviderAvailable, onOpenChat, onOpenDeepDive, onOpenMovieExamples, onOpenWordAnalysis,
-    onOpenSentenceChain, onOpenImprovePhrase
+    apiProviderAvailable, practicePhraseOverride, onPracticePhraseConsumed, onOpenChat, onOpenDeepDive,
+    onOpenMovieExamples, onOpenWordAnalysis, onOpenSentenceChain, onOpenImprovePhrase
   } = props;
 
   const [currentPhrase, setCurrentPhrase] = useState<Phrase | null>(null);
@@ -49,7 +51,7 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
   const touchStartRef = useRef<number | null>(null);
   const touchMoveRef = useRef<number | null>(null);
 
-  const unmasteredPhrases = React.useMemo(() => allPhrases.filter(p => !p.isMastered && p.lastReviewedAt !== undefined), [allPhrases]);
+  const unmasteredPhrases = React.useMemo(() => allPhrases.filter(p => p && !p.isMastered), [allPhrases]);
 
   const changePhrase = useCallback((nextPhrase: Phrase | null, direction: AnimationDirection) => {
     if (!nextPhrase) {
@@ -73,11 +75,26 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
     }
   }, [allPhrases, currentPhrase, fetchNewPhrases, isGenerating, unmasteredPhrases.length, changePhrase]);
 
+  // Effect to handle external deletion of the current phrase
   useEffect(() => {
-    if (!isLoading && allPhrases.length > 0 && !currentPhrase) {
+    if (currentPhrase && !allPhrases.some(p => p && p.id === currentPhrase.id)) {
+        // The current phrase has been deleted from the main list.
+        // Select the next available phrase to avoid errors.
+        selectNext(false); 
+    }
+  }, [allPhrases, currentPhrase, selectNext]);
+
+  useEffect(() => {
+    if (practicePhraseOverride) {
+      // If there's an override, use it as the first phrase
+      changePhrase(practicePhraseOverride, 'right');
+      setIsAnswerRevealed(false);
+      onPracticePhraseConsumed(); // Tell App.tsx we've used it
+    } else if (!isLoading && allPhrases.length > 0 && !currentPhrase) {
+      // Otherwise, use the normal SRS logic
       selectNext(false);
     }
-  }, [isLoading, allPhrases, selectNext, currentPhrase]);
+  }, [isLoading, allPhrases, currentPhrase, practicePhraseOverride, onPracticePhraseConsumed, selectNext, changePhrase]);
 
   const speak = useCallback((text: string) => {
     if ('speechSynthesis' in window) {

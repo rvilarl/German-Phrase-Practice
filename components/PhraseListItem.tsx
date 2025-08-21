@@ -4,6 +4,7 @@ import ProgressBar from './ProgressBar';
 import PencilIcon from './icons/PencilIcon';
 import TrashIcon from './icons/TrashIcon';
 import * as srsService from '../services/srsService';
+import GraduationCapIcon from './icons/GraduationCapIcon';
 
 interface PhraseListItemProps {
     phrase: Phrase;
@@ -11,9 +12,10 @@ interface PhraseListItemProps {
     onDelete: (phraseId: string) => void;
     isDuplicate: boolean;
     onPreview: (phrase: Phrase) => void;
+    onStartPractice: (phrase: Phrase) => void;
 }
 
-const PhraseListItem: React.FC<PhraseListItemProps> = ({ phrase, onEdit, onDelete, isDuplicate, onPreview }) => {
+const PhraseListItem: React.FC<PhraseListItemProps> = ({ phrase, onEdit, onDelete, isDuplicate, onPreview, onStartPractice }) => {
     
     const handleEditClick = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -23,6 +25,11 @@ const PhraseListItem: React.FC<PhraseListItemProps> = ({ phrase, onEdit, onDelet
     const handleDeleteClick = (e: React.MouseEvent) => {
         e.stopPropagation();
         onDelete(phrase.id);
+    };
+    
+    const handlePracticeClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        onStartPractice(phrase);
     };
 
     return (
@@ -37,7 +44,14 @@ const PhraseListItem: React.FC<PhraseListItemProps> = ({ phrase, onEdit, onDelet
                     <ProgressBar current={phrase.masteryLevel} max={srsService.MAX_MASTERY_LEVEL} />
                 </div>
             </div>
-            <div className="flex-shrink-0 flex items-center space-x-2">
+            <div className="flex-shrink-0 flex items-center space-x-1">
+                 <button 
+                    onClick={handlePracticeClick} 
+                    className="p-2 text-slate-400 hover:text-green-400 transition-colors"
+                    aria-label="Учить эту фразу"
+                >
+                    <GraduationCapIcon className="w-5 h-5" />
+                </button>
                 <button 
                     onClick={handleEditClick} 
                     className="p-2 text-slate-400 hover:text-blue-400 transition-colors"

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import type { Phrase, SpeechRecognition, SpeechRecognitionErrorEvent } from '../types';
 import PhraseListItem from '../components/PhraseListItem';
 import XCircleIcon from '../components/icons/XCircleIcon';
@@ -12,32 +12,52 @@ interface PhraseListPageProps {
     onDeletePhrase: (phraseId: string) => void;
     onFindDuplicates: () => Promise<{ duplicateGroups: string[][] }>;
     updateAndSavePhrases: (updater: (prevPhrases: Phrase[]) => Phrase[]) => void;
+    onStartPractice: (phrase: Phrase) => void;
 }
 
-const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, onDeletePhrase, onFindDuplicates, updateAndSavePhrases }) => {
+const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, onDeletePhrase, onFindDuplicates, updateAndSavePhrases, onStartPractice }) => {
     const [searchTerm, setSearchTerm] = useState('');
+    const [searchLang, setSearchLang] = useState<'ru' | 'de'>('ru');
     const [isProcessingDuplicates, setIsProcessingDuplicates] = useState(false);
     const [duplicateGroups, setDuplicateGroups] = useState<string[][]>([]);
     const [previewPhrase, setPreviewPhrase] = useState<Phrase | null>(null);
 
     const [isListening, setIsListening] = useState(false);
     const recognitionRef = useRef<SpeechRecognition | null>(null);
+    const shouldRestartRecognition = useRef(false); // Flag to control restart logic
     const searchInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (SpeechRecognitionAPI) {
             const recognition = new SpeechRecognitionAPI();
-            recognition.lang = 'ru-RU';
             recognition.continuous = true;
             recognition.interimResults = true;
 
             recognition.onstart = () => setIsListening(true);
-            recognition.onend = () => setIsListening(false);
+            
+            recognition.onend = () => {
+                setIsListening(false);
+                if (shouldRestartRecognition.current) {
+                    shouldRestartRecognition.current = false; // Reset flag
+                    try {
+                        recognition.start(); // Restart recognition
+                    } catch(e) {
+                        console.error("Error restarting recognition:", e);
+                    }
+                }
+            };
+            
             recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-                console.error('Speech recognition error:', event.error);
+                // Ignore common, non-critical errors.
+                if (event.error !== 'aborted' && event.error !== 'no-speech') {
+                  console.error('Speech recognition error:', event.error);
+                }
+                // Ensure we don't try to restart on an error condition.
+                shouldRestartRecognition.current = false;
                 setIsListening(false);
             };
+
             recognition.onresult = (event) => {
                 const transcript = Array.from(event.results)
                     .map(result => result[0].transcript)
@@ -49,28 +69,45 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
     }, []);
 
     const handleMicClick = () => {
+        if (!recognitionRef.current) return;
         if (isListening) {
-            recognitionRef.current?.stop();
+            shouldRestartRecognition.current = false; // User-initiated stop, so don't restart.
+            recognitionRef.current.stop();
         } else {
-            recognitionRef.current?.start();
+            recognitionRef.current.lang = searchLang === 'ru' ? 'ru-RU' : 'de-DE';
+            recognitionRef.current.start();
         }
     };
+    
+    const handleClearSearch = useCallback(() => {
+        setSearchTerm('');
+        if (isListening && recognitionRef.current) {
+            // Set the flag to restart and then gracefully stop the service.
+            // The `onend` handler will take care of restarting it cleanly.
+            shouldRestartRecognition.current = true;
+            recognitionRef.current.stop();
+        }
+    }, [isListening]);
 
     const filteredPhrases = useMemo(() => {
         const allDuplicateIds = new Set(duplicateGroups.flat());
         
+        let baseList = phrases;
         if (allDuplicateIds.size > 0) {
-            return phrases.filter(p => allDuplicateIds.has(p.id));
+            baseList = phrases.filter(p => allDuplicateIds.has(p.id));
         }
 
-        if (!searchTerm) return phrases;
+        const lowercasedTerm = searchTerm.toLowerCase().trim();
+        if (!lowercasedTerm) return baseList;
 
-        const lowercasedTerm = searchTerm.toLowerCase();
-        return phrases.filter(p =>
-            p.russian.toLowerCase().includes(lowercasedTerm) ||
-            p.german.toLowerCase().includes(lowercasedTerm)
-        );
-    }, [phrases, searchTerm, duplicateGroups]);
+        const searchWords = lowercasedTerm.split(/\s+/);
+
+        return baseList.filter(p => {
+            const phraseText = (searchLang === 'ru' ? p.russian : p.german).toLowerCase();
+            return searchWords.every(word => phraseText.includes(word));
+        });
+    }, [phrases, searchTerm, duplicateGroups, searchLang]);
+
 
     const { inProgress, mastered, newPhrases } = useMemo(() => {
         const inProgress: Phrase[] = [];
@@ -102,7 +139,7 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
         }
     };
 
-    const handleCleanDuplicates = () => {
+    const handleCleanDuplicates = useCallback(() => {
         if (duplicateGroups.length === 0) return;
 
         if (!window.confirm(`Найдено ${duplicateGroups.length} групп дубликатов. Удалить лишние фразы, оставив в каждой группе фразу с наибольшим прогрессом?`)) {
@@ -128,12 +165,12 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
                 });
             });
 
-            return currentPhrases.filter(p => !idsToDelete.has(p.id));
+            return currentPhrases.filter(p => p && !idsToDelete.has(p.id));
         });
 
         setDuplicateGroups([]);
         alert('Дубликаты были успешно удалены.');
-    };
+    }, [duplicateGroups, updateAndSavePhrases]);
 
     const duplicateIdSet = useMemo(() => new Set(duplicateGroups.flat()), [duplicateGroups]);
 
@@ -150,6 +187,7 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
                             onDelete={onDeletePhrase}
                             isDuplicate={duplicateIdSet.has(phrase.id)}
                             onPreview={setPreviewPhrase}
+                            onStartPractice={onStartPractice}
                         />
                     ))}
                 </ul>
@@ -170,14 +208,24 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
                             onFocus={(e) => e.target.placeholder = ''}
                             onBlur={(e) => e.target.placeholder = 'Поиск по фразам...'}
                             placeholder="Поиск по фразам..."
-                            className="w-full bg-slate-800 border border-slate-700 rounded-lg py-3 pl-4 pr-16 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
+                            className="w-full bg-slate-800 border border-slate-700 rounded-lg py-3 pl-4 pr-32 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
                         />
-                        <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                        <div className="absolute inset-y-0 right-0 flex items-center pr-3 space-x-1">
                             {searchTerm && (
-                                <button onClick={() => setSearchTerm('')} className="p-1 text-slate-400 hover:text-white">
+                                <button onClick={handleClearSearch} className="p-1 text-slate-400 hover:text-white">
                                     <XCircleIcon className="w-5 h-5" />
                                 </button>
                             )}
+                             <button 
+                                onClick={() => setSearchLang('ru')} 
+                                className={`px-2 py-0.5 text-xs font-bold rounded transition-colors ${searchLang === 'ru' ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-400'}`}>
+                                RU
+                            </button>
+                            <button 
+                                onClick={() => setSearchLang('de')} 
+                                className={`px-2 py-0.5 text-xs font-bold rounded transition-colors ${searchLang === 'de' ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-400'}`}>
+                                DE
+                            </button>
                             <button onClick={handleMicClick} className={`p-1 ${isListening ? 'text-purple-400' : 'text-slate-400 hover:text-white'}`}>
                                 <MicrophoneIcon className="w-5 h-5" />
                             </button>
@@ -219,7 +267,11 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
                     )}
                 </div>
             </div>
-            <PhrasePreviewModal phrase={previewPhrase} onClose={() => setPreviewPhrase(null)} />
+            <PhrasePreviewModal 
+              phrase={previewPhrase} 
+              onClose={() => setPreviewPhrase(null)} 
+              onStartPractice={onStartPractice}
+            />
         </>
     );
 };
