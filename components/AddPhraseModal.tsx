@@ -2,15 +2,15 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Phrase, SpeechRecognition } from '../types';
 import MicrophoneIcon from './icons/MicrophoneIcon';
 import CloseIcon from './icons/CloseIcon';
-import Spinner from './Spinner';
 import KeyboardIcon from './icons/KeyboardIcon';
 import SendIcon from './icons/SendIcon';
+import PhraseCardSkeleton from './PhraseCardSkeleton';
 
 interface AddPhraseModalProps {
   isOpen: boolean;
   onClose: () => void;
   onGenerate: (russianPhrase: string) => Promise<{ german: string; russian: string }>;
-  onPhraseCreated: (phrase: Phrase) => void;
+  onPhraseCreated: (phraseData: { german: string; russian: string; }) => void;
 }
 
 const AddPhraseModal: React.FC<AddPhraseModalProps> = ({ isOpen, onClose, onGenerate, onPhraseCreated }) => {
@@ -33,27 +33,13 @@ const AddPhraseModal: React.FC<AddPhraseModalProps> = ({ isOpen, onClose, onGene
 
     try {
       const newPhraseData = await onGenerate(trimmedText);
-      
-      const newPhrase: Phrase = {
-        ...newPhraseData,
-        id: Math.random().toString(36).substring(2, 9),
-        masteryLevel: 0,
-        lastReviewedAt: null,
-        nextReviewAt: Date.now(),
-        knowCount: 0,
-        knowStreak: 0,
-        isMastered: false,
-      };
-      
-      onPhraseCreated(newPhrase);
-      onClose();
-
+      onPhraseCreated(newPhraseData);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Не удалось создать фразу.');
-    } finally {
-      setIsLoading(false);
+      setIsLoading(false); // Stop loading on error
     }
-  }, [isLoading, onGenerate, onPhraseCreated, onClose]);
+    // `isLoading` will be reset by the parent component closing the modal.
+  }, [isLoading, onGenerate, onPhraseCreated]);
 
   useEffect(() => {
     const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -123,19 +109,19 @@ const AddPhraseModal: React.FC<AddPhraseModalProps> = ({ isOpen, onClose, onGene
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/70 z-[60] flex justify-center items-center backdrop-blur-sm p-4" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/70 z-[60] flex justify-center items-center backdrop-blur-sm p-4" onClick={isLoading ? undefined : onClose}>
       <div
-        className="relative w-full max-w-lg min-h-[24rem] bg-slate-800/80 rounded-lg shadow-2xl flex flex-col items-center justify-between p-6"
+        className="relative w-full max-w-lg min-h-[30rem] bg-slate-800/80 rounded-lg shadow-2xl flex flex-col items-center justify-between p-6"
         onClick={e => e.stopPropagation()}
       >
-        <button onClick={onClose} className="absolute top-3 right-3 p-2 rounded-full hover:bg-slate-700">
+        <button onClick={onClose} className="absolute top-3 right-3 p-2 rounded-full hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed" disabled={isLoading}>
           <CloseIcon className="w-5 h-5 text-slate-400"/>
         </button>
 
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center h-full">
-            <Spinner />
-            <p className="mt-4 text-slate-400">Создаем карточку...</p>
+          <div className="flex flex-col items-center justify-center h-full w-full">
+            <PhraseCardSkeleton />
+            <p className="mt-6 text-slate-400 text-lg">Создаем карточку...</p>
           </div>
         ) : (
           <>

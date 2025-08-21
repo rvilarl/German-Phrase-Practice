@@ -77,7 +77,7 @@ const App: React.FC = () => {
 
   const [isNounDeclensionModalOpen, setIsNounDeclensionModalOpen] = useState(false);
   const [nounDeclensionData, setNounDeclensionData] = useState<NounDeclension | null>(null);
-  const [isNounDeclensionLoading, setIsNounDeclensionLoading] = useState(false);
+  const [isNounDeclensionLoading, setIsNounDeclensionLoading] = useState<boolean>(false);
   const [nounDeclensionError, setNounDeclensionError] = useState<string | null>(null);
   const [declensionNoun, setDeclensionNoun] = useState<{ noun: string; article: string } | null>(null);
 
@@ -535,12 +535,39 @@ const handleGenerateContinuations = useCallback(
     [callApiWithFallback]
   );
 
-  const handlePhraseCreated = (newPhrase: Phrase) => {
-    // Prepend new phrase to make it feel more immediate and avoid seeing the old one first
-    updateAndSavePhrases(prev => [newPhrase, ...prev]);
-    setIsAnswerRevealed(false);
-    changePhrase(newPhrase, 'right');
+  const handlePhraseCreated = (newPhraseData: { german: string; russian: string }) => {
+    const searchGerman = newPhraseData.german.trim().toLowerCase();
+    const searchRussian = newPhraseData.russian.trim().toLowerCase();
+
+    const existingPhrase = allPhrases.find(p =>
+        p.german.trim().toLowerCase() === searchGerman ||
+        p.russian.trim().toLowerCase() === searchRussian
+    );
+
+    setIsAddPhraseModalOpen(false); // Close modal in both cases
+
+    if (existingPhrase) {
+        // Duplicate found, show the existing card
+        setIsAnswerRevealed(false);
+        changePhrase(existingPhrase, 'right');
+    } else {
+        // No duplicate, create and show the new card
+        const newPhrase: Phrase = {
+            ...newPhraseData,
+            id: Math.random().toString(36).substring(2, 9),
+            masteryLevel: 0,
+            lastReviewedAt: null,
+            nextReviewAt: Date.now(),
+            knowCount: 0,
+            knowStreak: 0,
+            isMastered: false,
+        };
+        updateAndSavePhrases(prev => [newPhrase, ...prev]);
+        setIsAnswerRevealed(false);
+        changePhrase(newPhrase, 'right');
+    }
   };
+
 
   // --- Render Logic ---
   const renderButtons = () => {
