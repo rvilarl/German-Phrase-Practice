@@ -41,17 +41,19 @@ const PhraseCard: React.FC<PhraseCardProps> = ({ phrase, onSpeak, isFlipped, onO
         className={`relative w-full h-full rounded-xl shadow-lg transition-transform duration-700 ease-in-out [transform-style:preserve-3d] ${isFlipped ? '[transform:rotateY(180deg)]' : ''}`}
       >
         {/* Front Side (Russian) */}
-        <div className="absolute inset-0 [backface-visibility:hidden] bg-gradient-to-br from-slate-700 to-slate-800 border border-slate-600 rounded-xl p-6 flex flex-col justify-between items-center text-center">
+        <div 
+            className="absolute inset-0 [backface-visibility:hidden] bg-gradient-to-br from-slate-700 to-slate-800 border border-slate-600 rounded-xl p-6 flex flex-col justify-between items-center text-center cursor-pointer"
+            onClick={handleImproveClick}
+        >
             <div className="flex-grow flex flex-col justify-center">
                 <h2 className="text-2xl font-semibold text-slate-100">{phrase.russian}</h2>
                 <p className="text-slate-400 mt-4">Вспомните перевод</p>
             </div>
-            <button
-                onClick={handleImproveClick}
-                className="text-sm px-4 py-1.5 rounded-full bg-slate-600/50 hover:bg-slate-600 transition-colors text-slate-300"
+            <div
+                className="text-sm px-4 py-1.5 rounded-full bg-slate-600/50 group-hover:bg-slate-600 transition-colors text-slate-300"
             >
-                Улучшить навык
-            </button>
+                Нажмите, чтобы перевернуть
+            </div>
         </div>
         
         {/* Back Side (German) */}
@@ -59,7 +61,7 @@ const PhraseCard: React.FC<PhraseCardProps> = ({ phrase, onSpeak, isFlipped, onO
             <div className="flex-grow flex items-center justify-center">
                 <h2 className="text-3xl font-bold text-white">{phrase.german}</h2>
             </div>
-            <div className="w-full flex justify-center items-center space-x-4">
+            <div className="w-full flex justify-center items-center flex-wrap gap-4">
                 <button
                     onClick={handleSpeak}
                     className="p-3 rounded-full bg-white/10 hover:bg-white/20 transition-colors duration-200"

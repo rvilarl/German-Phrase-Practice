@@ -1,7 +1,7 @@
 import { geminiService } from './geminiService';
 import { deepseekService } from './deepseekService';
 import { AiService } from './aiService';
-import { getGeminiApiKey, getDeepseekApiKey } from './configService';
+import { getGeminiApiKey, getDeepseekApiKey } from './env';
 
 export type ApiProviderType = 'gemini' | 'deepseek';
 

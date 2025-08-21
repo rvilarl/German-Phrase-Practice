@@ -1,7 +1,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import type { Phrase, ChatMessage, ExamplePair, ProactiveSuggestion, ContentPart, DeepDiveAnalysis } from '../types';
 import { AiService } from './aiService';
-import { getGeminiApiKey } from './configService';
+import { getGeminiApiKey } from './env';
 
 let ai: GoogleGenAI | null = null;
 

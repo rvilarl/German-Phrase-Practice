@@ -1,6 +1,6 @@
 import type { Phrase, ChatMessage, DeepDiveAnalysis, ContentPart } from '../types';
 import { AiService } from './aiService';
-import { getDeepseekApiKey } from './configService';
+import { getDeepseekApiKey } from './env';
 
 const API_URL = "https://api.deepseek.com/chat/completions";
 const model = "deepseek-chat";
