@@ -77,6 +77,54 @@ const generatePhrases: AiService['generatePhrases'] = async (prompt) => {
     }
 };
 
+const singlePhraseSchema = {
+    type: Type.OBJECT,
+    properties: {
+      german: {
+        type: Type.STRING,
+        description: 'The translated phrase in German.',
+      },
+      russian: {
+        type: Type.STRING,
+        description: 'The original phrase in Russian.',
+      },
+    },
+    required: ["german", "russian"],
+};
+
+const generateSinglePhrase: AiService['generateSinglePhrase'] = async (russianPhrase) => {
+    const api = initializeApi();
+    if (!api) throw new Error("Gemini API key not configured.");
+
+    const prompt = `Translate the following Russian phrase into a common, natural-sounding German phrase: "${russianPhrase}". Return a single JSON object with two keys: "german" for the translation, and "russian" for the original phrase.`;
+
+    try {
+        const response = await api.models.generateContent({
+            model: model,
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: singlePhraseSchema,
+                temperature: 0.5,
+            },
+        });
+        
+        const jsonText = response.text.trim();
+        const parsedPhrase = JSON.parse(jsonText);
+
+        if (typeof parsedPhrase !== 'object' || parsedPhrase === null || !('german' in parsedPhrase) || !('russian' in parsedPhrase)) {
+             throw new Error("Received malformed phrase data from API.");
+        }
+        
+        return parsedPhrase;
+    } catch (error) {
+        console.error("Error generating single phrase with Gemini:", error);
+        const errorMessage = (error as any)?.message || 'Unknown error';
+        throw new Error(`Failed to call the Gemini API: ${errorMessage}`);
+    }
+};
+
+
 const initialResponseSchema = {
     type: Type.OBJECT,
     properties: {
@@ -641,6 +689,7 @@ const healthCheck: AiService['healthCheck'] = async () => {
 
 export const geminiService: AiService = {
     generatePhrases,
+    generateSinglePhrase,
     generateInitialExamples,
     continueChat,
     generateDeepDiveAnalysis,

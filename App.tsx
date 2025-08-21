@@ -16,6 +16,8 @@ import VerbConjugationModal from './components/VerbConjugationModal';
 import NounDeclensionModal from './components/NounDeclensionModal';
 import SentenceChainModal from './components/SentenceChainModal';
 import SettingsIcon from './components/icons/SettingsIcon';
+import AddPhraseModal from './components/AddPhraseModal';
+import PlusIcon from './components/icons/PlusIcon';
 
 const PHRASES_STORAGE_KEY = 'germanPhrases';
 const SETTINGS_STORAGE_KEY = 'germanAppSettings';
@@ -81,6 +83,8 @@ const App: React.FC = () => {
 
   const [isSentenceChainModalOpen, setIsSentenceChainModalOpen] = useState(false);
   const [sentenceChainPhrase, setSentenceChainPhrase] = useState<Phrase | null>(null);
+  
+  const [isAddPhraseModalOpen, setIsAddPhraseModalOpen] = useState(false);
 
   const [apiProvider, setApiProvider] = useState<AiService | null>(null);
   const [apiProviderType, setApiProviderType] = useState<ApiProviderType | null>(null);
@@ -526,6 +530,18 @@ const handleGenerateContinuations = useCallback(
     [callApiWithFallback]
   );
 
+  const handleGenerateSinglePhrase = useCallback(
+    (russianPhrase: string) => callApiWithFallback(provider => provider.generateSinglePhrase(russianPhrase)),
+    [callApiWithFallback]
+  );
+
+  const handlePhraseCreated = (newPhrase: Phrase) => {
+    // Prepend new phrase to make it feel more immediate and avoid seeing the old one first
+    updateAndSavePhrases(prev => [newPhrase, ...prev]);
+    setIsAnswerRevealed(false);
+    changePhrase(newPhrase, 'right');
+  };
+
   // --- Render Logic ---
   const renderButtons = () => {
      if (isAnswerRevealed) {
@@ -606,6 +622,18 @@ const handleGenerateContinuations = useCallback(
       <main className="w-full flex-grow flex flex-col justify-center items-center">
         {renderContent()}
       </main>
+      
+      {!isLoading && (
+        <button
+            onClick={() => setIsAddPhraseModalOpen(true)}
+            disabled={!apiProvider}
+            className="fixed bottom-6 right-6 bg-purple-600 hover:bg-purple-700 text-white rounded-full p-4 shadow-lg transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-slate-800 z-20 disabled:opacity-50 disabled:cursor-not-allowed"
+            aria-label="Добавить новую фразу"
+        >
+            <PlusIcon className="w-6 h-6" />
+        </button>
+      )}
+
       <footer className="text-center text-slate-500 py-4 text-sm h-6">
         {isGenerating ? "Идет генерация новых фраз..." : (apiProvider ? `Powered by ${getProviderDisplayName()}`: "")}
       </footer>
@@ -669,6 +697,12 @@ const handleGenerateContinuations = useCallback(
         isLoading={isNounDeclensionLoading}
         error={nounDeclensionError}
        />}
+       {apiProvider && <AddPhraseModal 
+          isOpen={isAddPhraseModalOpen} 
+          onClose={() => setIsAddPhraseModalOpen(false)}
+          onGenerate={handleGenerateSinglePhrase}
+          onPhraseCreated={handlePhraseCreated}
+      />}
     </div>
   );
 };

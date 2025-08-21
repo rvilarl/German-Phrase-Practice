@@ -75,6 +75,26 @@ const generatePhrases: AiService['generatePhrases'] = async (prompt) => {
     return result.phrases;
 };
 
+const generateSinglePhrase: AiService['generateSinglePhrase'] = async (russianPhrase) => {
+    const schema = {
+        type: "object",
+        properties: {
+            german: { type: "string" },
+            russian: { type: "string" },
+        },
+        required: ["german", "russian"],
+    };
+
+    const prompt = `Translate the following Russian phrase into a common, natural-sounding German phrase: "${russianPhrase}". Return a single JSON object with two keys: "german" for the translation, and "russian" for the original phrase.`;
+
+    const messages = [
+        { role: "system", content: "You are a helpful assistant that translates Russian phrases to German. Respond only in JSON format." },
+        { role: "user", content: prompt }
+    ];
+
+    return await callDeepSeekApi(messages, schema);
+};
+
 
 const generateInitialExamples: AiService['generateInitialExamples'] = async (phrase) => {
      const schema = {
@@ -476,6 +496,7 @@ const healthCheck: AiService['healthCheck'] = async () => {
 
 export const deepseekService: AiService = {
     generatePhrases,
+    generateSinglePhrase,
     generateInitialExamples,
     continueChat,
     generateDeepDiveAnalysis,
