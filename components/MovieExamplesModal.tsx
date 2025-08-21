@@ -1,6 +1,5 @@
 import React from 'react';
 import type { Phrase, MovieExample } from '../types';
-import Spinner from './Spinner';
 import CloseIcon from './icons/CloseIcon';
 import FilmIcon from './icons/FilmIcon';
 import AudioPlayer from './AudioPlayer';
@@ -33,13 +32,31 @@ const HighlightedDialogue: React.FC<{ text: string; phrase: string }> = ({ text,
     );
 };
 
+const MovieExamplesSkeleton: React.FC = () => (
+    <div className="space-y-4 animate-pulse">
+        {[...Array(3)].map((_, index) => (
+            <div key={index} className="bg-slate-700/50 p-4 rounded-lg">
+                <div className="h-5 bg-slate-700 rounded w-1/2 mb-3"></div>
+                <div className="flex items-start space-x-3">
+                    <div className="w-9 h-9 bg-slate-600 rounded-full flex-shrink-0"></div>
+                    <div className="flex-1 space-y-2">
+                        <div className="h-4 bg-slate-700 rounded w-full"></div>
+                        <div className="h-4 bg-slate-700 rounded w-5/6"></div>
+                        <div className="h-3 bg-slate-600 rounded w-full mt-2"></div>
+                    </div>
+                </div>
+            </div>
+        ))}
+    </div>
+);
+
 
 const MovieExamplesModal: React.FC<MovieExamplesModalProps> = ({ isOpen, onClose, phrase, examples, isLoading, error }) => {
   if (!isOpen) return null;
 
   const renderContent = () => {
     if (isLoading) {
-      return <div className="flex flex-col justify-center items-center h-full"><Spinner /><p className="mt-4 text-slate-400">Ищем примеры в фильмах...</p></div>;
+      return <MovieExamplesSkeleton />;
     }
     if (error) {
       return <div className="flex justify-center items-center h-full"><div className="text-center bg-red-900/50 border border-red-700 text-red-300 p-4 rounded-lg"><p className="font-semibold">Ошибка</p><p className="text-sm">{error}</p></div></div>;

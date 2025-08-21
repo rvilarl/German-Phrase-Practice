@@ -4,7 +4,6 @@ import remarkGfm from 'remark-gfm';
 import { Phrase, ChatMessage, SpeechRecognition } from '../types';
 import { getCache, setCache } from '../services/cacheService';
 import { ApiProviderType } from '../services/apiProvider';
-import Spinner from './Spinner';
 import GeminiLogo from './icons/GeminiLogo';
 import DeepSeekLogo from './icons/DeepSeekLogo';
 import CloseIcon from './icons/CloseIcon';
@@ -109,6 +108,22 @@ const ChatMessageContent: React.FC<{ message: ChatMessage; onSpeak: (text: strin
     // Fallback for user messages and simple text responses
     return text ? <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown> : null;
 };
+
+const ChatSkeleton: React.FC = () => (
+    <div className="space-y-6 animate-pulse">
+        <div className="flex justify-start">
+            <div className="max-w-[85%] w-full px-4 py-3 rounded-2xl bg-slate-700 rounded-bl-lg space-y-3">
+                <div className="h-4 bg-slate-600 rounded w-5/6"></div>
+                <div className="h-4 bg-slate-600 rounded w-full"></div>
+                <div className="h-4 bg-slate-600 rounded w-3/4"></div>
+                 <div className="space-y-3 pt-3 border-t border-slate-600/50">
+                    <div className="h-5 bg-slate-600 rounded w-1/3"></div>
+                    <div className="h-4 bg-slate-600 rounded w-full"></div>
+                 </div>
+            </div>
+        </div>
+    </div>
+);
 
 
 const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, phrase, onSpeak, onGenerateInitialExamples, onContinueChat, apiProviderType }) => {
@@ -307,7 +322,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, phrase, onSpeak,
                 </div>
             )}
             {isLoading && messages.length === 0 && (
-                <div className="flex justify-center items-center h-full"><Spinner /></div>
+                <ChatSkeleton />
             )}
           </div>
           <div ref={chatEndRef} />
