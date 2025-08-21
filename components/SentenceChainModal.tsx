@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import type { Phrase, SentenceContinuation } from '../types';
-import Spinner from './Spinner';
 import CloseIcon from './icons/CloseIcon';
 import LinkIcon from './icons/LinkIcon';
 import AudioPlayer from './AudioPlayer';
@@ -14,6 +13,18 @@ interface SentenceChainModalProps {
   onGenerateContinuations: (russianPhrase: string) => Promise<SentenceContinuation>;
   onWordClick: (phrase: Phrase, word: string) => void;
 }
+
+const SkeletonLoader: React.FC = () => {
+  const widths = ['w-24', 'w-32', 'w-20', 'w-28', 'w-36', 'w-24', 'w-28', 'w-32', 'w-20'];
+  return (
+    <div className="flex flex-wrap justify-center gap-2 p-1 w-full max-w-lg animate-pulse">
+      {widths.map((width, index) => (
+        <div key={index} className={`h-8 bg-slate-700 rounded-lg ${width}`}></div>
+      ))}
+    </div>
+  );
+};
+
 
 const SentenceChainModal: React.FC<SentenceChainModalProps> = ({ isOpen, onClose, phrase, onGenerateContinuations, onWordClick }) => {
   const [history, setHistory] = useState<string[]>([]);
@@ -183,8 +194,8 @@ const SentenceChainModal: React.FC<SentenceChainModalProps> = ({ isOpen, onClose
             </div>
 
             {/* Continuations Area */}
-            <div className="flex flex-col justify-center items-center ">
-              {isLoading && <Spinner />}
+            <div className="flex flex-col justify-center items-center min-h-[120px]">
+              {isLoading && <SkeletonLoader />}
               {error && <div className="text-center bg-red-900/50 border border-red-700 text-red-300 p-3 rounded-lg"><p className="font-semibold">Ошибка</p><p className="text-sm">{error}</p></div>}
               {!isLoading && !error && (
                 continuations.length > 0 ? (
