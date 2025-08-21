@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { SpeechRecognition } from '../types';
+import { SpeechRecognition, SpeechRecognitionErrorEvent } from '../types';
 import MicrophoneIcon from './icons/MicrophoneIcon';
 import SendIcon from './icons/SendIcon';
 import CloseIcon from './icons/CloseIcon';
@@ -30,15 +30,19 @@ const AddContinuationModal: React.FC<AddContinuationModalProps> = ({ isOpen, onC
 
       recognition.onstart = () => setIsListening(true);
       recognition.onend = () => setIsListening(false);
-      recognition.onerror = (event) => {
-        // Ignore 'no-speech' and 'aborted' errors as they are normal user interactions.
-        // 'no-speech' happens on timeout, 'aborted' on manual stop.
-        // The 'onend' event will correctly handle turning off the listening state.
+      recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+        setIsListening(false); // Always stop listening state on error
+
         if (event.error === 'no-speech' || event.error === 'aborted') {
-          return;
+          return; // Common cases, not errors to display.
         }
-        console.error('Speech recognition error:', event.error);
-        setIsListening(false);
+        
+        console.error('Speech recognition error:', event.error, event.message);
+
+        // If a network or permission error occurs, switch to text mode as a graceful fallback.
+        if (event.error === 'network' || event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+          setMode('text');
+        }
       };
 
       recognition.onresult = (event) => {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Phrase, SpeechRecognition } from '../types';
+import { Phrase, SpeechRecognition, SpeechRecognitionErrorEvent } from '../types';
 import MicrophoneIcon from './icons/MicrophoneIcon';
 import CloseIcon from './icons/CloseIcon';
 import KeyboardIcon from './icons/KeyboardIcon';
@@ -51,12 +51,24 @@ const AddPhraseModal: React.FC<AddPhraseModalProps> = ({ isOpen, onClose, onGene
 
       recognition.onstart = () => setIsListening(true);
       recognition.onend = () => setIsListening(false);
-      recognition.onerror = (event) => {
-        if (event.error !== 'no-speech' && event.error !== 'aborted') {
-          console.error('Speech recognition error:', event.error);
-          setError('Ошибка распознавания речи.');
+      recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+        setIsListening(false); // Always stop listening UI on error
+        
+        if (event.error === 'no-speech' || event.error === 'aborted') {
+          return; // Not critical errors
         }
-        setIsListening(false);
+        
+        console.error('Speech recognition error:', event.error, event.message);
+
+        if (event.error === 'network') {
+          setError('Ошибка сети. Пожалуйста, проверьте соединение или введите текст вручную.');
+          setMode('text');
+        } else if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+          setError('Доступ к микрофону запрещен. Проверьте настройки и введите текст вручную.');
+          setMode('text');
+        } else {
+          setError('Произошла ошибка распознавания речи.');
+        }
       };
 
       recognition.onresult = (event) => {

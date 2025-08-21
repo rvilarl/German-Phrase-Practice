@@ -3,6 +3,7 @@ import { Phrase, ChatMessage, DeepDiveAnalysis, MovieExample, WordAnalysis, Verb
 export interface AiService {
   generatePhrases(prompt: string): Promise<Omit<Phrase, 'id'>[]>;
   generateSinglePhrase(russianPhrase: string): Promise<{ german: string; russian: string; }>;
+  improvePhrase(originalRussian: string, currentGerman: string): Promise<{ suggestedGerman: string; explanation: string }>;
   generateInitialExamples(phrase: Phrase): Promise<ChatMessage>;
   continueChat(phrase: Phrase, history: ChatMessage[], newMessage: string): Promise<ChatMessage>;
   generateDeepDiveAnalysis(phrase: Phrase): Promise<DeepDiveAnalysis>;

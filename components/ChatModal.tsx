@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Phrase, ChatMessage, SpeechRecognition } from '../types';
+import { Phrase, ChatMessage, SpeechRecognition, SpeechRecognitionErrorEvent } from '../types';
 import { getCache, setCache } from '../services/cacheService';
 import { ApiProviderType } from '../services/apiProvider';
 import GeminiLogo from './icons/GeminiLogo';
@@ -155,16 +155,14 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, phrase, onSpeak,
 
         recognition.onstart = () => setIsListening(true);
         recognition.onend = () => setIsListening(false);
-        recognition.onerror = (event) => {
+        recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
             // 'no-speech' and 'aborted' are common scenarios and not true errors.
-            // For example, 'no-speech' occurs if the user doesn't say anything.
-            // 'aborted' happens if the recognition is programmatically stopped.
-            // We let the 'onend' event handle the state cleanup in these cases.
+            // The 'onend' callback will handle UI state changes.
             if (event.error === 'no-speech' || event.error === 'aborted') {
                 return;
             }
-            console.error('Speech recognition error:', event.error);
-            setIsListening(false);
+            console.error('Speech recognition error:', event.error, event.message);
+            setIsListening(false); // Force stop listening UI on unexpected errors.
         };
         recognition.onresult = (event) => {
             const transcript = event.results[0][0].transcript;

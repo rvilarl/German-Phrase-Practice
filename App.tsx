@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Phrase, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, SentenceContinuation } from './types';
 import * as srsService from './services/srsService';
@@ -18,6 +19,7 @@ import SentenceChainModal from './components/SentenceChainModal';
 import SettingsIcon from './components/icons/SettingsIcon';
 import AddPhraseModal from './components/AddPhraseModal';
 import PlusIcon from './components/icons/PlusIcon';
+import ImprovePhraseModal from './components/ImprovePhraseModal';
 
 const PHRASES_STORAGE_KEY = 'germanPhrases';
 const SETTINGS_STORAGE_KEY = 'germanAppSettings';
@@ -71,7 +73,7 @@ const App: React.FC = () => {
 
   const [isVerbConjugationModalOpen, setIsVerbConjugationModalOpen] = useState(false);
   const [verbConjugationData, setVerbConjugationData] = useState<VerbConjugation | null>(null);
-  const [isVerbConjugationLoading, setIsVerbConjugationLoading] = useState(false);
+  const [isVerbConjugationLoading, setIsVerbConjugationLoading] = useState<boolean>(false);
   const [verbConjugationError, setVerbConjugationError] = useState<string | null>(null);
   const [conjugationVerb, setConjugationVerb] = useState<string>('');
 
@@ -85,6 +87,9 @@ const App: React.FC = () => {
   const [sentenceChainPhrase, setSentenceChainPhrase] = useState<Phrase | null>(null);
   
   const [isAddPhraseModalOpen, setIsAddPhraseModalOpen] = useState(false);
+  
+  const [isImproveModalOpen, setIsImproveModalOpen] = useState(false);
+  const [phraseToImprove, setPhraseToImprove] = useState<Phrase | null>(null);
 
   const [apiProvider, setApiProvider] = useState<AiService | null>(null);
   const [apiProviderType, setApiProviderType] = useState<ApiProviderType | null>(null);
@@ -568,6 +573,27 @@ const handleGenerateContinuations = useCallback(
     }
   };
 
+  const handleOpenImproveModal = (phrase: Phrase) => {
+    if (!apiProvider) return;
+    setPhraseToImprove(phrase);
+    setIsImproveModalOpen(true);
+  };
+
+  const handleGenerateImprovement = useCallback(
+    (originalRussian: string, currentGerman: string) => callApiWithFallback(provider => provider.improvePhrase(originalRussian, currentGerman)),
+    [callApiWithFallback]
+  );
+
+  const handlePhraseImproved = (phraseId: string, newGerman: string) => {
+    updateAndSavePhrases(prev =>
+      prev.map(p => (p.id === phraseId ? { ...p, german: newGerman } : p))
+    );
+    // Update the current phrase in state if it's the one being displayed
+    if (currentPhrase && currentPhrase.id === phraseId) {
+      setCurrentPhrase(prev => (prev ? { ...prev, german: newGerman } : null));
+    }
+  };
+
 
   // --- Render Logic ---
   const renderButtons = () => {
@@ -603,7 +629,7 @@ const handleGenerateContinuations = useCallback(
     return (
         <div className="flex flex-col items-center w-full px-2">
             <div 
-              className="w-full max-w-md h-64 relative"
+              className="w-full max-w-md min-h-64 relative"
               onTouchStart={handleTouchStart}
               onTouchMove={handleTouchMove}
               onTouchEnd={handleTouchEnd}
@@ -619,6 +645,7 @@ const handleGenerateContinuations = useCallback(
                       onOpenMovieExamples={handleOpenMovieExamples}
                       onWordClick={handleOpenWordAnalysis}
                       onOpenSentenceChain={handleOpenSentenceChain}
+                      onOpenImprovePhrase={handleOpenImproveModal}
                     />
                 </div>
             </div>
@@ -730,6 +757,13 @@ const handleGenerateContinuations = useCallback(
           onGenerate={handleGenerateSinglePhrase}
           onPhraseCreated={handlePhraseCreated}
       />}
+       {phraseToImprove && <ImprovePhraseModal
+          isOpen={isImproveModalOpen}
+          onClose={() => setIsImproveModalOpen(false)}
+          phrase={phraseToImprove}
+          onGenerateImprovement={handleGenerateImprovement}
+          onPhraseImproved={handlePhraseImproved}
+       />}
     </div>
   );
 };

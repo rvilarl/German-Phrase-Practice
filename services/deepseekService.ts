@@ -80,15 +80,51 @@ const generateSinglePhrase: AiService['generateSinglePhrase'] = async (russianPh
         type: "object",
         properties: {
             german: { type: "string" },
-            russian: { type: "string" },
         },
-        required: ["german", "russian"],
+        required: ["german"],
     };
 
-    const prompt = `Translate the following Russian phrase into a common, natural-sounding German phrase: "${russianPhrase}". Return a single JSON object with two keys: "german" for the translation, and "russian" for the original phrase.`;
+    const prompt = `Translate the following Russian phrase into a common, natural-sounding German phrase: "${russianPhrase}". Return a single JSON object with one key: "german" for the translation.`;
 
     const messages = [
         { role: "system", content: "You are a helpful assistant that translates Russian phrases to German. Respond only in JSON format." },
+        { role: "user", content: prompt }
+    ];
+
+    const parsedResult = await callDeepSeekApi(messages, schema);
+    
+    if (typeof parsedResult !== 'object' || parsedResult === null || !('german' in parsedResult) || typeof parsedResult.german !== 'string') {
+        throw new Error("Received malformed translation data from DeepSeek API.");
+    }
+    
+    return {
+        german: parsedResult.german,
+        russian: russianPhrase
+    };
+};
+
+const improvePhrase: AiService['improvePhrase'] = async (originalRussian, currentGerman) => {
+    const schema = {
+        type: "object",
+        properties: {
+            suggestedGerman: { type: "string" },
+            explanation: { type: "string" },
+        },
+        required: ["suggestedGerman", "explanation"],
+    };
+
+    const prompt = `Ты — эксперт по немецкому языку. Пользователь хочет выучить правильный и естественный немецкий.
+Исходная фраза на русском: "${originalRussian}"
+Текущий перевод на немецкий: "${currentGerman}"
+
+Твоя задача: 
+1. Проанализируй немецкий перевод на грамматическую правильность, естественность звучания и идиоматичность.
+2. Если перевод можно улучшить, предложи лучший вариант.
+3. Дай краткое и ясное объяснение на русском языке, почему твой вариант лучше.
+4. Если текущий перевод уже идеален, верни его же в 'suggestedGerman' и объясни, почему он является наилучшим вариантом.`;
+
+    const messages = [
+        { role: "system", content: "You are a German language expert. Respond only in JSON." },
         { role: "user", content: prompt }
     ];
 
@@ -497,6 +533,7 @@ const healthCheck: AiService['healthCheck'] = async () => {
 export const deepseekService: AiService = {
     generatePhrases,
     generateSinglePhrase,
+    improvePhrase,
     generateInitialExamples,
     continueChat,
     generateDeepDiveAnalysis,

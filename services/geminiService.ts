@@ -84,19 +84,15 @@ const singlePhraseSchema = {
         type: Type.STRING,
         description: 'The translated phrase in German.',
       },
-      russian: {
-        type: Type.STRING,
-        description: 'The original phrase in Russian.',
-      },
     },
-    required: ["german", "russian"],
+    required: ["german"],
 };
 
 const generateSinglePhrase: AiService['generateSinglePhrase'] = async (russianPhrase) => {
     const api = initializeApi();
     if (!api) throw new Error("Gemini API key not configured.");
 
-    const prompt = `Translate the following Russian phrase into a common, natural-sounding German phrase: "${russianPhrase}". Return a single JSON object with two keys: "german" for the translation, and "russian" for the original phrase.`;
+    const prompt = `Translate the following Russian phrase into a common, natural-sounding German phrase: "${russianPhrase}". Return a single JSON object with one key: "german" for the translation.`;
 
     try {
         const response = await api.models.generateContent({
@@ -110,15 +106,69 @@ const generateSinglePhrase: AiService['generateSinglePhrase'] = async (russianPh
         });
         
         const jsonText = response.text.trim();
-        const parsedPhrase = JSON.parse(jsonText);
+        const parsedResult = JSON.parse(jsonText);
 
-        if (typeof parsedPhrase !== 'object' || parsedPhrase === null || !('german' in parsedPhrase) || !('russian' in parsedPhrase)) {
-             throw new Error("Received malformed phrase data from API.");
+        if (typeof parsedResult !== 'object' || parsedResult === null || !('german' in parsedResult) || typeof parsedResult.german !== 'string') {
+             throw new Error("Received malformed translation data from API.");
         }
         
-        return parsedPhrase;
+        return {
+            german: parsedResult.german,
+            russian: russianPhrase,
+        };
     } catch (error) {
         console.error("Error generating single phrase with Gemini:", error);
+        const errorMessage = (error as any)?.message || 'Unknown error';
+        throw new Error(`Failed to call the Gemini API: ${errorMessage}`);
+    }
+};
+
+const improvePhraseSchema = {
+    type: Type.OBJECT,
+    properties: {
+      suggestedGerman: {
+        type: Type.STRING,
+        description: 'The improved, more natural, or grammatically correct German phrase.',
+      },
+      explanation: {
+        type: Type.STRING,
+        description: 'A concise explanation in Russian about why the suggestion is better, or why the original was already correct.',
+      },
+    },
+    required: ["suggestedGerman", "explanation"],
+};
+
+const improvePhrase: AiService['improvePhrase'] = async (originalRussian, currentGerman) => {
+    const api = initializeApi();
+    if (!api) throw new Error("Gemini API key not configured.");
+
+    const prompt = `Ты — эксперт по немецкому языку. Пользователь хочет выучить правильный и естественный немецкий.
+Исходная фраза на русском: "${originalRussian}"
+Текущий перевод на немецкий: "${currentGerman}"
+
+Твоя задача: 
+1. Проанализируй немецкий перевод на грамматическую правильность, естественность звучания и идиоматичность.
+2. Если перевод можно улучшить, предложи лучший вариант. "Лучший" означает более правильный, более употребительный или более естественный для носителя языка.
+3. Дай краткое и ясное объяснение на русском языке, почему твой вариант лучше. Например, "В данном контексте предлог 'auf' подходит лучше, чем 'in', потому что..." или "Эта формулировка более вежливая".
+4. Если текущий перевод уже идеален, верни его же в 'suggestedGerman' и объясни, почему он является наилучшим вариантом.
+
+Верни результат в виде JSON-объекта.`;
+
+    try {
+        const response = await api.models.generateContent({
+            model: model,
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: improvePhraseSchema,
+                temperature: 0.4,
+            },
+        });
+        
+        const jsonText = response.text.trim();
+        return JSON.parse(jsonText);
+    } catch (error) {
+        console.error("Error improving phrase with Gemini:", error);
         const errorMessage = (error as any)?.message || 'Unknown error';
         throw new Error(`Failed to call the Gemini API: ${errorMessage}`);
     }
@@ -690,6 +740,7 @@ const healthCheck: AiService['healthCheck'] = async () => {
 export const geminiService: AiService = {
     generatePhrases,
     generateSinglePhrase,
+    improvePhrase,
     generateInitialExamples,
     continueChat,
     generateDeepDiveAnalysis,

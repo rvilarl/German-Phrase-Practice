@@ -1,3 +1,4 @@
+
 import React from 'react';
 import type { Phrase } from '../types';
 import SoundIcon from './icons/SoundIcon';
@@ -5,6 +6,7 @@ import ChatIcon from './icons/ChatIcon';
 import AnalysisIcon from './icons/AnalysisIcon';
 import FilmIcon from './icons/FilmIcon';
 import LinkIcon from './icons/LinkIcon';
+import WandIcon from './icons/WandIcon';
 
 interface PhraseCardProps {
   phrase: Phrase;
@@ -16,9 +18,10 @@ interface PhraseCardProps {
   onOpenMovieExamples: (phrase: Phrase) => void;
   onWordClick: (phrase: Phrase, word: string) => void;
   onOpenSentenceChain: (phrase: Phrase) => void;
+  onOpenImprovePhrase: (phrase: Phrase) => void;
 }
 
-const PhraseCard: React.FC<PhraseCardProps> = ({ phrase, onSpeak, isFlipped, onOpenChat, onImproveSkill, onOpenDeepDive, onOpenMovieExamples, onWordClick, onOpenSentenceChain }) => {
+const PhraseCard: React.FC<PhraseCardProps> = ({ phrase, onSpeak, isFlipped, onOpenChat, onImproveSkill, onOpenDeepDive, onOpenMovieExamples, onWordClick, onOpenSentenceChain, onOpenImprovePhrase }) => {
 
   const handleSpeak = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -44,6 +47,11 @@ const PhraseCard: React.FC<PhraseCardProps> = ({ phrase, onSpeak, isFlipped, onO
     e.stopPropagation();
     onOpenMovieExamples(phrase);
   }
+  
+  const handleOpenImprovePhrase = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onOpenImprovePhrase(phrase);
+  }
 
   const handleWordClick = (e: React.MouseEvent, word: string) => {
     e.stopPropagation();
@@ -60,7 +68,7 @@ const PhraseCard: React.FC<PhraseCardProps> = ({ phrase, onSpeak, isFlipped, onO
   }
 
   return (
-    <div className="group [perspective:1000px] w-full max-w-md h-64">
+    <div className="group [perspective:1000px] w-full max-w-md h-full">
       <div 
         className={`relative w-full h-full rounded-xl shadow-lg transition-transform duration-700 ease-in-out [transform-style:preserve-3d] ${isFlipped ? '[transform:rotateY(180deg)]' : ''}`}
       >
@@ -82,6 +90,14 @@ const PhraseCard: React.FC<PhraseCardProps> = ({ phrase, onSpeak, isFlipped, onO
         
         {/* Back Side (German) */}
         <div className="absolute inset-0 [backface-visibility:hidden] [transform:rotateY(180deg)] bg-gradient-to-br from-purple-600 to-blue-600 border border-purple-500 rounded-xl p-6 flex flex-col justify-between items-center text-center">
+            <button
+                onClick={handleOpenImprovePhrase}
+                className="absolute top-3 right-3 p-1.5 rounded-full bg-white/10 hover:bg-white/20 transition-colors duration-200 z-10"
+                aria-label="Улучшить перевод"
+            >
+                <WandIcon className="w-5 h-5 text-white"/>
+            </button>
+
             <div className="flex-grow flex items-center justify-center">
                  <h2 className="text-3xl font-bold text-white leading-snug flex flex-wrap justify-center items-center gap-x-1.5">
                     {phrase.german.split(' ').map((word, index) => (
@@ -91,7 +107,7 @@ const PhraseCard: React.FC<PhraseCardProps> = ({ phrase, onSpeak, isFlipped, onO
                     ))}
                 </h2>
             </div>
-            <div className="w-full flex justify-center items-center flex-wrap gap-3">
+            <div className="w-full flex justify-center items-center flex-wrap gap-3 pt-4">
                 <button
                     onClick={handleSpeak}
                     className="p-2.5 rounded-full bg-white/10 hover:bg-white/20 transition-colors duration-200"
