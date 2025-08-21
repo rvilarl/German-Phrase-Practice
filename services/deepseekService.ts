@@ -1,4 +1,4 @@
-import type { Phrase, ChatMessage, DeepDiveAnalysis, ContentPart, MovieExample, WordAnalysis } from '../types';
+import type { Phrase, ChatMessage, DeepDiveAnalysis, ContentPart, MovieExample, WordAnalysis, VerbConjugation, NounDeclension } from '../types';
 import { AiService } from './aiService';
 import { getDeepseekApiKey } from './env';
 
@@ -331,6 +331,77 @@ const analyzeWordInPhrase: AiService['analyzeWordInPhrase'] = async (phrase, wor
     return await callDeepSeekApi(messages, schema);
 };
 
+const conjugateVerb: AiService['conjugateVerb'] = async (infinitive) => {
+    const schema = {
+        type: "object",
+        properties: {
+            infinitive: { type: "string" },
+            presentTense: {
+                type: "object",
+                properties: {
+                    ich: { type: "string" },
+                    du: { type: "string" },
+                    er_sie_es: { type: "string" },
+                    wir: { type: "string" },
+                    ihr: { type: "string" },
+                    sie_Sie: { type: "string" },
+                },
+                required: ["ich", "du", "er_sie_es", "wir", "ihr", "sie_Sie"],
+            }
+        },
+        required: ["infinitive", "presentTense"],
+    };
+
+    const prompt = `Предоставь спряжение немецкого глагола "${infinitive}" в настоящем времени (Präsens). Верни JSON-объект, содержащий инфинитив и формы для 'ich', 'du', 'er_sie_es', 'wir', 'ihr', 'sie_Sie'.`;
+    
+    const messages = [
+        { role: "system", content: "You are a linguistic AI assistant. Respond only in JSON." },
+        { role: "user", content: prompt }
+    ];
+
+    return await callDeepSeekApi(messages, schema);
+};
+
+const declineNoun: AiService['declineNoun'] = async (noun, article) => {
+    const schema = {
+        type: "object",
+        properties: {
+            noun: { type: "string" },
+            singular: {
+                type: "object",
+                properties: {
+                    nominativ: { type: "string" },
+                    akkusativ: { type: "string" },
+                    dativ: { type: "string" },
+                    genitiv: { type: "string" },
+                },
+                required: ["nominativ", "akkusativ", "dativ", "genitiv"],
+            },
+            plural: {
+                type: "object",
+                properties: {
+                    nominativ: { type: "string" },
+                    akkusativ: { type: "string" },
+                    dativ: { type: "string" },
+                    genitiv: { type: "string" },
+                },
+                required: ["nominativ", "akkusativ", "dativ", "genitiv"],
+            },
+        },
+        required: ["noun", "singular", "plural"],
+    };
+
+    const prompt = `Предоставь склонение немецкого существительного "${noun}" с артиклем "${article}" по всем 4 падежам (Nominativ, Akkusativ, Dativ, Genitiv) для единственного (singular) и множественного (plural) числа. Включи определенный артикль в каждую форму. Верни JSON-объект.`;
+    
+    const messages = [
+        { role: "system", content: "You are a linguistic AI assistant. Respond only in JSON." },
+        { role: "user", content: prompt }
+    ];
+
+    return await callDeepSeekApi(messages, schema);
+};
+
+
 const healthCheck: AiService['healthCheck'] = async () => {
     const apiKey = getDeepseekApiKey();
     if (!apiKey) {
@@ -372,6 +443,8 @@ export const deepseekService: AiService = {
     generateDeepDiveAnalysis,
     generateMovieExamples,
     analyzeWordInPhrase,
+    conjugateVerb,
+    declineNoun,
     healthCheck,
     getProviderName: () => "DeepSeek",
 };

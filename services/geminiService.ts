@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import type { Phrase, ChatMessage, ExamplePair, ProactiveSuggestion, ContentPart, DeepDiveAnalysis, MovieExample, WordAnalysis } from '../types';
+import type { Phrase, ChatMessage, ExamplePair, ProactiveSuggestion, ContentPart, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension } from '../types';
 import { AiService } from './aiService';
 import { getGeminiApiKey } from './env';
 
@@ -459,6 +459,109 @@ const analyzeWordInPhrase: AiService['analyzeWordInPhrase'] = async (phrase, wor
     }
 };
 
+const verbConjugationSchema = {
+    type: Type.OBJECT,
+    properties: {
+        infinitive: { type: Type.STRING },
+        presentTense: {
+            type: Type.OBJECT,
+            properties: {
+                ich: { type: Type.STRING },
+                du: { type: Type.STRING },
+                er_sie_es: { type: Type.STRING, description: "Conjugation for er/sie/es" },
+                wir: { type: Type.STRING },
+                ihr: { type: Type.STRING },
+                sie_Sie: { type: Type.STRING, description: "Conjugation for sie (plural) and Sie (formal)" },
+            },
+            required: ["ich", "du", "er_sie_es", "wir", "ihr", "sie_Sie"],
+        }
+    },
+    required: ["infinitive", "presentTense"],
+};
+
+const conjugateVerb: AiService['conjugateVerb'] = async (infinitive) => {
+    const api = initializeApi();
+    if (!api) throw new Error("Gemini API key not configured.");
+
+    const prompt = `Предоставь спряжение немецкого глагола "${infinitive}" в настоящем времени (Präsens). Верни JSON-объект, содержащий инфинитив и формы для 'ich', 'du', 'er_sie_es', 'wir', 'ihr', 'sie_Sie'.`;
+
+    try {
+        const response = await api.models.generateContent({
+            model: model,
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: verbConjugationSchema,
+                temperature: 0.2,
+            },
+        });
+        
+        const jsonText = response.text.trim();
+        return JSON.parse(jsonText) as VerbConjugation;
+
+    } catch (error) {
+        console.error("Error conjugating verb with Gemini:", error);
+        const errorMessage = (error as any)?.message || 'Unknown error';
+        throw new Error(`Failed to call the Gemini API: ${errorMessage}`);
+    }
+};
+
+const nounDeclensionSchema = {
+    type: Type.OBJECT,
+    properties: {
+        noun: { type: Type.STRING },
+        singular: {
+            type: Type.OBJECT,
+            properties: {
+                nominativ: { type: Type.STRING, description: "Singular Nominativ (e.g., 'der Tisch')" },
+                akkusativ: { type: Type.STRING, description: "Singular Akkusativ (e.g., 'den Tisch')" },
+                dativ: { type: Type.STRING, description: "Singular Dativ (e.g., 'dem Tisch')" },
+                genitiv: { type: Type.STRING, description: "Singular Genitiv (e.g., 'des Tisches')" },
+            },
+            required: ["nominativ", "akkusativ", "dativ", "genitiv"],
+        },
+        plural: {
+            type: Type.OBJECT,
+            properties: {
+                nominativ: { type: Type.STRING, description: "Plural Nominativ (e.g., 'die Tische')" },
+                akkusativ: { type: Type.STRING, description: "Plural Akkusativ (e.g., 'die Tische')" },
+                dativ: { type: Type.STRING, description: "Plural Dativ (e.g., 'den Tischen')" },
+                genitiv: { type: Type.STRING, description: "Plural Genitiv (e.g., 'der Tische')" },
+            },
+            required: ["nominativ", "akkusativ", "dativ", "genitiv"],
+        },
+    },
+    required: ["noun", "singular", "plural"],
+};
+
+const declineNoun: AiService['declineNoun'] = async (noun, article) => {
+    const api = initializeApi();
+    if (!api) throw new Error("Gemini API key not configured.");
+
+    const prompt = `Предоставь склонение немецкого существительного "${noun}" с артиклем "${article}" по всем 4 падежам (Nominativ, Akkusativ, Dativ, Genitiv) для единственного (singular) и множественного (plural) числа. Включи определенный артикль в каждую форму. Верни JSON-объект.`;
+
+    try {
+        const response = await api.models.generateContent({
+            model: model,
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: nounDeclensionSchema,
+                temperature: 0.2,
+            },
+        });
+        
+        const jsonText = response.text.trim();
+        return JSON.parse(jsonText) as NounDeclension;
+
+    } catch (error) {
+        console.error("Error declining noun with Gemini:", error);
+        const errorMessage = (error as any)?.message || 'Unknown error';
+        throw new Error(`Failed to call the Gemini API: ${errorMessage}`);
+    }
+};
+
+
 const healthCheck: AiService['healthCheck'] = async () => {
     const api = initializeApi();
     if (!api) return false;
@@ -481,6 +584,8 @@ export const geminiService: AiService = {
     generateDeepDiveAnalysis,
     generateMovieExamples,
     analyzeWordInPhrase,
+    conjugateVerb,
+    declineNoun,
     healthCheck,
     getProviderName: () => "Google Gemini",
 };

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Phrase, DeepDiveAnalysis, MovieExample, WordAnalysis } from './types';
+import { Phrase, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension } from './types';
 import * as srsService from './services/srsService';
 import * as cacheService from './services/cacheService';
 import { getProviderPriorityList, getFallbackProvider, ApiProviderType } from './services/apiProvider';
@@ -12,6 +12,8 @@ import SettingsModal from './components/SettingsModal';
 import DeepDiveModal from './components/DeepDiveModal';
 import MovieExamplesModal from './components/MovieExamplesModal';
 import WordAnalysisModal from './components/WordAnalysisModal';
+import VerbConjugationModal from './components/VerbConjugationModal';
+import NounDeclensionModal from './components/NounDeclensionModal';
 import SettingsIcon from './components/icons/SettingsIcon';
 
 const PHRASES_STORAGE_KEY = 'germanPhrases';
@@ -63,6 +65,19 @@ const App: React.FC = () => {
   const [wordAnalysis, setWordAnalysis] = useState<WordAnalysis | null>(null);
   const [isWordAnalysisLoading, setIsWordAnalysisLoading] = useState<boolean>(false);
   const [wordAnalysisError, setWordAnalysisError] = useState<string | null>(null);
+
+  const [isVerbConjugationModalOpen, setIsVerbConjugationModalOpen] = useState(false);
+  const [verbConjugationData, setVerbConjugationData] = useState<VerbConjugation | null>(null);
+  const [isVerbConjugationLoading, setIsVerbConjugationLoading] = useState(false);
+  const [verbConjugationError, setVerbConjugationError] = useState<string | null>(null);
+  const [conjugationVerb, setConjugationVerb] = useState<string>('');
+
+  const [isNounDeclensionModalOpen, setIsNounDeclensionModalOpen] = useState(false);
+  const [nounDeclensionData, setNounDeclensionData] = useState<NounDeclension | null>(null);
+  const [isNounDeclensionLoading, setIsNounDeclensionLoading] = useState(false);
+  const [nounDeclensionError, setNounDeclensionError] = useState<string | null>(null);
+  const [declensionNoun, setDeclensionNoun] = useState<{ noun: string; article: string } | null>(null);
+
 
   const [apiProvider, setApiProvider] = useState<AiService | null>(null);
   const [apiProviderType, setApiProviderType] = useState<ApiProviderType | null>(null);
@@ -431,6 +446,62 @@ const App: React.FC = () => {
     }
 }, [callApiWithFallback, apiProvider]);
 
+const handleOpenVerbConjugation = useCallback(async (infinitive: string) => {
+    if (!apiProvider) return;
+    setConjugationVerb(infinitive);
+    setIsVerbConjugationModalOpen(true);
+    setIsVerbConjugationLoading(true);
+    setVerbConjugationData(null);
+    setVerbConjugationError(null);
+
+    const cacheKey = `verb_conjugation_${infinitive}`;
+    const cachedData = cacheService.getCache<VerbConjugation>(cacheKey);
+
+    if (cachedData) {
+        setVerbConjugationData(cachedData);
+        setIsVerbConjugationLoading(false);
+        return;
+    }
+
+    try {
+        const data = await callApiWithFallback(provider => provider.conjugateVerb(infinitive));
+        setVerbConjugationData(data);
+        cacheService.setCache(cacheKey, data);
+    } catch (err) {
+        setVerbConjugationError(err instanceof Error ? err.message : 'Unknown error during conjugation generation.');
+    } finally {
+        setIsVerbConjugationLoading(false);
+    }
+}, [apiProvider, callApiWithFallback]);
+
+const handleOpenNounDeclension = useCallback(async (noun: string, article: string) => {
+    if (!apiProvider) return;
+    setDeclensionNoun({ noun, article });
+    setIsNounDeclensionModalOpen(true);
+    setIsNounDeclensionLoading(true);
+    setNounDeclensionData(null);
+    setNounDeclensionError(null);
+
+    const cacheKey = `noun_declension_${article}_${noun}`;
+    const cachedData = cacheService.getCache<NounDeclension>(cacheKey);
+
+    if (cachedData) {
+        setNounDeclensionData(cachedData);
+        setIsNounDeclensionLoading(false);
+        return;
+    }
+
+    try {
+        const data = await callApiWithFallback(provider => provider.declineNoun(noun, article));
+        setNounDeclensionData(data);
+        cacheService.setCache(cacheKey, data);
+    } catch (err) {
+        setNounDeclensionError(err instanceof Error ? err.message : 'Unknown error during declension generation.');
+    } finally {
+        setIsNounDeclensionLoading(false);
+    }
+}, [apiProvider, callApiWithFallback]);
+
   const handleGenerateInitialExamples = useCallback(
     (phrase: Phrase) => callApiWithFallback(provider => provider.generateInitialExamples(phrase)),
     [callApiWithFallback]
@@ -557,7 +628,25 @@ const App: React.FC = () => {
         analysis={wordAnalysis}
         isLoading={isWordAnalysisLoading}
         error={wordAnalysisError}
+        onOpenVerbConjugation={handleOpenVerbConjugation}
+        onOpenNounDeclension={handleOpenNounDeclension}
       />}
+      {conjugationVerb && <VerbConjugationModal
+        isOpen={isVerbConjugationModalOpen}
+        onClose={() => setIsVerbConjugationModalOpen(false)}
+        infinitive={conjugationVerb}
+        data={verbConjugationData}
+        isLoading={isVerbConjugationLoading}
+        error={verbConjugationError}
+       />}
+       {declensionNoun && <NounDeclensionModal
+        isOpen={isNounDeclensionModalOpen}
+        onClose={() => setIsNounDeclensionModalOpen(false)}
+        noun={declensionNoun.noun}
+        data={nounDeclensionData}
+        isLoading={isNounDeclensionLoading}
+        error={nounDeclensionError}
+       />}
     </div>
   );
 };

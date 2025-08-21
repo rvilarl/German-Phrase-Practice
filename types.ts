@@ -34,6 +34,35 @@ export interface WordAnalysis {
   exampleSentenceTranslation: string;
 }
 
+export interface VerbConjugation {
+  infinitive: string;
+  presentTense: {
+    ich: string;
+    du: string;
+    er_sie_es: string;
+    wir: string;
+    ihr: string;
+    sie_Sie: string;
+  };
+}
+
+export interface NounDeclension {
+  noun: string;
+  singular: {
+    nominativ: string;
+    akkusativ: string;
+    dativ: string;
+    genitiv: string;
+  };
+  plural: {
+    nominativ: string;
+    akkusativ: string;
+    dativ: string;
+    genitiv: string;
+  };
+}
+
+
 export interface ExamplePair {
   german: string;
   russian: string;

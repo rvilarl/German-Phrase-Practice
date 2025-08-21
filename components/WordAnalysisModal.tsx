@@ -3,6 +3,7 @@ import type { WordAnalysis } from '../types';
 import Spinner from './Spinner';
 import CloseIcon from './icons/CloseIcon';
 import BookOpenIcon from './icons/BookOpenIcon';
+import AudioPlayer from './AudioPlayer';
 
 interface WordAnalysisModalProps {
   isOpen: boolean;
@@ -11,9 +12,11 @@ interface WordAnalysisModalProps {
   analysis: WordAnalysis | null;
   isLoading: boolean;
   error: string | null;
+  onOpenVerbConjugation: (infinitive: string) => void;
+  onOpenNounDeclension: (noun: string, article: string) => void;
 }
 
-const WordAnalysisModal: React.FC<WordAnalysisModalProps> = ({ isOpen, onClose, word, analysis, isLoading, error }) => {
+const WordAnalysisModal: React.FC<WordAnalysisModalProps> = ({ isOpen, onClose, word, analysis, isLoading, error, onOpenVerbConjugation, onOpenNounDeclension }) => {
   if (!isOpen) return null;
 
   const renderContent = () => {
@@ -31,8 +34,11 @@ const WordAnalysisModal: React.FC<WordAnalysisModalProps> = ({ isOpen, onClose, 
       <div className="space-y-6">
         {/* Main Info */}
         <div className="text-center">
-            <h3 className="text-3xl font-bold text-slate-100">{analysis.word}</h3>
-            <p className="text-lg text-purple-300">{analysis.partOfSpeech}</p>
+            <div className="flex justify-center items-center gap-x-3">
+                <h3 className="text-3xl font-bold text-slate-100">{analysis.word}</h3>
+                <AudioPlayer textToSpeak={analysis.word} />
+            </div>
+            <p className="text-lg text-purple-300 mt-1">{analysis.partOfSpeech}</p>
         </div>
         
         <div className="bg-slate-700/50 p-4 rounded-lg">
@@ -61,9 +67,34 @@ const WordAnalysisModal: React.FC<WordAnalysisModalProps> = ({ isOpen, onClose, 
 
         {/* Example */}
         <div className="bg-slate-700/50 p-4 rounded-lg">
-             <h4 className="font-semibold text-slate-300 mb-2">Пример использования</h4>
-            <p className="text-slate-200 text-lg leading-relaxed">"{analysis.exampleSentence}"</p>
-            <p className="text-slate-400 italic mt-1">«{analysis.exampleSentenceTranslation}»</p>
+             <h4 className="font-semibold text-slate-300 mb-3">Пример использования</h4>
+             <div className="flex items-start space-x-3">
+                <AudioPlayer textToSpeak={analysis.exampleSentence} />
+                <div className="flex-1">
+                    <p className="text-slate-200 text-lg leading-relaxed">"{analysis.exampleSentence}"</p>
+                    <p className="text-slate-400 italic mt-1">«{analysis.exampleSentenceTranslation}»</p>
+                </div>
+            </div>
+        </div>
+        
+        {/* Grammar Actions */}
+        <div className="pt-2">
+            {analysis.verbDetails && (
+                <button
+                    onClick={() => onOpenVerbConjugation(analysis.verbDetails!.infinitive)}
+                    className="w-full text-center px-4 py-3 rounded-lg bg-purple-600/80 hover:bg-purple-600 transition-colors font-semibold text-white shadow-md"
+                >
+                    Спряжение глагола
+                </button>
+            )}
+            {analysis.nounDetails && (
+                <button
+                    onClick={() => onOpenNounDeclension(analysis.word, analysis.nounDetails!.article)}
+                    className="w-full text-center px-4 py-3 rounded-lg bg-purple-600/80 hover:bg-purple-600 transition-colors font-semibold text-white shadow-md"
+                >
+                    Склонение существительного
+                </button>
+            )}
         </div>
       </div>
     );
