@@ -3,6 +3,7 @@ import type { VerbConjugation } from '../types';
 import Spinner from './Spinner';
 import CloseIcon from './icons/CloseIcon';
 import TableIcon from './icons/TableIcon';
+import AudioPlayer from './AudioPlayer';
 
 interface VerbConjugationModalProps {
   isOpen: boolean;
@@ -41,6 +42,7 @@ const VerbConjugationModal: React.FC<VerbConjugationModalProps> = ({ isOpen, onC
             <table className="w-full text-left">
                 <thead>
                     <tr className="border-b border-slate-600">
+                        <th className="p-3 w-1/6"><span className="sr-only">Озвучить</span></th>
                         <th className="p-3 text-sm font-semibold text-slate-400">Местоимение</th>
                         <th className="p-3 text-sm font-semibold text-slate-400">Форма глагола</th>
                     </tr>
@@ -48,8 +50,11 @@ const VerbConjugationModal: React.FC<VerbConjugationModalProps> = ({ isOpen, onC
                 <tbody>
                     {conjugationPairs.map(pair => (
                         <tr key={pair.pronoun} className="border-b border-slate-700 last:border-b-0">
-                            <td className="p-3 text-slate-300">{pair.pronoun}</td>
-                            <td className="p-3 text-slate-100 font-medium">{pair.form}</td>
+                            <td className="p-3">
+                                <AudioPlayer textToSpeak={`${pair.pronoun} ${pair.form}`} />
+                            </td>
+                            <td className="p-3 text-slate-300 text-lg">{pair.pronoun}</td>
+                            <td className="p-3 text-slate-100 font-semibold text-lg">{pair.form}</td>
                         </tr>
                     ))}
                 </tbody>
