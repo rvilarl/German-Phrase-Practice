@@ -17,6 +17,23 @@ export interface MovieExample {
   dialogueRussian: string;
 }
 
+export interface WordAnalysis {
+  word: string;
+  partOfSpeech: string;
+  translation: string;
+  nounDetails?: {
+    article: string;
+    plural: string;
+  };
+  verbDetails?: {
+    infinitive: string;
+    tense: string;
+    person: string;
+  };
+  exampleSentence: string;
+  exampleSentenceTranslation: string;
+}
+
 export interface ExamplePair {
   german: string;
   russian: string;

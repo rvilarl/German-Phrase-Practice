@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Phrase, DeepDiveAnalysis, MovieExample } from './types';
+import { Phrase, DeepDiveAnalysis, MovieExample, WordAnalysis } from './types';
 import * as srsService from './services/srsService';
 import * as cacheService from './services/cacheService';
 import { getProviderPriorityList, getFallbackProvider, ApiProviderType } from './services/apiProvider';
@@ -11,6 +11,7 @@ import ChatModal from './components/ChatModal';
 import SettingsModal from './components/SettingsModal';
 import DeepDiveModal from './components/DeepDiveModal';
 import MovieExamplesModal from './components/MovieExamplesModal';
+import WordAnalysisModal from './components/WordAnalysisModal';
 import SettingsIcon from './components/icons/SettingsIcon';
 
 const PHRASES_STORAGE_KEY = 'germanPhrases';
@@ -55,6 +56,13 @@ const App: React.FC = () => {
   const [movieExamples, setMovieExamples] = useState<MovieExample[]>([]);
   const [isMovieExamplesLoading, setIsMovieExamplesLoading] = useState<boolean>(false);
   const [movieExamplesError, setMovieExamplesError] = useState<string | null>(null);
+
+  const [isWordAnalysisModalOpen, setIsWordAnalysisModalOpen] = useState(false);
+  const [wordAnalysisPhrase, setWordAnalysisPhrase] = useState<Phrase | null>(null);
+  const [selectedWord, setSelectedWord] = useState<string>('');
+  const [wordAnalysis, setWordAnalysis] = useState<WordAnalysis | null>(null);
+  const [isWordAnalysisLoading, setIsWordAnalysisLoading] = useState<boolean>(false);
+  const [wordAnalysisError, setWordAnalysisError] = useState<string | null>(null);
 
   const [apiProvider, setApiProvider] = useState<AiService | null>(null);
   const [apiProviderType, setApiProviderType] = useState<ApiProviderType | null>(null);
@@ -394,6 +402,35 @@ const App: React.FC = () => {
     }
   }, [callApiWithFallback, apiProvider]);
   
+  const handleOpenWordAnalysis = useCallback(async (phrase: Phrase, word: string) => {
+    if (!apiProvider) return;
+    setWordAnalysisPhrase(phrase);
+    setSelectedWord(word);
+    setIsWordAnalysisModalOpen(true);
+    setIsWordAnalysisLoading(true);
+    setWordAnalysis(null);
+    setWordAnalysisError(null);
+  
+    const cacheKey = `word_analysis_${phrase.id}_${word.toLowerCase()}`;
+    const cachedAnalysis = cacheService.getCache<WordAnalysis>(cacheKey);
+
+    if (cachedAnalysis) {
+        setWordAnalysis(cachedAnalysis);
+        setIsWordAnalysisLoading(false);
+        return;
+    }
+
+    try {
+        const analysis = await callApiWithFallback(provider => provider.analyzeWordInPhrase(phrase, word));
+        setWordAnalysis(analysis);
+        cacheService.setCache(cacheKey, analysis);
+    } catch (err) {
+        setWordAnalysisError(err instanceof Error ? err.message : 'Unknown error during word analysis.');
+    } finally {
+        setIsWordAnalysisLoading(false);
+    }
+}, [callApiWithFallback, apiProvider]);
+
   const handleGenerateInitialExamples = useCallback(
     (phrase: Phrase) => callApiWithFallback(provider => provider.generateInitialExamples(phrase)),
     [callApiWithFallback]
@@ -452,6 +489,7 @@ const App: React.FC = () => {
                       onImproveSkill={handleImproveSkill}
                       onOpenDeepDive={handleOpenDeepDive}
                       onOpenMovieExamples={handleOpenMovieExamples}
+                      onWordClick={handleOpenWordAnalysis}
                     />
                 </div>
             </div>
@@ -511,6 +549,14 @@ const App: React.FC = () => {
         examples={movieExamples}
         isLoading={isMovieExamplesLoading}
         error={movieExamplesError}
+      />}
+      {wordAnalysisPhrase && <WordAnalysisModal 
+        isOpen={isWordAnalysisModalOpen}
+        onClose={() => setIsWordAnalysisModalOpen(false)}
+        word={selectedWord}
+        analysis={wordAnalysis}
+        isLoading={isWordAnalysisLoading}
+        error={wordAnalysisError}
       />}
     </div>
   );

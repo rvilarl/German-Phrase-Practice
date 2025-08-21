@@ -1,4 +1,4 @@
-import type { Phrase, ChatMessage, DeepDiveAnalysis, ContentPart, MovieExample } from '../types';
+import type { Phrase, ChatMessage, DeepDiveAnalysis, ContentPart, MovieExample, WordAnalysis } from '../types';
 import { AiService } from './aiService';
 import { getDeepseekApiKey } from './env';
 
@@ -292,6 +292,45 @@ const generateMovieExamples: AiService['generateMovieExamples'] = async (phrase)
     return result.examples;
 };
 
+const analyzeWordInPhrase: AiService['analyzeWordInPhrase'] = async (phrase, word) => {
+    const schema = {
+        type: "object",
+        properties: {
+            word: { type: "string" },
+            partOfSpeech: { type: "string" },
+            translation: { type: "string" },
+            nounDetails: {
+                type: "object",
+                properties: { article: { type: "string" }, plural: { type: "string" } },
+            },
+            verbDetails: {
+                type: "object",
+                properties: { infinitive: { type: "string" }, tense: { type: "string" }, person: { type: "string" } },
+            },
+            exampleSentence: { type: "string" },
+            exampleSentenceTranslation: { type: "string" },
+        },
+        required: ["word", "partOfSpeech", "translation", "exampleSentence", "exampleSentenceTranslation"],
+    };
+
+     const prompt = `Проведи лингвистический анализ немецкого слова "${word}" в контексте фразы "${phrase.german}".
+Верни JSON-объект со следующей информацией:
+1.  **word**: анализируемое слово.
+2.  **partOfSpeech**: часть речи на русском (например, "Существительное", "Глагол", "Прилагательное").
+3.  **translation**: перевод слова на русский.
+4.  **nounDetails**: если слово — существительное, укажи его артикль ('article') и форму множественного числа ('plural'). Если нет, пропусти это поле.
+5.  **verbDetails**: если слово — глагол, укажи его инфинитив ('infinitive'), время ('tense') и лицо/число ('person'). Если нет, пропусти это поле.
+6.  **exampleSentence**: новое предложение-пример на немецком, использующее это слово.
+7.  **exampleSentenceTranslation**: перевод предложения-примера на русский.`;
+
+    const messages = [
+        { role: "system", content: "You are a linguistic AI assistant. Respond only in JSON." },
+        { role: "user", content: prompt }
+    ];
+
+    return await callDeepSeekApi(messages, schema);
+};
+
 const healthCheck: AiService['healthCheck'] = async () => {
     const apiKey = getDeepseekApiKey();
     if (!apiKey) {
@@ -332,6 +371,7 @@ export const deepseekService: AiService = {
     continueChat,
     generateDeepDiveAnalysis,
     generateMovieExamples,
+    analyzeWordInPhrase,
     healthCheck,
     getProviderName: () => "DeepSeek",
 };

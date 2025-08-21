@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import type { Phrase, ChatMessage, ExamplePair, ProactiveSuggestion, ContentPart, DeepDiveAnalysis, MovieExample } from '../types';
+import type { Phrase, ChatMessage, ExamplePair, ProactiveSuggestion, ContentPart, DeepDiveAnalysis, MovieExample, WordAnalysis } from '../types';
 import { AiService } from './aiService';
 import { getGeminiApiKey } from './env';
 
@@ -397,6 +397,67 @@ const generateMovieExamples: AiService['generateMovieExamples'] = async (phrase)
     }
 };
 
+const wordAnalysisSchema = {
+    type: Type.OBJECT,
+    properties: {
+        word: { type: Type.STRING },
+        partOfSpeech: { type: Type.STRING, description: 'The part of speech (e.g., "Существительное", "Глагол").' },
+        translation: { type: Type.STRING, description: 'The Russian translation of the word.' },
+        nounDetails: {
+            type: Type.OBJECT,
+            properties: {
+                article: { type: Type.STRING, description: 'The article (der, die, das).' },
+                plural: { type: Type.STRING, description: 'The plural form.' },
+            },
+        },
+        verbDetails: {
+            type: Type.OBJECT,
+            properties: {
+                infinitive: { type: Type.STRING, description: 'The infinitive form.' },
+                tense: { type: Type.STRING, description: 'The tense (e.g., "Präsens").' },
+                person: { type: Type.STRING, description: 'The person and number (e.g., "1-е лицо, ед.ч.").' },
+            },
+        },
+        exampleSentence: { type: Type.STRING, description: 'A new example sentence in German using the word.' },
+        exampleSentenceTranslation: { type: Type.STRING, description: 'The Russian translation of the example sentence.' },
+    },
+    required: ["word", "partOfSpeech", "translation", "exampleSentence", "exampleSentenceTranslation"],
+};
+
+const analyzeWordInPhrase: AiService['analyzeWordInPhrase'] = async (phrase, word) => {
+    const api = initializeApi();
+    if (!api) throw new Error("Gemini API key not configured.");
+
+    const prompt = `Проведи лингвистический анализ немецкого слова "${word}" в контексте фразы "${phrase.german}".
+Верни JSON-объект со следующей информацией:
+1.  **word**: анализируемое слово.
+2.  **partOfSpeech**: часть речи на русском (например, "Существительное", "Глагол", "Прилагательное").
+3.  **translation**: перевод слова на русский.
+4.  **nounDetails**: если слово — существительное, укажи его артикль ('article') и форму множественного числа ('plural'). Если нет, пропусти это поле.
+5.  **verbDetails**: если слово — глагол, укажи его инфинитив ('infinitive'), время ('tense') и лицо/число ('person'). Если нет, пропусти это поле.
+6.  **exampleSentence**: новое предложение-пример на немецком, использующее это слово.
+7.  **exampleSentenceTranslation**: перевод предложения-примера на русский.`;
+
+    try {
+        const response = await api.models.generateContent({
+            model: model,
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: wordAnalysisSchema,
+                temperature: 0.5,
+            },
+        });
+        
+        const jsonText = response.text.trim();
+        return JSON.parse(jsonText) as WordAnalysis;
+
+    } catch (error) {
+        console.error("Error analyzing word with Gemini:", error);
+        const errorMessage = (error as any)?.message || 'Unknown error';
+        throw new Error(`Failed to call the Gemini API: ${errorMessage}`);
+    }
+};
 
 const healthCheck: AiService['healthCheck'] = async () => {
     const api = initializeApi();
@@ -419,6 +480,7 @@ export const geminiService: AiService = {
     continueChat,
     generateDeepDiveAnalysis,
     generateMovieExamples,
+    analyzeWordInPhrase,
     healthCheck,
     getProviderName: () => "Google Gemini",
 };

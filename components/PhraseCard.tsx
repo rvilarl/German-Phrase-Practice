@@ -13,9 +13,10 @@ interface PhraseCardProps {
   onImproveSkill: () => void;
   onOpenDeepDive: (phrase: Phrase) => void;
   onOpenMovieExamples: (phrase: Phrase) => void;
+  onWordClick: (phrase: Phrase, word: string) => void;
 }
 
-const PhraseCard: React.FC<PhraseCardProps> = ({ phrase, onSpeak, isFlipped, onOpenChat, onImproveSkill, onOpenDeepDive, onOpenMovieExamples }) => {
+const PhraseCard: React.FC<PhraseCardProps> = ({ phrase, onSpeak, isFlipped, onOpenChat, onImproveSkill, onOpenDeepDive, onOpenMovieExamples, onWordClick }) => {
 
   const handleSpeak = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -42,6 +43,15 @@ const PhraseCard: React.FC<PhraseCardProps> = ({ phrase, onSpeak, isFlipped, onO
     onOpenMovieExamples(phrase);
   }
 
+  const handleWordClick = (e: React.MouseEvent, word: string) => {
+    e.stopPropagation();
+    // Basic cleaning of punctuation for analysis
+    const cleanedWord = word.replace(/[.,!?]/g, '');
+    if (cleanedWord) {
+      onWordClick(phrase, cleanedWord);
+    }
+  }
+
   return (
     <div className="group [perspective:1000px] w-full max-w-md h-64">
       <div 
@@ -66,7 +76,13 @@ const PhraseCard: React.FC<PhraseCardProps> = ({ phrase, onSpeak, isFlipped, onO
         {/* Back Side (German) */}
         <div className="absolute inset-0 [backface-visibility:hidden] [transform:rotateY(180deg)] bg-gradient-to-br from-purple-600 to-blue-600 border border-purple-500 rounded-xl p-6 flex flex-col justify-between items-center text-center">
             <div className="flex-grow flex items-center justify-center">
-                <h2 className="text-3xl font-bold text-white">{phrase.german}</h2>
+                 <h2 className="text-3xl font-bold text-white leading-snug flex flex-wrap justify-center items-center gap-x-1.5">
+                    {phrase.german.split(' ').map((word, index) => (
+                        <span key={index} onClick={(e) => handleWordClick(e, word)} className="cursor-pointer hover:bg-white/20 px-1.5 py-0.5 rounded-md transition-colors">
+                            {word}
+                        </span>
+                    ))}
+                </h2>
             </div>
             <div className="w-full flex justify-center items-center flex-wrap gap-4">
                 <button
