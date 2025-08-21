@@ -5,6 +5,8 @@ import LinkIcon from './icons/LinkIcon';
 import AudioPlayer from './AudioPlayer';
 import ArrowLeftIcon from './icons/ArrowLeftIcon';
 import * as cacheService from '../services/cacheService';
+import AddContinuationModal from './AddContinuationModal';
+import PlusIcon from './icons/PlusIcon';
 
 interface SentenceChainModalProps {
   isOpen: boolean;
@@ -32,6 +34,7 @@ const SentenceChainModal: React.FC<SentenceChainModalProps> = ({ isOpen, onClose
   const [continuations, setContinuations] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   const cacheRef = useRef<Map<string, SentenceContinuation>>(new Map());
   const apiCacheKey = `sentence_chain_api_cache_${phrase.id}`;
@@ -100,6 +103,11 @@ const SentenceChainModal: React.FC<SentenceChainModalProps> = ({ isOpen, onClose
     fetchContinuations(newRussianPhrase);
   };
   
+  const handleAddContinuation = (text: string) => {
+    handleSelectContinuation(text);
+    setIsAddModalOpen(false);
+  };
+  
   const handleBlockClick = (blockIndex: number) => {
     if (isLoading) return;
     // Clicking any block reverts the history to the state *before* that block was added.
@@ -150,74 +158,88 @@ const SentenceChainModal: React.FC<SentenceChainModalProps> = ({ isOpen, onClose
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 z-50 flex justify-center items-end" onClick={onClose}>
-      <div 
-        className={`bg-slate-800 w-full max-w-2xl h-[90%] max-h-[90vh] rounded-t-2xl shadow-2xl flex flex-col transition-transform duration-300 ease-out ${isOpen ? 'translate-y-0' : 'translate-y-full'}`}
-        onClick={e => e.stopPropagation()}
-      >
-        <header className="flex items-center justify-between p-4 border-b border-slate-700 flex-shrink-0">
-          <div className="flex items-center space-x-3">
-             <button
-                onClick={handleGoBackOneStep}
-                disabled={history.length === 0 || isLoading}
-                className="p-2 rounded-full hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed"
-                aria-label="Вернуться на шаг назад"
-            >
-                <ArrowLeftIcon className="w-6 h-6 text-slate-400" />
-            </button>
-            <div className="flex items-center space-x-2">
-                 <LinkIcon className="w-6 h-6 text-purple-400"/>
-                <h2 className="text-lg font-bold text-slate-100">Конструктор фраз</h2>
-            </div>
-          </div>
-          <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-700">
-            <CloseIcon className="w-6 h-6 text-slate-400"/>
-          </button>
-        </header>
-        
-        <div className="flex-grow p-4 overflow-y-auto hide-scrollbar">
-            {/* Phrase Display Area */}
-            <div className="bg-slate-700/50 p-3 rounded-lg mb-4 text-center">
-              <div className="mb-3 min-h-[36px]">
-                {renderPhraseBlocks()}
+    <>
+      <div className="fixed inset-0 bg-black/60 z-50 flex justify-center items-end" onClick={onClose}>
+        <div 
+          className={`bg-slate-800 w-full max-w-2xl h-[90%] max-h-[90vh] rounded-t-2xl shadow-2xl flex flex-col transition-transform duration-300 ease-out ${isOpen ? 'translate-y-0' : 'translate-y-full'}`}
+          onClick={e => e.stopPropagation()}
+        >
+          <header className="flex items-center justify-between p-4 border-b border-slate-700 flex-shrink-0">
+            <div className="flex items-center space-x-3">
+               <button
+                  onClick={handleGoBackOneStep}
+                  disabled={history.length === 0 || isLoading}
+                  className="p-2 rounded-full hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed"
+                  aria-label="Вернуться на шаг назад"
+              >
+                  <ArrowLeftIcon className="w-6 h-6 text-slate-400" />
+              </button>
+              <div className="flex items-center space-x-2">
+                   <LinkIcon className="w-6 h-6 text-purple-400"/>
+                  <h2 className="text-lg font-bold text-slate-100">Конструктор фраз</h2>
               </div>
-              <div className="flex items-center justify-center gap-x-2 border-t border-slate-600/50 pt-3">
-                <AudioPlayer textToSpeak={currentGerman} />
-                <div className="text-lg font-bold text-purple-300 text-left flex flex-wrap justify-center items-center gap-x-1">
-                    {currentGerman.split(' ').map((word, index) => (
-                        <span key={index} onClick={(e) => handleWordClick(e, word)} className="cursor-pointer hover:bg-white/20 px-1 py-0.5 rounded-md transition-colors">
-                            {word}
-                        </span>
-                    ))}
+            </div>
+            <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-700">
+              <CloseIcon className="w-6 h-6 text-slate-400"/>
+            </button>
+          </header>
+          
+          <div className="flex-grow p-4 overflow-y-auto hide-scrollbar">
+              {/* Phrase Display Area */}
+              <div className="bg-slate-700/50 p-3 rounded-lg mb-4 text-center">
+                <div className="mb-3 min-h-[36px]">
+                  {renderPhraseBlocks()}
+                </div>
+                <div className="flex items-center justify-center gap-x-2 border-t border-slate-600/50 pt-3">
+                  <AudioPlayer textToSpeak={currentGerman} />
+                  <div className="text-lg font-bold text-purple-300 text-left flex flex-wrap justify-center items-center gap-x-1">
+                      {currentGerman.split(' ').map((word, index) => (
+                          <span key={index} onClick={(e) => handleWordClick(e, word)} className="cursor-pointer hover:bg-white/20 px-1 py-0.5 rounded-md transition-colors">
+                              {word}
+                          </span>
+                      ))}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Continuations Area */}
-            <div className="flex flex-col justify-center items-center min-h-[120px]">
-              {isLoading && <SkeletonLoader />}
-              {error && <div className="text-center bg-red-900/50 border border-red-700 text-red-300 p-3 rounded-lg"><p className="font-semibold">Ошибка</p><p className="text-sm">{error}</p></div>}
-              {!isLoading && !error && (
-                continuations.length > 0 ? (
-                    <div className="flex flex-wrap justify-center gap-2 p-1">
-                        {continuations.map((cont, index) => (
-                        <button
-                            key={index}
-                            onClick={() => handleSelectContinuation(cont)}
-                            className="px-3 py-1.5 bg-slate-600/70 hover:bg-slate-600 rounded-lg transition-colors text-slate-200 text-sm font-medium"
-                        >
-                            {cont}
-                        </button>
-                        ))}
-                    </div>
-                ) : (
-                  <p className="text-center text-slate-400 text-sm p-4">Нет предложений для продолжения. Попробуйте вернуться назад.</p>
-                )
-              )}
-            </div>
+              {/* Continuations Area */}
+              <div className="flex flex-col justify-center items-center min-h-[120px]">
+                {isLoading && <SkeletonLoader />}
+                {error && <div className="text-center bg-red-900/50 border border-red-700 text-red-300 p-3 rounded-lg"><p className="font-semibold">Ошибка</p><p className="text-sm">{error}</p></div>}
+                {!isLoading && !error && (
+                  continuations.length > 0 ? (
+                      <div className="flex flex-wrap justify-center gap-2 p-1">
+                          {continuations.map((cont, index) => (
+                          <button
+                              key={index}
+                              onClick={() => handleSelectContinuation(cont)}
+                              className="px-3 py-1.5 bg-slate-600/70 hover:bg-slate-600 rounded-lg transition-colors text-slate-200 text-sm font-medium"
+                          >
+                              {cont}
+                          </button>
+                          ))}
+                      </div>
+                  ) : (
+                    <p className="text-center text-slate-400 text-sm p-4">Нет предложений для продолжения. Попробуйте вернуться назад.</p>
+                  )
+                )}
+              </div>
+          </div>
+          <button
+            onClick={() => setIsAddModalOpen(true)}
+            className="absolute bottom-6 right-6 bg-purple-600 hover:bg-purple-700 text-white rounded-full p-4 shadow-lg transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-slate-800 z-10"
+            aria-label="Добавить свой вариант"
+          >
+            <PlusIcon className="w-6 h-6" />
+          </button>
         </div>
       </div>
-    </div>
+      <AddContinuationModal 
+        isOpen={isAddModalOpen} 
+        onClose={() => setIsAddModalOpen(false)}
+        onSubmit={handleAddContinuation}
+      />
+    </>
   );
 };
 
