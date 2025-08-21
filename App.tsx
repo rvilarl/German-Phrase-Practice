@@ -20,6 +20,7 @@ import SentenceChainModal from './components/SentenceChainModal';
 import AddPhraseModal from './components/AddPhraseModal';
 import ImprovePhraseModal from './components/ImprovePhraseModal';
 import EditPhraseModal from './components/EditPhraseModal';
+import ConfirmDeleteModal from './components/ConfirmDeleteModal';
 import PlusIcon from './components/icons/PlusIcon';
 
 const PHRASES_STORAGE_KEY = 'germanPhrases';
@@ -82,6 +83,9 @@ const App: React.FC = () => {
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [phraseToEdit, setPhraseToEdit] = useState<Phrase | null>(null);
+
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [phraseToDelete, setPhraseToDelete] = useState<Phrase | null>(null);
 
   const [apiProvider, setApiProvider] = useState<AiService | null>(null);
   const [apiProviderType, setApiProviderType] = useState<ApiProviderType | null>(null);
@@ -422,10 +426,20 @@ const App: React.FC = () => {
   };
 
   const handleDeletePhrase = useCallback((phraseId: string) => {
-    if (window.confirm('Вы уверены, что хотите удалить эту фразу?')) {
-      updateAndSavePhrases(prev => prev.filter(p => p && p.id !== phraseId));
+    const phrase = allPhrases.find(p => p.id === phraseId);
+    if (phrase) {
+        setPhraseToDelete(phrase);
+        setIsDeleteModalOpen(true);
     }
-  }, [updateAndSavePhrases]);
+  }, [allPhrases]);
+
+  const handleConfirmDelete = useCallback(() => {
+    if (phraseToDelete) {
+        updateAndSavePhrases(prev => prev.filter(p => p.id !== phraseToDelete.id));
+        setIsDeleteModalOpen(false);
+        setPhraseToDelete(null);
+    }
+  }, [phraseToDelete, updateAndSavePhrases]);
 
   const handleStartPracticeWithPhrase = (phraseToPractice: Phrase) => {
     setPracticePhraseOverride(phraseToPractice);
@@ -573,6 +587,12 @@ const App: React.FC = () => {
             onTranslate={handleTranslatePhrase}
             onDiscuss={handleDiscussTranslation}
        />}
+       <ConfirmDeleteModal
+            isOpen={isDeleteModalOpen}
+            onClose={() => setIsDeleteModalOpen(false)}
+            onConfirm={handleConfirmDelete}
+            phrase={phraseToDelete}
+       />
     </div>
   );
 };
