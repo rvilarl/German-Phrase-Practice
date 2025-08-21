@@ -356,7 +356,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, phrase, onSpeak,
                   }
               }}
               placeholder={isListening ? "Слушаю..." : "Спросите что-нибудь..."}
-              className="flex-grow bg-slate-700 rounded-lg p-3 text-slate-200 resize-none max-h-32 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="flex-grow bg-slate-700 rounded-lg p-3 text-slate-200 resize-none max-h-32 min-h-12 focus:outline-none focus:ring-2 focus:ring-purple-500"
               rows={1}
               disabled={isLoading}
             />
