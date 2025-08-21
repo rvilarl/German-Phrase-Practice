@@ -49,47 +49,7 @@ const DiscussTranslationModal: React.FC<DiscussTranslationModalProps> = ({ isOpe
     const recognitionRef = useRef<SpeechRecognition | null>(null);
     const chatEndRef = useRef<HTMLDivElement>(null);
 
-    useEffect(() => {
-        if (isOpen) {
-            setMessages([]);
-            setLatestSuggestion(null);
-            setInput('');
-        }
-    }, [isOpen]);
-    
-    useEffect(() => {
-        const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (SpeechRecognitionAPI) {
-            const recognition = new SpeechRecognitionAPI();
-            recognition.lang = 'ru-RU';
-            recognition.continuous = false;
-            recognition.interimResults = false;
-            recognition.onstart = () => setIsListening(true);
-            recognition.onend = () => setIsListening(false);
-            recognition.onerror = (e: SpeechRecognitionErrorEvent) => {
-                console.error('Speech recognition error:', e.error);
-                setIsListening(false);
-            };
-            recognition.onresult = (event) => setInput(prev => (prev ? prev + ' ' : '') + event.results[0][0].transcript);
-            recognitionRef.current = recognition;
-        }
-    }, []);
-
-    const onSpeak = useCallback((text: string) => {
-        if ('speechSynthesis' in window) {
-            window.speechSynthesis.cancel();
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = 'de-DE';
-            utterance.rate = 0.9;
-            window.speechSynthesis.speak(utterance);
-        }
-    }, []);
-
-    useEffect(() => {
-        chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages]);
-
-    const handleSendMessage = async (messageText: string) => {
+    const handleSendMessage = useCallback(async (messageText: string) => {
         if (!messageText.trim() || isLoading) return;
 
         const userMessage: ChatMessage = { role: 'user', text: messageText };
@@ -114,7 +74,52 @@ const DiscussTranslationModal: React.FC<DiscussTranslationModalProps> = ({ isOpe
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [isLoading, messages, originalRussian, currentGerman, onDiscuss]);
+
+    useEffect(() => {
+        if (isOpen) {
+            setMessages([]);
+            setLatestSuggestion(null);
+            setInput('');
+        }
+    }, [isOpen]);
+    
+    useEffect(() => {
+        const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (SpeechRecognitionAPI) {
+            const recognition = new SpeechRecognitionAPI();
+            recognition.lang = 'ru-RU';
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.onstart = () => setIsListening(true);
+            recognition.onend = () => setIsListening(false);
+            recognition.onerror = (e: SpeechRecognitionErrorEvent) => {
+                console.error('Speech recognition error:', e.error);
+                setIsListening(false);
+            };
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                if (transcript.trim()) {
+                    handleSendMessage(transcript.trim());
+                }
+            };
+            recognitionRef.current = recognition;
+        }
+    }, [handleSendMessage]);
+
+    const onSpeak = useCallback((text: string) => {
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'de-DE';
+            utterance.rate = 0.9;
+            window.speechSynthesis.speak(utterance);
+        }
+    }, []);
+
+    useEffect(() => {
+        chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [messages]);
 
     const handleAccept = () => {
         if (latestSuggestion) {
@@ -182,11 +187,11 @@ const DiscussTranslationModal: React.FC<DiscussTranslationModalProps> = ({ isOpe
                             type="text"
                             value={input}
                             onChange={e => setInput(e.target.value)}
-                            placeholder="Ваш комментарий..."
+                            placeholder={isListening ? "Слушаю..." : "Ваш комментарий..."}
                             className="flex-grow bg-slate-700 rounded-lg p-3 text-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500"
                             disabled={isLoading}
                         />
-                        <button type="button" onClick={handleMicClick} className={`p-3 rounded-lg flex-shrink-0 ${isListening ? 'bg-red-600' : 'bg-slate-600'} hover:bg-slate-500`} disabled={isLoading}>
+                        <button type="button" onClick={handleMicClick} className={`p-3 rounded-lg flex-shrink-0 ${isListening ? 'bg-red-600 animate-pulse' : 'bg-slate-600'} hover:bg-slate-500`} disabled={isLoading}>
                              <MicrophoneIcon className="w-6 h-6 text-white" />
                         </button>
                         <button type="submit" disabled={!input.trim() || isLoading} className="p-3 bg-purple-600 rounded-lg hover:bg-purple-700 disabled:bg-slate-600">

@@ -81,6 +81,13 @@
     background-color: rgba(168, 85, 247, 0.2);
     animation: listening-glow-animation 2s infinite ease-in-out;
   }
+  @keyframes slow-rotate {
+    from { transform: rotateY(0deg); }
+    to { transform: rotateY(360deg); }
+  }
+  .slow-rotate-animation {
+    animation: slow-rotate 15s linear infinite;
+  }
 </style>
 </head>
   <body class="bg-slate-900">

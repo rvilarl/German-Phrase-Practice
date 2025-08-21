@@ -5,6 +5,7 @@ import MicrophoneIcon from './icons/MicrophoneIcon';
 import XCircleIcon from './icons/XCircleIcon';
 import Spinner from './Spinner';
 import DiscussTranslationModal from './DiscussTranslationModal';
+import AudioPlayer from './AudioPlayer';
 
 interface EditPhraseModalProps {
     isOpen: boolean;
@@ -71,7 +72,7 @@ const EditPhraseModal: React.FC<EditPhraseModalProps> = ({ isOpen, onClose, phra
     }, []);
 
     useEffect(() => {
-        if (debouncedRussian && debouncedRussian !== initialRussianRef.current) {
+        if (debouncedRussian && debouncedRussian.trim() && debouncedRussian !== initialRussianRef.current) {
             const getTranslation = async () => {
                 setIsLoading(true);
                 setError(null);
@@ -105,6 +106,7 @@ const EditPhraseModal: React.FC<EditPhraseModalProps> = ({ isOpen, onClose, phra
     const handleDiscussionAccept = (suggestion: { russian: string; german: string }) => {
         setRussian(suggestion.russian);
         setGerman(suggestion.german);
+        initialRussianRef.current = suggestion.russian; // Prevent re-translation
         setIsDiscussModalOpen(false);
     };
 
@@ -152,9 +154,11 @@ const EditPhraseModal: React.FC<EditPhraseModalProps> = ({ isOpen, onClose, phra
                                     type="text"
                                     value={german}
                                     readOnly
-                                    className="w-full bg-slate-900 border border-slate-700 rounded-md p-3 pr-10 text-slate-300 cursor-not-allowed"
+                                    className="w-full bg-slate-900 border border-slate-700 rounded-md p-3 pr-20 text-slate-300 cursor-not-allowed"
                                 />
-                                {isLoading && <div className="absolute inset-y-0 right-0 flex items-center pr-3"><Spinner /></div>}
+                                 <div className="absolute inset-y-0 right-0 flex items-center pr-2">
+                                    {isLoading ? <Spinner /> : german ? <AudioPlayer textToSpeak={german} /> : null}
+                                </div>
                             </div>
                         </div>
                         

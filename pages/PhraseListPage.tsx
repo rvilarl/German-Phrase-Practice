@@ -4,7 +4,7 @@ import PhraseListItem from '../components/PhraseListItem';
 import XCircleIcon from '../components/icons/XCircleIcon';
 import MicrophoneIcon from '../components/icons/MicrophoneIcon';
 import Spinner from '../components/Spinner';
-import LanguagesIcon from '../components/icons/LanguagesIcon';
+import PhrasePreviewModal from '../components/PhrasePreviewModal';
 
 interface PhraseListPageProps {
     phrases: Phrase[];
@@ -14,15 +14,13 @@ interface PhraseListPageProps {
     updateAndSavePhrases: (updater: (prevPhrases: Phrase[]) => Phrase[]) => void;
 }
 
-type RecoLang = 'ru-RU' | 'de-DE';
-
 const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, onDeletePhrase, onFindDuplicates, updateAndSavePhrases }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [isProcessingDuplicates, setIsProcessingDuplicates] = useState(false);
     const [duplicateGroups, setDuplicateGroups] = useState<string[][]>([]);
+    const [previewPhrase, setPreviewPhrase] = useState<Phrase | null>(null);
 
     const [isListening, setIsListening] = useState(false);
-    const [recognitionLang, setRecognitionLang] = useState<RecoLang>('ru-RU');
     const recognitionRef = useRef<SpeechRecognition | null>(null);
     const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -30,6 +28,7 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
         const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (SpeechRecognitionAPI) {
             const recognition = new SpeechRecognitionAPI();
+            recognition.lang = 'ru-RU';
             recognition.continuous = true;
             recognition.interimResults = true;
 
@@ -49,12 +48,6 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
         }
     }, []);
 
-    useEffect(() => {
-        if (recognitionRef.current) {
-            recognitionRef.current.lang = recognitionLang;
-        }
-    }, [recognitionLang]);
-
     const handleMicClick = () => {
         if (isListening) {
             recognitionRef.current?.stop();
@@ -63,23 +56,21 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
         }
     };
 
-    const toggleRecoLang = () => {
-        setRecognitionLang(prev => (prev === 'ru-RU' ? 'de-DE' : 'ru-RU'));
-        if (isListening) {
-            recognitionRef.current?.stop();
-            // A short delay to allow the service to stop before restarting
-            setTimeout(() => recognitionRef.current?.start(), 100);
-        }
-    };
-
     const filteredPhrases = useMemo(() => {
+        const allDuplicateIds = new Set(duplicateGroups.flat());
+        
+        if (allDuplicateIds.size > 0) {
+            return phrases.filter(p => allDuplicateIds.has(p.id));
+        }
+
         if (!searchTerm) return phrases;
+
         const lowercasedTerm = searchTerm.toLowerCase();
         return phrases.filter(p =>
             p.russian.toLowerCase().includes(lowercasedTerm) ||
             p.german.toLowerCase().includes(lowercasedTerm)
         );
-    }, [phrases, searchTerm]);
+    }, [phrases, searchTerm, duplicateGroups]);
 
     const { inProgress, mastered, newPhrases } = useMemo(() => {
         const inProgress: Phrase[] = [];
@@ -158,6 +149,7 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
                             onEdit={onEditPhrase}
                             onDelete={onDeletePhrase}
                             isDuplicate={duplicateIdSet.has(phrase.id)}
+                            onPreview={setPreviewPhrase}
                         />
                     ))}
                 </ul>
@@ -166,61 +158,69 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
     );
 
     return (
-        <div className="w-full max-w-2xl mx-auto flex flex-col pt-20 h-full">
-            <div className="flex-shrink-0 px-2 py-4">
-                <div className="relative">
-                    <input
-                        ref={searchInputRef}
-                        type="text"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        onFocus={(e) => e.target.placeholder = ''}
-                        onBlur={(e) => e.target.placeholder = 'Поиск по фразам...'}
-                        placeholder="Поиск по фразам..."
-                        className="w-full bg-slate-800 border border-slate-700 rounded-lg py-3 pl-4 pr-24 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
-                    />
-                    <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                        {searchTerm && (
-                            <button onClick={() => setSearchTerm('')} className="p-1 text-slate-400 hover:text-white">
-                                <XCircleIcon className="w-5 h-5" />
+        <>
+            <div className="w-full max-w-2xl mx-auto flex flex-col pt-20 h-full">
+                <div className="flex-shrink-0 px-2 py-4">
+                    <div className="relative">
+                        <input
+                            ref={searchInputRef}
+                            type="text"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onFocus={(e) => e.target.placeholder = ''}
+                            onBlur={(e) => e.target.placeholder = 'Поиск по фразам...'}
+                            placeholder="Поиск по фразам..."
+                            className="w-full bg-slate-800 border border-slate-700 rounded-lg py-3 pl-4 pr-16 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
+                        />
+                        <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                            {searchTerm && (
+                                <button onClick={() => setSearchTerm('')} className="p-1 text-slate-400 hover:text-white">
+                                    <XCircleIcon className="w-5 h-5" />
+                                </button>
+                            )}
+                            <button onClick={handleMicClick} className={`p-1 ${isListening ? 'text-purple-400' : 'text-slate-400 hover:text-white'}`}>
+                                <MicrophoneIcon className="w-5 h-5" />
+                            </button>
+                        </div>
+                    </div>
+                     <div className="flex justify-end space-x-2 mt-2">
+                        {duplicateGroups.length > 0 ? (
+                             <>
+                                <button
+                                    onClick={() => setDuplicateGroups([])}
+                                    className="px-3 py-1.5 text-sm bg-slate-600 hover:bg-slate-700 text-white font-semibold rounded-md transition-colors"
+                                >
+                                    Отмена
+                                </button>
+                                <button
+                                    onClick={handleCleanDuplicates}
+                                    className="px-3 py-1.5 text-sm bg-green-600 hover:bg-green-700 text-white font-semibold rounded-md transition-colors"
+                                >
+                                    Очистить дубликаты ({duplicateGroups.length})
+                                </button>
+                             </>
+                        ) : (
+                            <button
+                                onClick={handleFindDuplicates}
+                                disabled={isProcessingDuplicates}
+                                className="px-3 py-1.5 text-sm bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-md transition-colors disabled:opacity-50"
+                            >
+                                {isProcessingDuplicates ? <Spinner /> : 'Найти дубликаты'}
                             </button>
                         )}
-                        <button
-                            onClick={toggleRecoLang}
-                            className="p-2 text-slate-400 hover:text-white transition-colors"
-                            aria-label={`Язык ввода: ${recognitionLang === 'ru-RU' ? 'Русский' : 'Немецкий'}`}
-                        >
-                            <span className="font-bold text-sm">{recognitionLang === 'ru-RU' ? 'RU' : 'DE'}</span>
-                        </button>
-                        <button onClick={handleMicClick} className={`p-1 ${isListening ? 'text-purple-400' : 'text-slate-400 hover:text-white'}`}>
-                            <MicrophoneIcon className="w-5 h-5" />
-                        </button>
                     </div>
                 </div>
-                 <div className="flex justify-end space-x-2 mt-2">
-                    {duplicateGroups.length > 0 && (
-                        <button
-                            onClick={handleCleanDuplicates}
-                            className="px-3 py-1.5 text-sm bg-green-600 hover:bg-green-700 text-white font-semibold rounded-md transition-colors"
-                        >
-                            Очистить дубликаты ({duplicateGroups.length})
-                        </button>
+                <div className="flex-grow overflow-y-auto px-2 pb-6">
+                    {renderSection('В процессе', inProgress)}
+                    {renderSection('Освоенные', mastered)}
+                    {renderSection('Новые', newPhrases)}
+                    {filteredPhrases.length === 0 && searchTerm && (
+                        <p className="text-center text-slate-400 mt-8">Фразы не найдены.</p>
                     )}
-                    <button
-                        onClick={handleFindDuplicates}
-                        disabled={isProcessingDuplicates}
-                        className="px-3 py-1.5 text-sm bg-slate-600 hover:bg-slate-700 text-white font-semibold rounded-md transition-colors disabled:opacity-50"
-                    >
-                        {isProcessingDuplicates ? <Spinner /> : 'Найти дубликаты'}
-                    </button>
                 </div>
             </div>
-            <div className="flex-grow overflow-y-auto px-2 pb-6">
-                {renderSection('В процессе', inProgress)}
-                {renderSection('Освоенные', mastered)}
-                {renderSection('Новые', newPhrases)}
-            </div>
-        </div>
+            <PhrasePreviewModal phrase={previewPhrase} onClose={() => setPreviewPhrase(null)} />
+        </>
     );
 };
 

@@ -10,11 +10,26 @@ interface PhraseListItemProps {
     onEdit: (phrase: Phrase) => void;
     onDelete: (phraseId: string) => void;
     isDuplicate: boolean;
+    onPreview: (phrase: Phrase) => void;
 }
 
-const PhraseListItem: React.FC<PhraseListItemProps> = ({ phrase, onEdit, onDelete, isDuplicate }) => {
+const PhraseListItem: React.FC<PhraseListItemProps> = ({ phrase, onEdit, onDelete, isDuplicate, onPreview }) => {
+    
+    const handleEditClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        onEdit(phrase);
+    };
+
+    const handleDeleteClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        onDelete(phrase.id);
+    };
+
     return (
-        <li className={`bg-slate-800/70 p-4 rounded-lg flex items-center space-x-4 ${isDuplicate ? 'ring-2 ring-yellow-500' : ''}`}>
+        <li 
+            className={`bg-slate-800/70 p-4 rounded-lg flex items-center space-x-4 cursor-pointer hover:bg-slate-700/70 transition-colors duration-200 ${isDuplicate ? 'ring-2 ring-yellow-500' : ''}`}
+            onClick={() => onPreview(phrase)}
+        >
             <div className="flex-grow">
                 <p className="font-semibold text-slate-100">{phrase.russian}</p>
                 <p className="text-sm text-slate-400">{phrase.german}</p>
@@ -24,14 +39,14 @@ const PhraseListItem: React.FC<PhraseListItemProps> = ({ phrase, onEdit, onDelet
             </div>
             <div className="flex-shrink-0 flex items-center space-x-2">
                 <button 
-                    onClick={() => onEdit(phrase)} 
+                    onClick={handleEditClick} 
                     className="p-2 text-slate-400 hover:text-blue-400 transition-colors"
                     aria-label="Редактировать фразу"
                 >
                     <PencilIcon className="w-5 h-5" />
                 </button>
                 <button 
-                    onClick={() => onDelete(phrase.id)} 
+                    onClick={handleDeleteClick} 
                     className="p-2 text-slate-400 hover:text-red-400 transition-colors"
                     aria-label="Удалить фразу"
                 >

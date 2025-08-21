@@ -29,7 +29,6 @@ const AddPhraseModal: React.FC<AddPhraseModalProps> = ({ isOpen, onClose, onGene
 
     setIsLoading(true);
     setError(null);
-    recognitionRef.current?.stop();
 
     try {
       const newPhraseData = await onGenerate(trimmedText);
