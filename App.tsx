@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Phrase, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension } from './types';
+import { Phrase, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, SentenceContinuation } from './types';
 import * as srsService from './services/srsService';
 import * as cacheService from './services/cacheService';
 import { getProviderPriorityList, getFallbackProvider, ApiProviderType } from './services/apiProvider';
@@ -14,6 +14,7 @@ import MovieExamplesModal from './components/MovieExamplesModal';
 import WordAnalysisModal from './components/WordAnalysisModal';
 import VerbConjugationModal from './components/VerbConjugationModal';
 import NounDeclensionModal from './components/NounDeclensionModal';
+import SentenceChainModal from './components/SentenceChainModal';
 import SettingsIcon from './components/icons/SettingsIcon';
 
 const PHRASES_STORAGE_KEY = 'germanPhrases';
@@ -78,6 +79,8 @@ const App: React.FC = () => {
   const [nounDeclensionError, setNounDeclensionError] = useState<string | null>(null);
   const [declensionNoun, setDeclensionNoun] = useState<{ noun: string; article: string } | null>(null);
 
+  const [isSentenceChainModalOpen, setIsSentenceChainModalOpen] = useState(false);
+  const [sentenceChainPhrase, setSentenceChainPhrase] = useState<Phrase | null>(null);
 
   const [apiProvider, setApiProvider] = useState<AiService | null>(null);
   const [apiProviderType, setApiProviderType] = useState<ApiProviderType | null>(null);
@@ -502,6 +505,17 @@ const handleOpenNounDeclension = useCallback(async (noun: string, article: strin
     }
 }, [apiProvider, callApiWithFallback]);
 
+const handleOpenSentenceChain = (phrase: Phrase) => {
+    if (!apiProvider) return;
+    setSentenceChainPhrase(phrase);
+    setIsSentenceChainModalOpen(true);
+};
+
+const handleGenerateContinuations = useCallback(
+    (russianPhrase: string) => callApiWithFallback(provider => provider.generateSentenceContinuations(russianPhrase)),
+    [callApiWithFallback]
+);
+
   const handleGenerateInitialExamples = useCallback(
     (phrase: Phrase) => callApiWithFallback(provider => provider.generateInitialExamples(phrase)),
     [callApiWithFallback]
@@ -561,6 +575,7 @@ const handleOpenNounDeclension = useCallback(async (noun: string, article: strin
                       onOpenDeepDive={handleOpenDeepDive}
                       onOpenMovieExamples={handleOpenMovieExamples}
                       onWordClick={handleOpenWordAnalysis}
+                      onOpenSentenceChain={handleOpenSentenceChain}
                     />
                 </div>
             </div>
@@ -647,6 +662,12 @@ const handleOpenNounDeclension = useCallback(async (noun: string, article: strin
         isLoading={isNounDeclensionLoading}
         error={nounDeclensionError}
        />}
+       {sentenceChainPhrase && <SentenceChainModal
+        isOpen={isSentenceChainModalOpen}
+        onClose={() => setIsSentenceChainModalOpen(false)}
+        phrase={sentenceChainPhrase}
+        onGenerateContinuations={handleGenerateContinuations}
+        />}
     </div>
   );
 };

@@ -62,6 +62,11 @@ export interface NounDeclension {
   };
 }
 
+export interface SentenceContinuation {
+  german: string;
+  continuations: string[];
+}
+
 
 export interface ExamplePair {
   german: string;

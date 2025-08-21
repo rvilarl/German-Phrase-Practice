@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import type { Phrase, ChatMessage, ExamplePair, ProactiveSuggestion, ContentPart, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension } from '../types';
+import type { Phrase, ChatMessage, ExamplePair, ProactiveSuggestion, ContentPart, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, SentenceContinuation } from '../types';
 import { AiService } from './aiService';
 import { getGeminiApiKey } from './env';
 
@@ -561,6 +561,56 @@ const declineNoun: AiService['declineNoun'] = async (noun, article) => {
     }
 };
 
+const sentenceContinuationSchema = {
+    type: Type.OBJECT,
+    properties: {
+        german: {
+            type: Type.STRING,
+            description: "The correct German translation of the provided Russian phrase."
+        },
+        continuations: {
+            type: Type.ARRAY,
+            description: "An array of 3 to 5 short, logical, and diverse continuation options in Russian for the given phrase. These should be clean words or phrases without any leading punctuation or connectors.",
+            items: {
+                type: Type.STRING
+            }
+        }
+    },
+    required: ["german", "continuations"]
+};
+
+const generateSentenceContinuations: AiService['generateSentenceContinuations'] = async (russianPhrase) => {
+    const api = initializeApi();
+    if (!api) throw new Error("Gemini API key not configured.");
+
+    const prompt = `Пользователь строит фразу на русском языке. Текущая фраза: "${russianPhrase}".
+Твоя задача:
+1.  **german**: Переведи эту русскую фразу на немецкий язык. Убедись, что грамматика и знаки препинания корректны.
+2.  **continuations**: Придумай от 3 до 5 разнообразных, коротких и логичных вариантов продолжения для этой русской фразы. Варианты должны быть на русском языке. Это должны быть "чистые" слова или короткие фразы без знаков препинания или соединителей в начале (например, "пожалуйста", "еще раз", "если вам не трудно").
+
+Верни результат в виде JSON-объекта, соответствующего схеме.`;
+
+    try {
+        const response = await api.models.generateContent({
+            model: model,
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: sentenceContinuationSchema,
+                temperature: 0.8,
+            },
+        });
+
+        const jsonText = response.text.trim();
+        return JSON.parse(jsonText) as SentenceContinuation;
+
+    } catch (error) {
+        console.error("Error generating sentence continuations with Gemini:", error);
+        const errorMessage = (error as any)?.message || 'Unknown error';
+        throw new Error(`Failed to call the Gemini API: ${errorMessage}`);
+    }
+};
+
 
 const healthCheck: AiService['healthCheck'] = async () => {
     const api = initializeApi();
@@ -586,6 +636,7 @@ export const geminiService: AiService = {
     analyzeWordInPhrase,
     conjugateVerb,
     declineNoun,
+    generateSentenceContinuations,
     healthCheck,
     getProviderName: () => "Google Gemini",
 };

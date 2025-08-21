@@ -1,4 +1,4 @@
-import type { Phrase, ChatMessage, DeepDiveAnalysis, ContentPart, MovieExample, WordAnalysis, VerbConjugation, NounDeclension } from '../types';
+import type { Phrase, ChatMessage, DeepDiveAnalysis, ContentPart, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, SentenceContinuation } from '../types';
 import { AiService } from './aiService';
 import { getDeepseekApiKey } from './env';
 
@@ -401,6 +401,32 @@ const declineNoun: AiService['declineNoun'] = async (noun, article) => {
     return await callDeepSeekApi(messages, schema);
 };
 
+const generateSentenceContinuations: AiService['generateSentenceContinuations'] = async (russianPhrase) => {
+    const schema = {
+        type: "object",
+        properties: {
+            german: { type: "string" },
+            continuations: {
+                type: "array",
+                items: { type: "string" }
+            }
+        },
+        required: ["german", "continuations"]
+    };
+
+    const prompt = `Пользователь строит фразу на русском языке. Текущая фраза: "${russianPhrase}".
+Твоя задача:
+1.  **german**: Переведи эту русскую фразу на немецкий язык. Убедись, что грамматика и знаки препинания корректны.
+2.  **continuations**: Придумай от 3 до 5 разнообразных, коротких и логичных вариантов продолжения для этой русской фразы. Варианты должны быть на русском языке. Это должны быть "чистые" слова или короткие фразы без знаков препинания или соединителей в начале (например, "пожалуйста", "еще раз", "если вам не трудно").`;
+    
+    const messages = [
+        { role: "system", content: "You are an AI assistant for German language learning that generates sentence continuations. Respond only in JSON." },
+        { role: "user", content: prompt }
+    ];
+    
+    return await callDeepSeekApi(messages, schema);
+};
+
 
 const healthCheck: AiService['healthCheck'] = async () => {
     const apiKey = getDeepseekApiKey();
@@ -445,6 +471,7 @@ export const deepseekService: AiService = {
     analyzeWordInPhrase,
     conjugateVerb,
     declineNoun,
+    generateSentenceContinuations,
     healthCheck,
     getProviderName: () => "DeepSeek",
 };

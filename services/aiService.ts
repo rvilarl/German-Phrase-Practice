@@ -1,4 +1,4 @@
-import { Phrase, ChatMessage, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension } from '../types';
+import { Phrase, ChatMessage, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, SentenceContinuation } from '../types';
 
 export interface AiService {
   generatePhrases(prompt: string): Promise<Omit<Phrase, 'id'>[]>;
@@ -9,6 +9,7 @@ export interface AiService {
   analyzeWordInPhrase(phrase: Phrase, word: string): Promise<WordAnalysis>;
   conjugateVerb(infinitive: string): Promise<VerbConjugation>;
   declineNoun(noun: string, article: string): Promise<NounDeclension>;
+  generateSentenceContinuations(russianPhrase: string): Promise<SentenceContinuation>;
   healthCheck(): Promise<boolean>;
   getProviderName(): string;
 }
