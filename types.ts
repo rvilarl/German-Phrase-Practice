@@ -163,3 +163,22 @@ declare global {
 declare var SpeechRecognition: {
   new (): SpeechRecognition;
 };
+
+
+// Types for translation editing flow
+export interface TranslationChatRequest {
+    originalRussian: string;
+    currentGerman: string;
+    history: ChatMessage[];
+    userRequest: string;
+}
+
+export interface TranslationChatResponse {
+    role: 'model';
+    contentParts: ContentPart[];
+    suggestion?: {
+        russian: string;
+        german: string;
+    };
+    promptSuggestions: string[];
+}

@@ -1,4 +1,4 @@
-import type { Phrase, ChatMessage, DeepDiveAnalysis, ContentPart, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, SentenceContinuation } from '../types';
+import type { Phrase, ChatMessage, DeepDiveAnalysis, ContentPart, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, SentenceContinuation, TranslationChatRequest, TranslationChatResponse } from '../types';
 import { AiService } from './aiService';
 import { getDeepseekApiKey } from './env';
 
@@ -11,7 +11,6 @@ const callDeepSeekApi = async (messages: any[], schema: object) => {
         throw new Error("DEEPSEEK_API_KEY environment variable not set for DeepSeek");
     }
 
-    // Add schema instruction to the last user message
     let lastUserMessageIndex = -1;
     for (let i = messages.length - 1; i >= 0; i--) {
         if (messages[i].role === 'user') {
@@ -23,7 +22,6 @@ const callDeepSeekApi = async (messages: any[], schema: object) => {
     if (lastUserMessageIndex !== -1) {
         messages[lastUserMessageIndex].content += `\n\nALWAYS respond with a valid JSON object matching this schema:\n${JSON.stringify(schema, null, 2)}`;
     } else {
-        // Fallback if no user message, though unlikely
         messages.push({ role: 'user', content: `Respond in JSON matching this schema:\n${JSON.stringify(schema, null, 2)}`})
     }
     
@@ -69,7 +67,6 @@ const generatePhrases: AiService['generatePhrases'] = async (prompt) => {
         { role: "user", content: prompt }
     ];
 
-    // Deepseek needs the response to be an object, so we wrap the array
     const responseSchema = { phrases: schema };
     const result = await callDeepSeekApi(messages, responseSchema);
     return result.phrases;
@@ -102,6 +99,22 @@ const generateSinglePhrase: AiService['generateSinglePhrase'] = async (russianPh
         russian: russianPhrase
     };
 };
+
+const translatePhrase: AiService['translatePhrase'] = async (russianPhrase) => {
+    const schema = {
+        type: "object",
+        properties: { german: { type: "string" } },
+        required: ["german"],
+    };
+    const prompt = `Translate this Russian phrase to German: "${russianPhrase}"`;
+    const messages = [
+        { role: "system", content: "You translate Russian to German. Respond only in JSON." },
+        { role: "user", content: prompt }
+    ];
+    const result = await callDeepSeekApi(messages, schema);
+    return { german: result.german };
+};
+
 
 const improvePhrase: AiService['improvePhrase'] = async (originalRussian, currentGerman) => {
     const schema = {
@@ -260,6 +273,17 @@ const continueChat: AiService['continueChat'] = async (phrase, history, newMessa
     };
 };
 
+const discussTranslation: AiService['discussTranslation'] = async (request) => {
+    // This is a complex prompt logic that would need careful adaptation for DeepSeek.
+    // For now, returning a placeholder.
+    console.warn("discussTranslation is not fully implemented for DeepSeek yet.");
+    return Promise.resolve({
+        role: 'model',
+        contentParts: [{ type: 'text', text: 'This feature is currently better supported by the Gemini provider.' }],
+        promptSuggestions: [],
+    });
+};
+
 const generateDeepDiveAnalysis: AiService['generateDeepDiveAnalysis'] = async (phrase) => {
     const schema = {
         type: "object",
@@ -342,7 +366,6 @@ const generateMovieExamples: AiService['generateMovieExamples'] = async (phrase)
         { role: "user", content: prompt }
     ];
     
-    // Deepseek needs the response to be an object, so we wrap the array
     const responseSchema = { examples: schema };
     const result = await callDeepSeekApi(messages, responseSchema);
     return result.examples;
@@ -495,6 +518,11 @@ const generateSentenceContinuations: AiService['generateSentenceContinuations'] 
     return await callDeepSeekApi(messages, schema);
 };
 
+const findDuplicatePhrases: AiService['findDuplicatePhrases'] = async (phrases) => {
+    console.warn("findDuplicatePhrases is not implemented for DeepSeek yet.");
+    return Promise.resolve({ duplicateGroups: [] });
+};
+
 
 const healthCheck: AiService['healthCheck'] = async () => {
     const apiKey = getDeepseekApiKey();
@@ -533,15 +561,18 @@ const healthCheck: AiService['healthCheck'] = async () => {
 export const deepseekService: AiService = {
     generatePhrases,
     generateSinglePhrase,
+    translatePhrase,
     improvePhrase,
     generateInitialExamples,
     continueChat,
+    discussTranslation,
     generateDeepDiveAnalysis,
     generateMovieExamples,
     analyzeWordInPhrase,
     conjugateVerb,
     declineNoun,
     generateSentenceContinuations,
+    findDuplicatePhrases,
     healthCheck,
     getProviderName: () => "DeepSeek",
 };

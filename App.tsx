@@ -1,13 +1,14 @@
-
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Phrase, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, SentenceContinuation } from './types';
 import * as srsService from './services/srsService';
 import * as cacheService from './services/cacheService';
 import { getProviderPriorityList, getFallbackProvider, ApiProviderType } from './services/apiProvider';
 import { AiService } from './services/aiService';
 import { initialPhrases as defaultPhrases } from './data/initialPhrases';
-import PhraseCard from './components/PhraseCard';
-import Spinner from './components/Spinner';
+
+import Header from './components/Header';
+import PracticePage from './pages/PracticePage';
+import PhraseListPage from './pages/PhraseListPage';
 import ChatModal from './components/ChatModal';
 import SettingsModal from './components/SettingsModal';
 import DeepDiveModal from './components/DeepDiveModal';
@@ -16,35 +17,22 @@ import WordAnalysisModal from './components/WordAnalysisModal';
 import VerbConjugationModal from './components/VerbConjugationModal';
 import NounDeclensionModal from './components/NounDeclensionModal';
 import SentenceChainModal from './components/SentenceChainModal';
-import SettingsIcon from './components/icons/SettingsIcon';
 import AddPhraseModal from './components/AddPhraseModal';
-import PlusIcon from './components/icons/PlusIcon';
 import ImprovePhraseModal from './components/ImprovePhraseModal';
+import EditPhraseModal from './components/EditPhraseModal';
+import PlusIcon from './components/icons/PlusIcon';
 
 const PHRASES_STORAGE_KEY = 'germanPhrases';
 const SETTINGS_STORAGE_KEY = 'germanAppSettings';
-const ACTIVE_POOL_TARGET = 10;
-const POOL_FETCH_THRESHOLD = 7; 
-const PHRASES_TO_FETCH = 5; 
-const SWIPE_THRESHOLD = 50; // pixels
 
-type AnimationDirection = 'left' | 'right';
-interface AnimationState {
-  key: string;
-  direction: AnimationDirection;
-}
+type View = 'practice' | 'list';
 
 const App: React.FC = () => {
   const [allPhrases, setAllPhrases] = useState<Phrase[]>([]);
-  const [currentPhrase, setCurrentPhrase] = useState<Phrase | null>(null);
-  const [isAnswerRevealed, setIsAnswerRevealed] = useState(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
-  const [isExiting, setIsExiting] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  
-  const [animationState, setAnimationState] = useState<AnimationState>({ key: '', direction: 'right' });
-  const [cardHistory, setCardHistory] = useState<string[]>([]);
+  const [view, setView] = useState<View>('practice');
   
   const [isChatModalOpen, setIsChatModalOpen] = useState(false);
   const [chatContextPhrase, setChatContextPhrase] = useState<Phrase | null>(null);
@@ -91,18 +79,17 @@ const App: React.FC = () => {
   const [isImproveModalOpen, setIsImproveModalOpen] = useState(false);
   const [phraseToImprove, setPhraseToImprove] = useState<Phrase | null>(null);
 
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [phraseToEdit, setPhraseToEdit] = useState<Phrase | null>(null);
+
   const [apiProvider, setApiProvider] = useState<AiService | null>(null);
   const [apiProviderType, setApiProviderType] = useState<ApiProviderType | null>(null);
-
-  const touchStartRef = useRef<number | null>(null);
-  const touchMoveRef = useRef<number | null>(null);
 
   useEffect(() => {
     const initializeApp = async () => {
         setIsLoading(true);
         setError(null);
 
-        // 1. Health check and select provider
         const providerList = getProviderPriorityList();
         let activeProvider: AiService | null = null;
         let activeProviderType: ApiProviderType | null = null;
@@ -111,13 +98,11 @@ const App: React.FC = () => {
             setError("No AI provider configured. Please check your API keys.");
         } else {
             for (const providerInfo of providerList) {
-                console.log(`Performing health check for ${providerInfo.type}...`);
                 const isHealthy = await providerInfo.provider.healthCheck();
                 if (isHealthy) {
-                    console.log(`✅ ${providerInfo.type} is healthy. Setting as active provider.`);
                     activeProvider = providerInfo.provider;
                     activeProviderType = providerInfo.type;
-                    break; // Found a working provider
+                    break; 
                 }
             }
         }
@@ -129,17 +114,11 @@ const App: React.FC = () => {
             setError("AI features are temporarily unavailable. All configured providers failed health checks.");
         }
 
-        // 2. Load settings
         try {
             const storedSettings = localStorage.getItem(SETTINGS_STORAGE_KEY);
-            if (storedSettings) {
-                setSettings(JSON.parse(storedSettings));
-            }
-        } catch (e) {
-            console.error("Failed to load settings", e);
-        }
+            if (storedSettings) setSettings(JSON.parse(storedSettings));
+        } catch (e) { console.error("Failed to load settings", e); }
 
-        // 3. Load phrases
         let loadedPhrases: Phrase[] = [];
         try {
             const storedPhrases = localStorage.getItem(PHRASES_STORAGE_KEY);
@@ -150,12 +129,11 @@ const App: React.FC = () => {
                     id: p.id ?? Math.random().toString(36).substring(2, 9),
                     knowCount: p.knowCount ?? 0,
                     knowStreak: p.knowStreak ?? 0,
+                    lastReviewedAt: p.lastReviewedAt ?? null,
                     isMastered: p.isMastered ?? srsService.isPhraseMastered(p),
                 }));
             }
-        } catch (e) {
-            console.error("Failed to load or parse phrases from storage", e);
-        }
+        } catch (e) { console.error("Failed to load or parse phrases from storage", e); }
 
         if (loadedPhrases.length === 0) {
             loadedPhrases = defaultPhrases.map(p => ({
@@ -172,13 +150,10 @@ const App: React.FC = () => {
   }, []);
 
 
-  // --- API Call with Fallback ---
   const callApiWithFallback = useCallback(async <T,>(
     apiCall: (provider: AiService) => Promise<T>
   ): Promise<T> => {
-    if (!apiProvider || !apiProviderType) {
-        throw new Error("AI provider not initialized.");
-    }
+    if (!apiProvider || !apiProviderType) throw new Error("AI provider not initialized.");
     try {
         return await apiCall(apiProvider);
     } catch (primaryError) {
@@ -204,9 +179,7 @@ const App: React.FC = () => {
         const newPhrases = typeof updater === 'function' ? updater(prevPhrases) : updater;
         try {
             localStorage.setItem(PHRASES_STORAGE_KEY, JSON.stringify(newPhrases));
-        } catch (e) {
-            console.error("Failed to save phrases to storage", e);
-        }
+        } catch (e) { console.error("Failed to save phrases to storage", e); }
         return newPhrases;
     });
   }, []);
@@ -219,23 +192,16 @@ const App: React.FC = () => {
     });
   }
 
-  // --- Phrase Logic ---
-  const unmasteredPhrases = useMemo(() => allPhrases.filter(p => !p.isMastered), [allPhrases]);
-
-  const fetchNewPhrases = useCallback(async (count: number = PHRASES_TO_FETCH) => {
+  const fetchNewPhrases = useCallback(async (count: number = 5) => {
     if (isGenerating || !apiProvider) {
         if (!apiProvider) setError("AI provider is not available for generating new phrases.");
         return;
     };
     setIsGenerating(true);
-    // Keep existing error message if it's an API availability issue
-    if (!error?.includes("AI features are temporarily unavailable")) {
-        setError(null);
-    }
+    if (!error?.includes("AI features are temporarily unavailable")) setError(null);
     try {
         const existingGermanPhrases = allPhrases.map(p => p.german).join('; ');
         const prompt = `Сгенерируй ${count} новых, полезных в быту немецких фраз уровня A1. Не повторяй: "${existingGermanPhrases}". Верни JSON-массив объектов с ключами 'german' и 'russian'.`;
-        
         const newPhrases = await callApiWithFallback(provider => provider.generatePhrases(prompt));
         
         const now = Date.now();
@@ -252,121 +218,6 @@ const App: React.FC = () => {
     }
   }, [allPhrases, isGenerating, updateAndSavePhrases, callApiWithFallback, apiProvider, error]);
 
-  const changePhrase = useCallback((nextPhrase: Phrase | null, direction: AnimationDirection) => {
-    if (!nextPhrase) {
-        setCurrentPhrase(null);
-        return;
-    }
-    setAnimationState({ key: nextPhrase.id, direction });
-    setCurrentPhrase(nextPhrase);
-  }, []);
-
-  const selectNext = useCallback((addToHistory: boolean = true) => {
-    if (currentPhrase && addToHistory) {
-      setCardHistory(prev => [...prev, currentPhrase.id]);
-    }
-    const nextPhrase = srsService.selectNextPhrase(allPhrases, currentPhrase?.id ?? null);
-    changePhrase(nextPhrase, 'right');
-    
-    if (unmasteredPhrases.length < POOL_FETCH_THRESHOLD && !isGenerating && allPhrases.length > 0) {
-        const needed = ACTIVE_POOL_TARGET - unmasteredPhrases.length;
-        fetchNewPhrases(Math.max(needed, PHRASES_TO_FETCH));
-    }
-  }, [allPhrases, currentPhrase, fetchNewPhrases, isGenerating, unmasteredPhrases.length, changePhrase]);
-
-  useEffect(() => {
-    if (!isLoading && allPhrases.length > 0 && !currentPhrase) {
-      selectNext(false);
-    }
-  }, [isLoading, allPhrases, selectNext, currentPhrase]);
-
-  // --- UI Handlers ---
-  const speak = useCallback((text: string) => {
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'de-DE';
-      utterance.rate = 0.9;
-      window.speechSynthesis.speak(utterance);
-    }
-  }, []);
-
-  const transitionToNext = useCallback((direction: AnimationDirection = 'right') => {
-    if (isExiting) return;
-    setIsExiting(true);
-    setTimeout(() => {
-      setIsAnswerRevealed(false);
-      if (direction === 'right') {
-          selectNext();
-      } else {
-         // Handle going back if needed, or other directions
-      }
-      setIsExiting(false);
-    }, 250);
-  }, [isExiting, selectNext]);
-
-  const handleUpdateMastery = (action: 'know' | 'forgot' | 'dont_know') => {
-    if (!currentPhrase || isExiting) return;
-    const updatedPhrase = srsService.updatePhraseMastery(currentPhrase, action);
-    updateAndSavePhrases(prev => prev.map(p => p.id === updatedPhrase.id ? updatedPhrase : p));
-    
-    if (action === 'know') {
-        transitionToNext();
-    } else {
-        setIsAnswerRevealed(true);
-        if (settings.autoSpeak) speak(currentPhrase.german);
-    }
-  };
-  
-  const handleImproveSkill = () => {
-    if (!currentPhrase || isExiting) return;
-    setIsAnswerRevealed(true);
-    if (settings.autoSpeak) speak(currentPhrase.german);
-  }
-
-  const handleContinue = () => transitionToNext();
-
-  const handleSwipeLeft = () => {
-      if (!currentPhrase || isExiting) return;
-      transitionToNext();
-  };
-
-  const handleSwipeRight = () => {
-    if (isExiting || cardHistory.length === 0) return;
-    setIsExiting(true);
-    setTimeout(() => {
-      const lastPhraseId = cardHistory[cardHistory.length - 1];
-      const prevPhrase = allPhrases.find(p => p.id === lastPhraseId);
-      if (prevPhrase) {
-        setCardHistory(prev => prev.slice(0, -1));
-        setIsAnswerRevealed(false);
-        changePhrase(prevPhrase, 'left');
-      }
-      setIsExiting(false);
-    }, 250);
-  };
-  
-  // --- Swipe Gesture Handlers ---
-  const handleTouchStart = (e: React.TouchEvent) => {
-    touchMoveRef.current = null;
-    touchStartRef.current = e.targetTouches[0].clientX;
-  };
-  const handleTouchMove = (e: React.TouchEvent) => {
-    touchMoveRef.current = e.targetTouches[0].clientX;
-  };
-  const handleTouchEnd = () => {
-    if (touchStartRef.current !== null && touchMoveRef.current !== null) {
-      const deltaX = touchMoveRef.current - touchStartRef.current;
-      if (deltaX < -SWIPE_THRESHOLD) {
-        handleSwipeLeft();
-      } else if (deltaX > SWIPE_THRESHOLD) {
-        handleSwipeRight();
-      }
-    }
-    touchStartRef.current = null;
-    touchMoveRef.current = null;
-  };
-
   const openChatForPhrase = (phrase: Phrase) => {
     if (!apiProvider) return;
     setChatContextPhrase(phrase);
@@ -380,16 +231,13 @@ const App: React.FC = () => {
     setIsDeepDiveLoading(true);
     setDeepDiveAnalysis(null);
     setDeepDiveError(null);
-
     const cacheKey = `deep_dive_${phrase.id}`;
     const cachedAnalysis = cacheService.getCache<DeepDiveAnalysis>(cacheKey);
-
     if (cachedAnalysis) {
       setDeepDiveAnalysis(cachedAnalysis);
       setIsDeepDiveLoading(false);
       return;
     }
-
     try {
       const analysis = await callApiWithFallback(provider => provider.generateDeepDiveAnalysis(phrase));
       setDeepDiveAnalysis(analysis);
@@ -408,16 +256,13 @@ const App: React.FC = () => {
     setIsMovieExamplesLoading(true);
     setMovieExamples([]);
     setMovieExamplesError(null);
-
     const cacheKey = `movie_examples_${phrase.id}`;
     const cachedExamples = cacheService.getCache<MovieExample[]>(cacheKey);
-
     if (cachedExamples) {
       setMovieExamples(cachedExamples);
       setIsMovieExamplesLoading(false);
       return;
     }
-
     try {
       const examples = await callApiWithFallback(provider => provider.generateMovieExamples(phrase));
       setMovieExamples(examples);
@@ -437,16 +282,13 @@ const App: React.FC = () => {
     setIsWordAnalysisLoading(true);
     setWordAnalysis(null);
     setWordAnalysisError(null);
-  
     const cacheKey = `word_analysis_${phrase.id}_${word.toLowerCase()}`;
     const cachedAnalysis = cacheService.getCache<WordAnalysis>(cacheKey);
-
     if (cachedAnalysis) {
         setWordAnalysis(cachedAnalysis);
         setIsWordAnalysisLoading(false);
         return;
     }
-
     try {
         const analysis = await callApiWithFallback(provider => provider.analyzeWordInPhrase(phrase, word));
         setWordAnalysis(analysis);
@@ -456,25 +298,22 @@ const App: React.FC = () => {
     } finally {
         setIsWordAnalysisLoading(false);
     }
-}, [callApiWithFallback, apiProvider]);
+  }, [callApiWithFallback, apiProvider]);
 
-const handleOpenVerbConjugation = useCallback(async (infinitive: string) => {
+  const handleOpenVerbConjugation = useCallback(async (infinitive: string) => {
     if (!apiProvider) return;
     setConjugationVerb(infinitive);
     setIsVerbConjugationModalOpen(true);
     setIsVerbConjugationLoading(true);
     setVerbConjugationData(null);
     setVerbConjugationError(null);
-
     const cacheKey = `verb_conjugation_${infinitive}`;
     const cachedData = cacheService.getCache<VerbConjugation>(cacheKey);
-
     if (cachedData) {
         setVerbConjugationData(cachedData);
         setIsVerbConjugationLoading(false);
         return;
     }
-
     try {
         const data = await callApiWithFallback(provider => provider.conjugateVerb(infinitive));
         setVerbConjugationData(data);
@@ -484,25 +323,22 @@ const handleOpenVerbConjugation = useCallback(async (infinitive: string) => {
     } finally {
         setIsVerbConjugationLoading(false);
     }
-}, [apiProvider, callApiWithFallback]);
+  }, [apiProvider, callApiWithFallback]);
 
-const handleOpenNounDeclension = useCallback(async (noun: string, article: string) => {
+  const handleOpenNounDeclension = useCallback(async (noun: string, article: string) => {
     if (!apiProvider) return;
     setDeclensionNoun({ noun, article });
     setIsNounDeclensionModalOpen(true);
     setIsNounDeclensionLoading(true);
     setNounDeclensionData(null);
     setNounDeclensionError(null);
-
     const cacheKey = `noun_declension_${article}_${noun}`;
     const cachedData = cacheService.getCache<NounDeclension>(cacheKey);
-
     if (cachedData) {
         setNounDeclensionData(cachedData);
         setIsNounDeclensionLoading(false);
         return;
     }
-
     try {
         const data = await callApiWithFallback(provider => provider.declineNoun(noun, article));
         setNounDeclensionData(data);
@@ -512,65 +348,32 @@ const handleOpenNounDeclension = useCallback(async (noun: string, article: strin
     } finally {
         setIsNounDeclensionLoading(false);
     }
-}, [apiProvider, callApiWithFallback]);
+  }, [apiProvider, callApiWithFallback]);
 
-const handleOpenSentenceChain = (phrase: Phrase) => {
+  const handleOpenSentenceChain = (phrase: Phrase) => {
     if (!apiProvider) return;
     setSentenceChainPhrase(phrase);
     setIsSentenceChainModalOpen(true);
-};
+  };
 
-const handleGenerateContinuations = useCallback(
-    (russianPhrase: string) => callApiWithFallback(provider => provider.generateSentenceContinuations(russianPhrase)),
-    [callApiWithFallback]
-);
-
-  const handleGenerateInitialExamples = useCallback(
-    (phrase: Phrase) => callApiWithFallback(provider => provider.generateInitialExamples(phrase)),
-    [callApiWithFallback]
-  );
-  
-  const handleContinueChat = useCallback(
-    (phrase: Phrase, history: any[], newMessage: string) => callApiWithFallback(provider => provider.continueChat(phrase, history, newMessage)),
-    [callApiWithFallback]
-  );
-
-  const handleGenerateSinglePhrase = useCallback(
-    (russianPhrase: string) => callApiWithFallback(provider => provider.generateSinglePhrase(russianPhrase)),
-    [callApiWithFallback]
-  );
+  const handleGenerateContinuations = useCallback((russianPhrase: string) => callApiWithFallback(provider => provider.generateSentenceContinuations(russianPhrase)),[callApiWithFallback]);
+  const handleGenerateInitialExamples = useCallback((phrase: Phrase) => callApiWithFallback(provider => provider.generateInitialExamples(phrase)),[callApiWithFallback]);
+  const handleContinueChat = useCallback((phrase: Phrase, history: any[], newMessage: string) => callApiWithFallback(provider => provider.continueChat(phrase, history, newMessage)),[callApiWithFallback]);
+  const handleGenerateSinglePhrase = useCallback((russianPhrase: string) => callApiWithFallback(provider => provider.generateSinglePhrase(russianPhrase)),[callApiWithFallback]);
 
   const handlePhraseCreated = (newPhraseData: { german: string; russian: string }) => {
-    const searchGerman = newPhraseData.german.trim().toLowerCase();
-    const searchRussian = newPhraseData.russian.trim().toLowerCase();
-
-    const existingPhrase = allPhrases.find(p =>
-        p.german.trim().toLowerCase() === searchGerman ||
-        p.russian.trim().toLowerCase() === searchRussian
-    );
-
-    setIsAddPhraseModalOpen(false); // Close modal in both cases
-
-    if (existingPhrase) {
-        // Duplicate found, show the existing card
-        setIsAnswerRevealed(false);
-        changePhrase(existingPhrase, 'right');
-    } else {
-        // No duplicate, create and show the new card
-        const newPhrase: Phrase = {
-            ...newPhraseData,
-            id: Math.random().toString(36).substring(2, 9),
-            masteryLevel: 0,
-            lastReviewedAt: null,
-            nextReviewAt: Date.now(),
-            knowCount: 0,
-            knowStreak: 0,
-            isMastered: false,
-        };
-        updateAndSavePhrases(prev => [newPhrase, ...prev]);
-        setIsAnswerRevealed(false);
-        changePhrase(newPhrase, 'right');
-    }
+    const newPhrase: Phrase = {
+        ...newPhraseData,
+        id: Math.random().toString(36).substring(2, 9),
+        masteryLevel: 0,
+        lastReviewedAt: null,
+        nextReviewAt: Date.now(),
+        knowCount: 0,
+        knowStreak: 0,
+        isMastered: false,
+    };
+    updateAndSavePhrases(prev => [newPhrase, ...prev]);
+    setIsAddPhraseModalOpen(false);
   };
 
   const handleOpenImproveModal = (phrase: Phrase) => {
@@ -579,81 +382,31 @@ const handleGenerateContinuations = useCallback(
     setIsImproveModalOpen(true);
   };
 
-  const handleGenerateImprovement = useCallback(
-    (originalRussian: string, currentGerman: string) => callApiWithFallback(provider => provider.improvePhrase(originalRussian, currentGerman)),
-    [callApiWithFallback]
-  );
-
-  const handlePhraseImproved = (phraseId: string, newGerman: string) => {
-    updateAndSavePhrases(prev =>
-      prev.map(p => (p.id === phraseId ? { ...p, german: newGerman } : p))
-    );
-    // Update the current phrase in state if it's the one being displayed
-    if (currentPhrase && currentPhrase.id === phraseId) {
-      setCurrentPhrase(prev => (prev ? { ...prev, german: newGerman } : null));
-    }
-  };
-
-
-  // --- Render Logic ---
-  const renderButtons = () => {
-     if (isAnswerRevealed) {
-        return <div className="flex justify-center mt-8"><button onClick={handleContinue} className="px-10 py-3 rounded-lg bg-purple-600 hover:bg-purple-700 transition-colors font-semibold text-white shadow-md" disabled={isExiting}>Продолжить</button></div>;
-     }
-     const hasBeenReviewed = currentPhrase?.lastReviewedAt !== null;
-     return (
-        <div className="flex justify-center space-x-2 sm:space-x-4 mt-8">
-            {!hasBeenReviewed && <button onClick={() => handleUpdateMastery('dont_know')} className="px-4 sm:px-6 py-3 rounded-lg bg-yellow-600 hover:bg-yellow-700 transition-colors font-semibold text-white shadow-md">Не знаю</button>}
-            <button onClick={() => handleUpdateMastery('forgot')} className="px-4 sm:px-6 py-3 rounded-lg bg-red-600 hover:bg-red-700 transition-colors font-semibold text-white shadow-md">Забыл</button>
-            <button onClick={() => handleUpdateMastery('know')} className="px-4 sm:px-6 py-3 rounded-lg bg-green-600 hover:bg-green-700 transition-colors font-semibold text-white shadow-md">Знаю</button>
-        </div>
-     );
-  };
-
-  const renderContent = () => {
-    if (isLoading) return <div className="flex justify-center items-center h-64"><Spinner /></div>;
-    if (error) return <div className="text-center bg-red-900/50 border border-red-700 text-red-300 p-4 rounded-lg max-w-md mx-auto"><p className="font-semibold">Произошла ошибка</p><p className="text-sm">{error}</p></div>;
-    if (!currentPhrase) {
-        return (
-            <div className="text-center text-slate-400 p-4">
-                <h2 className="text-2xl font-bold text-white mb-4">Поздравляем!</h2>
-                <p>Вы выучили все доступные фразы. Сгенерировать новые?</p>
-                <button onClick={() => fetchNewPhrases()} disabled={isGenerating || !apiProvider} className="mt-6 px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-md text-white font-bold transition-colors disabled:opacity-50">{isGenerating ? 'Генерация...' : 'Сгенерировать фразы'}</button>
-            </div>
-        );
-    }
-    const animationClass = isExiting 
-      ? (animationState.direction === 'right' ? 'card-exit-left' : 'card-exit-right')
-      : (animationState.direction === 'right' ? 'card-enter-right' : 'card-enter-left');
-
-    return (
-        <div className="flex flex-col items-center w-full px-2">
-            <div 
-              className="w-full max-w-md min-h-64 relative"
-              onTouchStart={handleTouchStart}
-              onTouchMove={handleTouchMove}
-              onTouchEnd={handleTouchEnd}
-            >
-                <div key={animationState.key} className={`absolute inset-0 ${animationClass}`}>
-                    <PhraseCard 
-                      phrase={currentPhrase} 
-                      onSpeak={speak} 
-                      isFlipped={isAnswerRevealed} 
-                      onOpenChat={openChatForPhrase} 
-                      onImproveSkill={handleImproveSkill}
-                      onOpenDeepDive={handleOpenDeepDive}
-                      onOpenMovieExamples={handleOpenMovieExamples}
-                      onWordClick={handleOpenWordAnalysis}
-                      onOpenSentenceChain={handleOpenSentenceChain}
-                      onOpenImprovePhrase={handleOpenImproveModal}
-                    />
-                </div>
-            </div>
-            {renderButtons()}
-        </div>
-    );
-  }
+  const handleGenerateImprovement = useCallback((originalRussian: string, currentGerman: string) => callApiWithFallback(provider => provider.improvePhrase(originalRussian, currentGerman)),[callApiWithFallback]);
   
+  const handleTranslatePhrase = useCallback((russian: string) => callApiWithFallback(provider => provider.translatePhrase(russian)), [callApiWithFallback]);
+  
+  const handleDiscussTranslation = useCallback((request: any) => callApiWithFallback(provider => provider.discussTranslation(request)),[callApiWithFallback]);
+
+  const handleFindDuplicates = useCallback(() => callApiWithFallback(provider => provider.findDuplicatePhrases(allPhrases)), [callApiWithFallback, allPhrases]);
+
+  const handlePhraseImproved = (phraseId: string, newGerman: string, newRussian?: string) => {
+    updateAndSavePhrases(prev =>
+      prev.map(p => (p.id === phraseId ? { ...p, german: newGerman, russian: newRussian ?? p.russian } : p))
+    );
+  };
+
+  const handleOpenEditModal = (phrase: Phrase) => {
+    setPhraseToEdit(phrase);
+    setIsEditModalOpen(true);
+  };
+
+  const handleDeletePhrase = (phraseId: string) => {
+    if (window.confirm('Вы уверены, что хотите удалить эту фразу?')) {
+      updateAndSavePhrases(prev => prev.filter(p => p.id !== phraseId));
+    }
+  };
+
   const getProviderDisplayName = () => {
       if (!apiProvider) return '';
       const name = apiProvider.getProviderName();
@@ -664,20 +417,41 @@ const handleGenerateContinuations = useCallback(
 
   return (
     <div className="min-h-screen bg-slate-900 text-white font-sans p-4 flex flex-col items-center overflow-x-hidden">
-      <header className="w-full absolute top-0 left-0 p-4 flex justify-between items-center z-10">
-        <div className="text-left">
-           <h1 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-cyan-400">Практика немецкого языка</h1>
-           <p className="text-slate-400 text-sm">Система интервального повторения</p>
-        </div>
-        <button onClick={() => setIsSettingsModalOpen(true)} className="p-2 text-slate-400 hover:text-white transition-colors">
-            <SettingsIcon className="w-6 h-6" />
-        </button>
-      </header>
+      <Header 
+        view={view} 
+        onSetView={setView} 
+        onOpenSettings={() => setIsSettingsModalOpen(true)} 
+      />
       <main className="w-full flex-grow flex flex-col justify-center items-center">
-        {renderContent()}
+        {view === 'practice' ? (
+           <PracticePage
+             allPhrases={allPhrases}
+             updateAndSavePhrases={updateAndSavePhrases}
+             fetchNewPhrases={fetchNewPhrases}
+             isLoading={isLoading}
+             error={error}
+             isGenerating={isGenerating}
+             settings={settings}
+             apiProviderAvailable={!!apiProvider}
+             onOpenChat={openChatForPhrase}
+             onOpenDeepDive={handleOpenDeepDive}
+             onOpenMovieExamples={handleOpenMovieExamples}
+             onOpenWordAnalysis={handleOpenWordAnalysis}
+             onOpenSentenceChain={handleOpenSentenceChain}
+             onOpenImprovePhrase={handleOpenImproveModal}
+           />
+        ) : (
+          <PhraseListPage 
+            phrases={allPhrases}
+            onEditPhrase={handleOpenEditModal}
+            onDeletePhrase={handleDeletePhrase}
+            onFindDuplicates={handleFindDuplicates}
+            updateAndSavePhrases={updateAndSavePhrases}
+          />
+        )}
       </main>
       
-      {!isLoading && (
+      {view === 'practice' && !isLoading && (
         <button
             onClick={() => setIsAddPhraseModalOpen(true)}
             disabled={!apiProvider}
@@ -696,7 +470,6 @@ const handleGenerateContinuations = useCallback(
           isOpen={isChatModalOpen} 
           onClose={() => setIsChatModalOpen(false)} 
           phrase={chatContextPhrase} 
-          onSpeak={speak} 
           onGenerateInitialExamples={handleGenerateInitialExamples}
           onContinueChat={handleContinueChat}
           apiProviderType={apiProviderType}
@@ -763,6 +536,14 @@ const handleGenerateContinuations = useCallback(
           phrase={phraseToImprove}
           onGenerateImprovement={handleGenerateImprovement}
           onPhraseImproved={handlePhraseImproved}
+       />}
+        {phraseToEdit && apiProvider && <EditPhraseModal
+            isOpen={isEditModalOpen}
+            onClose={() => setIsEditModalOpen(false)}
+            phrase={phraseToEdit}
+            onSave={handlePhraseImproved}
+            onTranslate={handleTranslatePhrase}
+            onDiscuss={handleDiscussTranslation}
        />}
     </div>
   );

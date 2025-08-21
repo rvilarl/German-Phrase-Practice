@@ -1,4 +1,3 @@
-
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
@@ -21,7 +20,8 @@ if (!rootElement) {
 
 const root = ReactDOM.createRoot(rootElement);
 root.render(
-  <React.StrictMode>
+  // StrictMode removed to prevent double-rendering and duplicate API calls in useEffect.
+  // <React.StrictMode>
     <App />
-  </React.StrictMode>
+  // </React.StrictMode>
 );

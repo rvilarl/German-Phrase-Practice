@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import type { Phrase, ChatMessage, ExamplePair, ProactiveSuggestion, ContentPart, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, SentenceContinuation } from '../types';
+import type { Phrase, ChatMessage, ExamplePair, ProactiveSuggestion, ContentPart, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, SentenceContinuation, TranslationChatRequest, TranslationChatResponse } from '../types';
 import { AiService } from './aiService';
 import { getGeminiApiKey } from './env';
 
@@ -122,6 +122,32 @@ const generateSinglePhrase: AiService['generateSinglePhrase'] = async (russianPh
         throw new Error(`Failed to call the Gemini API: ${errorMessage}`);
     }
 };
+
+const translatePhrase: AiService['translatePhrase'] = async (russianPhrase) => {
+    const api = initializeApi();
+    if (!api) throw new Error("Gemini API key not configured.");
+
+    const prompt = `Translate this Russian phrase to German: "${russianPhrase}"`;
+
+    try {
+        const response = await api.models.generateContent({
+            model: model,
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: singlePhraseSchema,
+                temperature: 0.2,
+            },
+        });
+        const jsonText = response.text.trim();
+        const parsedResult = JSON.parse(jsonText);
+        return { german: parsedResult.german };
+    } catch (error) {
+        console.error("Error translating phrase with Gemini:", error);
+        throw new Error(`Failed to call the Gemini API: ${(error as any)?.message || 'Unknown error'}`);
+    }
+};
+
 
 const improvePhraseSchema = {
     type: Type.OBJECT,
@@ -361,6 +387,73 @@ const continueChat: AiService['continueChat'] = async (phrase, history, newMessa
         throw new Error(`Failed to call the Gemini API: ${errorMessage}`);
     }
 };
+
+const translationChatResponseSchema = {
+    type: Type.OBJECT,
+    properties: {
+        ...chatResponseSchema.properties, // Inherit responseParts and promptSuggestions
+        suggestion: {
+            type: Type.OBJECT,
+            description: "An optional suggested improvement for the Russian and German phrases.",
+            properties: {
+                russian: { type: Type.STRING, description: "The suggested new Russian phrase." },
+                german: { type: Type.STRING, description: "The suggested new German phrase." }
+            },
+            required: ["russian", "german"]
+        }
+    },
+    required: ["responseParts", "promptSuggestions"]
+};
+
+
+const discussTranslation: AiService['discussTranslation'] = async (request) => {
+    const api = initializeApi();
+    if (!api) throw new Error("Gemini API key not configured.");
+
+    const systemInstruction = `Ты AI-помощник и эксперт по немецкому языку. Пользователь недоволен переводом и хочет его улучшить.
+Исходная русская фраза: "${request.originalRussian}"
+Текущий немецкий перевод: "${request.currentGerman}"
+
+Твоя задача:
+1.  Ответь на запрос пользователя, помогая ему найти лучший перевод. Общайся на русском.
+2.  Если в ходе диалога ты приходишь к выводу, что фразу можно улучшить, ОБЯЗАТЕЛЬНО включи в свой JSON-ответ поле \`suggestion\`. Это поле должно содержать объект с ключами \`russian\` и \`german\` с финальным, улучшенным вариантом. Возможно, для лучшего перевода придется немного изменить и русскую фразу.
+3.  Если ты не предлагаешь конкретного изменения, НЕ включай поле \`suggestion\`.
+4.  Всегда разбивай свой текстовый ответ на \`responseParts\` и предлагай новые вопросы в \`promptSuggestions\`.
+5.  Будь краток и по делу.`;
+    
+    const formattedHistory = request.history.map(msg => ({
+        role: msg.role,
+        parts: [{ text: msg.text || msg.contentParts?.map(p => p.text).join('') || '' }]
+    }));
+
+    try {
+        const response = await api.models.generateContent({
+            model: model,
+            contents: [...formattedHistory, { role: 'user', parts: [{ text: request.userRequest }] }],
+            config: {
+                systemInstruction,
+                responseMimeType: "application/json",
+                responseSchema: translationChatResponseSchema,
+                temperature: 0.6,
+            },
+        });
+
+        const jsonText = response.text.trim();
+        const parsedResponse = JSON.parse(jsonText);
+
+        return {
+            role: 'model',
+            contentParts: parsedResponse.responseParts || [{ type: 'text', text: 'Error parsing response.' }],
+            suggestion: parsedResponse.suggestion,
+            promptSuggestions: parsedResponse.promptSuggestions || [],
+        };
+
+    } catch (error) {
+        console.error("Error discussing translation with Gemini:", error);
+        throw new Error(`Failed to call the Gemini API: ${(error as any)?.message || 'Unknown error'}`);
+    }
+};
+
 
 const deepDiveAnalysisSchema = {
     type: Type.OBJECT,
@@ -721,6 +814,49 @@ const generateSentenceContinuations: AiService['generateSentenceContinuations'] 
     }
 };
 
+const duplicateSchema = {
+    type: Type.OBJECT,
+    properties: {
+        duplicateGroups: {
+            type: Type.ARRAY,
+            description: "An array of groups. Each group is an array of phrase IDs that are semantically duplicates.",
+            items: {
+                type: Type.ARRAY,
+                items: { type: Type.STRING }
+            }
+        }
+    },
+    required: ["duplicateGroups"]
+};
+
+const findDuplicatePhrases: AiService['findDuplicatePhrases'] = async (phrases) => {
+    const api = initializeApi();
+    if (!api) throw new Error("Gemini API key not configured.");
+    if (phrases.length < 2) return { duplicateGroups: [] };
+
+    const prompt = `Here is a list of phrases: ${JSON.stringify(phrases.map(p => ({ id: p.id, russian: p.russian })))}. 
+Analyze them and identify groups of phrases that are semantic duplicates. Ignore minor differences in wording, articles, capitalization, punctuation, or leading/trailing whitespace if the core meaning is identical. For example, "Я хочу пить", "а я хочу пить", and "Мне хочется пить" are all duplicates. Return a JSON object containing an array of these groups of phrase IDs. Only include groups with 2 or more phrases.`;
+
+    try {
+        const response = await api.models.generateContent({
+            model: model,
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: duplicateSchema,
+                temperature: 0.1,
+            },
+        });
+
+        const jsonText = response.text.trim();
+        const result = JSON.parse(jsonText);
+        return result.duplicateGroups ? { duplicateGroups: result.duplicateGroups.filter((g:string[]) => g.length > 1) } : { duplicateGroups: [] };
+    } catch (error) {
+        console.error("Error finding duplicate phrases with Gemini:", error);
+        throw new Error(`Failed to call the Gemini API: ${(error as any)?.message || 'Unknown error'}`);
+    }
+};
+
 
 const healthCheck: AiService['healthCheck'] = async () => {
     const api = initializeApi();
@@ -740,15 +876,18 @@ const healthCheck: AiService['healthCheck'] = async () => {
 export const geminiService: AiService = {
     generatePhrases,
     generateSinglePhrase,
+    translatePhrase,
     improvePhrase,
     generateInitialExamples,
     continueChat,
+    discussTranslation,
     generateDeepDiveAnalysis,
     generateMovieExamples,
     analyzeWordInPhrase,
     conjugateVerb,
     declineNoun,
     generateSentenceContinuations,
+    findDuplicatePhrases,
     healthCheck,
     getProviderName: () => "Google Gemini",
 };

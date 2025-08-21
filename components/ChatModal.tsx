@@ -15,7 +15,6 @@ interface ChatModalProps {
   isOpen: boolean;
   onClose: () => void;
   phrase: Phrase;
-  onSpeak: (text: string) => void;
   onGenerateInitialExamples: (phrase: Phrase) => Promise<ChatMessage>;
   onContinueChat: (phrase: Phrase, history: ChatMessage[], newMessage: string) => Promise<ChatMessage>;
   apiProviderType: ApiProviderType;
@@ -126,7 +125,7 @@ const ChatSkeleton: React.FC = () => (
 );
 
 
-const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, phrase, onSpeak, onGenerateInitialExamples, onContinueChat, apiProviderType }) => {
+const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, phrase, onGenerateInitialExamples, onContinueChat, apiProviderType }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [input, setInput] = useState('');
@@ -139,6 +138,16 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, phrase, onSpeak,
 
   const chatEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const onSpeak = useCallback((text: string) => {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'de-DE';
+      utterance.rate = 0.9;
+      window.speechSynthesis.speak(utterance);
+    }
+  }, []);
 
   const scrollToBottom = () => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -156,13 +165,8 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, phrase, onSpeak,
         recognition.onstart = () => setIsListening(true);
         recognition.onend = () => setIsListening(false);
         recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-            // 'no-speech' and 'aborted' are common scenarios and not true errors.
-            // The 'onend' callback will handle UI state changes.
-            if (event.error === 'no-speech' || event.error === 'aborted') {
-                return;
-            }
             console.error('Speech recognition error:', event.error, event.message);
-            setIsListening(false); // Force stop listening UI on unexpected errors.
+            setIsListening(false);
         };
         recognition.onresult = (event) => {
             const transcript = event.results[0][0].transcript;

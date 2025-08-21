@@ -14,12 +14,12 @@ const SRS_INTERVALS = [
 export const MAX_MASTERY_LEVEL = SRS_INTERVALS.length;
 
 export const isPhraseMastered = (phrase: Phrase): boolean => {
-  // Mastered if known 3 times total OR 2 times in a row.
-  return phrase.knowCount >= 3 || phrase.knowStreak >= 2;
+  // Mastered if known 3 times total OR 2 times in a row, or mastery level is max
+  return phrase.masteryLevel >= MAX_MASTERY_LEVEL || phrase.knowCount >= 3 || phrase.knowStreak >= 2;
 };
 
 export const selectNextPhrase = (phrases: Phrase[], currentPhraseId: string | null = null): Phrase | null => {
-  const unmasteredPhrases = phrases.filter(p => !p.isMastered);
+  const unmasteredPhrases = phrases.filter(p => !p.isMastered && p.lastReviewedAt !== undefined);
   if (unmasteredPhrases.length === 0) return null;
   
   // Filter out the current phrase to avoid immediate repetition, unless it's the only one available.
