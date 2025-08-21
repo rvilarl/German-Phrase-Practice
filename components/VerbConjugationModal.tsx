@@ -64,7 +64,7 @@ const VerbConjugationModal: React.FC<VerbConjugationModalProps> = ({ isOpen, onC
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 z-50 flex justify-center items-center" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/60 z-[70] flex justify-center items-center" onClick={onClose}>
       <div 
         className="bg-slate-800 w-full max-w-md m-4 rounded-2xl shadow-2xl flex flex-col"
         onClick={e => e.stopPropagation()}

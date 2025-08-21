@@ -91,41 +91,41 @@ const PhraseCard: React.FC<PhraseCardProps> = ({ phrase, onSpeak, isFlipped, onO
                     ))}
                 </h2>
             </div>
-            <div className="w-full flex justify-center items-center flex-wrap gap-4">
+            <div className="w-full flex justify-center items-center flex-wrap gap-3">
                 <button
                     onClick={handleSpeak}
-                    className="p-3 rounded-full bg-white/10 hover:bg-white/20 transition-colors duration-200"
+                    className="p-2.5 rounded-full bg-white/10 hover:bg-white/20 transition-colors duration-200"
                     aria-label="Speak phrase"
                 >
-                    <SoundIcon className="w-6 h-6 text-white"/>
+                    <SoundIcon className="w-5 h-5 text-white"/>
                 </button>
                  <button
                     onClick={handleOpenChat}
-                    className="p-3 rounded-full bg-white/10 hover:bg-white/20 transition-colors duration-200"
+                    className="p-2.5 rounded-full bg-white/10 hover:bg-white/20 transition-colors duration-200"
                     aria-label="Show examples"
                 >
-                    <ChatIcon className="w-6 h-6 text-white"/>
+                    <ChatIcon className="w-5 h-5 text-white"/>
                 </button>
                 <button
                     onClick={handleOpenMovieExamples}
-                    className="p-3 rounded-full bg-white/10 hover:bg-white/20 transition-colors duration-200"
+                    className="p-2.5 rounded-full bg-white/10 hover:bg-white/20 transition-colors duration-200"
                     aria-label="Show movie examples"
                 >
-                    <FilmIcon className="w-6 h-6 text-white"/>
+                    <FilmIcon className="w-5 h-5 text-white"/>
                 </button>
                  <button
                     onClick={handleOpenSentenceChain}
-                    className="p-3 rounded-full bg-white/10 hover:bg-white/20 transition-colors duration-200"
+                    className="p-2.5 rounded-full bg-white/10 hover:bg-white/20 transition-colors duration-200"
                     aria-label="Конструктор фраз"
                 >
-                    <LinkIcon className="w-6 h-6 text-white"/>
+                    <LinkIcon className="w-5 h-5 text-white"/>
                 </button>
                 <button
                     onClick={handleOpenDeepDive}
-                    className="p-3 rounded-full bg-white/10 hover:bg-white/20 transition-colors duration-200"
+                    className="p-2.5 rounded-full bg-white/10 hover:bg-white/20 transition-colors duration-200"
                     aria-label="Deep analysis"
                 >
-                    <AnalysisIcon className="w-6 h-6 text-white"/>
+                    <AnalysisIcon className="w-5 h-5 text-white"/>
                 </button>
             </div>
         </div>

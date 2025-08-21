@@ -593,17 +593,17 @@ const handleGenerateContinuations = useCallback(
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white font-sans p-4 flex flex-col items-center justify-center overflow-x-hidden">
-      <header className="absolute top-4 right-4 z-10">
+    <div className="min-h-screen bg-slate-900 text-white font-sans p-4 flex flex-col items-center overflow-x-hidden">
+      <header className="w-full absolute top-0 left-0 p-4 flex justify-between items-center z-10">
+        <div className="text-left">
+           <h1 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-cyan-400">Практика немецкого языка</h1>
+           <p className="text-slate-400 text-sm">Система интервального повторения</p>
+        </div>
         <button onClick={() => setIsSettingsModalOpen(true)} className="p-2 text-slate-400 hover:text-white transition-colors">
             <SettingsIcon className="w-6 h-6" />
         </button>
       </header>
-      <main className="container mx-auto w-full max-w-7xl flex-grow flex flex-col justify-center">
-        <header className="text-center mb-8">
-          <h1 className="text-4xl sm:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-cyan-400">Практика немецкого языка</h1>
-          <p className="text-slate-400 mt-2 text-lg">Система интервального повторения</p>
-        </header>
+      <main className="w-full flex-grow flex flex-col justify-center items-center">
         {renderContent()}
       </main>
       <footer className="text-center text-slate-500 py-4 text-sm h-6">
@@ -636,6 +636,13 @@ const handleGenerateContinuations = useCallback(
         isLoading={isMovieExamplesLoading}
         error={movieExamplesError}
       />}
+       {sentenceChainPhrase && <SentenceChainModal
+        isOpen={isSentenceChainModalOpen}
+        onClose={() => setIsSentenceChainModalOpen(false)}
+        phrase={sentenceChainPhrase}
+        onGenerateContinuations={handleGenerateContinuations}
+        onWordClick={handleOpenWordAnalysis}
+        />}
       {wordAnalysisPhrase && <WordAnalysisModal 
         isOpen={isWordAnalysisModalOpen}
         onClose={() => setIsWordAnalysisModalOpen(false)}
@@ -662,12 +669,6 @@ const handleGenerateContinuations = useCallback(
         isLoading={isNounDeclensionLoading}
         error={nounDeclensionError}
        />}
-       {sentenceChainPhrase && <SentenceChainModal
-        isOpen={isSentenceChainModalOpen}
-        onClose={() => setIsSentenceChainModalOpen(false)}
-        phrase={sentenceChainPhrase}
-        onGenerateContinuations={handleGenerateContinuations}
-        />}
     </div>
   );
 };

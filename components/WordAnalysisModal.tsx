@@ -101,7 +101,7 @@ const WordAnalysisModal: React.FC<WordAnalysisModalProps> = ({ isOpen, onClose, 
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 z-50 flex justify-center items-end" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/60 z-[60] flex justify-center items-end" onClick={onClose}>
       <div 
         className={`bg-slate-800 w-full max-w-lg h-[90%] max-h-[90vh] rounded-t-2xl shadow-2xl flex flex-col transition-transform duration-300 ease-out ${isOpen ? 'translate-y-0' : 'translate-y-full'}`}
         onClick={e => e.stopPropagation()}

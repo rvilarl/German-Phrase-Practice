@@ -1,30 +1,35 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import type { Phrase, SentenceContinuation } from '../types';
 import Spinner from './Spinner';
 import CloseIcon from './icons/CloseIcon';
 import LinkIcon from './icons/LinkIcon';
 import AudioPlayer from './AudioPlayer';
 import ArrowLeftIcon from './icons/ArrowLeftIcon';
+import * as cacheService from '../services/cacheService';
 
 interface SentenceChainModalProps {
   isOpen: boolean;
   onClose: () => void;
   phrase: Phrase;
   onGenerateContinuations: (russianPhrase: string) => Promise<SentenceContinuation>;
+  onWordClick: (phrase: Phrase, word: string) => void;
 }
 
-const SentenceChainModal: React.FC<SentenceChainModalProps> = ({ isOpen, onClose, phrase, onGenerateContinuations }) => {
+const SentenceChainModal: React.FC<SentenceChainModalProps> = ({ isOpen, onClose, phrase, onGenerateContinuations, onWordClick }) => {
   const [history, setHistory] = useState<string[]>([]);
   const [currentGerman, setCurrentGerman] = useState('');
   const [continuations, setContinuations] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
+  const cacheRef = useRef<Map<string, SentenceContinuation>>(new Map());
+  const apiCacheKey = `sentence_chain_api_cache_${phrase.id}`;
+  const historyCacheKey = `sentence_chain_history_${phrase.id}`;
+  
   const getFullRussianPhrase = useCallback((currentHistory: string[]): string => {
-    // Joins the base phrase with history parts, handling punctuation gracefully.
     let fullPhrase = phrase.russian;
     for (const part of currentHistory) {
-      if (part.match(/^[.,:;!?]/)) { // if part starts with punctuation
+      if (part.match(/^[.,:;!?]/)) {
         fullPhrase += part;
       } else {
         fullPhrase += ' ' + part;
@@ -34,11 +39,21 @@ const SentenceChainModal: React.FC<SentenceChainModalProps> = ({ isOpen, onClose
   }, [phrase.russian]);
 
   const fetchContinuations = useCallback(async (russianPhrase: string) => {
+    if (cacheRef.current.has(russianPhrase)) {
+      const cachedData = cacheRef.current.get(russianPhrase)!;
+      setCurrentGerman(cachedData.german);
+      setContinuations(cachedData.continuations);
+      setIsLoading(false);
+      setError(null);
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
     setContinuations([]);
     try {
       const result = await onGenerateContinuations(russianPhrase);
+      cacheRef.current.set(russianPhrase, result);
       setCurrentGerman(result.german);
       setContinuations(result.continuations);
     } catch (err) {
@@ -50,22 +65,35 @@ const SentenceChainModal: React.FC<SentenceChainModalProps> = ({ isOpen, onClose
 
   useEffect(() => {
     if (isOpen) {
-      setHistory([]);
-      setCurrentGerman(phrase.german);
-      fetchContinuations(phrase.russian);
+      const storedApiCache = cacheService.getCache<[string, SentenceContinuation][]>(apiCacheKey);
+      cacheRef.current = storedApiCache ? new Map(storedApiCache) : new Map();
+      
+      const storedHistory = cacheService.getCache<string[]>(historyCacheKey) || [];
+      setHistory(storedHistory);
+      
+      const initialRussianPhrase = getFullRussianPhrase(storedHistory);
+      fetchContinuations(initialRussianPhrase);
+    } else {
+      if (cacheRef.current.size > 0) {
+        cacheService.setCache(apiCacheKey, Array.from(cacheRef.current.entries()));
+      }
+      cacheService.setCache(historyCacheKey, history);
     }
-  }, [isOpen, phrase, fetchContinuations]);
-  
+  }, [isOpen]);
+
   const handleSelectContinuation = (continuation: string) => {
     const newHistory = [...history, continuation];
     setHistory(newHistory);
     const newRussianPhrase = getFullRussianPhrase(newHistory);
-    setCurrentGerman('...'); // Placeholder
+    setCurrentGerman('...');
     fetchContinuations(newRussianPhrase);
   };
   
-  const handleBlockClick = (index: number) => {
-    const newHistory = history.slice(0, index);
+  const handleBlockClick = (blockIndex: number) => {
+    if (isLoading) return;
+    // Clicking any block reverts the history to the state *before* that block was added.
+    // The new history should contain elements from index 0 up to (but not including) `blockIndex - 1`.
+    const newHistory = history.slice(0, Math.max(0, blockIndex - 1));
     setHistory(newHistory);
     const newRussianPhrase = getFullRussianPhrase(newHistory);
     setCurrentGerman('...');
@@ -73,70 +101,39 @@ const SentenceChainModal: React.FC<SentenceChainModalProps> = ({ isOpen, onClose
   };
   
   const handleGoBackOneStep = () => {
-    handleBlockClick(history.length - 1);
+    if (history.length > 0) {
+      handleBlockClick(history.length);
+    }
   };
 
+  const handleWordClick = (e: React.MouseEvent, word: string) => {
+    e.stopPropagation();
+    const cleanedWord = word.replace(/[.,!?]/g, '');
+    if (cleanedWord) {
+      const proxyPhrase: Phrase = { ...phrase, german: currentGerman };
+      onWordClick(proxyPhrase, cleanedWord);
+    }
+  };
+
+  if (!isOpen) return null;
+
   const renderPhraseBlocks = () => {
+    const allParts = [phrase.russian, ...history];
     return (
-      <div className="flex flex-wrap items-center justify-center gap-2 leading-relaxed">
-        <span className="bg-slate-600/50 px-3 py-1.5 rounded-lg text-slate-200 text-lg">
-          {phrase.russian}
-        </span>
-        {history.map((part, index) => (
+      <div className="flex flex-wrap items-center justify-center gap-1 leading-relaxed">
+        {allParts.map((part, index) => (
           <button
             key={index}
             onClick={() => handleBlockClick(index)}
-            className="bg-purple-600 hover:bg-purple-700 px-3 py-1.5 rounded-lg text-white text-lg transition-colors group relative"
-            title="Нажмите, чтобы вернуться к этому шагу"
+            className={`${index === 0 ? 'bg-slate-600/50 hover:bg-slate-600' : 'bg-purple-600 hover:bg-purple-700'} px-2 py-1 rounded-md text-sm transition-colors group relative`}
+            title="Нажмите, чтобы вернуться к этому этапу"
           >
             {part}
-            <span className="absolute -top-1 -right-1.5 h-4 w-4 rounded-full bg-purple-800/80 group-hover:bg-red-500 flex items-center justify-center text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity">
+            <span className="absolute -top-1 -right-1.5 h-4 w-4 rounded-full bg-slate-700/80 group-hover:bg-red-500 flex items-center justify-center text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity">
               ×
             </span>
           </button>
         ))}
-      </div>
-    );
-  };
-
-  const renderContent = () => {
-    return (
-      <div className="p-4 sm:p-6 flex flex-col h-full">
-        {/* Phrase Display Area */}
-        <div className="bg-slate-700/50 p-4 rounded-lg mb-6 text-center">
-          <div className="mb-4">
-            {renderPhraseBlocks()}
-          </div>
-          <div className="flex items-center justify-center gap-x-3 border-t border-slate-600/50 pt-4">
-            <AudioPlayer textToSpeak={currentGerman} />
-            <p className="text-2xl font-bold text-purple-300 text-left">
-              {currentGerman}
-            </p>
-          </div>
-        </div>
-
-        {/* Continuations Area */}
-        <div className="flex-grow flex flex-col justify-center items-center">
-          {isLoading && <Spinner />}
-          {error && <div className="text-center bg-red-900/50 border border-red-700 text-red-300 p-3 rounded-lg"><p className="font-semibold">Ошибка</p><p className="text-sm">{error}</p></div>}
-          {!isLoading && !error && (
-            continuations.length > 0 ? (
-              <div className="flex flex-wrap justify-center gap-3">
-                {continuations.map((cont, index) => (
-                  <button
-                    key={index}
-                    onClick={() => handleSelectContinuation(cont)}
-                    className="px-4 py-2 bg-slate-600/70 hover:bg-slate-600 rounded-lg transition-colors text-slate-200 font-medium"
-                  >
-                    {cont}
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <p className="text-center text-slate-400">Нет предложений для продолжения. Попробуйте вернуться назад.</p>
-            )
-          )}
-        </div>
       </div>
     );
   };
@@ -149,7 +146,7 @@ const SentenceChainModal: React.FC<SentenceChainModalProps> = ({ isOpen, onClose
       >
         <header className="flex items-center justify-between p-4 border-b border-slate-700 flex-shrink-0">
           <div className="flex items-center space-x-3">
-            <button
+             <button
                 onClick={handleGoBackOneStep}
                 disabled={history.length === 0 || isLoading}
                 className="p-2 rounded-full hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed"
@@ -166,7 +163,48 @@ const SentenceChainModal: React.FC<SentenceChainModalProps> = ({ isOpen, onClose
             <CloseIcon className="w-6 h-6 text-slate-400"/>
           </button>
         </header>
-        {renderContent()}
+        
+        <div className="flex-grow p-4 overflow-y-auto hide-scrollbar">
+            {/* Phrase Display Area */}
+            <div className="bg-slate-700/50 p-3 rounded-lg mb-4 text-center">
+              <div className="mb-3 min-h-[36px]">
+                {renderPhraseBlocks()}
+              </div>
+              <div className="flex items-center justify-center gap-x-2 border-t border-slate-600/50 pt-3">
+                <AudioPlayer textToSpeak={currentGerman} />
+                <div className="text-lg font-bold text-purple-300 text-left flex flex-wrap justify-center items-center gap-x-1">
+                    {currentGerman.split(' ').map((word, index) => (
+                        <span key={index} onClick={(e) => handleWordClick(e, word)} className="cursor-pointer hover:bg-white/20 px-1 py-0.5 rounded-md transition-colors">
+                            {word}
+                        </span>
+                    ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Continuations Area */}
+            <div className="flex flex-col justify-center items-center ">
+              {isLoading && <Spinner />}
+              {error && <div className="text-center bg-red-900/50 border border-red-700 text-red-300 p-3 rounded-lg"><p className="font-semibold">Ошибка</p><p className="text-sm">{error}</p></div>}
+              {!isLoading && !error && (
+                continuations.length > 0 ? (
+                    <div className="flex flex-wrap justify-center gap-2 p-1">
+                        {continuations.map((cont, index) => (
+                        <button
+                            key={index}
+                            onClick={() => handleSelectContinuation(cont)}
+                            className="px-3 py-1.5 bg-slate-600/70 hover:bg-slate-600 rounded-lg transition-colors text-slate-200 text-sm font-medium"
+                        >
+                            {cont}
+                        </button>
+                        ))}
+                    </div>
+                ) : (
+                  <p className="text-center text-slate-400 text-sm p-4">Нет предложений для продолжения. Попробуйте вернуться назад.</p>
+                )
+              )}
+            </div>
+        </div>
       </div>
     </div>
   );
