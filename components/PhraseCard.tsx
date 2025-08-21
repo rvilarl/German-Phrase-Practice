@@ -1,0 +1,91 @@
+import React from 'react';
+import type { Phrase } from '../types';
+import SoundIcon from './icons/SoundIcon';
+import ChatIcon from './icons/ChatIcon';
+import AnalysisIcon from './icons/AnalysisIcon';
+
+interface PhraseCardProps {
+  phrase: Phrase;
+  onSpeak: (text: string) => void;
+  isFlipped: boolean;
+  onOpenChat: (phrase: Phrase) => void;
+  onImproveSkill: () => void;
+  onOpenDeepDive: (phrase: Phrase) => void;
+}
+
+const PhraseCard: React.FC<PhraseCardProps> = ({ phrase, onSpeak, isFlipped, onOpenChat, onImproveSkill, onOpenDeepDive }) => {
+
+  const handleSpeak = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onSpeak(phrase.german);
+  }
+
+  const handleOpenChat = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onOpenChat(phrase);
+  }
+
+  const handleImproveClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onImproveSkill();
+  }
+  
+  const handleOpenDeepDive = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onOpenDeepDive(phrase);
+  }
+
+  return (
+    <div className="group [perspective:1000px] w-full max-w-md h-64">
+      <div 
+        className={`relative w-full h-full rounded-xl shadow-lg transition-transform duration-700 ease-in-out [transform-style:preserve-3d] ${isFlipped ? '[transform:rotateY(180deg)]' : ''}`}
+      >
+        {/* Front Side (Russian) */}
+        <div className="absolute inset-0 [backface-visibility:hidden] bg-gradient-to-br from-slate-700 to-slate-800 border border-slate-600 rounded-xl p-6 flex flex-col justify-between items-center text-center">
+            <div className="flex-grow flex flex-col justify-center">
+                <h2 className="text-2xl font-semibold text-slate-100">{phrase.russian}</h2>
+                <p className="text-slate-400 mt-4">Вспомните перевод</p>
+            </div>
+            <button
+                onClick={handleImproveClick}
+                className="text-sm px-4 py-1.5 rounded-full bg-slate-600/50 hover:bg-slate-600 transition-colors text-slate-300"
+            >
+                Улучшить навык
+            </button>
+        </div>
+        
+        {/* Back Side (German) */}
+        <div className="absolute inset-0 [backface-visibility:hidden] [transform:rotateY(180deg)] bg-gradient-to-br from-purple-600 to-blue-600 border border-purple-500 rounded-xl p-6 flex flex-col justify-between items-center text-center">
+            <div className="flex-grow flex items-center justify-center">
+                <h2 className="text-3xl font-bold text-white">{phrase.german}</h2>
+            </div>
+            <div className="w-full flex justify-center items-center space-x-4">
+                <button
+                    onClick={handleSpeak}
+                    className="p-3 rounded-full bg-white/10 hover:bg-white/20 transition-colors duration-200"
+                    aria-label="Speak phrase"
+                >
+                    <SoundIcon className="w-6 h-6 text-white"/>
+                </button>
+                 <button
+                    onClick={handleOpenChat}
+                    className="p-3 rounded-full bg-white/10 hover:bg-white/20 transition-colors duration-200"
+                    aria-label="Show examples"
+                >
+                    <ChatIcon className="w-6 h-6 text-white"/>
+                </button>
+                <button
+                    onClick={handleOpenDeepDive}
+                    className="p-3 rounded-full bg-white/10 hover:bg-white/20 transition-colors duration-200"
+                    aria-label="Deep analysis"
+                >
+                    <AnalysisIcon className="w-6 h-6 text-white"/>
+                </button>
+            </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default PhraseCard;
