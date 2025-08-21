@@ -1,4 +1,4 @@
-import type { Phrase, ChatMessage, DeepDiveAnalysis, ContentPart } from '../types';
+import type { Phrase, ChatMessage, DeepDiveAnalysis, ContentPart, MovieExample } from '../types';
 import { AiService } from './aiService';
 import { getDeepseekApiKey } from './env';
 
@@ -260,6 +260,38 @@ const generateDeepDiveAnalysis: AiService['generateDeepDiveAnalysis'] = async (p
     return await callDeepSeekApi(messages, schema);
 };
 
+const generateMovieExamples: AiService['generateMovieExamples'] = async (phrase) => {
+    const schema = {
+        type: "array",
+        items: {
+            type: "object",
+            properties: {
+                title: { type: "string", description: "Original movie title" },
+                titleRussian: { type: "string", description: "Russian translation of the movie title" },
+                dialogue: { type: "string", description: "Dialogue in German" },
+                dialogueRussian: { type: "string", description: "Dialogue translation in Russian" },
+            },
+            required: ["title", "titleRussian", "dialogue", "dialogueRussian"],
+        },
+    };
+
+    const prompt = `Найди до 5 примеров из диалогов популярных фильмов, где используется немецкая фраза "${phrase.german}". Фильмы могут быть как немецкого производства, так и популярные международные фильмы с качественным немецким дубляжом. Для каждого примера укажи:
+1. Оригинальное название фильма ('title').
+2. Название фильма на русском языке ('titleRussian').
+3. Фрагмент диалога на немецком языке ('dialogue').
+4. Перевод этого фрагмента на русский язык ('dialogueRussian').`;
+    
+    const messages = [
+        { role: "system", content: "You are an AI assistant that finds movie dialogues. Respond only in JSON." },
+        { role: "user", content: prompt }
+    ];
+    
+    // Deepseek needs the response to be an object, so we wrap the array
+    const responseSchema = { examples: schema };
+    const result = await callDeepSeekApi(messages, responseSchema);
+    return result.examples;
+};
+
 const healthCheck: AiService['healthCheck'] = async () => {
     const apiKey = getDeepseekApiKey();
     if (!apiKey) {
@@ -299,6 +331,7 @@ export const deepseekService: AiService = {
     generateInitialExamples,
     continueChat,
     generateDeepDiveAnalysis,
+    generateMovieExamples,
     healthCheck,
     getProviderName: () => "DeepSeek",
 };

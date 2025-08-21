@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Phrase, DeepDiveAnalysis } from './types';
+import { Phrase, DeepDiveAnalysis, MovieExample } from './types';
 import * as srsService from './services/srsService';
 import * as cacheService from './services/cacheService';
 import { getProviderPriorityList, getFallbackProvider, ApiProviderType } from './services/apiProvider';
@@ -10,6 +10,7 @@ import Spinner from './components/Spinner';
 import ChatModal from './components/ChatModal';
 import SettingsModal from './components/SettingsModal';
 import DeepDiveModal from './components/DeepDiveModal';
+import MovieExamplesModal from './components/MovieExamplesModal';
 import SettingsIcon from './components/icons/SettingsIcon';
 
 const PHRASES_STORAGE_KEY = 'germanPhrases';
@@ -48,6 +49,12 @@ const App: React.FC = () => {
   const [deepDiveAnalysis, setDeepDiveAnalysis] = useState<DeepDiveAnalysis | null>(null);
   const [isDeepDiveLoading, setIsDeepDiveLoading] = useState<boolean>(false);
   const [deepDiveError, setDeepDiveError] = useState<string | null>(null);
+
+  const [isMovieExamplesModalOpen, setIsMovieExamplesModalOpen] = useState(false);
+  const [movieExamplesPhrase, setMovieExamplesPhrase] = useState<Phrase | null>(null);
+  const [movieExamples, setMovieExamples] = useState<MovieExample[]>([]);
+  const [isMovieExamplesLoading, setIsMovieExamplesLoading] = useState<boolean>(false);
+  const [movieExamplesError, setMovieExamplesError] = useState<string | null>(null);
 
   const [apiProvider, setApiProvider] = useState<AiService | null>(null);
   const [apiProviderType, setApiProviderType] = useState<ApiProviderType | null>(null);
@@ -358,6 +365,34 @@ const App: React.FC = () => {
       setIsDeepDiveLoading(false);
     }
   }, [callApiWithFallback, apiProvider]);
+
+  const handleOpenMovieExamples = useCallback(async (phrase: Phrase) => {
+    if (!apiProvider) return;
+    setMovieExamplesPhrase(phrase);
+    setIsMovieExamplesModalOpen(true);
+    setIsMovieExamplesLoading(true);
+    setMovieExamples([]);
+    setMovieExamplesError(null);
+
+    const cacheKey = `movie_examples_${phrase.id}`;
+    const cachedExamples = cacheService.getCache<MovieExample[]>(cacheKey);
+
+    if (cachedExamples) {
+      setMovieExamples(cachedExamples);
+      setIsMovieExamplesLoading(false);
+      return;
+    }
+
+    try {
+      const examples = await callApiWithFallback(provider => provider.generateMovieExamples(phrase));
+      setMovieExamples(examples);
+      cacheService.setCache(cacheKey, examples);
+    } catch (err) {
+      setMovieExamplesError(err instanceof Error ? err.message : 'Unknown error during example generation.');
+    } finally {
+      setIsMovieExamplesLoading(false);
+    }
+  }, [callApiWithFallback, apiProvider]);
   
   const handleGenerateInitialExamples = useCallback(
     (phrase: Phrase) => callApiWithFallback(provider => provider.generateInitialExamples(phrase)),
@@ -415,7 +450,8 @@ const App: React.FC = () => {
                       isFlipped={isAnswerRevealed} 
                       onOpenChat={openChatForPhrase} 
                       onImproveSkill={handleImproveSkill}
-                      onOpenDeepDive={handleOpenDeepDive} 
+                      onOpenDeepDive={handleOpenDeepDive}
+                      onOpenMovieExamples={handleOpenMovieExamples}
                     />
                 </div>
             </div>
@@ -467,6 +503,14 @@ const App: React.FC = () => {
         analysis={deepDiveAnalysis}
         isLoading={isDeepDiveLoading}
         error={deepDiveError}
+      />}
+       {movieExamplesPhrase && <MovieExamplesModal 
+        isOpen={isMovieExamplesModalOpen} 
+        onClose={() => setIsMovieExamplesModalOpen(false)} 
+        phrase={movieExamplesPhrase}
+        examples={movieExamples}
+        isLoading={isMovieExamplesLoading}
+        error={movieExamplesError}
       />}
     </div>
   );

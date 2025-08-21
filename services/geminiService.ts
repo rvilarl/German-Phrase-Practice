@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import type { Phrase, ChatMessage, ExamplePair, ProactiveSuggestion, ContentPart, DeepDiveAnalysis } from '../types';
+import type { Phrase, ChatMessage, ExamplePair, ProactiveSuggestion, ContentPart, DeepDiveAnalysis, MovieExample } from '../types';
 import { AiService } from './aiService';
 import { getGeminiApiKey } from './env';
 
@@ -351,6 +351,53 @@ const generateDeepDiveAnalysis: AiService['generateDeepDiveAnalysis'] = async (p
     }
 };
 
+const movieExamplesSchema = {
+    type: Type.ARRAY,
+    items: {
+        type: Type.OBJECT,
+        properties: {
+            title: { type: Type.STRING, description: 'The original title of the movie.' },
+            titleRussian: { type: Type.STRING, description: 'The Russian translation of the movie title.' },
+            dialogue: { type: Type.STRING, description: 'The exact dialogue snippet in German containing the phrase.' },
+            dialogueRussian: { type: Type.STRING, description: 'The Russian translation of the dialogue snippet.' },
+        },
+        required: ["title", "titleRussian", "dialogue", "dialogueRussian"],
+    }
+};
+
+const generateMovieExamples: AiService['generateMovieExamples'] = async (phrase) => {
+    const api = initializeApi();
+    if (!api) throw new Error("Gemini API key not configured.");
+
+    const prompt = `Найди до 5 примеров из диалогов популярных фильмов, где используется немецкая фраза "${phrase.german}". Фильмы могут быть как немецкого производства, так и популярные международные фильмы с качественным немецким дубляжом. Для каждого примера укажи:
+1. Оригинальное название фильма ('title').
+2. Название фильма на русском языке ('titleRussian').
+3. Фрагмент диалога на немецком языке ('dialogue').
+4. Перевод этого фрагмента на русский язык ('dialogueRussian').
+Верни результат в виде JSON-массива объектов, соответствующего схеме.`;
+
+    try {
+        const response = await api.models.generateContent({
+            model: model,
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: movieExamplesSchema,
+                temperature: 0.7,
+            },
+        });
+        
+        const jsonText = response.text.trim();
+        return JSON.parse(jsonText) as MovieExample[];
+
+    } catch (error) {
+        console.error("Error generating movie examples with Gemini:", error);
+        const errorMessage = (error as any)?.message || 'Unknown error';
+        throw new Error(`Failed to call the Gemini API: ${errorMessage}`);
+    }
+};
+
+
 const healthCheck: AiService['healthCheck'] = async () => {
     const api = initializeApi();
     if (!api) return false;
@@ -371,6 +418,7 @@ export const geminiService: AiService = {
     generateInitialExamples,
     continueChat,
     generateDeepDiveAnalysis,
+    generateMovieExamples,
     healthCheck,
     getProviderName: () => "Google Gemini",
 };

@@ -1,0 +1,101 @@
+import React from 'react';
+import type { Phrase, MovieExample } from '../types';
+import Spinner from './Spinner';
+import CloseIcon from './icons/CloseIcon';
+import FilmIcon from './icons/FilmIcon';
+import AudioPlayer from './AudioPlayer';
+
+interface MovieExamplesModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  phrase: Phrase;
+  examples: MovieExample[];
+  isLoading: boolean;
+  error: string | null;
+}
+
+// A simple utility to highlight the phrase in the dialogue
+const HighlightedDialogue: React.FC<{ text: string; phrase: string }> = ({ text, phrase }) => {
+    if (!phrase || !text) {
+        return <>{text}</>;
+    }
+    const parts = text.split(new RegExp(`(${phrase})`, 'gi'));
+    return (
+        <span>
+            {parts.map((part, index) =>
+                part.toLowerCase() === phrase.toLowerCase() ? (
+                    <strong key={index} className="text-purple-300">{part}</strong>
+                ) : (
+                    part
+                )
+            )}
+        </span>
+    );
+};
+
+
+const MovieExamplesModal: React.FC<MovieExamplesModalProps> = ({ isOpen, onClose, phrase, examples, isLoading, error }) => {
+  if (!isOpen) return null;
+
+  const renderContent = () => {
+    if (isLoading) {
+      return <div className="flex flex-col justify-center items-center h-full"><Spinner /><p className="mt-4 text-slate-400">Ищем примеры в фильмах...</p></div>;
+    }
+    if (error) {
+      return <div className="flex justify-center items-center h-full"><div className="text-center bg-red-900/50 border border-red-700 text-red-300 p-4 rounded-lg"><p className="font-semibold">Ошибка</p><p className="text-sm">{error}</p></div></div>;
+    }
+    if (examples.length === 0) {
+      return <div className="flex justify-center items-center h-full"><p className="text-slate-400">Не удалось найти примеры из фильмов для этой фразы.</p></div>;
+    }
+
+    return (
+      <div className="space-y-4">
+        {examples.map((example, index) => (
+            <div key={index} className="bg-slate-700/50 p-4 rounded-lg">
+                <h3 className="font-semibold text-slate-200 mb-2">
+                    {example.title}
+                    {example.titleRussian && <span className="text-slate-400 font-normal"> ({example.titleRussian})</span>}
+                </h3>
+                <div className="flex items-start space-x-3">
+                    <AudioPlayer textToSpeak={example.dialogue} />
+                    <div className="flex-1">
+                        <p className="text-slate-300 leading-relaxed">
+                            <HighlightedDialogue text={example.dialogue} phrase={phrase.german} />
+                        </p>
+                        {example.dialogueRussian && (
+                            <p className="text-slate-400 leading-relaxed italic mt-1 border-l-2 border-slate-600 pl-3">
+                                {example.dialogueRussian}
+                            </p>
+                        )}
+                    </div>
+                </div>
+            </div>
+        ))}
+      </div>
+    );
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/60 z-50 flex justify-center items-end" onClick={onClose}>
+      <div 
+        className={`bg-slate-800 w-full max-w-2xl h-[90%] max-h-[90vh] rounded-t-2xl shadow-2xl flex flex-col transition-transform duration-300 ease-out ${isOpen ? 'translate-y-0' : 'translate-y-full'}`}
+        onClick={e => e.stopPropagation()}
+      >
+        <header className="flex items-center justify-between p-4 border-b border-slate-700 flex-shrink-0">
+          <div className="flex items-center space-x-3">
+            <FilmIcon className="w-7 h-7 text-purple-400"/>
+            <h2 className="text-lg font-bold text-slate-100">Примеры из фильмов</h2>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-700">
+            <CloseIcon className="w-6 h-6 text-slate-400"/>
+          </button>
+        </header>
+        <div className="flex-grow p-6 overflow-y-auto hide-scrollbar">
+          {renderContent()}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default MovieExamplesModal;

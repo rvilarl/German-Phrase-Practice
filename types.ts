@@ -10,6 +10,13 @@ export interface Phrase {
   isMastered: boolean; // True if knowCount >= 3 or knowStreak >= 2
 }
 
+export interface MovieExample {
+  title: string;
+  titleRussian: string;
+  dialogue: string;
+  dialogueRussian: string;
+}
+
 export interface ExamplePair {
   german: string;
   russian: string;

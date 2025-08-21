@@ -3,6 +3,7 @@ import type { Phrase } from '../types';
 import SoundIcon from './icons/SoundIcon';
 import ChatIcon from './icons/ChatIcon';
 import AnalysisIcon from './icons/AnalysisIcon';
+import FilmIcon from './icons/FilmIcon';
 
 interface PhraseCardProps {
   phrase: Phrase;
@@ -11,9 +12,10 @@ interface PhraseCardProps {
   onOpenChat: (phrase: Phrase) => void;
   onImproveSkill: () => void;
   onOpenDeepDive: (phrase: Phrase) => void;
+  onOpenMovieExamples: (phrase: Phrase) => void;
 }
 
-const PhraseCard: React.FC<PhraseCardProps> = ({ phrase, onSpeak, isFlipped, onOpenChat, onImproveSkill, onOpenDeepDive }) => {
+const PhraseCard: React.FC<PhraseCardProps> = ({ phrase, onSpeak, isFlipped, onOpenChat, onImproveSkill, onOpenDeepDive, onOpenMovieExamples }) => {
 
   const handleSpeak = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -33,6 +35,11 @@ const PhraseCard: React.FC<PhraseCardProps> = ({ phrase, onSpeak, isFlipped, onO
   const handleOpenDeepDive = (e: React.MouseEvent) => {
     e.stopPropagation();
     onOpenDeepDive(phrase);
+  }
+
+  const handleOpenMovieExamples = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onOpenMovieExamples(phrase);
   }
 
   return (
@@ -75,6 +82,13 @@ const PhraseCard: React.FC<PhraseCardProps> = ({ phrase, onSpeak, isFlipped, onO
                     aria-label="Show examples"
                 >
                     <ChatIcon className="w-6 h-6 text-white"/>
+                </button>
+                <button
+                    onClick={handleOpenMovieExamples}
+                    className="p-3 rounded-full bg-white/10 hover:bg-white/20 transition-colors duration-200"
+                    aria-label="Show movie examples"
+                >
+                    <FilmIcon className="w-6 h-6 text-white"/>
                 </button>
                 <button
                     onClick={handleOpenDeepDive}
