@@ -156,6 +156,13 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, phrase, onSpeak,
         recognition.onstart = () => setIsListening(true);
         recognition.onend = () => setIsListening(false);
         recognition.onerror = (event) => {
+            // 'no-speech' and 'aborted' are common scenarios and not true errors.
+            // For example, 'no-speech' occurs if the user doesn't say anything.
+            // 'aborted' happens if the recognition is programmatically stopped.
+            // We let the 'onend' event handle the state cleanup in these cases.
+            if (event.error === 'no-speech' || event.error === 'aborted') {
+                return;
+            }
             console.error('Speech recognition error:', event.error);
             setIsListening(false);
         };

@@ -71,6 +71,16 @@
     -ms-overflow-style: none; /* IE and Edge */
     scrollbar-width: none; /* Firefox */
   }
+  
+  @keyframes listening-glow-animation {
+    0% { box-shadow: 0 0 5px #a855f7, 0 0 10px #a855f7, 0 0 15px #a855f7; }
+    50% { box-shadow: 0 0 20px #a855f7, 0 0 30px #a855f7, 0 0 40px #a855f7; }
+    100% { box-shadow: 0 0 5px #a855f7, 0 0 10px #a855f7, 0 0 15px #a855f7; }
+  }
+  .listening-glow {
+    background-color: rgba(168, 85, 247, 0.2);
+    animation: listening-glow-animation 2s infinite ease-in-out;
+  }
 </style>
 </head>
   <body class="bg-slate-900">
