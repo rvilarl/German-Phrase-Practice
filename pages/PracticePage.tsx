@@ -3,6 +3,9 @@ import type { Phrase } from '../types';
 import * as srsService from '../services/srsService';
 import PhraseCard from '../components/PhraseCard';
 import Spinner from '../components/Spinner';
+import ListIcon from '../components/icons/ListIcon';
+import TrashIcon from '../components/icons/TrashIcon';
+import MessageQuestionIcon from '../components/icons/MessageQuestionIcon';
 
 const ACTIVE_POOL_TARGET = 10;
 const POOL_FETCH_THRESHOLD = 7; 
@@ -14,6 +17,41 @@ interface AnimationState {
   key: string;
   direction: AnimationDirection;
 }
+
+const ContextMenu: React.FC<{
+  phrase: Phrase;
+  onClose: () => void;
+  onGoToList: (phrase: Phrase) => void;
+  onDelete: (phraseId: string) => void;
+  onDiscuss: (phrase: Phrase) => void;
+}> = ({ phrase, onClose, onGoToList, onDelete, onDiscuss }) => {
+  const handleGoToList = () => { onGoToList(phrase); onClose(); };
+  const handleDiscuss = () => { onDiscuss(phrase); onClose(); };
+  const handleDelete = () => { onDelete(phrase.id); onClose(); };
+
+  return (
+    <>
+      <div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div
+        className="fixed z-50 top-1/2 left-1/2 bg-slate-700 rounded-lg shadow-2xl animate-fade-in text-white w-64 overflow-hidden"
+      >
+        <button onClick={handleGoToList} className="w-full flex items-center px-4 py-3 text-left hover:bg-slate-600 transition-colors">
+          <ListIcon className="w-5 h-5 mr-3 text-slate-300" />
+          <span>Перейти в список</span>
+        </button>
+         <button onClick={handleDiscuss} className="w-full flex items-center px-4 py-3 text-left hover:bg-slate-600 transition-colors">
+          <MessageQuestionIcon className="w-5 h-5 mr-3 text-slate-300" />
+          <span>Обсудить перевод</span>
+        </button>
+        <button onClick={handleDelete} className="w-full flex items-center px-4 py-3 text-left hover:bg-slate-600 transition-colors text-red-400">
+          <TrashIcon className="w-5 h-5 mr-3" />
+          <span>Удалить</span>
+        </button>
+      </div>
+    </>
+  );
+};
+
 
 interface PracticePageProps {
   allPhrases: Phrase[];
@@ -49,6 +87,7 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
   const [currentPhrase, setCurrentPhrase] = useState<Phrase | null>(null);
   const [isAnswerRevealed, setIsAnswerRevealed] = useState(false);
   const [isExiting, setIsExiting] = useState<boolean>(false);
+  const [contextMenuPhrase, setContextMenuPhrase] = useState<Phrase | null>(null);
   
   const [animationState, setAnimationState] = useState<AnimationState>({ key: '', direction: 'right' });
   const [cardHistory, setCardHistory] = useState<string[]>([]);
@@ -250,9 +289,7 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
                       onOpenSentenceChain={onOpenSentenceChain}
                       onOpenImprovePhrase={onOpenImprovePhrase}
                       onOpenPhraseBuilder={onOpenPhraseBuilder}
-                      onDeletePhrase={onDeletePhrase}
-                      onGoToList={onGoToList}
-                      onOpenDiscussTranslation={onOpenDiscussTranslation}
+                      onOpenContextMenu={setContextMenuPhrase}
                     />
                 </div>
             </div>
@@ -261,7 +298,20 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
     );
   }
 
-  return renderContent();
+  return (
+    <>
+      {renderContent()}
+      {contextMenuPhrase && (
+        <ContextMenu
+          phrase={contextMenuPhrase}
+          onClose={() => setContextMenuPhrase(null)}
+          onDelete={onDeletePhrase}
+          onGoToList={onGoToList}
+          onDiscuss={onOpenDiscussTranslation}
+        />
+      )}
+    </>
+  );
 };
 
 export default PracticePage;

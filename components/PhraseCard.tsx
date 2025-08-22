@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useRef } from 'react';
 import type { Phrase } from '../types';
 import SoundIcon from './icons/SoundIcon';
 import ChatIcon from './icons/ChatIcon';
@@ -7,9 +7,6 @@ import FilmIcon from './icons/FilmIcon';
 import LinkIcon from './icons/LinkIcon';
 import WandIcon from './icons/WandIcon';
 import BlocksIcon from './icons/BlocksIcon';
-import ListIcon from './icons/ListIcon';
-import TrashIcon from './icons/TrashIcon';
-import MessageQuestionIcon from './icons/MessageQuestionIcon';
 
 interface PhraseCardProps {
   phrase: Phrase;
@@ -24,48 +21,15 @@ interface PhraseCardProps {
   onOpenSentenceChain: (phrase: Phrase) => void;
   onOpenImprovePhrase: (phrase: Phrase) => void;
   onOpenPhraseBuilder: (phrase: Phrase) => void;
-  onDeletePhrase: (phraseId: string) => void;
-  onGoToList: (phrase: Phrase) => void;
-  onOpenDiscussTranslation: (phrase: Phrase) => void;
+  onOpenContextMenu: (phrase: Phrase) => void;
 }
-
-const ContextMenu: React.FC<{
-  onClose: () => void;
-  onGoToList: () => void;
-  onDelete: () => void;
-  onDiscuss: () => void;
-}> = ({ onClose, onGoToList, onDelete, onDiscuss }) => {
-  return (
-    <>
-      <div className="fixed inset-0 z-40 bg-black/50" onClick={onClose} />
-      <div
-        className="fixed z-50 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-slate-700 rounded-lg shadow-2xl animate-fade-in text-white w-64 overflow-hidden"
-      >
-        <button onClick={onGoToList} className="w-full flex items-center px-4 py-3 text-left hover:bg-slate-600 transition-colors">
-          <ListIcon className="w-5 h-5 mr-3 text-slate-300" />
-          <span>Перейти в список</span>
-        </button>
-         <button onClick={onDiscuss} className="w-full flex items-center px-4 py-3 text-left hover:bg-slate-600 transition-colors">
-          <MessageQuestionIcon className="w-5 h-5 mr-3 text-slate-300" />
-          <span>Обсудить перевод</span>
-        </button>
-        <button onClick={onDelete} className="w-full flex items-center px-4 py-3 text-left hover:bg-slate-600 transition-colors text-red-400">
-          <TrashIcon className="w-5 h-5 mr-3" />
-          <span>Удалить</span>
-        </button>
-      </div>
-    </>
-  );
-};
 
 const PhraseCard: React.FC<PhraseCardProps> = ({
   phrase, onSpeak, isFlipped, onFlip, onOpenChat, onImproveSkill,
   onOpenDeepDive, onOpenMovieExamples, onWordClick, onOpenSentenceChain,
-  onOpenImprovePhrase, onOpenPhraseBuilder, onDeletePhrase, onGoToList,
-  onOpenDiscussTranslation
+  onOpenImprovePhrase, onOpenPhraseBuilder, onOpenContextMenu
 }) => {
 
-  const [isContextMenuOpen, setIsContextMenuOpen] = useState(false);
   const longPressTimer = useRef<number | null>(null);
 
   const handleSpeak = (e: React.MouseEvent) => {
@@ -119,7 +83,7 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     longPressTimer.current = window.setTimeout(() => {
-      setIsContextMenuOpen(true);
+      onOpenContextMenu(phrase);
       longPressTimer.current = null;
     }, 500); // 500ms for long press
   };
@@ -130,22 +94,6 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
     }
   };
 
-  const handleDelete = () => {
-    onDeletePhrase(phrase.id);
-    setIsContextMenuOpen(false);
-  };
-
-  const handleGoToList = () => {
-    onGoToList(phrase);
-    setIsContextMenuOpen(false);
-  };
-  
-  const handleDiscuss = () => {
-    onOpenDiscussTranslation(phrase);
-    setIsContextMenuOpen(false);
-  };
-
-
   return (
     <div 
         className="group [perspective:1000px] w-full max-w-md h-full"
@@ -154,7 +102,7 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
         onPointerLeave={clearLongPress}
         onContextMenu={(e) => {
             e.preventDefault();
-            setIsContextMenuOpen(true);
+            onOpenContextMenu(phrase);
         }}
     >
       <div 
@@ -240,14 +188,6 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
             </div>
         </div>
       </div>
-      {isContextMenuOpen && (
-        <ContextMenu 
-          onClose={() => setIsContextMenuOpen(false)}
-          onDelete={handleDelete}
-          onGoToList={handleGoToList}
-          onDiscuss={handleDiscuss}
-        />
-      )}
     </div>
   );
 };
