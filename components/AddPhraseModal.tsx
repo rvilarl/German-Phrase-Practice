@@ -10,10 +10,13 @@ interface AddPhraseModalProps {
   isOpen: boolean;
   onClose: () => void;
   onGenerate: (russianPhrase: string) => Promise<{ german: string; russian: string }>;
+  onTranslateGerman: (germanPhrase: string) => Promise<{ russian: string }>;
   onPhraseCreated: (phraseData: { german: string; russian: string; }) => void;
+  language: 'ru' | 'de';
+  autoSubmit: boolean;
 }
 
-const AddPhraseModal: React.FC<AddPhraseModalProps> = ({ isOpen, onClose, onGenerate, onPhraseCreated }) => {
+const AddPhraseModal: React.FC<AddPhraseModalProps> = ({ isOpen, onClose, onGenerate, onTranslateGerman, onPhraseCreated, language, autoSubmit }) => {
   const [inputText, setInputText] = useState('');
   const [isListening, setIsListening] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -31,20 +34,26 @@ const AddPhraseModal: React.FC<AddPhraseModalProps> = ({ isOpen, onClose, onGene
     setError(null);
 
     try {
-      const newPhraseData = await onGenerate(trimmedText);
+      let newPhraseData: { german: string; russian: string; };
+      if (language === 'ru') {
+        newPhraseData = await onGenerate(trimmedText);
+      } else {
+        const { russian } = await onTranslateGerman(trimmedText);
+        newPhraseData = { german: trimmedText, russian };
+      }
       onPhraseCreated(newPhraseData);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Не удалось создать фразу.');
       setIsLoading(false); // Stop loading on error
     }
     // `isLoading` will be reset by the parent component closing the modal.
-  }, [isLoading, onGenerate, onPhraseCreated]);
+  }, [isLoading, onGenerate, onPhraseCreated, language, onTranslateGerman]);
 
   useEffect(() => {
     const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognitionAPI) {
       const recognition = new SpeechRecognitionAPI();
-      recognition.lang = 'ru-RU';
+      recognition.lang = language === 'ru' ? 'ru-RU' : 'de-DE';
       recognition.interimResults = true;
       recognition.continuous = false;
 
@@ -74,7 +83,7 @@ const AddPhraseModal: React.FC<AddPhraseModalProps> = ({ isOpen, onClose, onGene
         const transcript = Array.from(event.results).map(result => result[0].transcript).join('');
         setInputText(transcript);
         
-        if (event.results[event.results.length - 1].isFinal) {
+        if (autoSubmit && event.results[event.results.length - 1].isFinal) {
           if (transcript.trim()) {
             handleSubmit(transcript.trim());
           }
@@ -82,7 +91,7 @@ const AddPhraseModal: React.FC<AddPhraseModalProps> = ({ isOpen, onClose, onGene
       };
       recognitionRef.current = recognition;
     }
-  }, [handleSubmit]);
+  }, [handleSubmit, language, autoSubmit]);
 
   useEffect(() => {
     if (isOpen) {
@@ -125,10 +134,6 @@ const AddPhraseModal: React.FC<AddPhraseModalProps> = ({ isOpen, onClose, onGene
         className="relative w-full max-w-lg min-h-[30rem] bg-slate-800/80 rounded-lg shadow-2xl flex flex-col items-center justify-between p-6"
         onClick={e => e.stopPropagation()}
       >
-        <button onClick={onClose} className="absolute top-3 right-3 p-2 rounded-full hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed" disabled={isLoading}>
-          <CloseIcon className="w-5 h-5 text-slate-400"/>
-        </button>
-
         {isLoading ? (
           <div className="flex flex-col items-center justify-center h-full w-full">
             <PhraseCardSkeleton />
@@ -139,7 +144,9 @@ const AddPhraseModal: React.FC<AddPhraseModalProps> = ({ isOpen, onClose, onGene
             <div className="text-center">
               <h2 className="text-xl font-bold text-slate-100">Создать новую фразу</h2>
               <p className="text-slate-400 mt-1">
-                {mode === 'voice' ? 'Произнесите фразу на русском' : 'Введите фразу на русском'}
+                {mode === 'voice' 
+                  ? `Произнесите фразу на ${language === 'ru' ? 'русском' : 'немецком'}` 
+                  : `Введите фразу на ${language === 'ru' ? 'русском' : 'немецком'}`}
               </p>
             </div>
 
@@ -164,9 +171,9 @@ const AddPhraseModal: React.FC<AddPhraseModalProps> = ({ isOpen, onClose, onGene
                       value={inputText}
                       onChange={(e) => setInputText(e.target.value)}
                       onKeyDown={handleInputKeyDown}
-                      placeholder="Например, 'Сколько это стоит?'"
+                      placeholder={language === 'ru' ? "Например, 'Сколько это стоит?'" : "Zum Beispiel, 'Wie viel kostet das?'"}
                       className="w-full bg-slate-700 text-white text-lg rounded-full placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 py-3 pl-5 pr-14 transition-colors"
-                      aria-label="Русская фраза"
+                      aria-label={language === 'ru' ? "Русская фраза" : "Немецкая фраза"}
                     />
                     <button
                         type="button"
@@ -186,30 +193,34 @@ const AddPhraseModal: React.FC<AddPhraseModalProps> = ({ isOpen, onClose, onGene
                   <strong>Ошибка:</strong> {error}
               </div>
             )}
-
-            <div className="flex-shrink-0 mt-4 flex items-center space-x-2">
-              <button 
+            
+            <div className="w-full flex justify-center items-center space-x-4 mt-auto pt-4">
+               <button 
                   onClick={handleToggleMode}
-                  className="p-3 rounded-full hover:bg-slate-700/50 transition-colors"
+                  className="p-3 rounded-full bg-slate-600 hover:bg-slate-500 transition-colors"
                   aria-label={mode === 'voice' ? "Переключиться на ввод текста" : "Переключиться на голосовой ввод"}
               >
                   {mode === 'voice' ? (
-                      <KeyboardIcon className="w-7 h-7 text-slate-300" />
+                      <KeyboardIcon className="w-6 h-6 text-slate-200" />
                   ) : (
-                      <MicrophoneIcon className="w-7 h-7 text-slate-300" />
+                      <MicrophoneIcon className="w-6 h-6 text-slate-200" />
                   )}
               </button>
-              {mode === 'voice' && (
+
+              {mode === 'voice' && !autoSubmit && (
                   <button
                       type="button"
                       onClick={() => handleSubmit(inputText)}
                       disabled={!inputText.trim()}
-                      className="p-3 bg-purple-600 rounded-full hover:bg-purple-700 disabled:bg-slate-600 disabled:cursor-not-allowed transition-colors flex-shrink-0"
+                      className="p-4 bg-purple-600 rounded-full hover:bg-purple-700 disabled:bg-slate-600 disabled:cursor-not-allowed transition-colors"
                       aria-label="Отправить"
                   >
                       <SendIcon className="w-6 h-6 text-white" />
                   </button>
               )}
+               <button onClick={onClose} className="p-3 rounded-full bg-slate-600 hover:bg-slate-500 transition-colors" disabled={isLoading} aria-label="Закрыть">
+                <CloseIcon className="w-6 h-6 text-slate-200"/>
+              </button>
             </div>
           </>
         )}

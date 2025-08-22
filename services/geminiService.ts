@@ -148,6 +148,42 @@ const translatePhrase: AiService['translatePhrase'] = async (russianPhrase) => {
     }
 };
 
+const russianSinglePhraseSchema = {
+    type: Type.OBJECT,
+    properties: {
+      russian: {
+        type: Type.STRING,
+        description: 'The translated phrase in Russian.',
+      },
+    },
+    required: ["russian"],
+};
+
+const translateGermanToRussian: AiService['translateGermanToRussian'] = async (germanPhrase) => {
+    const api = initializeApi();
+    if (!api) throw new Error("Gemini API key not configured.");
+
+    const prompt = `Translate this German phrase to Russian: "${germanPhrase}"`;
+
+    try {
+        const response = await api.models.generateContent({
+            model: model,
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: russianSinglePhraseSchema,
+                temperature: 0.2,
+            },
+        });
+        const jsonText = response.text.trim();
+        const parsedResult = JSON.parse(jsonText);
+        return { russian: parsedResult.russian };
+    } catch (error) {
+        console.error("Error translating German phrase with Gemini:", error);
+        throw new Error(`Failed to call the Gemini API: ${(error as any)?.message || 'Unknown error'}`);
+    }
+};
+
 
 const improvePhraseSchema = {
     type: Type.OBJECT,
@@ -977,6 +1013,7 @@ export const geminiService: AiService = {
     generatePhrases,
     generateSinglePhrase,
     translatePhrase,
+    translateGermanToRussian,
     improvePhrase,
     generateInitialExamples,
     continueChat,

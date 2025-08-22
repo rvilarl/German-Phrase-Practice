@@ -4,6 +4,7 @@ export interface AiService {
   generatePhrases(prompt: string): Promise<Omit<Phrase, 'id'>[]>;
   generateSinglePhrase(russianPhrase: string): Promise<{ german: string; russian: string; }>;
   translatePhrase(russianPhrase: string): Promise<{ german: string }>;
+  translateGermanToRussian(germanPhrase: string): Promise<{ russian: string }>;
   improvePhrase(originalRussian: string, currentGerman: string): Promise<{ suggestedGerman: string; explanation: string }>;
   generateInitialExamples(phrase: Phrase): Promise<ChatMessage>;
   continueChat(phrase: Phrase, history: ChatMessage[], newMessage: string): Promise<ChatMessage>;

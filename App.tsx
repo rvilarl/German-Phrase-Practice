@@ -22,7 +22,8 @@ import ImprovePhraseModal from './components/ImprovePhraseModal';
 import EditPhraseModal from './components/EditPhraseModal';
 import ConfirmDeleteModal from './components/ConfirmDeleteModal';
 import PhraseBuilderModal from './components/PhraseBuilderModal';
-import PlusIcon from './components/icons/PlusIcon';
+import ExpandingFab from './components/ExpandingFab';
+import DiscussTranslationModal from './components/DiscussTranslationModal';
 
 const PHRASES_STORAGE_KEY = 'germanPhrases';
 const SETTINGS_STORAGE_KEY = 'germanAppSettings';
@@ -36,6 +37,7 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<View>('practice');
   const [practicePhraseOverride, setPracticePhraseOverride] = useState<Phrase | null>(null);
+  const [highlightedPhraseId, setHighlightedPhraseId] = useState<string | null>(null);
   
   const [isChatModalOpen, setIsChatModalOpen] = useState(false);
   const [chatContextPhrase, setChatContextPhrase] = useState<Phrase | null>(null);
@@ -78,7 +80,8 @@ const App: React.FC = () => {
   const [sentenceChainPhrase, setSentenceChainPhrase] = useState<Phrase | null>(null);
   
   const [isAddPhraseModalOpen, setIsAddPhraseModalOpen] = useState(false);
-  
+  const [addPhraseConfig, setAddPhraseConfig] = useState({ language: 'ru' as 'ru' | 'de', autoSubmit: true });
+
   const [isImproveModalOpen, setIsImproveModalOpen] = useState(false);
   const [phraseToImprove, setPhraseToImprove] = useState<Phrase | null>(null);
 
@@ -96,6 +99,10 @@ const App: React.FC = () => {
 
   const [apiProvider, setApiProvider] = useState<AiService | null>(null);
   const [apiProviderType, setApiProviderType] = useState<ApiProviderType | null>(null);
+  
+  const [isDiscussModalOpen, setIsDiscussModalOpen] = useState(false);
+  const [phraseToDiscuss, setPhraseToDiscuss] = useState<Phrase | null>(null);
+
 
   useEffect(() => {
     const initializeApp = async () => {
@@ -436,6 +443,14 @@ const App: React.FC = () => {
   const handleGenerateInitialExamples = useCallback((phrase: Phrase) => callApiWithFallback(provider => provider.generateInitialExamples(phrase)),[callApiWithFallback]);
   const handleContinueChat = useCallback((phrase: Phrase, history: any[], newMessage: string) => callApiWithFallback(provider => provider.continueChat(phrase, history, newMessage)),[callApiWithFallback]);
   const handleGenerateSinglePhrase = useCallback((russianPhrase: string) => callApiWithFallback(provider => provider.generateSinglePhrase(russianPhrase)),[callApiWithFallback]);
+  const handleTranslateGermanToRussian = useCallback((germanPhrase: string) => callApiWithFallback(provider => provider.translateGermanToRussian(germanPhrase)), [callApiWithFallback]);
+
+
+  const handleOpenAddPhraseModal = (options: { language: 'ru' | 'de'; autoSubmit: boolean }) => {
+    if (!apiProvider) return;
+    setAddPhraseConfig(options);
+    setIsAddPhraseModalOpen(true);
+  };
 
   const handlePhraseCreated = (newPhraseData: { german: string; russian: string }) => {
     const newPhrase: Phrase = {
@@ -450,6 +465,9 @@ const App: React.FC = () => {
     };
     updateAndSavePhrases(prev => [newPhrase, ...prev]);
     setIsAddPhraseModalOpen(false);
+    // Show the new card immediately
+    setPracticePhraseOverride(newPhrase);
+    setView('practice');
   };
 
   const handleOpenImproveModal = (phrase: Phrase) => {
@@ -498,6 +516,24 @@ const App: React.FC = () => {
     setView('practice');
   };
 
+  const handleGoToListFromPractice = (phrase: Phrase) => {
+    setView('list');
+    setHighlightedPhraseId(phrase.id);
+  };
+  
+  const handleOpenDiscussModal = (phrase: Phrase) => {
+    setPhraseToDiscuss(phrase);
+    setIsDiscussModalOpen(true);
+  };
+
+  const handleDiscussionAccept = (suggestion: { russian: string; german: string; }) => {
+    if (phraseToDiscuss) {
+      handlePhraseImproved(phraseToDiscuss.id, suggestion.german, suggestion.russian);
+    }
+    setIsDiscussModalOpen(false);
+  };
+
+
   const getProviderDisplayName = () => {
       if (!apiProvider) return '';
       const name = apiProvider.getProviderName();
@@ -533,6 +569,9 @@ const App: React.FC = () => {
              onOpenSentenceChain={handleOpenSentenceChain}
              onOpenImprovePhrase={handleOpenImproveModal}
              onOpenPhraseBuilder={handleOpenPhraseBuilder}
+             onDeletePhrase={handleDeletePhrase}
+             onGoToList={handleGoToListFromPractice}
+             onOpenDiscussTranslation={handleOpenDiscussModal}
            />
         ) : (
           <PhraseListPage 
@@ -542,19 +581,17 @@ const App: React.FC = () => {
             onFindDuplicates={handleFindDuplicates}
             updateAndSavePhrases={updateAndSavePhrases}
             onStartPractice={handleStartPracticeWithPhrase}
+            highlightedPhraseId={highlightedPhraseId}
+            onClearHighlight={() => setHighlightedPhraseId(null)}
           />
         )}
       </main>
       
       {view === 'practice' && !isLoading && (
-        <button
-            onClick={() => setIsAddPhraseModalOpen(true)}
-            disabled={!apiProvider}
-            className="fixed bottom-6 right-6 bg-purple-600 hover:bg-purple-700 text-white rounded-full p-4 shadow-lg transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-slate-800 z-20 disabled:opacity-50 disabled:cursor-not-allowed"
-            aria-label="Добавить новую фразу"
-        >
-            <PlusIcon className="w-6 h-6" />
-        </button>
+        <ExpandingFab 
+          onAddPhrase={handleOpenAddPhraseModal}
+          disabled={!apiProvider}
+        />
       )}
 
       <footer className="text-center text-slate-500 py-4 text-sm h-6">
@@ -623,7 +660,10 @@ const App: React.FC = () => {
           isOpen={isAddPhraseModalOpen} 
           onClose={() => setIsAddPhraseModalOpen(false)}
           onGenerate={handleGenerateSinglePhrase}
+          onTranslateGerman={handleTranslateGermanToRussian}
           onPhraseCreated={handlePhraseCreated}
+          language={addPhraseConfig.language}
+          autoSubmit={addPhraseConfig.autoSubmit}
       />}
        {phraseToImprove && <ImprovePhraseModal
           isOpen={isImproveModalOpen}
@@ -657,6 +697,14 @@ const App: React.FC = () => {
             onSuccess={handlePhraseBuilderSuccess}
             onFailure={handlePhraseBuilderFailure}
        />
+       {phraseToDiscuss && apiProvider && <DiscussTranslationModal
+            isOpen={isDiscussModalOpen}
+            onClose={() => setIsDiscussModalOpen(false)}
+            originalRussian={phraseToDiscuss.russian}
+            currentGerman={phraseToDiscuss.german}
+            onDiscuss={handleDiscussTranslation}
+            onAccept={handleDiscussionAccept}
+        />}
     </div>
   );
 };

@@ -13,9 +13,11 @@ interface PhraseListPageProps {
     onFindDuplicates: () => Promise<{ duplicateGroups: string[][] }>;
     updateAndSavePhrases: (updater: (prevPhrases: Phrase[]) => Phrase[]) => void;
     onStartPractice: (phrase: Phrase) => void;
+    highlightedPhraseId: string | null;
+    onClearHighlight: () => void;
 }
 
-const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, onDeletePhrase, onFindDuplicates, updateAndSavePhrases, onStartPractice }) => {
+const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, onDeletePhrase, onFindDuplicates, updateAndSavePhrases, onStartPractice, highlightedPhraseId, onClearHighlight }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [searchLang, setSearchLang] = useState<'ru' | 'de'>('ru');
     const [isProcessingDuplicates, setIsProcessingDuplicates] = useState(false);
@@ -26,6 +28,23 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
     const recognitionRef = useRef<SpeechRecognition | null>(null);
     const shouldRestartRecognition = useRef(false); // Flag to control restart logic
     const searchInputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        if (highlightedPhraseId) {
+            const itemElement = document.getElementById(`phrase-item-${highlightedPhraseId}`);
+            if (itemElement) {
+                itemElement.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center',
+                });
+                // Clear the highlight after a short delay for the user to see it
+                const timer = setTimeout(() => {
+                    onClearHighlight();
+                }, 3000);
+                return () => clearTimeout(timer);
+            }
+        }
+    }, [highlightedPhraseId, onClearHighlight]);
 
     useEffect(() => {
         const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -186,6 +205,7 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
                             onEdit={onEditPhrase}
                             onDelete={onDeletePhrase}
                             isDuplicate={duplicateIdSet.has(phrase.id)}
+                            isHighlighted={phrase.id === highlightedPhraseId}
                             onPreview={setPreviewPhrase}
                             onStartPractice={onStartPractice}
                         />

@@ -33,13 +33,17 @@ interface PracticePageProps {
   onOpenSentenceChain: (phrase: Phrase) => void;
   onOpenImprovePhrase: (phrase: Phrase) => void;
   onOpenPhraseBuilder: (phrase: Phrase) => void;
+  onDeletePhrase: (phraseId: string) => void;
+  onGoToList: (phrase: Phrase) => void;
+  onOpenDiscussTranslation: (phrase: Phrase) => void;
 }
 
 const PracticePage: React.FC<PracticePageProps> = (props) => {
   const {
     allPhrases, updateAndSavePhrases, fetchNewPhrases, isLoading, error, isGenerating, settings,
     apiProviderAvailable, practicePhraseOverride, onPracticePhraseConsumed, onOpenChat, onOpenDeepDive,
-    onOpenMovieExamples, onOpenWordAnalysis, onOpenSentenceChain, onOpenImprovePhrase, onOpenPhraseBuilder
+    onOpenMovieExamples, onOpenWordAnalysis, onOpenSentenceChain, onOpenImprovePhrase, onOpenPhraseBuilder,
+    onDeletePhrase, onGoToList, onOpenDiscussTranslation
   } = props;
 
   const [currentPhrase, setCurrentPhrase] = useState<Phrase | null>(null);
@@ -134,14 +138,18 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
 
   const handleUpdateMastery = (action: 'know' | 'forgot' | 'dont_know') => {
     if (!currentPhrase || isExiting) return;
+
+    const phraseToSpeak = currentPhrase.german; // Capture before update
     const updatedPhrase = srsService.updatePhraseMastery(currentPhrase, action);
-    updateAndSavePhrases(prev => prev.map(p => p.id === updatedPhrase.id ? updatedPhrase : p));
     
+    updateAndSavePhrases(prev => prev.map(p => p.id === updatedPhrase.id ? updatedPhrase : p));
+    setCurrentPhrase(updatedPhrase); // Sync state to prevent premature transition
+
     if (action === 'know') {
         transitionToNext();
     } else {
         setIsAnswerRevealed(true);
-        if (settings.autoSpeak) speak(currentPhrase.german);
+        if (settings.autoSpeak) speak(phraseToSpeak);
     }
   };
   
@@ -242,6 +250,9 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
                       onOpenSentenceChain={onOpenSentenceChain}
                       onOpenImprovePhrase={onOpenImprovePhrase}
                       onOpenPhraseBuilder={onOpenPhraseBuilder}
+                      onDeletePhrase={onDeletePhrase}
+                      onGoToList={onGoToList}
+                      onOpenDiscussTranslation={onOpenDiscussTranslation}
                     />
                 </div>
             </div>

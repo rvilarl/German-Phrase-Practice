@@ -115,6 +115,21 @@ const translatePhrase: AiService['translatePhrase'] = async (russianPhrase) => {
     return { german: result.german };
 };
 
+const translateGermanToRussian: AiService['translateGermanToRussian'] = async (germanPhrase) => {
+    const schema = {
+        type: "object",
+        properties: { russian: { type: "string" } },
+        required: ["russian"],
+    };
+    const prompt = `Translate this German phrase to Russian: "${germanPhrase}"`;
+    const messages = [
+        { role: "system", content: "You translate German to Russian. Respond only in JSON." },
+        { role: "user", content: prompt }
+    ];
+    const result = await callDeepSeekApi(messages, schema);
+    return { russian: result.russian };
+};
+
 
 const improvePhrase: AiService['improvePhrase'] = async (originalRussian, currentGerman) => {
     const schema = {
@@ -623,6 +638,7 @@ export const deepseekService: AiService = {
     generatePhrases,
     generateSinglePhrase,
     translatePhrase,
+    translateGermanToRussian,
     improvePhrase,
     generateInitialExamples,
     continueChat,

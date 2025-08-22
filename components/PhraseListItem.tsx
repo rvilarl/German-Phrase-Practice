@@ -11,11 +11,12 @@ interface PhraseListItemProps {
     onEdit: (phrase: Phrase) => void;
     onDelete: (phraseId: string) => void;
     isDuplicate: boolean;
+    isHighlighted: boolean;
     onPreview: (phrase: Phrase) => void;
     onStartPractice: (phrase: Phrase) => void;
 }
 
-const PhraseListItem: React.FC<PhraseListItemProps> = ({ phrase, onEdit, onDelete, isDuplicate, onPreview, onStartPractice }) => {
+const PhraseListItem: React.FC<PhraseListItemProps> = ({ phrase, onEdit, onDelete, isDuplicate, isHighlighted, onPreview, onStartPractice }) => {
     
     const handleEditClick = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -32,9 +33,16 @@ const PhraseListItem: React.FC<PhraseListItemProps> = ({ phrase, onEdit, onDelet
         onStartPractice(phrase);
     };
 
+    const getRingClass = () => {
+        if (isHighlighted) return 'ring-2 ring-cyan-400 ring-offset-2 ring-offset-slate-900';
+        if (isDuplicate) return 'ring-2 ring-yellow-500';
+        return '';
+    }
+
     return (
         <li 
-            className={`bg-slate-800/70 p-4 rounded-lg flex items-center space-x-4 cursor-pointer hover:bg-slate-700/70 transition-colors duration-200 ${isDuplicate ? 'ring-2 ring-yellow-500' : ''}`}
+            id={`phrase-item-${phrase.id}`}
+            className={`bg-slate-800/70 p-4 rounded-lg flex items-center space-x-4 cursor-pointer hover:bg-slate-700/70 transition-all duration-300 ${getRingClass()}`}
             onClick={() => onPreview(phrase)}
         >
             <div className="flex-grow">
