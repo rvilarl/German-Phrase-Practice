@@ -1,6 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { useVirtualizer } from '@tanstack/react-virtual';
-import type { Phrase, SpeechRecognition, SpeechRecognitionErrorEvent } from '../types';
+import type { Phrase, SpeechRecognition, SpeechRecognitionErrorEvent, SpeechRecognitionEvent } from '../types';
 import PhraseListItem from '../components/PhraseListItem';
 import XCircleIcon from '../components/icons/XCircleIcon';
 import MicrophoneIcon from '../components/icons/MicrophoneIcon';
@@ -24,74 +23,105 @@ type ListItem =
 
 const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, onDeletePhrase, onFindDuplicates, updateAndSavePhrases, onStartPractice, highlightedPhraseId, onClearHighlight }) => {
     const [searchTerm, setSearchTerm] = useState('');
-    const [searchLang, setSearchLang] = useState<'ru' | 'de'>('ru');
     const [isProcessingDuplicates, setIsProcessingDuplicates] = useState(false);
     const [duplicateGroups, setDuplicateGroups] = useState<string[][]>([]);
     const [previewPhrase, setPreviewPhrase] = useState<Phrase | null>(null);
 
     const [isListening, setIsListening] = useState(false);
-    const recognitionRef = useRef<SpeechRecognition | null>(null);
-    const shouldRestartRecognition = useRef(false);
+    const [recognitionLang, setRecognitionLang] = useState<'ru' | 'de'>('ru');
+    const ruRecognitionRef = useRef<SpeechRecognition | null>(null);
+    const deRecognitionRef = useRef<SpeechRecognition | null>(null);
+
     const searchInputRef = useRef<HTMLInputElement>(null);
-    const parentRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (SpeechRecognitionAPI) {
-            const recognition = new SpeechRecognitionAPI();
-            recognition.continuous = true;
-            recognition.interimResults = true;
+            const setupRecognizer = (lang: 'ru-RU' | 'de-DE'): SpeechRecognition => {
+                const recognition = new SpeechRecognitionAPI();
+                recognition.lang = lang;
+                recognition.continuous = false;
+                recognition.interimResults = false;
 
-            recognition.onstart = () => setIsListening(true);
-            
-            recognition.onend = () => {
-                setIsListening(false);
-                if (shouldRestartRecognition.current) {
-                    shouldRestartRecognition.current = false;
-                    try {
-                        recognition.start();
-                    } catch(e) {
-                        console.error("Error restarting recognition:", e);
+                recognition.onend = () => {
+                    setIsListening(false);
+                };
+                
+                recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+                    if (event.error !== 'aborted' && event.error !== 'no-speech') {
+                      console.error(`Speech recognition error (${lang}):`, event.error);
                     }
-                }
-            };
-            
-            recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-                if (event.error !== 'aborted' && event.error !== 'no-speech') {
-                  console.error('Speech recognition error:', event.error);
-                }
-                shouldRestartRecognition.current = false;
-                setIsListening(false);
-            };
+                    setIsListening(false);
+                };
 
-            recognition.onresult = (event) => {
-                const transcript = Array.from(event.results)
-                    .map(result => result[0].transcript)
-                    .join('');
-                setSearchTerm(transcript);
-            };
-            recognitionRef.current = recognition;
+                recognition.onresult = (event: SpeechRecognitionEvent) => {
+                    const transcript = event.results[0]?.[0]?.transcript;
+                    if (transcript && transcript.trim()) {
+                        setSearchTerm(transcript);
+                    }
+                };
+
+                return recognition;
+            }
+
+            ruRecognitionRef.current = setupRecognizer('ru-RU');
+            deRecognitionRef.current = setupRecognizer('de-DE');
         }
     }, []);
 
-    const handleMicClick = () => {
-        if (!recognitionRef.current) return;
+    const handleLangChange = (lang: 'ru' | 'de') => {
+        if (lang === recognitionLang) return; // No change
+        setRecognitionLang(lang);
         if (isListening) {
-            shouldRestartRecognition.current = false;
-            recognitionRef.current.stop();
+            // Stop current recognizer
+            (recognitionLang === 'ru' ? ruRecognitionRef.current : deRecognitionRef.current)?.stop();
+
+            // Start new recognizer
+            const newRecognizer = lang === 'ru' ? ruRecognitionRef.current : deRecognitionRef.current;
+            if (newRecognizer) {
+                try {
+                    newRecognizer.start();
+                } catch(e) {
+                    console.error("Could not switch recognition language:", e);
+                    setIsListening(false);
+                }
+            }
+        }
+    };
+
+    const handleMicClick = () => {
+        const recognizer = recognitionLang === 'ru' ? ruRecognitionRef.current : deRecognitionRef.current;
+        if (!recognizer) return;
+        
+        if (isListening) {
+            recognizer.stop();
         } else {
-            recognitionRef.current.lang = searchLang === 'ru' ? 'ru-RU' : 'de-DE';
-            recognitionRef.current.start();
+            setSearchTerm('');
+            setIsListening(true);
+            try {
+                // Ensure the other recognizer is stopped
+                (recognitionLang === 'ru' ? deRecognitionRef.current : ruRecognitionRef.current)?.stop();
+                recognizer.start();
+            } catch (e) {
+                console.error("Could not start recognition:", e);
+                setIsListening(false);
+            }
         }
     };
     
     const handleClearSearch = useCallback(() => {
         setSearchTerm('');
-        if (isListening && recognitionRef.current) {
-            shouldRestartRecognition.current = true;
-            recognitionRef.current.stop();
+        if (isListening) {
+            ruRecognitionRef.current?.stop();
+            deRecognitionRef.current?.stop();
+            setIsListening(false);
         }
     }, [isListening]);
+
+    const detectedSearchLang = useMemo(() => {
+        if (!searchTerm) return 'ru';
+        return /[\u0400-\u04FF]/.test(searchTerm) ? 'ru' : 'de';
+    }, [searchTerm]);
 
     const filteredPhrases = useMemo(() => {
         const allDuplicateIds = new Set(duplicateGroups.flat());
@@ -104,13 +134,21 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
         const lowercasedTerm = searchTerm.toLowerCase().trim();
         if (!lowercasedTerm) return baseList;
 
-        const searchWords = lowercasedTerm.split(/\s+/);
+        const searchWords = lowercasedTerm.split(/\s+/).filter(Boolean);
 
         return baseList.filter(p => {
-            const phraseText = (searchLang === 'ru' ? p.russian : p.german).toLowerCase();
-            return searchWords.every(word => phraseText.includes(word));
+            const phraseText = (detectedSearchLang === 'ru' ? p.russian : p.german).toLowerCase();
+            if (!phraseText) return false;
+            
+            const phraseWords = phraseText.split(/\s+/).filter(Boolean);
+
+            return searchWords.every(searchWord => 
+                phraseWords.some(phraseWord => 
+                    phraseWord.startsWith(searchWord) || searchWord.startsWith(phraseWord)
+                )
+            );
         });
-    }, [phrases, searchTerm, duplicateGroups, searchLang]);
+    }, [phrases, searchTerm, duplicateGroups, detectedSearchLang]);
 
     const listItems = useMemo((): ListItem[] => {
         const inProgress: Phrase[] = [];
@@ -138,25 +176,18 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
         return items;
     }, [filteredPhrases]);
 
-    const rowVirtualizer = useVirtualizer({
-        count: listItems.length,
-        getScrollElement: () => parentRef.current,
-        estimateSize: (index) => (listItems[index].type === 'header' ? 56 : 96), // 56px for header, 96px for phrase item
-        overscan: 10,
-    });
-
     useEffect(() => {
         if (highlightedPhraseId) {
-            const index = listItems.findIndex(item => item.type === 'phrase' && item.phrase.id === highlightedPhraseId);
-            if (index !== -1) {
-                rowVirtualizer.scrollToIndex(index, { align: 'center', behavior: 'smooth' });
+            const element = document.getElementById(`phrase-item-${highlightedPhraseId}`);
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 const timer = setTimeout(() => {
                     onClearHighlight();
                 }, 3000);
                 return () => clearTimeout(timer);
             }
         }
-    }, [highlightedPhraseId, onClearHighlight, listItems, rowVirtualizer]);
+    }, [highlightedPhraseId, onClearHighlight, listItems]);
 
 
     const handleFindDuplicates = async () => {
@@ -212,43 +243,45 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
 
     return (
         <>
-            <div className="w-full max-w-2xl mx-auto flex flex-col pt-20 h-full">
-                <div className="flex-shrink-0 px-2 py-4">
-                    <div className="relative">
+            <div className="w-full max-w-2xl mx-auto flex flex-col h-full">
+                <div className="flex-shrink-0 sticky top-20 z-20 bg-slate-900/95 backdrop-blur-sm px-2 py-3">
+                    <div className="relative group">
                         <input
                             ref={searchInputRef}
                             type="text"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            onFocus={(e) => e.target.placeholder = ''}
-                            onBlur={(e) => e.target.placeholder = 'Поиск по фразам...'}
-                            placeholder="Поиск по фразам..."
-                            className="w-full bg-slate-800 border border-slate-700 rounded-lg py-3 pl-4 pr-32 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
+                            placeholder={isListening ? "Слушаю..." : "Поиск по фразам..."}
+                            className="w-full bg-slate-800 border border-slate-700 rounded-full py-4 pl-5 pr-40 text-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
                         />
-                        <div className="absolute inset-y-0 right-0 flex items-center pr-3 space-x-1">
-                            {searchTerm && (
+                        <div className="absolute inset-y-0 right-0 flex items-center pr-3 space-x-1 z-10">
+                            {searchTerm && !isListening && (
                                 <button onClick={handleClearSearch} className="p-1 text-slate-400 hover:text-white">
-                                    <XCircleIcon className="w-5 h-5" />
+                                    <XCircleIcon className="w-6 h-6" />
                                 </button>
                             )}
-                             <button 
-                                onClick={() => setSearchLang('ru')} 
-                                className={`px-2 py-0.5 text-xs font-bold rounded transition-colors ${searchLang === 'ru' ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-400'}`}>
-                                RU
-                            </button>
-                            <button 
-                                onClick={() => setSearchLang('de')} 
-                                className={`px-2 py-0.5 text-xs font-bold rounded transition-colors ${searchLang === 'de' ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-400'}`}>
-                                DE
-                            </button>
-                            <button onClick={handleMicClick} className={`p-1 ${isListening ? 'text-purple-400' : 'text-slate-400 hover:text-white'}`}>
-                                <MicrophoneIcon className="w-5 h-5" />
+                            <div className="flex items-center bg-slate-700/50 rounded-full p-0.5">
+                                <button 
+                                    onClick={() => handleLangChange('ru')}
+                                    className={`px-2 py-0.5 text-xs font-bold rounded-full transition-colors ${recognitionLang === 'ru' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:bg-slate-600'}`}
+                                >
+                                    RU
+                                </button>
+                                <button 
+                                    onClick={() => handleLangChange('de')}
+                                    className={`px-2 py-0.5 text-xs font-bold rounded-full transition-colors ${recognitionLang === 'de' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:bg-slate-600'}`}
+                                >
+                                    DE
+                                </button>
+                            </div>
+                            <button onClick={handleMicClick} className="p-2 transition-colors">
+                                <MicrophoneIcon className={`w-6 h-6 ${isListening ? 'mic-color-shift-animation' : 'text-slate-400 group-hover:text-white'}`} />
                             </button>
                         </div>
                     </div>
-                     <div className="flex justify-end space-x-2 mt-2">
+                     <div className="flex justify-end items-center pt-2 min-h-[34px]">
                         {duplicateGroups.length > 0 ? (
-                             <>
+                             <div className="flex space-x-2">
                                 <button
                                     onClick={() => setDuplicateGroups([])}
                                     className="px-3 py-1.5 text-sm bg-slate-600 hover:bg-slate-700 text-white font-semibold rounded-md transition-colors"
@@ -261,12 +294,12 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
                                 >
                                     Очистить дубликаты ({duplicateGroups.length})
                                 </button>
-                             </>
+                             </div>
                         ) : (
                             <button
                                 onClick={handleFindDuplicates}
                                 disabled={isProcessingDuplicates}
-                                className="relative px-3 py-1.5 text-sm bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-md transition-colors disabled:opacity-50 min-w-[140px] h-[34px]"
+                                className="relative text-sm text-slate-400 hover:text-slate-200 font-medium transition-colors disabled:opacity-50 h-[34px] flex items-center justify-center px-3"
                             >
                                 <span className={isProcessingDuplicates ? 'opacity-0' : 'opacity-100'}>
                                     Найти дубликаты
@@ -280,44 +313,33 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
                         )}
                     </div>
                 </div>
-                <div ref={parentRef} className="flex-grow overflow-y-auto px-2 pb-6 hide-scrollbar">
-                    {rowVirtualizer.getVirtualItems().length > 0 ? (
-                        <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, width: '100%', position: 'relative' }}>
-                            {rowVirtualizer.getVirtualItems().map(virtualItem => {
-                                const item = listItems[virtualItem.index];
-                                return (
-                                    <div
-                                        key={virtualItem.key}
-                                        style={{
-                                            position: 'absolute',
-                                            top: 0,
-                                            left: 0,
-                                            width: '100%',
-                                            height: `${virtualItem.size}px`,
-                                            transform: `translateY(${virtualItem.start}px)`,
-                                        }}
-                                    >
-                                        {item.type === 'header' ? (
-                                            <h2 className="text-lg font-bold text-slate-300 my-4 px-2">
+                <div className="flex-grow overflow-y-auto px-2 pb-6 hide-scrollbar">
+                    {listItems.length > 0 ? (
+                        <ul className="space-y-2">
+                            {listItems.map((item, index) => {
+                                if (item.type === 'header') {
+                                    return (
+                                        <li key={`header-${index}`}>
+                                            <h2 className="text-lg font-bold text-slate-300 my-4 px-2 sticky top-0 bg-slate-900/95 backdrop-blur-sm py-2 z-10 -mx-2">
                                                 {item.title}
                                             </h2>
-                                        ) : (
-                                            <div className="py-1">
-                                                <PhraseListItem
-                                                    phrase={item.phrase}
-                                                    onEdit={onEditPhrase}
-                                                    onDelete={onDeletePhrase}
-                                                    isDuplicate={duplicateIdSet.has(item.phrase.id)}
-                                                    isHighlighted={item.phrase.id === highlightedPhraseId}
-                                                    onPreview={setPreviewPhrase}
-                                                    onStartPractice={onStartPractice}
-                                                />
-                                            </div>
-                                        )}
-                                    </div>
+                                        </li>
+                                    );
+                                }
+                                return (
+                                    <PhraseListItem
+                                        key={item.phrase.id}
+                                        phrase={item.phrase}
+                                        onEdit={onEditPhrase}
+                                        onDelete={onDeletePhrase}
+                                        isDuplicate={duplicateIdSet.has(item.phrase.id)}
+                                        isHighlighted={item.phrase.id === highlightedPhraseId}
+                                        onPreview={setPreviewPhrase}
+                                        onStartPractice={onStartPractice}
+                                    />
                                 );
                             })}
-                        </div>
+                        </ul>
                     ) : (
                          <p className="text-center text-slate-400 mt-8">
                             {searchTerm ? 'Фразы не найдены.' : 'Список фраз пуст.'}

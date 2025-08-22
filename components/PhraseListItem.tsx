@@ -42,7 +42,7 @@ const PhraseListItem: React.FC<PhraseListItemProps> = React.memo(({ phrase, onEd
     return (
         <li 
             id={`phrase-item-${phrase.id}`}
-            className={`bg-slate-800/70 p-4 rounded-lg flex items-center space-x-4 cursor-pointer hover:bg-slate-700/70 transition-all duration-300 ${getRingClass()}`}
+            className={`bg-slate-800/50 backdrop-blur-sm border border-white/10 p-4 rounded-lg flex items-start space-x-4 cursor-pointer hover:bg-slate-700/70 transition-all duration-300 ${getRingClass()}`}
             onClick={() => onPreview(phrase)}
         >
             <div className="flex-grow">

@@ -716,7 +716,7 @@ const App: React.FC = () => {
         onSetView={setView} 
         onOpenSettings={() => setIsSettingsModalOpen(true)} 
       />
-      <main className="w-full flex-grow flex flex-col justify-center items-center">
+      <main className={`w-full flex-grow flex flex-col items-center pt-20 ${view === 'practice' ? 'justify-center' : ''}`}>
         {view === 'practice' ? (
            <PracticePage
              currentPhrase={currentPracticePhrase}

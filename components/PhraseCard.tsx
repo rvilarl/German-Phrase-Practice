@@ -110,7 +110,7 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
       >
         {/* Front Side (Russian) */}
         <div 
-            className="absolute inset-0 [backface-visibility:hidden] bg-gradient-to-br from-slate-700 to-slate-800 border border-slate-600 rounded-xl p-6 flex flex-col justify-between items-center text-center"
+            className="absolute inset-0 [backface-visibility:hidden] bg-gradient-to-br from-slate-700/80 to-slate-800/80 backdrop-blur-sm border border-white/10 rounded-xl p-6 flex flex-col justify-between items-center text-center"
         >
             <div className="flex-grow flex flex-col justify-center w-full cursor-pointer" onClick={handleImproveClick}>
                 <h2 className="text-2xl font-semibold text-slate-100">{phrase.russian}</h2>
@@ -130,7 +130,7 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
         {/* Back Side (German) */}
         <div 
           onClick={onFlip}
-          className="absolute inset-0 [backface-visibility:hidden] [transform:rotateY(180deg)] bg-gradient-to-br from-purple-600 to-blue-600 border border-purple-500 rounded-xl p-6 flex flex-col justify-between items-center text-center cursor-pointer"
+          className="absolute inset-0 [backface-visibility:hidden] [transform:rotateY(180deg)] bg-gradient-to-br from-purple-600/80 to-blue-600/80 backdrop-blur-sm border border-white/10 rounded-xl p-6 flex flex-col justify-between items-center text-center cursor-pointer"
         >
             <button
                 onClick={handleOpenImprovePhrase}
