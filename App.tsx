@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Phrase, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, SentenceContinuation, PhraseBuilderOptions, PhraseEvaluation } from './types';
 import * as srsService from './services/srsService';
 import * as cacheService from './services/cacheService';
@@ -29,6 +29,11 @@ const PHRASES_STORAGE_KEY = 'germanPhrases';
 const SETTINGS_STORAGE_KEY = 'germanAppSettings';
 
 type View = 'practice' | 'list';
+type AnimationDirection = 'left' | 'right';
+interface AnimationState {
+  key: string;
+  direction: AnimationDirection;
+}
 
 const App: React.FC = () => {
   const [allPhrases, setAllPhrases] = useState<Phrase[]>([]);
@@ -36,9 +41,16 @@ const App: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<View>('practice');
-  const [practicePhraseOverride, setPracticePhraseOverride] = useState<Phrase | null>(null);
   const [highlightedPhraseId, setHighlightedPhraseId] = useState<string | null>(null);
   
+  // --- State Lifted from PracticePage ---
+  const [currentPracticePhrase, setCurrentPracticePhrase] = useState<Phrase | null>(null);
+  const [isPracticeAnswerRevealed, setIsPracticeAnswerRevealed] = useState(false);
+  const [practiceAnimationState, setPracticeAnimationState] = useState<AnimationState>({ key: '', direction: 'right' });
+  const [cardHistory, setCardHistory] = useState<string[]>([]);
+  const practiceIsExitingRef = useRef(false);
+  // --- End State Lift ---
+
   const [isChatModalOpen, setIsChatModalOpen] = useState(false);
   const [chatContextPhrase, setChatContextPhrase] = useState<Phrase | null>(null);
   
@@ -102,6 +114,8 @@ const App: React.FC = () => {
   
   const [isDiscussModalOpen, setIsDiscussModalOpen] = useState(false);
   const [phraseToDiscuss, setPhraseToDiscuss] = useState<Phrase | null>(null);
+  
+  const isPrefetchingRef = useRef(false);
 
 
   useEffect(() => {
@@ -394,6 +408,51 @@ const App: React.FC = () => {
     setIsSentenceChainModalOpen(true);
   };
   
+  const prefetchPhraseBuilderOptions = useCallback(async (startingPhraseId: string | null) => {
+    if (isPrefetchingRef.current || !apiProvider) return;
+    isPrefetchingRef.current = true;
+
+    try {
+        const PREFETCH_COUNT = 2;
+        let nextPhraseId = startingPhraseId;
+        const phrasesToFetch: Phrase[] = [];
+        const unmastered = allPhrases.filter(p => p && !p.isMastered);
+
+        for (let i = 0; i < PREFETCH_COUNT; i++) {
+            const nextPhrase = srsService.selectNextPhrase(unmastered, nextPhraseId);
+            if (nextPhrase) {
+                if (phrasesToFetch.some(p => p.id === nextPhrase.id)) break;
+                phrasesToFetch.push(nextPhrase);
+                nextPhraseId = nextPhrase.id;
+            } else {
+                break;
+            }
+        }
+        
+        await Promise.all(phrasesToFetch.map(async (phrase) => {
+            const cacheKey = `phrase_builder_${phrase.id}`;
+            if (!cacheService.getCache<PhraseBuilderOptions>(cacheKey)) {
+                try {
+                    const options = await callApiWithFallback(provider => provider.generatePhraseBuilderOptions(phrase));
+                    cacheService.setCache(cacheKey, options);
+                } catch (err) {
+                    console.warn(`Background prefetch failed for phrase ${phrase.id}:`, err);
+                }
+            }
+        }));
+    } finally {
+        isPrefetchingRef.current = false;
+    }
+  }, [allPhrases, callApiWithFallback, apiProvider]);
+  
+  // New proactive pre-fetching effect
+  useEffect(() => {
+    if (view === 'practice' && currentPracticePhrase) {
+        prefetchPhraseBuilderOptions(currentPracticePhrase.id);
+    }
+  }, [view, currentPracticePhrase, prefetchPhraseBuilderOptions]);
+
+
   const handleOpenPhraseBuilder = useCallback(async (phrase: Phrase) => {
     if (!apiProvider) return;
     setPhraseBuilderPhrase(phrase);
@@ -421,20 +480,33 @@ const App: React.FC = () => {
       setIsPhraseBuilderLoading(false);
     }
   }, [apiProvider, callApiWithFallback]);
+  
+  const handleRequestNextPhraseInBuilder = useCallback(() => {
+    const lastCompletedPhraseId = phraseBuilderPhrase?.id ?? null;
+    const nextPhrase = srsService.selectNextPhrase(allPhrases.filter(p => p && !p.isMastered), lastCompletedPhraseId);
+
+    if (nextPhrase) {
+      handleOpenPhraseBuilder(nextPhrase);
+    } else {
+      setIsPhraseBuilderModalOpen(false);
+    }
+  }, [allPhrases, phraseBuilderPhrase, handleOpenPhraseBuilder]);
 
   const handleEvaluatePhraseAttempt = useCallback((phrase: Phrase, userAttempt: string): Promise<PhraseEvaluation> => {
     return callApiWithFallback(provider => provider.evaluatePhraseAttempt(phrase, userAttempt));
   }, [callApiWithFallback]);
   
   const handlePhraseBuilderSuccess = useCallback((phrase: Phrase) => {
+    const updatedPhrase = srsService.updatePhraseMastery(phrase, 'know');
     updateAndSavePhrases(prev =>
-      prev.map(p => (p.id === phrase.id ? srsService.updatePhraseMastery(p, 'know') : p))
+      prev.map(p => (p.id === phrase.id ? updatedPhrase : p))
     );
   }, [updateAndSavePhrases]);
 
   const handlePhraseBuilderFailure = useCallback((phrase: Phrase) => {
+     const updatedPhrase = srsService.updatePhraseMastery(phrase, 'forgot');
     updateAndSavePhrases(prev =>
-      prev.map(p => (p.id === phrase.id ? srsService.updatePhraseMastery(p, 'forgot') : p))
+      prev.map(p => (p.id === phrase.id ? updatedPhrase : p))
     );
   }, [updateAndSavePhrases]);
 
@@ -466,7 +538,8 @@ const App: React.FC = () => {
     updateAndSavePhrases(prev => [newPhrase, ...prev]);
     setIsAddPhraseModalOpen(false);
     // Show the new card immediately
-    setPracticePhraseOverride(newPhrase);
+    setCurrentPracticePhrase(newPhrase);
+    setIsPracticeAnswerRevealed(false);
     setView('practice');
   };
 
@@ -506,13 +579,18 @@ const App: React.FC = () => {
   const handleConfirmDelete = useCallback(() => {
     if (phraseToDelete) {
         updateAndSavePhrases(prev => prev.filter(p => p.id !== phraseToDelete.id));
+        if (currentPracticePhrase?.id === phraseToDelete.id) {
+           setCurrentPracticePhrase(null); // Clear from practice view if it was active
+        }
         setIsDeleteModalOpen(false);
         setPhraseToDelete(null);
     }
-  }, [phraseToDelete, updateAndSavePhrases]);
+  }, [phraseToDelete, updateAndSavePhrases, currentPracticePhrase]);
 
   const handleStartPracticeWithPhrase = (phraseToPractice: Phrase) => {
-    setPracticePhraseOverride(phraseToPractice);
+    setCurrentPracticePhrase(phraseToPractice);
+    setIsPracticeAnswerRevealed(false);
+    setCardHistory([]);
     setView('practice');
   };
 
@@ -532,6 +610,95 @@ const App: React.FC = () => {
     }
     setIsDiscussModalOpen(false);
   };
+  
+  // --- Practice Page Logic ---
+  const unmasteredPhrases = useMemo(() => allPhrases.filter(p => p && !p.isMastered), [allPhrases]);
+
+  const changePracticePhrase = useCallback((nextPhrase: Phrase | null, direction: AnimationDirection) => {
+    setIsPracticeAnswerRevealed(false);
+    if (!nextPhrase) {
+        setCurrentPracticePhrase(null);
+        return;
+    }
+    setPracticeAnimationState({ key: nextPhrase.id, direction });
+    setCurrentPracticePhrase(nextPhrase);
+  }, []);
+
+  const selectNextPracticePhrase = useCallback((addToHistory: boolean = true) => {
+    if (currentPracticePhrase && addToHistory) {
+      setCardHistory(prev => [...prev, currentPracticePhrase.id]);
+    }
+    const nextPhrase = srsService.selectNextPhrase(unmasteredPhrases, currentPracticePhrase?.id ?? null);
+    changePracticePhrase(nextPhrase, 'right');
+    
+    const POOL_FETCH_THRESHOLD = 7;
+    const ACTIVE_POOL_TARGET = 10;
+    const PHRASES_TO_FETCH = 5;
+    if (unmasteredPhrases.length < POOL_FETCH_THRESHOLD && !isGenerating && allPhrases.length > 0) {
+        const needed = ACTIVE_POOL_TARGET - unmasteredPhrases.length;
+        fetchNewPhrases(Math.max(needed, PHRASES_TO_FETCH));
+    }
+  }, [unmasteredPhrases, currentPracticePhrase, fetchNewPhrases, isGenerating, allPhrases.length, changePracticePhrase]);
+
+  useEffect(() => {
+    if (!isLoading && allPhrases.length > 0 && !currentPracticePhrase && view === 'practice') {
+      selectNextPracticePhrase(false);
+    }
+  }, [isLoading, allPhrases, currentPracticePhrase, selectNextPracticePhrase, view]);
+  
+  useEffect(() => {
+    if (currentPracticePhrase && !allPhrases.some(p => p && p.id === currentPracticePhrase.id)) {
+      selectNextPracticePhrase(false);
+    }
+  }, [allPhrases, currentPracticePhrase, selectNextPracticePhrase]);
+
+  const transitionToNext = useCallback((direction: AnimationDirection = 'right') => {
+    if (practiceIsExitingRef.current) return;
+    practiceIsExitingRef.current = true;
+    setTimeout(() => {
+      if (direction === 'right') {
+          selectNextPracticePhrase();
+      }
+      practiceIsExitingRef.current = false;
+    }, 250);
+  }, [selectNextPracticePhrase]);
+  
+  const handlePracticeUpdateMastery = (action: 'know' | 'forgot' | 'dont_know') => {
+    if (!currentPracticePhrase || practiceIsExitingRef.current) return;
+
+    const phraseToSpeak = currentPracticePhrase.german;
+    const updatedPhrase = srsService.updatePhraseMastery(currentPracticePhrase, action);
+    
+    updateAndSavePhrases(prev => prev.map(p => p.id === updatedPhrase.id ? updatedPhrase : p));
+    setCurrentPracticePhrase(updatedPhrase);
+
+    if (action === 'know') {
+        transitionToNext();
+    } else {
+        setIsPracticeAnswerRevealed(true);
+        if (settings.autoSpeak && 'speechSynthesis' in window) {
+            const utterance = new SpeechSynthesisUtterance(phraseToSpeak);
+            utterance.lang = 'de-DE';
+            utterance.rate = 0.9;
+            window.speechSynthesis.speak(utterance);
+        }
+    }
+  };
+
+  const handlePracticeSwipeRight = () => {
+    if (practiceIsExitingRef.current || cardHistory.length === 0) return;
+    practiceIsExitingRef.current = true;
+    setTimeout(() => {
+      const lastPhraseId = cardHistory[cardHistory.length - 1];
+      const prevPhrase = allPhrases.find(p => p.id === lastPhraseId);
+      if (prevPhrase) {
+        setCardHistory(prev => prev.slice(0, -1));
+        changePracticePhrase(prevPhrase, 'left');
+      }
+      practiceIsExitingRef.current = false;
+    }, 250);
+  };
+  // --- End Practice Page Logic ---
 
 
   const getProviderDisplayName = () => {
@@ -552,7 +719,12 @@ const App: React.FC = () => {
       <main className="w-full flex-grow flex flex-col justify-center items-center">
         {view === 'practice' ? (
            <PracticePage
+             currentPhrase={currentPracticePhrase}
+             isAnswerRevealed={isPracticeAnswerRevealed}
+             animationState={practiceAnimationState}
+             isExiting={practiceIsExitingRef.current}
              allPhrases={allPhrases}
+             unmasteredCount={unmasteredPhrases.length}
              updateAndSavePhrases={updateAndSavePhrases}
              fetchNewPhrases={fetchNewPhrases}
              isLoading={isLoading}
@@ -560,8 +732,21 @@ const App: React.FC = () => {
              isGenerating={isGenerating}
              settings={settings}
              apiProviderAvailable={!!apiProvider}
-             practicePhraseOverride={practicePhraseOverride}
-             onPracticePhraseConsumed={() => setPracticePhraseOverride(null)}
+             onUpdateMastery={handlePracticeUpdateMastery}
+             onContinue={() => transitionToNext('right')}
+             onImproveSkill={() => {
+                 if(currentPracticePhrase) {
+                    setIsPracticeAnswerRevealed(true);
+                    if (settings.autoSpeak && 'speechSynthesis' in window) {
+                        const utterance = new SpeechSynthesisUtterance(currentPracticePhrase.german);
+                        utterance.lang = 'de-DE';
+                        utterance.rate = 0.9;
+                        window.speechSynthesis.speak(utterance);
+                    }
+                 }
+             }}
+             onSwipeLeft={() => transitionToNext('right')}
+             onSwipeRight={handlePracticeSwipeRight}
              onOpenChat={openChatForPhrase}
              onOpenDeepDive={handleOpenDeepDive}
              onOpenMovieExamples={handleOpenMovieExamples}
@@ -688,7 +873,12 @@ const App: React.FC = () => {
        />
        <PhraseBuilderModal
             isOpen={isPhraseBuilderModalOpen}
-            onClose={() => setIsPhraseBuilderModalOpen(false)}
+            onClose={() => {
+                setIsPhraseBuilderModalOpen(false);
+                // After closing the builder, the current card might have been updated.
+                // We select the next one to avoid showing a stale card.
+                transitionToNext();
+            }}
             phrase={phraseBuilderPhrase}
             options={phraseBuilderOptions}
             isLoading={isPhraseBuilderLoading}
@@ -696,6 +886,7 @@ const App: React.FC = () => {
             onEvaluate={handleEvaluatePhraseAttempt}
             onSuccess={handlePhraseBuilderSuccess}
             onFailure={handlePhraseBuilderFailure}
+            onNextPhrase={handleRequestNextPhraseInBuilder}
        />
        {phraseToDiscuss && apiProvider && <DiscussTranslationModal
             isOpen={isDiscussModalOpen}

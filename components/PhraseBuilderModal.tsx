@@ -19,6 +19,7 @@ interface PhraseBuilderModalProps {
   onEvaluate: (phrase: Phrase, attempt: string) => Promise<PhraseEvaluation>;
   onSuccess: (phrase: Phrase) => void;
   onFailure: (phrase: Phrase) => void;
+  onNextPhrase: () => void;
 }
 
 interface WordOption {
@@ -35,7 +36,8 @@ const PhraseBuilderModal: React.FC<PhraseBuilderModalProps> = ({
   error,
   onEvaluate,
   onSuccess,
-  onFailure
+  onFailure,
+  onNextPhrase
 }) => {
   const [constructedWords, setConstructedWords] = useState<WordOption[]>([]);
   const [availableWords, setAvailableWords] = useState<WordOption[]>([]);
@@ -43,13 +45,13 @@ const PhraseBuilderModal: React.FC<PhraseBuilderModalProps> = ({
   const [isChecking, setIsChecking] = useState(false);
 
   useEffect(() => {
-    if (isOpen && options) {
+    if (isOpen && options && phrase) {
       setAvailableWords(options.words.map((word, index) => ({ word, id: index })));
       setConstructedWords([]);
       setEvaluation(null);
       setIsChecking(false);
     }
-  }, [isOpen, options]);
+  }, [isOpen, options, phrase]);
 
   if (!isOpen || !phrase) return null;
 
@@ -206,7 +208,7 @@ const PhraseBuilderModal: React.FC<PhraseBuilderModalProps> = ({
               </div>
               {/* Continue Button */}
               <button
-                onClick={onClose}
+                onClick={onNextPhrase}
                 className="w-full sm:w-auto flex-shrink-0 px-6 py-3 rounded-lg bg-purple-600 hover:bg-purple-700 transition-colors font-semibold text-white shadow-md flex items-center justify-center"
               >
                 <span>Продолжить</span>
@@ -226,16 +228,10 @@ const PhraseBuilderModal: React.FC<PhraseBuilderModalProps> = ({
         onClick={e => e.stopPropagation()}
       >
         <header className="flex items-center justify-between p-4 border-b border-slate-700 flex-shrink-0">
-          <div className="flex items-center space-x-3">
-            <BlocksIcon className="w-6 h-6 text-purple-400" />
-            <div>
-                <h2 className="text-xl font-bold text-slate-100">{phrase.russian}</h2>
-                <p className="text-sm text-slate-400">Соберите фразу</p>
-            </div>
-          </div>
-          <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-700">
-            <CloseIcon className="w-6 h-6 text-slate-400" />
-          </button>
+            <h2 className="text-xl font-bold text-purple-300">{phrase.russian}</h2>
+            <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-700">
+                <CloseIcon className="w-6 h-6 text-slate-400" />
+            </button>
         </header>
         <div className="flex-grow p-6 overflow-hidden">
           {renderContent()}

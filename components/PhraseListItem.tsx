@@ -16,7 +16,7 @@ interface PhraseListItemProps {
     onStartPractice: (phrase: Phrase) => void;
 }
 
-const PhraseListItem: React.FC<PhraseListItemProps> = ({ phrase, onEdit, onDelete, isDuplicate, isHighlighted, onPreview, onStartPractice }) => {
+const PhraseListItem: React.FC<PhraseListItemProps> = React.memo(({ phrase, onEdit, onDelete, isDuplicate, isHighlighted, onPreview, onStartPractice }) => {
     
     const handleEditClick = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -77,6 +77,6 @@ const PhraseListItem: React.FC<PhraseListItemProps> = ({ phrase, onEdit, onDelet
             </div>
         </li>
     );
-};
+});
 
 export default PhraseListItem;

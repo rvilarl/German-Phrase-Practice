@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import type { Phrase, SpeechRecognition, SpeechRecognitionErrorEvent } from '../types';
 import PhraseListItem from '../components/PhraseListItem';
 import XCircleIcon from '../components/icons/XCircleIcon';
@@ -17,6 +18,10 @@ interface PhraseListPageProps {
     onClearHighlight: () => void;
 }
 
+type ListItem = 
+    | { type: 'header'; title: string }
+    | { type: 'phrase'; phrase: Phrase };
+
 const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, onDeletePhrase, onFindDuplicates, updateAndSavePhrases, onStartPractice, highlightedPhraseId, onClearHighlight }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [searchLang, setSearchLang] = useState<'ru' | 'de'>('ru');
@@ -26,25 +31,9 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
 
     const [isListening, setIsListening] = useState(false);
     const recognitionRef = useRef<SpeechRecognition | null>(null);
-    const shouldRestartRecognition = useRef(false); // Flag to control restart logic
+    const shouldRestartRecognition = useRef(false);
     const searchInputRef = useRef<HTMLInputElement>(null);
-
-    useEffect(() => {
-        if (highlightedPhraseId) {
-            const itemElement = document.getElementById(`phrase-item-${highlightedPhraseId}`);
-            if (itemElement) {
-                itemElement.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'center',
-                });
-                // Clear the highlight after a short delay for the user to see it
-                const timer = setTimeout(() => {
-                    onClearHighlight();
-                }, 3000);
-                return () => clearTimeout(timer);
-            }
-        }
-    }, [highlightedPhraseId, onClearHighlight]);
+    const parentRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -58,9 +47,9 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
             recognition.onend = () => {
                 setIsListening(false);
                 if (shouldRestartRecognition.current) {
-                    shouldRestartRecognition.current = false; // Reset flag
+                    shouldRestartRecognition.current = false;
                     try {
-                        recognition.start(); // Restart recognition
+                        recognition.start();
                     } catch(e) {
                         console.error("Error restarting recognition:", e);
                     }
@@ -68,11 +57,9 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
             };
             
             recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-                // Ignore common, non-critical errors.
                 if (event.error !== 'aborted' && event.error !== 'no-speech') {
                   console.error('Speech recognition error:', event.error);
                 }
-                // Ensure we don't try to restart on an error condition.
                 shouldRestartRecognition.current = false;
                 setIsListening(false);
             };
@@ -90,7 +77,7 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
     const handleMicClick = () => {
         if (!recognitionRef.current) return;
         if (isListening) {
-            shouldRestartRecognition.current = false; // User-initiated stop, so don't restart.
+            shouldRestartRecognition.current = false;
             recognitionRef.current.stop();
         } else {
             recognitionRef.current.lang = searchLang === 'ru' ? 'ru-RU' : 'de-DE';
@@ -101,8 +88,6 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
     const handleClearSearch = useCallback(() => {
         setSearchTerm('');
         if (isListening && recognitionRef.current) {
-            // Set the flag to restart and then gracefully stop the service.
-            // The `onend` handler will take care of restarting it cleanly.
             shouldRestartRecognition.current = true;
             recognitionRef.current.stop();
         }
@@ -127,8 +112,7 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
         });
     }, [phrases, searchTerm, duplicateGroups, searchLang]);
 
-
-    const { inProgress, mastered, newPhrases } = useMemo(() => {
+    const listItems = useMemo((): ListItem[] => {
         const inProgress: Phrase[] = [];
         const mastered: Phrase[] = [];
         const newPhrases: Phrase[] = [];
@@ -138,9 +122,42 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
             else if (p.lastReviewedAt === null) newPhrases.push(p);
             else inProgress.push(p);
         });
-
-        return { inProgress, mastered, newPhrases };
+        
+        const items: ListItem[] = [];
+        const createSection = (title: string, phrases: Phrase[]) => {
+            if (phrases.length > 0) {
+                items.push({ type: 'header', title: `${title} (${phrases.length})` });
+                phrases.forEach(p => items.push({ type: 'phrase', phrase: p }));
+            }
+        };
+        
+        createSection('В процессе', inProgress);
+        createSection('Освоенные', mastered);
+        createSection('Новые', newPhrases);
+        
+        return items;
     }, [filteredPhrases]);
+
+    const rowVirtualizer = useVirtualizer({
+        count: listItems.length,
+        getScrollElement: () => parentRef.current,
+        estimateSize: (index) => (listItems[index].type === 'header' ? 56 : 96), // 56px for header, 96px for phrase item
+        overscan: 10,
+    });
+
+    useEffect(() => {
+        if (highlightedPhraseId) {
+            const index = listItems.findIndex(item => item.type === 'phrase' && item.phrase.id === highlightedPhraseId);
+            if (index !== -1) {
+                rowVirtualizer.scrollToIndex(index, { align: 'center', behavior: 'smooth' });
+                const timer = setTimeout(() => {
+                    onClearHighlight();
+                }, 3000);
+                return () => clearTimeout(timer);
+            }
+        }
+    }, [highlightedPhraseId, onClearHighlight, listItems, rowVirtualizer]);
+
 
     const handleFindDuplicates = async () => {
         setIsProcessingDuplicates(true);
@@ -192,28 +209,6 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
     }, [duplicateGroups, updateAndSavePhrases]);
 
     const duplicateIdSet = useMemo(() => new Set(duplicateGroups.flat()), [duplicateGroups]);
-
-    const renderSection = (title: string, phraseList: Phrase[]) => (
-        phraseList.length > 0 && (
-            <section>
-                <h2 className="text-lg font-bold text-slate-300 my-4 sticky top-0 bg-slate-900/80 backdrop-blur-sm py-2 z-10">{title} ({phraseList.length})</h2>
-                <ul className="space-y-2">
-                    {phraseList.map(phrase => (
-                        <PhraseListItem
-                            key={phrase.id}
-                            phrase={phrase}
-                            onEdit={onEditPhrase}
-                            onDelete={onDeletePhrase}
-                            isDuplicate={duplicateIdSet.has(phrase.id)}
-                            isHighlighted={phrase.id === highlightedPhraseId}
-                            onPreview={setPreviewPhrase}
-                            onStartPractice={onStartPractice}
-                        />
-                    ))}
-                </ul>
-            </section>
-        )
-    );
 
     return (
         <>
@@ -285,12 +280,48 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
                         )}
                     </div>
                 </div>
-                <div className="flex-grow overflow-y-auto px-2 pb-6">
-                    {renderSection('В процессе', inProgress)}
-                    {renderSection('Освоенные', mastered)}
-                    {renderSection('Новые', newPhrases)}
-                    {filteredPhrases.length === 0 && searchTerm && (
-                        <p className="text-center text-slate-400 mt-8">Фразы не найдены.</p>
+                <div ref={parentRef} className="flex-grow overflow-y-auto px-2 pb-6 hide-scrollbar">
+                    {rowVirtualizer.getVirtualItems().length > 0 ? (
+                        <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, width: '100%', position: 'relative' }}>
+                            {rowVirtualizer.getVirtualItems().map(virtualItem => {
+                                const item = listItems[virtualItem.index];
+                                return (
+                                    <div
+                                        key={virtualItem.key}
+                                        style={{
+                                            position: 'absolute',
+                                            top: 0,
+                                            left: 0,
+                                            width: '100%',
+                                            height: `${virtualItem.size}px`,
+                                            transform: `translateY(${virtualItem.start}px)`,
+                                        }}
+                                    >
+                                        {item.type === 'header' ? (
+                                            <h2 className="text-lg font-bold text-slate-300 my-4 px-2">
+                                                {item.title}
+                                            </h2>
+                                        ) : (
+                                            <div className="py-1">
+                                                <PhraseListItem
+                                                    phrase={item.phrase}
+                                                    onEdit={onEditPhrase}
+                                                    onDelete={onDeletePhrase}
+                                                    isDuplicate={duplicateIdSet.has(item.phrase.id)}
+                                                    isHighlighted={item.phrase.id === highlightedPhraseId}
+                                                    onPreview={setPreviewPhrase}
+                                                    onStartPractice={onStartPractice}
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    ) : (
+                         <p className="text-center text-slate-400 mt-8">
+                            {searchTerm ? 'Фразы не найдены.' : 'Список фраз пуст.'}
+                        </p>
                     )}
                 </div>
             </div>
