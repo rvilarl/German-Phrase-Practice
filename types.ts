@@ -182,3 +182,14 @@ export interface TranslationChatResponse {
     };
     promptSuggestions: string[];
 }
+
+// Types for Phrase Builder
+export interface PhraseBuilderOptions {
+  words: string[];
+}
+
+export interface PhraseEvaluation {
+  isCorrect: boolean;
+  feedback: string;
+  correctedPhrase?: string;
+}

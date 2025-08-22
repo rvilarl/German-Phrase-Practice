@@ -1,4 +1,4 @@
-import type { Phrase, ChatMessage, DeepDiveAnalysis, ContentPart, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, SentenceContinuation, TranslationChatRequest, TranslationChatResponse } from '../types';
+import type { Phrase, ChatMessage, DeepDiveAnalysis, ContentPart, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, SentenceContinuation, TranslationChatRequest, TranslationChatResponse, PhraseBuilderOptions, PhraseEvaluation } from '../types';
 import { AiService } from './aiService';
 import { getDeepseekApiKey } from './env';
 
@@ -523,6 +523,67 @@ const findDuplicatePhrases: AiService['findDuplicatePhrases'] = async (phrases) 
     return Promise.resolve({ duplicateGroups: [] });
 };
 
+const generatePhraseBuilderOptions: AiService['generatePhraseBuilderOptions'] = async (phrase) => {
+    const schema = {
+        type: "object",
+        properties: {
+            words: {
+                type: "array",
+                items: { type: "string" }
+            }
+        },
+        required: ["words"]
+    };
+    
+    const prompt = `Для упражнения "собери фразу" по немецкому языку, подготовь набор слов.
+Исходная фраза на русском: "${phrase.russian}"
+Правильный перевод на немецком: "${phrase.german}"
+
+Твоя задача:
+1.  Включи в набор ВСЕ слова из правильного немецкого перевода. ВАЖНО: Сохраняй знаки препинания (точки, вопросительные знаки) как часть последнего слова. Например: "Hallo.", "geht's?".
+2.  Добавь 5-7 "отвлекающих" слов (неверные формы, похожие слова).
+3.  Перемешай все слова.
+4.  Верни JSON-объект с ключом "words".`;
+
+    const messages = [
+        { role: "system", content: "You are a German teaching assistant. Respond only in JSON." },
+        { role: "user", content: prompt }
+    ];
+
+    return await callDeepSeekApi(messages, schema);
+};
+
+const evaluatePhraseAttempt: AiService['evaluatePhraseAttempt'] = async (phrase, userAttempt) => {
+    const schema = {
+        type: "object",
+        properties: {
+            isCorrect: { type: "boolean" },
+            feedback: { type: "string" },
+            correctedPhrase: { type: "string" }
+        },
+        required: ["isCorrect", "feedback"]
+    };
+    
+    const prompt = `Ты — опытный и доброжелательный преподаватель немецкого языка.
+Ученик изучает фразу: "${phrase.russian}".
+Правильный перевод: "${phrase.german}".
+Ответ ученика: "${userAttempt}".
+
+Твоя задача — дать обратную связь по ответу ученика.
+1.  **Если ответ идеален**: Похвали ученика.
+2.  **Если есть ошибки**: Мягко укажи на них, объясни почему это ошибка, и приведи правильный вариант в \`correctedPhrase\`.
+3.  **Если ответ ученика грамматически и лексически верен, но отсутствует только конечный знак препинания (точка или вопросительный знак), всё равно считай ответ правильным (\`isCorrect: true\`), но в \`feedback\` можешь вежливо напомнить о пунктуации. Не помечай ответ как неверный по этой причине.**
+4.  Твой тон должен быть позитивным и ободряющим.
+5.  Отвечай на русском языке.`;
+
+    const messages = [
+        { role: "system", content: "You are an experienced and encouraging German language teacher. Respond only in JSON." },
+        { role: "user", content: prompt }
+    ];
+
+    return await callDeepSeekApi(messages, schema);
+};
+
 
 const healthCheck: AiService['healthCheck'] = async () => {
     const apiKey = getDeepseekApiKey();
@@ -573,6 +634,8 @@ export const deepseekService: AiService = {
     declineNoun,
     generateSentenceContinuations,
     findDuplicatePhrases,
+    generatePhraseBuilderOptions,
+    evaluatePhraseAttempt,
     healthCheck,
     getProviderName: () => "DeepSeek",
 };

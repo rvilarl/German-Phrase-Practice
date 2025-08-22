@@ -10,6 +10,8 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ textToSpeak }) => {
   const [isPlaying, setIsPlaying] = useState(false);
 
   const utteranceRef = React.useRef<SpeechSynthesisUtterance | null>(null);
+  
+  const isDisabled = !textToSpeak || textToSpeak.trim().length === 0;
 
   useEffect(() => {
     const utterance = new SpeechSynthesisUtterance(textToSpeak);
@@ -31,7 +33,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ textToSpeak }) => {
   }, [textToSpeak]);
 
   const handlePlay = () => {
-    if (!utteranceRef.current) return;
+    if (!utteranceRef.current || isDisabled) return;
     
     // Stop any other speech before starting a new one
     window.speechSynthesis.cancel();
@@ -57,7 +59,8 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ textToSpeak }) => {
   return (
     <button
       onClick={togglePlay}
-      className="p-2 mt-0.5 rounded-full bg-slate-600/50 hover:bg-slate-600 transition-colors flex-shrink-0"
+      disabled={isDisabled}
+      className="p-2 mt-0.5 rounded-full bg-slate-600/50 hover:bg-slate-600 transition-colors flex-shrink-0 disabled:opacity-30 disabled:cursor-not-allowed"
       aria-label={isPlaying ? "Stop audio" : "Play audio"}
     >
       {isPlaying ? (
@@ -76,7 +79,7 @@ const StopIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
     xmlns="http://www.w3.org/2000/svg"
     width="24"
     height="24"
-    viewBox="0 0 24 24"
+    viewBox="0 0 24"
     fill="currentColor"
     {...props}
   >

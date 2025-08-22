@@ -32,13 +32,14 @@ interface PracticePageProps {
   onOpenWordAnalysis: (phrase: Phrase, word: string) => void;
   onOpenSentenceChain: (phrase: Phrase) => void;
   onOpenImprovePhrase: (phrase: Phrase) => void;
+  onOpenPhraseBuilder: (phrase: Phrase) => void;
 }
 
 const PracticePage: React.FC<PracticePageProps> = (props) => {
   const {
     allPhrases, updateAndSavePhrases, fetchNewPhrases, isLoading, error, isGenerating, settings,
     apiProviderAvailable, practicePhraseOverride, onPracticePhraseConsumed, onOpenChat, onOpenDeepDive,
-    onOpenMovieExamples, onOpenWordAnalysis, onOpenSentenceChain, onOpenImprovePhrase
+    onOpenMovieExamples, onOpenWordAnalysis, onOpenSentenceChain, onOpenImprovePhrase, onOpenPhraseBuilder
   } = props;
 
   const [currentPhrase, setCurrentPhrase] = useState<Phrase | null>(null);
@@ -83,6 +84,19 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
         selectNext(false); 
     }
   }, [allPhrases, currentPhrase, selectNext]);
+  
+  // Effect to handle external updates (e.g., from Phrase Builder)
+  useEffect(() => {
+    if (currentPhrase) {
+        const freshPhraseInList = allPhrases.find(p => p.id === currentPhrase.id);
+        // If the phrase in the main list has a different review timestamp
+        // than the one we hold in our state, it means an external action (like Phrase Builder) happened.
+        if (freshPhraseInList && freshPhraseInList.lastReviewedAt !== currentPhrase.lastReviewedAt) {
+            transitionToNext();
+        }
+    }
+  }, [allPhrases, currentPhrase]);
+
 
   useEffect(() => {
     if (practicePhraseOverride) {
@@ -219,6 +233,7 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
                       phrase={currentPhrase} 
                       onSpeak={speak} 
                       isFlipped={isAnswerRevealed} 
+                      onFlip={() => setIsAnswerRevealed(false)}
                       onOpenChat={onOpenChat} 
                       onImproveSkill={handleImproveSkill}
                       onOpenDeepDive={onOpenDeepDive}
@@ -226,6 +241,7 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
                       onWordClick={onOpenWordAnalysis}
                       onOpenSentenceChain={onOpenSentenceChain}
                       onOpenImprovePhrase={onOpenImprovePhrase}
+                      onOpenPhraseBuilder={onOpenPhraseBuilder}
                     />
                 </div>
             </div>

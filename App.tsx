@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Phrase, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, SentenceContinuation } from './types';
+import { Phrase, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, SentenceContinuation, PhraseBuilderOptions, PhraseEvaluation } from './types';
 import * as srsService from './services/srsService';
 import * as cacheService from './services/cacheService';
 import { getProviderPriorityList, getFallbackProvider, ApiProviderType } from './services/apiProvider';
@@ -21,6 +21,7 @@ import AddPhraseModal from './components/AddPhraseModal';
 import ImprovePhraseModal from './components/ImprovePhraseModal';
 import EditPhraseModal from './components/EditPhraseModal';
 import ConfirmDeleteModal from './components/ConfirmDeleteModal';
+import PhraseBuilderModal from './components/PhraseBuilderModal';
 import PlusIcon from './components/icons/PlusIcon';
 
 const PHRASES_STORAGE_KEY = 'germanPhrases';
@@ -86,6 +87,12 @@ const App: React.FC = () => {
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [phraseToDelete, setPhraseToDelete] = useState<Phrase | null>(null);
+
+  const [isPhraseBuilderModalOpen, setIsPhraseBuilderModalOpen] = useState(false);
+  const [phraseBuilderPhrase, setPhraseBuilderPhrase] = useState<Phrase | null>(null);
+  const [phraseBuilderOptions, setPhraseBuilderOptions] = useState<PhraseBuilderOptions | null>(null);
+  const [isPhraseBuilderLoading, setIsPhraseBuilderLoading] = useState(false);
+  const [phraseBuilderError, setPhraseBuilderError] = useState<string | null>(null);
 
   const [apiProvider, setApiProvider] = useState<AiService | null>(null);
   const [apiProviderType, setApiProviderType] = useState<ApiProviderType | null>(null);
@@ -379,6 +386,51 @@ const App: React.FC = () => {
     setSentenceChainPhrase(phrase);
     setIsSentenceChainModalOpen(true);
   };
+  
+  const handleOpenPhraseBuilder = useCallback(async (phrase: Phrase) => {
+    if (!apiProvider) return;
+    setPhraseBuilderPhrase(phrase);
+    setIsPhraseBuilderModalOpen(true);
+    setIsPhraseBuilderLoading(true);
+    setPhraseBuilderOptions(null);
+    setPhraseBuilderError(null);
+
+    const cacheKey = `phrase_builder_${phrase.id}`;
+    const cachedOptions = cacheService.getCache<PhraseBuilderOptions>(cacheKey);
+
+    if (cachedOptions) {
+      setPhraseBuilderOptions(cachedOptions);
+      setIsPhraseBuilderLoading(false);
+      return;
+    }
+
+    try {
+      const options = await callApiWithFallback(provider => provider.generatePhraseBuilderOptions(phrase));
+      setPhraseBuilderOptions(options);
+      cacheService.setCache(cacheKey, options);
+    } catch (err) {
+      setPhraseBuilderError(err instanceof Error ? err.message : 'Unknown error during option generation.');
+    } finally {
+      setIsPhraseBuilderLoading(false);
+    }
+  }, [apiProvider, callApiWithFallback]);
+
+  const handleEvaluatePhraseAttempt = useCallback((phrase: Phrase, userAttempt: string): Promise<PhraseEvaluation> => {
+    return callApiWithFallback(provider => provider.evaluatePhraseAttempt(phrase, userAttempt));
+  }, [callApiWithFallback]);
+  
+  const handlePhraseBuilderSuccess = useCallback((phrase: Phrase) => {
+    updateAndSavePhrases(prev =>
+      prev.map(p => (p.id === phrase.id ? srsService.updatePhraseMastery(p, 'know') : p))
+    );
+  }, [updateAndSavePhrases]);
+
+  const handlePhraseBuilderFailure = useCallback((phrase: Phrase) => {
+    updateAndSavePhrases(prev =>
+      prev.map(p => (p.id === phrase.id ? srsService.updatePhraseMastery(p, 'forgot') : p))
+    );
+  }, [updateAndSavePhrases]);
+
 
   const handleGenerateContinuations = useCallback((russianPhrase: string) => callApiWithFallback(provider => provider.generateSentenceContinuations(russianPhrase)),[callApiWithFallback]);
   const handleGenerateInitialExamples = useCallback((phrase: Phrase) => callApiWithFallback(provider => provider.generateInitialExamples(phrase)),[callApiWithFallback]);
@@ -480,6 +532,7 @@ const App: React.FC = () => {
              onOpenWordAnalysis={handleOpenWordAnalysis}
              onOpenSentenceChain={handleOpenSentenceChain}
              onOpenImprovePhrase={handleOpenImproveModal}
+             onOpenPhraseBuilder={handleOpenPhraseBuilder}
            />
         ) : (
           <PhraseListPage 
@@ -592,6 +645,17 @@ const App: React.FC = () => {
             onClose={() => setIsDeleteModalOpen(false)}
             onConfirm={handleConfirmDelete}
             phrase={phraseToDelete}
+       />
+       <PhraseBuilderModal
+            isOpen={isPhraseBuilderModalOpen}
+            onClose={() => setIsPhraseBuilderModalOpen(false)}
+            phrase={phraseBuilderPhrase}
+            options={phraseBuilderOptions}
+            isLoading={isPhraseBuilderLoading}
+            error={phraseBuilderError}
+            onEvaluate={handleEvaluatePhraseAttempt}
+            onSuccess={handlePhraseBuilderSuccess}
+            onFailure={handlePhraseBuilderFailure}
        />
     </div>
   );

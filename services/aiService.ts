@@ -1,4 +1,4 @@
-import { Phrase, ChatMessage, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, SentenceContinuation, TranslationChatRequest, TranslationChatResponse } from '../types';
+import { Phrase, ChatMessage, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, SentenceContinuation, TranslationChatRequest, TranslationChatResponse, PhraseBuilderOptions, PhraseEvaluation } from '../types';
 
 export interface AiService {
   generatePhrases(prompt: string): Promise<Omit<Phrase, 'id'>[]>;
@@ -15,6 +15,8 @@ export interface AiService {
   declineNoun(noun: string, article: string): Promise<NounDeclension>;
   generateSentenceContinuations(russianPhrase: string): Promise<SentenceContinuation>;
   findDuplicatePhrases(phrases: Phrase[]): Promise<{ duplicateGroups: string[][] }>;
+  generatePhraseBuilderOptions(phrase: Phrase): Promise<PhraseBuilderOptions>;
+  evaluatePhraseAttempt(phrase: Phrase, userAttempt: string): Promise<PhraseEvaluation>;
   healthCheck(): Promise<boolean>;
   getProviderName(): string;
 }

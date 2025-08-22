@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import type { Phrase } from '../types';
 import SoundIcon from './icons/SoundIcon';
@@ -7,11 +8,13 @@ import AnalysisIcon from './icons/AnalysisIcon';
 import FilmIcon from './icons/FilmIcon';
 import LinkIcon from './icons/LinkIcon';
 import WandIcon from './icons/WandIcon';
+import ConstructIcon from './icons/ConstructIcon';
 
 interface PhraseCardProps {
   phrase: Phrase;
   onSpeak: (text: string) => void;
   isFlipped: boolean;
+  onFlip: () => void;
   onOpenChat: (phrase: Phrase) => void;
   onImproveSkill: () => void;
   onOpenDeepDive: (phrase: Phrase) => void;
@@ -19,9 +22,10 @@ interface PhraseCardProps {
   onWordClick: (phrase: Phrase, word: string) => void;
   onOpenSentenceChain: (phrase: Phrase) => void;
   onOpenImprovePhrase: (phrase: Phrase) => void;
+  onOpenPhraseBuilder: (phrase: Phrase) => void;
 }
 
-const PhraseCard: React.FC<PhraseCardProps> = ({ phrase, onSpeak, isFlipped, onOpenChat, onImproveSkill, onOpenDeepDive, onOpenMovieExamples, onWordClick, onOpenSentenceChain, onOpenImprovePhrase }) => {
+const PhraseCard: React.FC<PhraseCardProps> = ({ phrase, onSpeak, isFlipped, onFlip, onOpenChat, onImproveSkill, onOpenDeepDive, onOpenMovieExamples, onWordClick, onOpenSentenceChain, onOpenImprovePhrase, onOpenPhraseBuilder }) => {
 
   const handleSpeak = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -66,6 +70,11 @@ const PhraseCard: React.FC<PhraseCardProps> = ({ phrase, onSpeak, isFlipped, onO
     e.stopPropagation();
     onOpenSentenceChain(phrase);
   }
+  
+  const handleOpenPhraseBuilder = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onOpenPhraseBuilder(phrase);
+  };
 
   return (
     <div className="group [perspective:1000px] w-full max-w-md h-full">
@@ -74,22 +83,34 @@ const PhraseCard: React.FC<PhraseCardProps> = ({ phrase, onSpeak, isFlipped, onO
       >
         {/* Front Side (Russian) */}
         <div 
-            className="absolute inset-0 [backface-visibility:hidden] bg-gradient-to-br from-slate-700 to-slate-800 border border-slate-600 rounded-xl p-6 flex flex-col justify-between items-center text-center cursor-pointer"
-            onClick={handleImproveClick}
+            className="absolute inset-0 [backface-visibility:hidden] bg-gradient-to-br from-slate-700 to-slate-800 border border-slate-600 rounded-xl p-6 flex flex-col justify-between items-center text-center"
         >
-            <div className="flex-grow flex flex-col justify-center">
+            <div className="flex-grow flex flex-col justify-center w-full cursor-pointer" onClick={handleImproveClick}>
                 <h2 className="text-2xl font-semibold text-slate-100">{phrase.russian}</h2>
                 <p className="text-slate-400 mt-4">Вспомните перевод</p>
             </div>
-            <div
-                className="text-sm px-4 py-1.5 rounded-full bg-slate-600/50 group-hover:bg-slate-600 transition-colors text-slate-300"
-            >
-                Нажмите, чтобы перевернуть
-            </div>
+            <div className="w-full flex justify-center items-center gap-x-4 pt-4">
+               <button
+                   onClick={handleImproveClick}
+                   className="text-sm px-4 py-2 rounded-full bg-slate-600/50 hover:bg-slate-600 transition-colors text-slate-300"
+               >
+                   Показать ответ
+               </button>
+               <button
+                   onClick={handleOpenPhraseBuilder}
+                   className="p-3 rounded-full bg-purple-600/50 hover:bg-purple-600 transition-colors text-slate-100"
+                   aria-label="Собрать фразу"
+               >
+                   <ConstructIcon className="w-5 h-5" />
+               </button>
+           </div>
         </div>
         
         {/* Back Side (German) */}
-        <div className="absolute inset-0 [backface-visibility:hidden] [transform:rotateY(180deg)] bg-gradient-to-br from-purple-600 to-blue-600 border border-purple-500 rounded-xl p-6 flex flex-col justify-between items-center text-center">
+        <div 
+          onClick={onFlip}
+          className="absolute inset-0 [backface-visibility:hidden] [transform:rotateY(180deg)] bg-gradient-to-br from-purple-600 to-blue-600 border border-purple-500 rounded-xl p-6 flex flex-col justify-between items-center text-center cursor-pointer"
+        >
             <button
                 onClick={handleOpenImprovePhrase}
                 className="absolute top-3 right-3 p-1.5 rounded-full bg-white/10 hover:bg-white/20 transition-colors duration-200 z-10"

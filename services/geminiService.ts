@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import type { Phrase, ChatMessage, ExamplePair, ProactiveSuggestion, ContentPart, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, SentenceContinuation, TranslationChatRequest, TranslationChatResponse } from '../types';
+import type { Phrase, ChatMessage, ExamplePair, ProactiveSuggestion, ContentPart, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, SentenceContinuation, TranslationChatRequest, TranslationChatResponse, PhraseBuilderOptions, PhraseEvaluation } from '../types';
 import { AiService } from './aiService';
 import { getGeminiApiKey } from './env';
 
@@ -857,6 +857,106 @@ Analyze them and identify groups of phrases that are semantic duplicates. Ignore
     }
 };
 
+const phraseBuilderOptionsSchema = {
+    type: Type.OBJECT,
+    properties: {
+        words: {
+            type: Type.ARRAY,
+            description: "An array of shuffled word blocks including correct words and distractors.",
+            items: { type: Type.STRING }
+        }
+    },
+    required: ["words"]
+};
+
+const generatePhraseBuilderOptions: AiService['generatePhraseBuilderOptions'] = async (phrase) => {
+    const api = initializeApi();
+    if (!api) throw new Error("Gemini API key not configured.");
+    
+    const prompt = `Для упражнения "собери фразу" по немецкому языку, подготовь набор слов.
+Исходная фраза на русском: "${phrase.russian}"
+Правильный перевод на немецком: "${phrase.german}"
+
+Твоя задача:
+1.  Включи в набор ВСЕ слова из правильного немецкого перевода. ВАЖНО: Сохраняй знаки препинания (точки, вопросительные знаки) как часть последнего слова. Например: "Hallo.", "geht's?".
+2.  Добавь 5-7 "отвлекающих" слов. Это должны быть правдоподобные, но неверные варианты:
+    - Слова с похожим значением (синонимы, которые не подходят по контексту).
+    - Неправильные грамматические формы (другой падеж, другое время глагола, неправильное окончание прилагательного).
+    - Слова, которые часто путают (ложные друзья переводчика).
+    - Лишние артикли или предлоги.
+3.  Перемешай все слова в случайном порядке.
+4.  Верни результат в виде JSON-объекта с одним ключом "words", содержащим массив строк.`;
+
+    try {
+        const response = await api.models.generateContent({
+            model: model,
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: phraseBuilderOptionsSchema,
+                temperature: 0.9,
+            },
+        });
+
+        const jsonText = response.text.trim();
+        return JSON.parse(jsonText) as PhraseBuilderOptions;
+    } catch (error) {
+        console.error("Error generating phrase builder options with Gemini:", error);
+        throw new Error(`Failed to call the Gemini API: ${(error as any)?.message || 'Unknown error'}`);
+    }
+};
+
+
+const phraseEvaluationSchema = {
+    type: Type.OBJECT,
+    properties: {
+        isCorrect: { type: Type.BOOLEAN },
+        feedback: { type: Type.STRING, description: "Constructive feedback in Russian." },
+        correctedPhrase: { type: Type.STRING, description: "The correct phrase, if the user's attempt was wrong." }
+    },
+    required: ["isCorrect", "feedback"]
+};
+
+const evaluatePhraseAttempt: AiService['evaluatePhraseAttempt'] = async (phrase, userAttempt) => {
+    const api = initializeApi();
+    if (!api) throw new Error("Gemini API key not configured.");
+
+    const prompt = `Ты — опытный и доброжелательный преподаватель немецкого языка.
+Ученик изучает фразу: "${phrase.russian}".
+Правильный перевод: "${phrase.german}".
+Ответ ученика: "${userAttempt}".
+
+Твоя задача — дать обратную связь по ответу ученика.
+1.  **Если ответ идеален**: Похвали ученика. Можно добавить короткий комментарий, почему именно эта формулировка хороша.
+2.  **Если есть ошибки**:
+    - Мягко укажи на них.
+    - Объясни, **почему** это ошибка (например, "Порядок слов здесь немного другой, в немецком языке глагол обычно стоит на втором месте..." или "Существительное 'Tisch' мужского рода, поэтому нужен артикль 'der'").
+    - Обязательно приведи правильный вариант в поле \`correctedPhrase\`.
+3.  **Если ответ ученика грамматически и лексически верен, но отсутствует только конечный знак препинания (точка или вопросительный знак), всё равно считай ответ правильным (\`isCorrect: true\`), но в \`feedback\` можешь вежливо напомнить о пунктуации. Не помечай ответ как неверный по этой причине.**
+4.  Твой тон должен быть позитивным, ободряющим и педагогичным.
+5.  Отвечай на русском языке.
+
+Верни JSON-объект.`;
+
+    try {
+        const response = await api.models.generateContent({
+            model: model,
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: phraseEvaluationSchema,
+                temperature: 0.5,
+            },
+        });
+
+        const jsonText = response.text.trim();
+        return JSON.parse(jsonText) as PhraseEvaluation;
+    } catch (error) {
+        console.error("Error evaluating phrase attempt with Gemini:", error);
+        throw new Error(`Failed to call the Gemini API: ${(error as any)?.message || 'Unknown error'}`);
+    }
+};
+
 
 const healthCheck: AiService['healthCheck'] = async () => {
     const api = initializeApi();
@@ -888,6 +988,8 @@ export const geminiService: AiService = {
     declineNoun,
     generateSentenceContinuations,
     findDuplicatePhrases,
+    generatePhraseBuilderOptions,
+    evaluatePhraseAttempt,
     healthCheck,
     getProviderName: () => "Google Gemini",
 };
