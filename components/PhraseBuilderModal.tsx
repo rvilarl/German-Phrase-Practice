@@ -64,7 +64,7 @@ const PhraseBuilderModal: React.FC<PhraseBuilderModalProps> = ({
   };
   
   const handleReset = () => {
-      if (evaluation) return; // Don't reset after evaluation
+      if (evaluation || isChecking) return;
       setAvailableWords([...availableWords, ...constructedWords].sort((a,b) => a.id - b.id));
       setConstructedWords([]);
   }
@@ -98,7 +98,7 @@ const PhraseBuilderModal: React.FC<PhraseBuilderModalProps> = ({
     if (isLoading) {
       return (
         <div className="flex flex-col justify-center items-center h-full">
-          <Spinner />
+          <Spinner className="h-10 w-10 text-purple-400" />
           <p className="mt-4 text-slate-400">Подбираем слова...</p>
         </div>
       );
@@ -117,92 +117,103 @@ const PhraseBuilderModal: React.FC<PhraseBuilderModalProps> = ({
     const userAttempt = constructedWords.map(w => w.word).join(' ');
 
     return (
-      <div className="flex flex-col h-full">
-        {/* Constructed phrase area */}
-        <div className="flex-grow flex flex-col justify-center items-center space-y-4">
+      <div className="flex flex-col h-full relative">
+        {/* Top: Constructed phrase area */}
+        <div className="flex-shrink-0">
           <div className="w-full flex items-center gap-x-2">
-             <AudioPlayer textToSpeak={userAttempt} />
-             <div className="flex-grow bg-slate-700/50 p-4 rounded-lg min-h-[80px] flex flex-wrap items-center justify-center gap-2 border-2 border-dashed border-slate-600">
-                {constructedWords.length === 0 && !evaluation && (
-                  <p className="text-slate-500">Нажмите на слова ниже, чтобы собрать фразу</p>
-                )}
-                {constructedWords.map(word => (
-                  <button
-                    key={word.id}
-                    onClick={() => handleDeselectWord(word)}
-                    disabled={!!evaluation}
-                    className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors text-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {word.word}
-                  </button>
-                ))}
-              </div>
-              <button
-                onClick={handleReset}
-                disabled={isChecking || !!evaluation || constructedWords.length === 0}
-                className="p-3 self-start rounded-full bg-slate-600/50 hover:bg-slate-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                aria-label="Очистить"
-              >
-                <BackspaceIcon className="w-5 h-5 text-white" />
-              </button>
-          </div>
-
-
-          {/* Evaluation result area */}
-          {evaluation && (
-            <div className={`w-full p-4 rounded-lg animate-fade-in ${evaluation.isCorrect ? 'bg-green-500/20 border-green-500' : 'bg-red-500/20 border-red-500'} border-l-4`}>
-                <div className="flex items-start space-x-3">
-                    <div className="flex-shrink-0 mt-1">
-                        {evaluation.isCorrect ? <CheckIcon className="w-5 h-5 text-green-400" /> : <XCircleIcon className="w-5 h-5 text-red-400" />}
-                    </div>
-                    <div>
-                        <p className="text-slate-200">{evaluation.feedback}</p>
-                        {evaluation.correctedPhrase && (
-                           <div className="mt-2 flex items-center gap-x-2 text-sm bg-slate-800/50 p-2 rounded-md">
-                               <AudioPlayer textToSpeak={evaluation.correctedPhrase} />
-                               <p className="text-slate-300"><strong className="font-semibold text-slate-100">{evaluation.correctedPhrase}</strong></p>
-                           </div>
-                        )}
-                    </div>
-                </div>
-            </div>
-          )}
-
-        </div>
-
-        {/* Available words area */}
-        <div className="flex-shrink-0 pt-4">
-          <div className="w-full min-h-[100px] p-4 rounded-lg bg-slate-900/50 flex flex-wrap items-center justify-center gap-2">
-            {availableWords.map(word => (
-              <button
-                key={word.id}
-                onClick={() => handleSelectWord(word)}
-                disabled={!!evaluation}
-                className="px-3 py-1.5 bg-slate-600 hover:bg-slate-500 text-slate-200 rounded-lg transition-all text-lg font-medium disabled:opacity-30 disabled:cursor-not-allowed"
-              >
-                {word.word}
-              </button>
-            ))}
-          </div>
-          <div className="flex justify-center items-center mt-4">
-            {evaluation ? (
+            <AudioPlayer textToSpeak={userAttempt} />
+            <div className="flex-grow bg-slate-700/50 p-4 rounded-lg min-h-[80px] flex flex-wrap items-center justify-center gap-2 border-2 border-dashed border-slate-600">
+              {constructedWords.length === 0 && (
+                <p className="text-slate-500">Нажмите на слова ниже, чтобы собрать фразу</p>
+              )}
+              {constructedWords.map(word => (
                 <button
-                  onClick={onClose}
-                  className="px-8 py-3 rounded-lg bg-purple-600 hover:bg-purple-700 transition-colors font-semibold text-white shadow-md flex items-center"
+                  key={word.id}
+                  onClick={() => handleDeselectWord(word)}
+                  disabled={!!evaluation}
+                  className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors text-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <span>Продолжить</span>
-                  <ArrowRightIcon className="w-5 h-5 ml-2" />
+                  {word.word}
                 </button>
-            ) : (
+              ))}
+            </div>
+            <button
+              onClick={handleReset}
+              disabled={isChecking || !!evaluation || constructedWords.length === 0}
+              className="p-3 self-center rounded-full bg-slate-600/50 hover:bg-slate-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              aria-label="Очистить"
+            >
+              <BackspaceIcon className="w-5 h-5 text-white" />
+            </button>
+          </div>
+        </div>
+        
+        {/* Middle: Available words area */}
+        <div className="flex-grow my-4 flex flex-col justify-end min-h-0">
+           <div className="w-full bg-slate-900/50 flex flex-wrap items-start content-start justify-center gap-2 p-4 rounded-lg overflow-y-auto hide-scrollbar">
+             {availableWords.map(word => (
+                <button
+                  key={word.id}
+                  onClick={() => handleSelectWord(word)}
+                  disabled={!!evaluation}
+                  className="px-3 py-1.5 bg-slate-600 hover:bg-slate-500 text-slate-200 rounded-lg transition-all text-lg font-medium disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  {word.word}
+                </button>
+              ))}
+           </div>
+        </div>
+        
+        {/* Bottom: Action Area - a placeholder for the check button */}
+        <div className="flex-shrink-0 pt-4 border-t border-slate-700/50 min-h-[80px] flex justify-center items-center">
+            {!evaluation && (
                 <button
                   onClick={handleCheck}
                   disabled={constructedWords.length === 0 || isChecking}
-                  className="px-8 py-3 rounded-lg bg-green-600 hover:bg-green-700 transition-colors font-semibold text-white shadow-md disabled:bg-slate-600 disabled:cursor-not-allowed flex items-center"
+                  className="relative px-8 py-3 rounded-lg bg-green-600 hover:bg-green-700 transition-colors font-semibold text-white shadow-md disabled:bg-slate-600 disabled:cursor-not-allowed flex items-center justify-center min-w-[150px] h-[48px]"
                 >
-                  {isChecking ? <Spinner /> : <><CheckIcon className="w-5 h-5 mr-2" /><span>Проверить</span></>}
+                  <span className={`flex items-center transition-opacity ${isChecking ? 'opacity-0' : 'opacity-100'}`}>
+                    <CheckIcon className="w-5 h-5 mr-2" />
+                    <span>Проверить</span>
+                  </span>
+                  {isChecking && (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <Spinner />
+                    </div>
+                  )}
                 </button>
             )}
-          </div>
+        </div>
+        
+        {/* Absolutely Positioned Feedback Panel */}
+        <div className={`absolute bottom-[-24px] left-[-24px] right-[-24px] p-6 pt-4 bg-slate-800 border-t border-slate-700/50 shadow-[0_-10px_20px_-5px_rgba(0,0,0,0.2)] transition-transform duration-300 ease-out ${evaluation ? 'translate-y-0' : 'translate-y-full'}`}>
+          {evaluation && (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              {/* Feedback Message */}
+              <div className={`flex-grow w-full sm:w-auto p-3 rounded-lg ${evaluation.isCorrect ? 'bg-green-500/20' : 'bg-red-500/20'} flex items-start space-x-3`}>
+                <div className="flex-shrink-0 mt-0.5">
+                  {evaluation.isCorrect ? <CheckIcon className="w-5 h-5 text-green-400" /> : <XCircleIcon className="w-5 h-5 text-red-400" />}
+                </div>
+                <div>
+                  <p className="text-slate-200 text-sm">{evaluation.feedback}</p>
+                  {evaluation.correctedPhrase && (
+                    <div className="mt-2 flex items-center gap-x-2 text-sm bg-slate-800/50 p-1.5 rounded-md">
+                      <AudioPlayer textToSpeak={evaluation.correctedPhrase} />
+                      <p className="text-slate-300"><strong className="font-semibold text-slate-100">{evaluation.correctedPhrase}</strong></p>
+                    </div>
+                  )}
+                </div>
+              </div>
+              {/* Continue Button */}
+              <button
+                onClick={onClose}
+                className="w-full sm:w-auto flex-shrink-0 px-6 py-3 rounded-lg bg-purple-600 hover:bg-purple-700 transition-colors font-semibold text-white shadow-md flex items-center justify-center"
+              >
+                <span>Продолжить</span>
+                <ArrowRightIcon className="w-5 h-5 ml-2" />
+              </button>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -226,7 +237,7 @@ const PhraseBuilderModal: React.FC<PhraseBuilderModalProps> = ({
             <CloseIcon className="w-6 h-6 text-slate-400" />
           </button>
         </header>
-        <div className="flex-grow p-6 overflow-y-auto hide-scrollbar">
+        <div className="flex-grow p-6 overflow-hidden">
           {renderContent()}
         </div>
       </div>

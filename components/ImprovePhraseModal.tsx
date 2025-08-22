@@ -127,7 +127,7 @@ const ImprovePhraseModal: React.FC<ImprovePhraseModalProps> = ({ isOpen, onClose
 
         {isLoading ? (
           <div className="flex flex-col items-center justify-center h-full">
-            <Spinner />
+            <Spinner className="h-10 w-10 text-purple-400" />
             <p className="mt-4 text-slate-400">Анализируем фразу...</p>
           </div>
         ) : currentSuggestion ? (

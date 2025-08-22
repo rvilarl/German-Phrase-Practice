@@ -271,9 +271,16 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
                             <button
                                 onClick={handleFindDuplicates}
                                 disabled={isProcessingDuplicates}
-                                className="px-3 py-1.5 text-sm bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-md transition-colors disabled:opacity-50"
+                                className="relative px-3 py-1.5 text-sm bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-md transition-colors disabled:opacity-50 min-w-[140px] h-[34px]"
                             >
-                                {isProcessingDuplicates ? <Spinner /> : 'Найти дубликаты'}
+                                <span className={isProcessingDuplicates ? 'opacity-0' : 'opacity-100'}>
+                                    Найти дубликаты
+                                </span>
+                                {isProcessingDuplicates && (
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                        <Spinner />
+                                    </div>
+                                )}
                             </button>
                         )}
                     </div>

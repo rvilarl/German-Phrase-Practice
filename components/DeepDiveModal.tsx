@@ -2,6 +2,7 @@ import React from 'react';
 import type { Phrase, DeepDiveAnalysis } from '../types';
 import CloseIcon from './icons/CloseIcon';
 import AnalysisIcon from './icons/AnalysisIcon';
+import Spinner from './Spinner';
 
 interface DeepDiveModalProps {
   isOpen: boolean;
@@ -73,7 +74,7 @@ const DeepDiveModal: React.FC<DeepDiveModalProps> = ({ isOpen, onClose, phrase, 
 
   const renderContent = () => {
     if (isLoading) {
-      return <DeepDiveSkeleton />;
+      return <div className="flex flex-col justify-center items-center h-full"><Spinner className="h-10 w-10 text-purple-400" /><p className="mt-4 text-slate-400">Анализируем фразу...</p></div>;
     }
     if (error) {
       return <div className="flex justify-center items-center h-full"><div className="text-center bg-red-900/50 border border-red-700 text-red-300 p-4 rounded-lg"><p className="font-semibold">Ошибка анализа</p><p className="text-sm">{error}</p></div></div>;
