@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { Phrase, PhraseEvaluation, PhraseBuilderOptions } from '../types';
 import CloseIcon from './icons/CloseIcon';
-import ConstructIcon from './icons/ConstructIcon';
+import BlocksIcon from './icons/BlocksIcon';
 import Spinner from './Spinner';
 import CheckIcon from './icons/CheckIcon';
 import XCircleIcon from './icons/XCircleIcon';
@@ -227,10 +227,10 @@ const PhraseBuilderModal: React.FC<PhraseBuilderModalProps> = ({
       >
         <header className="flex items-center justify-between p-4 border-b border-slate-700 flex-shrink-0">
           <div className="flex items-center space-x-3">
-            <ConstructIcon className="w-6 h-6 text-purple-400" />
+            <BlocksIcon className="w-6 h-6 text-purple-400" />
             <div>
-                <h2 className="text-lg font-bold text-slate-100">Соберите фразу</h2>
-                <p className="text-sm text-slate-400">{phrase.russian}</p>
+                <h2 className="text-xl font-bold text-slate-100">{phrase.russian}</h2>
+                <p className="text-sm text-slate-400">Соберите фразу</p>
             </div>
           </div>
           <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-700">
