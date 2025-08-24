@@ -917,7 +917,13 @@ const App: React.FC = () => {
        />
        {learningAssistantPhrase && <LearningAssistantModal
             isOpen={isLearningAssistantModalOpen}
-            onClose={() => setIsLearningAssistantModalOpen(false)}
+            onClose={(didSucceed?: boolean) => {
+                setIsLearningAssistantModalOpen(false);
+                if (didSucceed && learningAssistantPhrase) {
+                    const finalPhraseState = allPhrases.find(p => p.id === learningAssistantPhrase.id) || learningAssistantPhrase;
+                    handleOpenPhraseBuilder(finalPhraseState);
+                }
+            }}
             phrase={learningAssistantPhrase}
             onGuide={handleGuideToTranslation}
             onSuccess={handleLearningAssistantSuccess}

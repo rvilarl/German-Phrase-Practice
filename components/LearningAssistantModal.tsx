@@ -8,7 +8,7 @@ import CheckIcon from './icons/CheckIcon';
 
 interface LearningAssistantModalProps {
   isOpen: boolean;
-  onClose: () => void;
+  onClose: (didSucceed?: boolean) => void;
   phrase: Phrase;
   onGuide: (phrase: Phrase, history: ChatMessage[], userAnswer: string) => Promise<ChatMessage>;
   onSuccess: (phrase: Phrase) => void;
@@ -115,7 +115,7 @@ const LearningAssistantModal: React.FC<LearningAssistantModalProps> = ({ isOpen,
         if (modelResponse.isCorrect) {
           setIsSuccess(true);
           onSuccess(phrase);
-          setTimeout(onClose, 2500);
+          setTimeout(() => onClose(true), 2500);
         }
     } catch (error) {
         setMessages(prev => [...prev, { role: 'model', contentParts: [{type: 'text', text: `Произошла ошибка: ${(error as Error).message}`}] }]);
@@ -134,7 +134,7 @@ const LearningAssistantModal: React.FC<LearningAssistantModalProps> = ({ isOpen,
   const promptSuggestions = (latestMessage?.role === 'model' && latestMessage.promptSuggestions) || [];
 
   return (
-    <div className="fixed inset-0 bg-black/60 z-50 flex justify-center items-end" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/60 z-50 flex justify-center items-end" onClick={() => onClose(false)}>
       <div 
         className={`bg-slate-800 w-full max-w-2xl h-[90%] max-h-[90vh] rounded-t-2xl shadow-2xl flex flex-col transition-transform duration-300 ease-out ${isOpen ? 'translate-y-0' : 'translate-y-full'}`}
         onClick={e => e.stopPropagation()}
@@ -144,7 +144,7 @@ const LearningAssistantModal: React.FC<LearningAssistantModalProps> = ({ isOpen,
             <BookOpenIcon className="w-7 h-7 text-purple-400"/>
             <h2 className="text-lg font-bold text-slate-100">{phrase.russian}</h2>
           </div>
-          <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-700">
+          <button onClick={() => onClose(false)} className="p-2 rounded-full hover:bg-slate-700">
             <CloseIcon className="w-6 h-6 text-slate-400"/>
           </button>
         </header>
