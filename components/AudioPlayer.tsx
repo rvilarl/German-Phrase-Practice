@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import SoundIcon from './icons/SoundIcon';
-import StopIcon from './icons/StopIcon';
 
 interface AudioPlayerProps {
   textToSpeak: string;
@@ -60,7 +59,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ textToSpeak }) => {
     <button
       onClick={togglePlay}
       disabled={isDisabled}
-      className="p-2 mt-0.5 rounded-full bg-slate-600/50 hover:bg-slate-600 transition-colors flex-shrink-0 disabled:opacity-30 disabled:cursor-not-allowed"
+      className="p-2 mt-0.5 rounded-full bg-slate-600/50 hover:bg-slate-600 transition-colors flex-shrink-0 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center"
       aria-label={isPlaying ? "Stop audio" : "Play audio"}
     >
       {isPlaying ? (
@@ -79,7 +78,7 @@ const StopIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
     xmlns="http://www.w3.org/2000/svg"
     width="24"
     height="24"
-    viewBox="0 0 24"
+    viewBox="0 0 24 24"
     fill="currentColor"
     {...props}
   >
