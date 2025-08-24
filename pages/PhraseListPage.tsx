@@ -134,20 +134,54 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
         const lowercasedTerm = searchTerm.toLowerCase().trim();
         if (!lowercasedTerm) return baseList;
 
-        const searchWords = lowercasedTerm.split(/\s+/).filter(Boolean);
+        const scoredPhrases = baseList
+            .map(phrase => {
+                const phraseText = (detectedSearchLang === 'ru' ? phrase.russian : phrase.german).toLowerCase();
+                let score = 0;
 
-        return baseList.filter(p => {
-            const phraseText = (detectedSearchLang === 'ru' ? p.russian : p.german).toLowerCase();
-            if (!phraseText) return false;
-            
-            const phraseWords = phraseText.split(/\s+/).filter(Boolean);
+                if (!phraseText) {
+                    return { phrase, score };
+                }
 
-            return searchWords.every(searchWord => 
-                phraseWords.some(phraseWord => 
-                    phraseWord.startsWith(searchWord) || searchWord.startsWith(phraseWord)
-                )
-            );
-        });
+                const termIndex = phraseText.indexOf(lowercasedTerm);
+
+                // Main score: exact substring match
+                if (termIndex !== -1) {
+                    score += 100; // Base score for a match
+                    
+                    // Bonus for starting at the beginning of the string
+                    if (termIndex === 0) {
+                        score += 50;
+                    }
+                    
+                    // Bonus for being a "whole word" match
+                    const isStartBoundary = termIndex === 0 || /\s/.test(phraseText.charAt(termIndex - 1));
+                    const endOfTermIndex = termIndex + lowercasedTerm.length;
+                    const isEndBoundary = endOfTermIndex === phraseText.length || /\s/.test(phraseText.charAt(endOfTermIndex));
+                    
+                    if (isStartBoundary && isEndBoundary) {
+                        score += 20;
+                    }
+
+                    // Penalty based on how much longer the phrase is than the search term
+                    score -= (phraseText.length - lowercasedTerm.length) * 0.1;
+                } else {
+                    // Fallback: Check for all search words being present, but not necessarily in order
+                    const searchWords = lowercasedTerm.split(/\s+/).filter(Boolean);
+                    if (searchWords.length > 1) {
+                        const allWordsIncluded = searchWords.every(word => phraseText.includes(word));
+                        if (allWordsIncluded) {
+                            score += 10; // Lower score for out-of-order or separated words
+                        }
+                    }
+                }
+
+                return { phrase, score };
+            })
+            .filter(item => item.score > 0)
+            .sort((a, b) => b.score - a.score);
+
+        return scoredPhrases.map(item => item.phrase);
     }, [phrases, searchTerm, duplicateGroups, detectedSearchLang]);
 
     const listItems = useMemo((): ListItem[] => {

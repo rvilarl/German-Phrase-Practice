@@ -18,6 +18,7 @@ export interface AiService {
   findDuplicatePhrases(phrases: Phrase[]): Promise<{ duplicateGroups: string[][] }>;
   generatePhraseBuilderOptions(phrase: Phrase): Promise<PhraseBuilderOptions>;
   evaluatePhraseAttempt(phrase: Phrase, userAttempt: string): Promise<PhraseEvaluation>;
+  evaluateSpokenPhraseAttempt(phrase: Phrase, userAttempt: string): Promise<PhraseEvaluation>;
   healthCheck(): Promise<boolean>;
   getProviderName(): string;
 }

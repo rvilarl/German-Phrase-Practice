@@ -496,6 +496,10 @@ const App: React.FC = () => {
     return callApiWithFallback(provider => provider.evaluatePhraseAttempt(phrase, userAttempt));
   }, [callApiWithFallback]);
   
+  const handleEvaluateSpokenPhraseAttempt = useCallback((phrase: Phrase, userAttempt: string): Promise<PhraseEvaluation> => {
+    return callApiWithFallback(provider => provider.evaluateSpokenPhraseAttempt(phrase, userAttempt));
+  }, [callApiWithFallback]);
+
   const handlePhraseBuilderSuccess = useCallback((phrase: Phrase) => {
     const updatedPhrase = srsService.updatePhraseMastery(phrase, 'know');
     updateAndSavePhrases(prev =>
@@ -734,17 +738,6 @@ const App: React.FC = () => {
              apiProviderAvailable={!!apiProvider}
              onUpdateMastery={handlePracticeUpdateMastery}
              onContinue={() => transitionToNext('right')}
-             onImproveSkill={() => {
-                 if(currentPracticePhrase) {
-                    setIsPracticeAnswerRevealed(true);
-                    if (settings.autoSpeak && 'speechSynthesis' in window) {
-                        const utterance = new SpeechSynthesisUtterance(currentPracticePhrase.german);
-                        utterance.lang = 'de-DE';
-                        utterance.rate = 0.9;
-                        window.speechSynthesis.speak(utterance);
-                    }
-                 }
-             }}
              onSwipeLeft={() => transitionToNext('right')}
              onSwipeRight={handlePracticeSwipeRight}
              onOpenChat={openChatForPhrase}
@@ -757,6 +750,8 @@ const App: React.FC = () => {
              onDeletePhrase={handleDeletePhrase}
              onGoToList={handleGoToListFromPractice}
              onOpenDiscussTranslation={handleOpenDiscussModal}
+             onEvaluatePhraseAttempt={handleEvaluatePhraseAttempt}
+             onEvaluateSpokenPhraseAttempt={handleEvaluateSpokenPhraseAttempt}
            />
         ) : (
           <PhraseListPage 

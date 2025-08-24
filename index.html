@@ -91,6 +91,21 @@
     background-color: rgba(168, 85, 247, 0.2);
     animation: listening-glow-animation 2s infinite ease-in-out;
   }
+  
+  /* New microphone glow effect */
+  @keyframes mic-glow-animation {
+    0%, 100% {
+      box-shadow: 0 0 8px #a855f7, 0 0 12px #a855f7;
+      background-color: rgba(168, 85, 247, 0.3);
+    }
+    50% {
+      box-shadow: 0 0 16px #a855f7, 0 0 24px #a855f7;
+      background-color: rgba(168, 85, 247, 0.5);
+    }
+  }
+  .mic-glowing {
+    animation: mic-glow-animation 2s infinite ease-in-out;
+  }
 
   @keyframes microphone-color-shift {
     0%, 100% { stroke: #a855f7; } /* purple-500 */
@@ -141,12 +156,78 @@
     animation-delay: 0.5s;
   }
   
-  @keyframes fade-in {
-    0% { opacity: 0; transform: translate(-50%, calc(-50% + 10px)); }
-    100% { opacity: 1; transform: translate(-50%, -50%); }
+  @keyframes fade-in-scale-up {
+    0% { opacity: 0; transform: scale(0.95); }
+    100% { opacity: 1; transform: scale(1); }
   }
   .animate-fade-in {
-    animation: fade-in 0.3s ease-out forwards;
+    animation: fade-in-scale-up 0.3s ease-out forwards;
+  }
+
+  /* New flash effect for the card */
+  .flash-container {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+    border-radius: 0.75rem; /* rounded-xl */
+  }
+  .flash-container::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+  }
+  .flash-green-animation::after {
+    background-image: radial-gradient(circle, rgba(74, 222, 128, 0.7) 0%, rgba(16, 185, 129, 0) 70%);
+    animation: flash-effect 1.5s ease-out forwards;
+  }
+  .flash-red-animation::after {
+    background-image: radial-gradient(circle, rgba(248, 113, 113, 0.7) 0%, rgba(220, 38, 38, 0) 70%);
+    animation: flash-effect 1.5s ease-out forwards;
+  }
+  @keyframes flash-effect {
+    0% { opacity: 0; transform: scale(0.5); }
+    20% { opacity: 1; transform: scale(1.2); }
+    100% { opacity: 0; transform: scale(1.5); }
+  }
+
+  /* New Spinner Animations */
+  @keyframes custom-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  .spinner-circle-1 {
+    animation: custom-spin 1.5s ease-in-out infinite;
+  }
+  .spinner-circle-2 {
+    animation: custom-spin 1.5s ease-in-out infinite;
+    animation-direction: reverse;
+    animation-delay: 0.2s;
+  }
+  .spinner-circle-3 {
+    animation: custom-spin 1.5s ease-in-out infinite;
+    animation-delay: 0.4s;
+  }
+  
+  /* New border glow for checking */
+  @keyframes checking-border-animation {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+  .checking-border::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, #a855f7, #38bdf8, #4ade80, #f472b6, #a855f7);
+    background-size: 200% auto;
+    animation: checking-border-animation 3s linear infinite;
+    border-top-left-radius: 0.75rem; /* rounded-xl */
+    border-top-right-radius: 0.75rem;
   }
 </style>
 </head>

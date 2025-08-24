@@ -7,6 +7,8 @@ import FilmIcon from './icons/FilmIcon';
 import LinkIcon from './icons/LinkIcon';
 import WandIcon from './icons/WandIcon';
 import BlocksIcon from './icons/BlocksIcon';
+import MicrophoneIcon from './icons/MicrophoneIcon';
+import Spinner from './Spinner';
 
 interface PhraseCardProps {
   phrase: Phrase;
@@ -14,7 +16,6 @@ interface PhraseCardProps {
   isFlipped: boolean;
   onFlip: () => void;
   onOpenChat: (phrase: Phrase) => void;
-  onImproveSkill: () => void;
   onOpenDeepDive: (phrase: Phrase) => void;
   onOpenMovieExamples: (phrase: Phrase) => void;
   onWordClick: (phrase: Phrase, word: string) => void;
@@ -22,12 +23,16 @@ interface PhraseCardProps {
   onOpenImprovePhrase: (phrase: Phrase) => void;
   onOpenPhraseBuilder: (phrase: Phrase) => void;
   onOpenContextMenu: (phrase: Phrase) => void;
+  onOpenVoicePractice: (phrase: Phrase) => void;
+  practiceState: 'idle' | 'listening' | 'checking' | 'correct' | 'incorrect';
+  liveTranscript: string | null;
 }
 
 const PhraseCard: React.FC<PhraseCardProps> = ({
-  phrase, onSpeak, isFlipped, onFlip, onOpenChat, onImproveSkill,
+  phrase, onSpeak, isFlipped, onFlip, onOpenChat,
   onOpenDeepDive, onOpenMovieExamples, onWordClick, onOpenSentenceChain,
-  onOpenImprovePhrase, onOpenPhraseBuilder, onOpenContextMenu
+  onOpenImprovePhrase, onOpenPhraseBuilder, onOpenContextMenu, onOpenVoicePractice,
+  practiceState, liveTranscript
 }) => {
 
   const longPressTimer = useRef<number | null>(null);
@@ -40,11 +45,6 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
   const handleOpenChat = (e: React.MouseEvent) => {
     e.stopPropagation();
     onOpenChat(phrase);
-  }
-
-  const handleImproveClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onImproveSkill();
   }
   
   const handleOpenDeepDive = (e: React.MouseEvent) => {
@@ -79,6 +79,11 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
     e.stopPropagation();
     onOpenPhraseBuilder(phrase);
   };
+  
+  const handleOpenVoicePractice = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onOpenVoicePractice(phrase);
+  };
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
@@ -92,6 +97,14 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
     if (longPressTimer.current) {
       clearTimeout(longPressTimer.current);
     }
+  };
+
+  const stateClasses = {
+    idle: 'from-slate-700/80 to-slate-800/80',
+    listening: 'from-slate-700/80 to-slate-800/80', // Same as idle, mic glows
+    checking: 'from-slate-700/80 to-slate-800/80', // Same as idle, spinner shows
+    correct: 'from-slate-700/80 to-slate-800/80', // Base color doesn't change
+    incorrect: 'from-slate-700/80 to-slate-800/80', // Base color doesn't change
   };
 
   return (
@@ -110,12 +123,19 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
       >
         {/* Front Side (Russian) */}
         <div 
-            className="absolute inset-0 [backface-visibility:hidden] bg-gradient-to-br from-slate-700/80 to-slate-800/80 backdrop-blur-sm border border-white/10 rounded-xl p-6 flex flex-col justify-between items-center text-center"
+            className={`absolute inset-0 [backface-visibility:hidden] bg-gradient-to-br ${stateClasses[practiceState]} backdrop-blur-sm border border-white/10 rounded-xl p-6 flex flex-col justify-between items-center text-center transition-colors duration-500 relative overflow-hidden ${practiceState === 'checking' ? 'checking-border' : ''}`}
         >
-            <div className="flex-grow flex flex-col justify-center w-full cursor-pointer" onClick={handleImproveClick}>
+            <div className={`flash-container ${practiceState === 'correct' ? 'flash-green-animation' : practiceState === 'incorrect' ? 'flash-red-animation' : ''}`}></div>
+            
+            <div className="flex-grow flex flex-col justify-center items-center w-full">
                 <h2 className="text-2xl font-semibold text-slate-100">{phrase.russian}</h2>
-                <p className="text-slate-400 mt-4">Вспомните перевод</p>
+                
+                {/* Transcript/Feedback container, always present to prevent layout shift */}
+                <div className="mt-4 min-h-[5rem] w-full flex items-center justify-center">
+                    <p className="text-slate-300 text-lg italic">{liveTranscript || ' '}</p>
+                </div>
             </div>
+            
             <div className="w-full flex justify-center items-center gap-x-4 pt-4">
                <button
                    onClick={handleOpenPhraseBuilder}
@@ -123,6 +143,13 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
                    aria-label="Конструктор фраз"
                >
                    <BlocksIcon className="w-5 h-5" />
+               </button>
+                <button
+                   onClick={handleOpenVoicePractice}
+                   className={`p-3 rounded-full bg-slate-600/50 hover:bg-slate-600 transition-all text-slate-100 ${practiceState === 'listening' ? 'mic-glowing' : ''}`}
+                   aria-label="Практика произношения"
+               >
+                   <MicrophoneIcon className="w-5 h-5" />
                </button>
            </div>
         </div>
