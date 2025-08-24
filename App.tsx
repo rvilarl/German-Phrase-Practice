@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Phrase, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, SentenceContinuation, PhraseBuilderOptions, PhraseEvaluation } from './types';
+import { Phrase, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, SentenceContinuation, PhraseBuilderOptions, PhraseEvaluation, ChatMessage } from './types';
 import * as srsService from './services/srsService';
 import * as cacheService from './services/cacheService';
 import { getProviderPriorityList, getFallbackProvider, ApiProviderType } from './services/apiProvider';
@@ -25,6 +25,7 @@ import ConfirmDeleteModal from './components/ConfirmDeleteModal';
 import PhraseBuilderModal from './components/PhraseBuilderModal';
 import ExpandingFab from './components/ExpandingFab';
 import DiscussTranslationModal from './components/DiscussTranslationModal';
+import LearningAssistantModal from './components/LearningAssistantModal';
 
 const PHRASES_STORAGE_KEY = 'germanPhrases';
 const SETTINGS_STORAGE_KEY = 'germanAppSettings';
@@ -109,6 +110,9 @@ const App: React.FC = () => {
   const [phraseBuilderOptions, setPhraseBuilderOptions] = useState<PhraseBuilderOptions | null>(null);
   const [isPhraseBuilderLoading, setIsPhraseBuilderLoading] = useState(false);
   const [phraseBuilderError, setPhraseBuilderError] = useState<string | null>(null);
+  
+  const [isLearningAssistantModalOpen, setIsLearningAssistantModalOpen] = useState(false);
+  const [learningAssistantPhrase, setLearningAssistantPhrase] = useState<Phrase | null>(null);
 
   const [apiProvider, setApiProvider] = useState<AiService | null>(null);
   const [apiProviderType, setApiProviderType] = useState<ApiProviderType | null>(null);
@@ -521,6 +525,7 @@ const App: React.FC = () => {
   const handleGenerateContinuations = useCallback((russianPhrase: string) => callApiWithFallback(provider => provider.generateSentenceContinuations(russianPhrase)),[callApiWithFallback]);
   const handleGenerateInitialExamples = useCallback((phrase: Phrase) => callApiWithFallback(provider => provider.generateInitialExamples(phrase)),[callApiWithFallback]);
   const handleContinueChat = useCallback((phrase: Phrase, history: any[], newMessage: string) => callApiWithFallback(provider => provider.continueChat(phrase, history, newMessage)),[callApiWithFallback]);
+  const handleGuideToTranslation = useCallback((phrase: Phrase, history: ChatMessage[], userAnswer: string) => callApiWithFallback(provider => provider.guideToTranslation(phrase, history, userAnswer)),[callApiWithFallback]);
   const handleGenerateSinglePhrase = useCallback((russianPhrase: string) => callApiWithFallback(provider => provider.generateSinglePhrase(russianPhrase)),[callApiWithFallback]);
   const handleTranslateGermanToRussian = useCallback((germanPhrase: string) => callApiWithFallback(provider => provider.translateGermanToRussian(germanPhrase)), [callApiWithFallback]);
 
@@ -617,6 +622,23 @@ const App: React.FC = () => {
     }
     setIsDiscussModalOpen(false);
   };
+  
+  const handleOpenLearningAssistant = (phrase: Phrase) => {
+    if (!apiProvider) return;
+    setLearningAssistantPhrase(phrase);
+    setIsLearningAssistantModalOpen(true);
+  };
+  
+  const handleLearningAssistantSuccess = useCallback((phrase: Phrase) => {
+    playCorrectSound();
+    const updatedPhrase = srsService.updatePhraseMastery(phrase, 'know');
+    updateAndSavePhrases(prev =>
+      prev.map(p => (p.id === phrase.id ? updatedPhrase : p))
+    );
+    if (currentPracticePhrase?.id === phrase.id) {
+      setCurrentPracticePhrase(updatedPhrase);
+    }
+  }, [updateAndSavePhrases, currentPracticePhrase]);
   
   // --- Practice Page Logic ---
   const unmasteredPhrases = useMemo(() => allPhrases.filter(p => p && !p.isMastered), [allPhrases]);
@@ -752,6 +774,7 @@ const App: React.FC = () => {
              onOpenSentenceChain={handleOpenSentenceChain}
              onOpenImprovePhrase={handleOpenImproveModal}
              onOpenPhraseBuilder={handleOpenPhraseBuilder}
+             onOpenLearningAssistant={handleOpenLearningAssistant}
              onDeletePhrase={handleDeletePhrase}
              onGoToList={handleGoToListFromPractice}
              onOpenDiscussTranslation={handleOpenDiscussModal}
@@ -888,6 +911,13 @@ const App: React.FC = () => {
             onFailure={handlePhraseBuilderFailure}
             onNextPhrase={handleRequestNextPhraseInBuilder}
        />
+       {learningAssistantPhrase && <LearningAssistantModal
+            isOpen={isLearningAssistantModalOpen}
+            onClose={() => setIsLearningAssistantModalOpen(false)}
+            phrase={learningAssistantPhrase}
+            onGuide={handleGuideToTranslation}
+            onSuccess={handleLearningAssistantSuccess}
+       />}
        {phraseToDiscuss && apiProvider && <DiscussTranslationModal
             isOpen={isDiscussModalOpen}
             onClose={() => setIsDiscussModalOpen(false)}

@@ -288,6 +288,16 @@ const continueChat: AiService['continueChat'] = async (phrase, history, newMessa
     };
 };
 
+const guideToTranslation: AiService['guideToTranslation'] = async (phrase, history, userAnswer) => {
+    console.warn("guideToTranslation is not implemented for DeepSeek yet.");
+    return Promise.resolve({
+        role: 'model',
+        contentParts: [{ type: 'text', text: 'This feature is currently better supported by the Gemini provider.' }],
+        isCorrect: false,
+        promptSuggestions: [],
+    });
+};
+
 const discussTranslation: AiService['discussTranslation'] = async (request) => {
     // This is a complex prompt logic that would need careful adaptation for DeepSeek.
     // For now, returning a placeholder.
@@ -692,6 +702,7 @@ export const deepseekService: AiService = {
     improvePhrase,
     generateInitialExamples,
     continueChat,
+    guideToTranslation,
     discussTranslation,
     generateDeepDiveAnalysis,
     generateMovieExamples,

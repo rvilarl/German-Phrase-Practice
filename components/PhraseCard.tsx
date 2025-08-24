@@ -9,6 +9,7 @@ import WandIcon from './icons/WandIcon';
 import BlocksIcon from './icons/BlocksIcon';
 import MicrophoneIcon from './icons/MicrophoneIcon';
 import Spinner from './Spinner';
+import BookOpenIcon from './icons/BookOpenIcon';
 
 interface PhraseCardProps {
   phrase: Phrase;
@@ -24,6 +25,7 @@ interface PhraseCardProps {
   onOpenPhraseBuilder: (phrase: Phrase) => void;
   onOpenContextMenu: (phrase: Phrase) => void;
   onOpenVoicePractice: (phrase: Phrase) => void;
+  onOpenLearningAssistant: (phrase: Phrase) => void;
   practiceState: 'idle' | 'listening' | 'checking' | 'correct' | 'incorrect';
   liveTranscript: string | null;
 }
@@ -32,7 +34,7 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
   phrase, onSpeak, isFlipped, onFlip, onOpenChat,
   onOpenDeepDive, onOpenMovieExamples, onWordClick, onOpenSentenceChain,
   onOpenImprovePhrase, onOpenPhraseBuilder, onOpenContextMenu, onOpenVoicePractice,
-  practiceState, liveTranscript
+  onOpenLearningAssistant, practiceState, liveTranscript
 }) => {
 
   const longPressTimer = useRef<number | null>(null);
@@ -83,6 +85,11 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
   const handleOpenVoicePractice = (e: React.MouseEvent) => {
     e.stopPropagation();
     onOpenVoicePractice(phrase);
+  };
+  
+  const handleOpenLearningAssistant = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onOpenLearningAssistant(phrase);
   };
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -136,13 +143,20 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
                 </div>
             </div>
             
-            <div className="w-full flex justify-center items-center gap-x-4 pt-4">
+            <div className="w-full flex justify-center items-center gap-x-3 pt-4">
                <button
                    onClick={handleOpenPhraseBuilder}
                    className="p-3 rounded-full bg-slate-600/50 hover:bg-slate-600 transition-colors text-slate-100"
                    aria-label="Конструктор фраз"
                >
                    <BlocksIcon className="w-5 h-5" />
+               </button>
+                <button
+                   onClick={handleOpenLearningAssistant}
+                   className="p-3 rounded-full bg-slate-600/50 hover:bg-slate-600 transition-colors text-slate-100"
+                   aria-label="Изучать с AI"
+               >
+                   <BookOpenIcon className="w-5 h-5" />
                </button>
                 <button
                    onClick={handleOpenVoicePractice}

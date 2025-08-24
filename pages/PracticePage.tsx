@@ -78,6 +78,7 @@ interface PracticePageProps {
   onOpenSentenceChain: (phrase: Phrase) => void;
   onOpenImprovePhrase: (phrase: Phrase) => void;
   onOpenPhraseBuilder: (phrase: Phrase) => void;
+  onOpenLearningAssistant: (phrase: Phrase) => void;
   onDeletePhrase: (phraseId: string) => void;
   onGoToList: (phrase: Phrase) => void;
   onOpenDiscussTranslation: (phrase: Phrase) => void;
@@ -91,7 +92,7 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
     fetchNewPhrases, isLoading, error, isGenerating, apiProviderAvailable,
     onUpdateMastery, onContinue, onSwipeLeft, onSwipeRight,
     onOpenChat, onOpenDeepDive, onOpenMovieExamples, onOpenWordAnalysis,
-    onOpenSentenceChain, onOpenImprovePhrase, onOpenPhraseBuilder,
+    onOpenSentenceChain, onOpenImprovePhrase, onOpenPhraseBuilder, onOpenLearningAssistant,
     onDeletePhrase, onGoToList, onOpenDiscussTranslation,
     onEvaluatePhraseAttempt, onEvaluateSpokenPhraseAttempt
   } = props;
@@ -312,6 +313,7 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
                       onOpenPhraseBuilder={onOpenPhraseBuilder}
                       onOpenContextMenu={setContextMenuPhrase}
                       onOpenVoicePractice={handleOpenVoicePractice}
+                      onOpenLearningAssistant={onOpenLearningAssistant}
                       practiceState={practiceState}
                       liveTranscript={liveTranscript}
                     />

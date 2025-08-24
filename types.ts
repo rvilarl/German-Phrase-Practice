@@ -90,6 +90,8 @@ export interface ChatMessage {
   suggestions?: ProactiveSuggestion[];
   contentParts?: ContentPart[];
   promptSuggestions?: string[];
+  isCorrect?: boolean;
+  wordOptions?: string[];
 }
 
 export interface DeepDiveAnalysis {

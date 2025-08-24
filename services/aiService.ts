@@ -8,6 +8,7 @@ export interface AiService {
   improvePhrase(originalRussian: string, currentGerman: string): Promise<{ suggestedGerman: string; explanation: string }>;
   generateInitialExamples(phrase: Phrase): Promise<ChatMessage>;
   continueChat(phrase: Phrase, history: ChatMessage[], newMessage: string): Promise<ChatMessage>;
+  guideToTranslation(phrase: Phrase, history: ChatMessage[], userAnswer: string): Promise<ChatMessage>;
   discussTranslation(request: TranslationChatRequest): Promise<TranslationChatResponse>;
   generateDeepDiveAnalysis(phrase: Phrase): Promise<DeepDiveAnalysis>;
   generateMovieExamples(phrase: Phrase): Promise<MovieExample[]>;

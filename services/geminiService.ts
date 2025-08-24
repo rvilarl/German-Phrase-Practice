@@ -424,6 +424,89 @@ const continueChat: AiService['continueChat'] = async (phrase, history, newMessa
     }
 };
 
+const learningAssistantResponseSchema = {
+    type: Type.OBJECT,
+    properties: {
+        ...chatResponseSchema.properties,
+        isCorrect: {
+            type: Type.BOOLEAN,
+            description: "Set to true ONLY if the user's answer is a correct and complete translation of the target phrase."
+        },
+        wordOptions: {
+            type: Type.ARRAY,
+            description: "A list of 7-10 shuffled word choices (correct words and distractors) to help the user construct their next response. Should be an empty array if isCorrect is true.",
+            items: {
+                type: Type.STRING
+            }
+        }
+    },
+    required: ["responseParts", "isCorrect", "promptSuggestions", "wordOptions"]
+};
+
+const guideToTranslation: AiService['guideToTranslation'] = async (phrase, history, userAnswer) => {
+    const api = initializeApi();
+    if (!api) throw new Error("Gemini API key not configured.");
+    
+    const formattedHistory = history.map(msg => {
+        const role = msg.role === 'user' ? 'user' : 'model';
+        const text = msg.contentParts ? msg.contentParts.map(p => p.text).join('') : (msg.text || '');
+        return { role, parts: [{ text }] };
+    });
+
+    const systemInstruction = `Ты — дружелюбный и терпеливый преподаватель немецкого языка. Твоя задача — помочь пользователю пошагово собрать правильный перевод русской фразы из предложенных слов.
+Исходная фраза: "${phrase.russian}"
+Правильный немецкий перевод: "${phrase.german}"
+
+Твои правила:
+1.  **НИКОГДА** не называй правильный ответ напрямую.
+2.  **Пошаговый процесс**:
+    - Проанализируй историю чата, чтобы понять, какую часть фразы пользователь уже собрал.
+    - В своей подсказке на русском, направь пользователя к следующему слову или блоку.
+    - В поле 'wordOptions' предоставь набор слов для **следующего шага**.
+3.  **Генерация 'wordOptions'**:
+    - Включи в набор следующее правильное слово/слова из немецкого перевода.
+    - Добавь 4-6 отвлекающих, но правдоподобных слов (неправильные артикли, похожие слова, неверные формы).
+    - Перемешай все слова.
+4.  **Анализ ответа пользователя**:
+    - Если пользователь выбрал правильное слово для текущего шага, похвали его и переходи к следующему шагу (с новой подсказкой и новыми 'wordOptions').
+    - Если пользователь выбрал неправильное слово, мягко поправь, дай более явную подсказку для **текущего шага** и предложи тот же или немного измененный набор 'wordOptions'.
+5.  **Завершение**:
+    - Когда пользователь успешно соберет всю фразу, установи 'isCorrect: true', поздравь его, и верни пустой массив в 'wordOptions'.
+6.  **Вспомогательные команды**: Если пользователь пишет "не знаю" или просит подсказку, дай ему более явную подсказку для текущего шага. Предлагай такие варианты в 'promptSuggestions'.
+7.  Всегда отвечай на русском. Используй JSON-формат с полями 'responseParts', 'isCorrect', 'promptSuggestions', 'wordOptions'.`;
+    
+    const userMessage = userAnswer || "(Начало сессии, дай первую подсказку)";
+
+    try {
+        const response = await api.models.generateContent({
+            model: model,
+            contents: [...formattedHistory, { role: 'user', parts: [{ text: userMessage }] }],
+            config: {
+                systemInstruction,
+                responseMimeType: "application/json",
+                responseSchema: learningAssistantResponseSchema,
+                temperature: 0.6,
+            },
+        });
+
+        const jsonText = response.text.trim();
+        const parsedResponse = JSON.parse(jsonText);
+        
+        return {
+            role: 'model',
+            contentParts: parsedResponse.responseParts || [{ type: 'text', text: 'Произошла ошибка.' }],
+            isCorrect: parsedResponse.isCorrect || false,
+            promptSuggestions: parsedResponse.promptSuggestions || [],
+            wordOptions: parsedResponse.wordOptions || [],
+        };
+
+    } catch (error) {
+        console.error("Error in guideToTranslation with Gemini:", error);
+        const errorMessage = (error as any)?.message || 'Unknown error';
+        throw new Error(`Failed to call the Gemini API: ${errorMessage}`);
+    }
+};
+
 const translationChatResponseSchema = {
     type: Type.OBJECT,
     properties: {
@@ -1070,6 +1153,7 @@ export const geminiService: AiService = {
     improvePhrase,
     generateInitialExamples,
     continueChat,
+    guideToTranslation,
     discussTranslation,
     generateDeepDiveAnalysis,
     generateMovieExamples,
