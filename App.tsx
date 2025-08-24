@@ -57,7 +57,7 @@ const App: React.FC = () => {
   const [chatContextPhrase, setChatContextPhrase] = useState<Phrase | null>(null);
   
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
-  const [settings, setSettings] = useState({ autoSpeak: true });
+  const [settings, setSettings] = useState({ autoSpeak: true, soundEffects: true });
 
   const [isDeepDiveModalOpen, setIsDeepDiveModalOpen] = useState(false);
   const [deepDivePhrase, setDeepDivePhrase] = useState<Phrase | null>(null);
@@ -154,7 +154,11 @@ const App: React.FC = () => {
 
         try {
             const storedSettings = localStorage.getItem(SETTINGS_STORAGE_KEY);
-            if (storedSettings) setSettings(JSON.parse(storedSettings));
+            if (storedSettings) {
+                const parsedSettings = JSON.parse(storedSettings);
+                // Merge with defaults to ensure new settings are applied
+                setSettings(prev => ({ ...prev, ...parsedSettings }));
+            }
         } catch (e) { console.error("Failed to load settings", e); }
 
         let loadedPhrases: Phrase[] = [];
@@ -506,20 +510,20 @@ const App: React.FC = () => {
   }, [callApiWithFallback]);
 
   const handlePhraseBuilderSuccess = useCallback((phrase: Phrase) => {
-    playCorrectSound();
+    if (settings.soundEffects) playCorrectSound();
     const updatedPhrase = srsService.updatePhraseMastery(phrase, 'know');
     updateAndSavePhrases(prev =>
       prev.map(p => (p.id === phrase.id ? updatedPhrase : p))
     );
-  }, [updateAndSavePhrases]);
+  }, [updateAndSavePhrases, settings.soundEffects]);
 
   const handlePhraseBuilderFailure = useCallback((phrase: Phrase) => {
-    playIncorrectSound();
+    if (settings.soundEffects) playIncorrectSound();
      const updatedPhrase = srsService.updatePhraseMastery(phrase, 'forgot');
     updateAndSavePhrases(prev =>
       prev.map(p => (p.id === phrase.id ? updatedPhrase : p))
     );
-  }, [updateAndSavePhrases]);
+  }, [updateAndSavePhrases, settings.soundEffects]);
 
 
   const handleGenerateContinuations = useCallback((russianPhrase: string) => callApiWithFallback(provider => provider.generateSentenceContinuations(russianPhrase)),[callApiWithFallback]);
@@ -630,7 +634,7 @@ const App: React.FC = () => {
   };
   
   const handleLearningAssistantSuccess = useCallback((phrase: Phrase) => {
-    playCorrectSound();
+    if (settings.soundEffects) playCorrectSound();
     const updatedPhrase = srsService.updatePhraseMastery(phrase, 'know');
     updateAndSavePhrases(prev =>
       prev.map(p => (p.id === phrase.id ? updatedPhrase : p))
@@ -638,7 +642,7 @@ const App: React.FC = () => {
     if (currentPracticePhrase?.id === phrase.id) {
       setCurrentPracticePhrase(updatedPhrase);
     }
-  }, [updateAndSavePhrases, currentPracticePhrase]);
+  }, [updateAndSavePhrases, currentPracticePhrase, settings.soundEffects]);
   
   // --- Practice Page Logic ---
   const unmasteredPhrases = useMemo(() => allPhrases.filter(p => p && !p.isMastered), [allPhrases]);
@@ -702,10 +706,10 @@ const App: React.FC = () => {
     setCurrentPracticePhrase(updatedPhrase);
 
     if (action === 'know') {
-        playCorrectSound();
+        if (settings.soundEffects) playCorrectSound();
         transitionToNext();
     } else {
-        playIncorrectSound();
+        if (settings.soundEffects) playIncorrectSound();
         setIsPracticeAnswerRevealed(true);
         if (settings.autoSpeak && 'speechSynthesis' in window) {
             const utterance = new SpeechSynthesisUtterance(phraseToSpeak);

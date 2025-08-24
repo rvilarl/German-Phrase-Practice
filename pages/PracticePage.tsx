@@ -65,7 +65,7 @@ interface PracticePageProps {
   isLoading: boolean;
   error: string | null;
   isGenerating: boolean;
-  settings: { autoSpeak: boolean };
+  settings: { autoSpeak: boolean; soundEffects: boolean; };
   apiProviderAvailable: boolean;
   onUpdateMastery: (action: 'know' | 'forgot' | 'dont_know') => void;
   onContinue: () => void;
@@ -94,7 +94,8 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
     onOpenChat, onOpenDeepDive, onOpenMovieExamples, onOpenWordAnalysis,
     onOpenSentenceChain, onOpenImprovePhrase, onOpenPhraseBuilder, onOpenLearningAssistant,
     onDeletePhrase, onGoToList, onOpenDiscussTranslation,
-    onEvaluatePhraseAttempt, onEvaluateSpokenPhraseAttempt
+    onEvaluatePhraseAttempt, onEvaluateSpokenPhraseAttempt,
+    settings
   } = props;
 
   const [contextMenuPhrase, setContextMenuPhrase] = React.useState<Phrase | null>(null);
@@ -152,7 +153,7 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
         }, 300);
     } else {
         // FAILURE PATH
-        playIncorrectSound();
+        if (settings.soundEffects) playIncorrectSound();
         if (voiceAttemptCount < 1) { // First failed attempt
             setVoiceAttemptCount(prev => prev + 1);
             setLiveTranscript('Попробуйте еще раз...');
@@ -181,7 +182,7 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
             }
         }
     }
-  }, [currentPhrase, onEvaluateSpokenPhraseAttempt, onUpdateMastery, voiceAttemptCount]);
+  }, [currentPhrase, onEvaluateSpokenPhraseAttempt, onUpdateMastery, voiceAttemptCount, settings.soundEffects]);
 
   useEffect(() => {
     const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;

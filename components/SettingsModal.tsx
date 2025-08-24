@@ -6,15 +6,20 @@ interface SettingsModalProps {
   onClose: () => void;
   settings: {
     autoSpeak: boolean;
+    soundEffects: boolean;
   };
-  onSettingsChange: (newSettings: { autoSpeak: boolean }) => void;
+  onSettingsChange: (newSettings: Partial<SettingsModalProps['settings']>) => void;
 }
 
 const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings, onSettingsChange }) => {
   if (!isOpen) return null;
 
   const handleAutoSpeakChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onSettingsChange({ ...settings, autoSpeak: e.target.checked });
+    onSettingsChange({ autoSpeak: e.target.checked });
+  };
+  
+  const handleSoundEffectsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    onSettingsChange({ soundEffects: e.target.checked });
   };
 
   return (
@@ -32,7 +37,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
             <CloseIcon className="w-6 h-6 text-slate-400" />
           </button>
         </header>
-        <div className="p-6">
+        <div className="p-6 space-y-4">
             <div className="flex items-center justify-between">
                 <label htmlFor="auto-speak" className="text-slate-200">
                     Авто-озвучка при обороте карты
@@ -44,6 +49,21 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                         className="sr-only peer"
                         checked={settings.autoSpeak}
                         onChange={handleAutoSpeakChange}
+                    />
+                    <div className="w-11 h-6 bg-slate-600 rounded-full peer peer-focus:ring-2 peer-focus:ring-purple-500 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                </label>
+            </div>
+            <div className="flex items-center justify-between">
+                <label htmlFor="sound-effects" className="text-slate-200">
+                    Звуковые эффекты
+                </label>
+                <label className="relative inline-flex items-center cursor-pointer">
+                    <input 
+                        type="checkbox"
+                        id="sound-effects"
+                        className="sr-only peer"
+                        checked={settings.soundEffects}
+                        onChange={handleSoundEffectsChange}
                     />
                     <div className="w-11 h-6 bg-slate-600 rounded-full peer peer-focus:ring-2 peer-focus:ring-purple-500 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
                 </label>
