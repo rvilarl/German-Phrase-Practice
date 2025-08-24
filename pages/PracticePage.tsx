@@ -104,6 +104,7 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
   const [liveTranscript, setLiveTranscript] = useState<string | null>(null);
   const [evaluationResult, setEvaluationResult] = useState<PhraseEvaluation | null>(null);
   const [isResultModalOpen, setIsResultModalOpen] = useState(false);
+  const [voiceAttemptCount, setVoiceAttemptCount] = useState(0);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
 
   const speak = useCallback((text: string) => {
@@ -122,6 +123,7 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
     setLiveTranscript(null);
     setEvaluationResult(null);
     setIsResultModalOpen(false);
+    setVoiceAttemptCount(0);
   }, [currentPhrase?.id]);
 
   const handleContinueFromVoiceFailure = () => {
@@ -148,23 +150,37 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
             onUpdateMastery('know'); // This updates SRS and triggers transition
         }, 300);
     } else {
-        // FAILURE PATH (CALL AI FOR FEEDBACK)
+        // FAILURE PATH
         playIncorrectSound();
-        setPracticeState('checking');
-        try {
-            const result = await onEvaluateSpokenPhraseAttempt(currentPhrase, spokenText);
-            setEvaluationResult(result);
-            setPracticeState('incorrect');
-            setIsResultModalOpen(true);
-        } catch (err) {
-            console.error("Evaluation error:", err);
-            const errorFeedback = err instanceof Error ? err.message : 'Произошла ошибка при проверке.';
-            setEvaluationResult({ isCorrect: false, feedback: errorFeedback });
-            setPracticeState('incorrect');
-            setIsResultModalOpen(true);
+        if (voiceAttemptCount < 1) { // First failed attempt
+            setVoiceAttemptCount(prev => prev + 1);
+            setLiveTranscript('Попробуйте еще раз...');
+            setTimeout(() => {
+                setPracticeState('listening');
+                try {
+                    recognitionRef.current?.start();
+                } catch (e) {
+                    console.error("Could not restart recognition for second attempt:", e);
+                    setPracticeState('idle'); // Fallback
+                }
+            }, 1200);
+        } else { // Second failed attempt
+            setPracticeState('checking');
+            try {
+                const result = await onEvaluateSpokenPhraseAttempt(currentPhrase, spokenText);
+                setEvaluationResult(result);
+                setPracticeState('incorrect');
+                setIsResultModalOpen(true);
+            } catch (err) {
+                console.error("Evaluation error:", err);
+                const errorFeedback = err instanceof Error ? err.message : 'Произошла ошибка при проверке.';
+                setEvaluationResult({ isCorrect: false, feedback: errorFeedback });
+                setPracticeState('incorrect');
+                setIsResultModalOpen(true);
+            }
         }
     }
-  }, [currentPhrase, onEvaluateSpokenPhraseAttempt, onUpdateMastery, props.updateAndSavePhrases, onContinue]);
+  }, [currentPhrase, onEvaluateSpokenPhraseAttempt, onUpdateMastery, voiceAttemptCount]);
 
   useEffect(() => {
     const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -209,6 +225,7 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
     // Reset state for the new attempt and provide immediate visual feedback
     setLiveTranscript('');
     setEvaluationResult(null);
+    setVoiceAttemptCount(0);
     setPracticeState('listening');
 
     try {
