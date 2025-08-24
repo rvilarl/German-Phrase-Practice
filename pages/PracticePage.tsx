@@ -7,6 +7,7 @@ import TrashIcon from '../components/icons/TrashIcon';
 import MessageQuestionIcon from '../components/icons/MessageQuestionIcon';
 import * as srsService from '../services/srsService';
 import PracticeResultModal from '../components/PracticeResultModal';
+import { playIncorrectSound } from '../services/soundService';
 
 
 const SWIPE_THRESHOLD = 50; // pixels
@@ -148,6 +149,7 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
         }, 300);
     } else {
         // FAILURE PATH (CALL AI FOR FEEDBACK)
+        playIncorrectSound();
         setPracticeState('checking');
         try {
             const result = await onEvaluateSpokenPhraseAttempt(currentPhrase, spokenText);

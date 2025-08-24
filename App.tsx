@@ -5,6 +5,7 @@ import * as cacheService from './services/cacheService';
 import { getProviderPriorityList, getFallbackProvider, ApiProviderType } from './services/apiProvider';
 import { AiService } from './services/aiService';
 import { initialPhrases as defaultPhrases } from './data/initialPhrases';
+import { playCorrectSound, playIncorrectSound } from './services/soundService';
 
 import Header from './components/Header';
 import PracticePage from './pages/PracticePage';
@@ -501,6 +502,7 @@ const App: React.FC = () => {
   }, [callApiWithFallback]);
 
   const handlePhraseBuilderSuccess = useCallback((phrase: Phrase) => {
+    playCorrectSound();
     const updatedPhrase = srsService.updatePhraseMastery(phrase, 'know');
     updateAndSavePhrases(prev =>
       prev.map(p => (p.id === phrase.id ? updatedPhrase : p))
@@ -508,6 +510,7 @@ const App: React.FC = () => {
   }, [updateAndSavePhrases]);
 
   const handlePhraseBuilderFailure = useCallback((phrase: Phrase) => {
+    playIncorrectSound();
      const updatedPhrase = srsService.updatePhraseMastery(phrase, 'forgot');
     updateAndSavePhrases(prev =>
       prev.map(p => (p.id === phrase.id ? updatedPhrase : p))
@@ -677,8 +680,10 @@ const App: React.FC = () => {
     setCurrentPracticePhrase(updatedPhrase);
 
     if (action === 'know') {
+        playCorrectSound();
         transitionToNext();
     } else {
+        playIncorrectSound();
         setIsPracticeAnswerRevealed(true);
         if (settings.autoSpeak && 'speechSynthesis' in window) {
             const utterance = new SpeechSynthesisUtterance(phraseToSpeak);
