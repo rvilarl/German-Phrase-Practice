@@ -206,14 +206,22 @@ const PhraseBuilderModal: React.FC<PhraseBuilderModalProps> = ({
                   )}
                 </div>
               </div>
-              {/* Continue Button */}
-              <button
-                onClick={onNextPhrase}
-                className="w-full sm:w-auto flex-shrink-0 px-6 py-3 rounded-lg bg-purple-600 hover:bg-purple-700 transition-colors font-semibold text-white shadow-md flex items-center justify-center"
-              >
-                <span>Продолжить</span>
-                <ArrowRightIcon className="w-5 h-5 ml-2" />
-              </button>
+              {/* Action Buttons */}
+              <div className="w-full sm:w-auto flex-shrink-0 flex items-center justify-center gap-3">
+                 <button
+                    onClick={onClose}
+                    className="flex-1 sm:flex-none px-6 py-3 rounded-lg bg-slate-600 hover:bg-slate-700 transition-colors font-semibold text-white shadow-md text-center"
+                  >
+                    Закрыть
+                  </button>
+                  <button
+                    onClick={onNextPhrase}
+                    className="flex-1 sm:flex-none px-6 py-3 rounded-lg bg-purple-600 hover:bg-purple-700 transition-colors font-semibold text-white shadow-md flex items-center justify-center"
+                  >
+                    <span>Продолжить</span>
+                    <ArrowRightIcon className="w-5 h-5 ml-2" />
+                  </button>
+              </div>
             </div>
           )}
         </div>
