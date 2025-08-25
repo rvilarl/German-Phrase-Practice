@@ -1,5 +1,7 @@
 
 
+
+
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Phrase, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, SentenceContinuation, PhraseBuilderOptions, PhraseEvaluation, ChatMessage } from './types';
 import * as srsService from './services/srsService';
@@ -45,6 +47,12 @@ interface AnimationState {
   key: string;
   direction: AnimationDirection;
 }
+type ToastType = 'default' | 'automationSuccess';
+interface ToastState {
+  message: string;
+  id: number;
+  type: ToastType;
+}
 
 const defaultSettings = {
   autoSpeak: true,
@@ -86,7 +94,7 @@ const App: React.FC = () => {
   const [masteryButtonUsage, setMasteryButtonUsage] = useState({ know: 0, forgot: 0, dont_know: 0 });
   const [habitTracker, setHabitTracker] = useState(defaultHabitTracker);
   
-  const [toast, setToast] = useState<{ message: string, id: number } | null>(null);
+  const [toast, setToast] = useState<ToastState | null>(null);
 
   const [isDeepDiveModalOpen, setIsDeepDiveModalOpen] = useState(false);
   const [deepDivePhrase, setDeepDivePhrase] = useState<Phrase | null>(null);
@@ -311,8 +319,8 @@ const App: React.FC = () => {
     });
   }, []);
 
-  const showToast = useCallback((message: string) => {
-    setToast({ message, id: Date.now() });
+  const showToast = useCallback((config: { message: string; type?: ToastType }) => {
+    setToast({ message: config.message, type: config.type || 'default', id: Date.now() });
   }, []);
 
   const handleLogButtonUsage = useCallback((button: 'close' | 'continue' | 'next') => {
@@ -827,27 +835,29 @@ const App: React.FC = () => {
     const updatedPhrase = srsService.updatePhraseMastery(currentPracticePhrase, action);
     
     updateAndSavePhrases(prev => prev.map(p => p.id === updatedPhrase.id ? updatedPhrase : p));
-    setCurrentPracticePhrase(updatedPhrase);
     
-    // When auto-advancing, we don't reveal the card. The transition is handled by the caller.
+    // Always show the flipped card if not auto-advancing, even for 'know'.
     if (action === 'know' && options?.autoAdvance) {
-        if (settings.soundEffects) playCorrectSound();
+      if (settings.soundEffects) playCorrectSound();
+      setCurrentPracticePhrase(updatedPhrase);
     } else {
-        setIsPracticeAnswerRevealed(true);
+      setIsPracticeAnswerRevealed(true);
+      setCurrentPracticePhrase(updatedPhrase); // Update the card state before showing it flipped
 
-        if (action === 'know') {
-            if (settings.soundEffects) playCorrectSound();
-        } else {
-            if (settings.soundEffects) playIncorrectSound();
-            if (settings.autoSpeak && 'speechSynthesis' in window) {
-                const utterance = new SpeechSynthesisUtterance(phraseToSpeak);
-                utterance.lang = 'de-DE';
-                utterance.rate = 0.9;
-                window.speechSynthesis.speak(utterance);
-            }
-        }
+      if (action === 'know') {
+          if (settings.soundEffects) playCorrectSound();
+      } else {
+          if (settings.soundEffects) playIncorrectSound();
+          if (settings.autoSpeak && 'speechSynthesis' in window) {
+              const utterance = new SpeechSynthesisUtterance(phraseToSpeak);
+              utterance.lang = 'de-DE';
+              utterance.rate = 0.9;
+              window.speechSynthesis.speak(utterance);
+          }
+      }
     }
   };
+
 
   const handlePracticeSwipeRight = () => {
     if (practiceIsExitingRef.current || cardHistory.length === 0) return;

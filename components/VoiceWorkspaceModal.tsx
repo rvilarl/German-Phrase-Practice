@@ -31,7 +31,7 @@ interface VoiceWorkspaceModalProps {
   onLogButtonUsage: (button: 'close' | 'continue' | 'next') => void;
   habitTracker: { quickNextCount: number, quickBuilderNextCount?: number };
   onHabitTrackerChange: (updater: React.SetStateAction<{ quickNextCount: number, quickBuilderNextCount?: number }>) => void;
-  showToast: (message: string) => void;
+  showToast: (config: { message: string; type?: 'default' | 'automationSuccess' }) => void;
 }
 
 interface Word {
@@ -193,6 +193,16 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
     if (thinkTimerRef.current) clearTimeout(thinkTimerRef.current);
 
     const isCorrectLocally = normalizeString(userAttempt) === normalizeString(phrase.german);
+    const habitLearned = (habitTracker.quickBuilderNextCount || 0) >= 5;
+    const shouldAutoAdvance = isCorrectLocally && settings.automation.learnNextPhraseHabit && habitLearned && !hasUserPausedInSession;
+    
+    if (shouldAutoAdvance) {
+        onSuccess(phrase);
+        setSuccessTimestamp(Date.now()); // For next habit check
+        onPracticeNext();
+        showToast({ message: 'Следующая фраза', type: 'automationSuccess' });
+        return; 
+    }
 
     if (isCorrectLocally) {
       setEvaluation({ isCorrect: true, feedback: 'Отлично! Всё верно.' });
@@ -218,8 +228,12 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
       try {
         const result = await onEvaluate(phrase, userAttempt);
         setEvaluation(result);
-        onFailure(phrase);
-        if(result.isCorrect) setSuccessTimestamp(Date.now());
+        if(result.isCorrect) {
+          onSuccess(phrase);
+          setSuccessTimestamp(Date.now());
+        } else {
+          onFailure(phrase);
+        }
       } catch (err) {
         setEvaluation({ isCorrect: false, feedback: err instanceof Error ? err.message : 'Ошибка проверки.' });
         onFailure(phrase);
@@ -227,7 +241,7 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
         setIsChecking(false);
       }
     }
-  }, [phrase, constructedWords, onSuccess, attemptNumber, availableWords, resetAttempt, onEvaluate, onFailure]);
+  }, [phrase, constructedWords, onSuccess, onFailure, onEvaluate, attemptNumber, availableWords.length, resetAttempt, habitTracker.quickBuilderNextCount, settings.automation.learnNextPhraseHabit, hasUserPausedInSession, onPracticeNext, showToast]);
 
   // Effect for intelligent auto-checking
   useEffect(() => {
@@ -417,21 +431,6 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
     // Default fixed order
     return [buttonData[0], buttonData[1], buttonData[2]];
   }, [settings.dynamicButtonLayout, buttonUsage, handleActionButtonClick, onClose, onNextPhrase, onPracticeNext]);
-  
-  const habitLearned = (habitTracker.quickBuilderNextCount || 0) >= 5;
-  const shouldAutoAdvance = evaluation?.isCorrect && settings.automation.learnNextPhraseHabit && habitLearned && !hasUserPausedInSession;
-  
-  useEffect(() => {
-      let timer: number;
-      if (shouldAutoAdvance) {
-          timer = window.setTimeout(() => {
-              showToast('Следующая фраза');
-              onPracticeNext();
-          }, 1000);
-      }
-      return () => clearTimeout(timer);
-  }, [shouldAutoAdvance, onPracticeNext, showToast]);
-
 
   if (!isOpen || !phrase) return null;
   
@@ -540,35 +539,27 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
               
               <div className={`absolute bottom-0 left-0 right-0 p-6 pt-4 bg-slate-800 border-t border-slate-700/50 shadow-[0_-10px_20px_-5px_rgba(0,0,0,0.2)] transition-transform duration-300 ease-out ${evaluation ? 'translate-y-0' : 'translate-y-full'}`}>
                 {evaluation && (
-                    shouldAutoAdvance ? (
-                         <div className="flex justify-center w-full">
-                            <div className="w-full h-16 rounded-lg bg-green-600 flex items-center justify-center animate-fade-in">
-                                <CheckIcon className="w-8 h-8 text-white" />
-                            </div>
-                        </div>
-                    ) : (
-                      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                        <div className={`flex-grow w-full sm:w-auto p-3 rounded-lg ${evaluation.isCorrect ? 'bg-green-500/20' : 'bg-red-500/20'} flex items-start space-x-3`}>
-                          <div className="flex-shrink-0 mt-0.5">{evaluation.isCorrect ? <CheckIcon className="w-5 h-5 text-green-400" /> : <XCircleIcon className="w-5 h-5 text-red-400" />}</div>
-                          <div>
-                            <p className="text-slate-200 text-sm">{evaluation.feedback}</p>
-                            {evaluation.correctedPhrase && <div className="mt-2 flex items-center gap-x-2 text-sm bg-slate-800/50 p-1.5 rounded-md"><AudioPlayer textToSpeak={evaluation.correctedPhrase} /><p className="text-slate-300"><strong className="font-semibold text-slate-100">{evaluation.correctedPhrase}</strong></p></div>}
-                          </div>
-                        </div>
-                        <div className="w-full sm:w-auto flex-shrink-0 flex items-center justify-center gap-3">
-                            {buttons.map(button => (
-                               <button
-                                    key={button.key}
-                                    onClick={button.action}
-                                    className={`flex-1 p-3.5 rounded-lg transition-colors text-white shadow-md flex justify-center ${button.className}`}
-                                    aria-label={button.label}
-                               >
-                                 {button.icon}
-                               </button>
-                            ))}
-                        </div>
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div className={`flex-grow w-full sm:w-auto p-3 rounded-lg ${evaluation.isCorrect ? 'bg-green-500/20' : 'bg-red-500/20'} flex items-start space-x-3`}>
+                      <div className="flex-shrink-0 mt-0.5">{evaluation.isCorrect ? <CheckIcon className="w-5 h-5 text-green-400" /> : <XCircleIcon className="w-5 h-5 text-red-400" />}</div>
+                      <div>
+                        <p className="text-slate-200 text-sm">{evaluation.feedback}</p>
+                        {evaluation.correctedPhrase && <div className="mt-2 flex items-center gap-x-2 text-sm bg-slate-800/50 p-1.5 rounded-md"><AudioPlayer textToSpeak={evaluation.correctedPhrase} /><p className="text-slate-300"><strong className="font-semibold text-slate-100">{evaluation.correctedPhrase}</strong></p></div>}
                       </div>
-                    )
+                    </div>
+                    <div className="w-full sm:w-auto flex-shrink-0 flex items-center justify-center gap-3">
+                        {buttons.map(button => (
+                           <button
+                                key={button.key}
+                                onClick={button.action}
+                                className={`flex-1 p-3.5 rounded-lg transition-colors text-white shadow-md flex justify-center ${button.className}`}
+                                aria-label={button.label}
+                           >
+                             {button.icon}
+                           </button>
+                        ))}
+                    </div>
+                  </div>
                 )}
               </div>
           </div>
