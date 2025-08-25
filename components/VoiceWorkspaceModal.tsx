@@ -9,6 +9,7 @@ import AudioPlayer from './AudioPlayer';
 import BackspaceIcon from './icons/BackspaceIcon';
 import ArrowRightIcon from './icons/ArrowRightIcon';
 import * as cacheService from '../services/cacheService';
+import BookOpenIcon from './icons/BookOpenIcon';
 
 interface VoiceWorkspaceModalProps {
   isOpen: boolean;
@@ -32,6 +33,7 @@ interface VoiceWorkspaceModalProps {
   habitTracker: { quickNextCount: number, quickBuilderNextCount?: number };
   onHabitTrackerChange: (updater: React.SetStateAction<{ quickNextCount: number, quickBuilderNextCount?: number }>) => void;
   showToast: (config: { message: string; type?: 'default' | 'automationSuccess' }) => void;
+  onOpenLearningAssistant: (phrase: Phrase) => void;
 }
 
 interface Word {
@@ -61,7 +63,7 @@ const normalizeString = (str: string) => str.toLowerCase().replace(/[.,!?]/g, ''
 
 const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
   isOpen, onClose, phrase, onEvaluate, onSuccess, onFailure, onNextPhrase, onGeneratePhraseBuilderOptions, onPracticeNext,
-  settings, buttonUsage, onLogButtonUsage, habitTracker, onHabitTrackerChange, showToast
+  settings, buttonUsage, onLogButtonUsage, habitTracker, onHabitTrackerChange, showToast, onOpenLearningAssistant
 }) => {
   const [constructedWords, setConstructedWords] = useState<Word[]>([]);
   const [availableWords, setAvailableWords] = useState<AvailableWord[]>([]);
@@ -84,6 +86,13 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
   const [hasUserPausedInSession, setHasUserPausedInSession] = useState(false);
   const thinkTimerRef = useRef<number | null>(null);
   const interactionRef = useRef<HTMLDivElement>(null);
+
+  // Help State
+  const [isStuck, setIsStuck] = useState(false);
+  const [hintWordId, setHintWordId] = useState<string | null>(null);
+  const [hintCount, setHintCount] = useState(0);
+  const [showPostHintButtons, setShowPostHintButtons] = useState(false);
+  const inactivityTimerRef = useRef<number | null>(null);
   
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const constructedPhraseRef = useRef<HTMLDivElement>(null);
@@ -110,6 +119,12 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
     setSuccessTimestamp(null);
     setHasUserPausedInSession(false);
     if (thinkTimerRef.current) clearTimeout(thinkTimerRef.current);
+    // Help state reset
+    setIsStuck(false);
+    setHintWordId(null);
+    setHintCount(0);
+    setShowPostHintButtons(false);
+    if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current);
   }, []);
   
   const loadWordOptions = useCallback(async () => {
@@ -183,6 +198,47 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
         };
     }
   }, [isOpen, phrase, evaluation, constructedWords, availableWords, hasUserPausedInSession]); // dependencies updated
+
+  // Effect for inactivity and hinting
+  useEffect(() => {
+    if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current);
+
+    if (!isOpen || !phrase || isChecking || evaluation || isListening || isLoadingOptions) {
+      return;
+    }
+
+    const handleTimeout = () => {
+      const constructedPhrase = constructedWords.map(w => w.text).join(' ');
+      if (constructedWords.length === 0) {
+        setIsStuck(true);
+      } else {
+        const correctPrefix = phrase.german.startsWith(constructedPhrase + ' ');
+        if (correctPrefix && constructedWords.length >= 2) {
+          if (hintCount < 2) {
+            const nextWordIndex = constructedWords.length;
+            const germanWords = phrase.german.split(' ');
+            if (nextWordIndex < germanWords.length) {
+              const nextCorrectWord = germanWords[nextWordIndex];
+              const hintedWord = availableWords.find(aw => aw.text === nextCorrectWord);
+              if (hintedWord) {
+                setHintWordId(hintedWord.id);
+                setHintCount(prev => prev + 1);
+              }
+            }
+          } else { 
+            setShowPostHintButtons(true);
+          }
+        }
+      }
+    };
+
+    const delay = (constructedWords.length === 0) ? 3000 : 2000;
+    inactivityTimerRef.current = window.setTimeout(handleTimeout, delay);
+
+    return () => {
+      if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current);
+    };
+  }, [isOpen, phrase, isChecking, evaluation, isListening, isLoadingOptions, constructedWords, hintCount, availableWords]);
 
   const handleCheck = useCallback(async () => {
     if (!phrase) return;
@@ -315,31 +371,36 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
     }
     return () => recognitionRef.current?.abort();
   }, []);
+  
+  const handleUserInteraction = (callback: () => void) => {
+    setIsStuck(false);
+    setShowPostHintButtons(false);
+    setHintWordId(null);
+    callback();
+  };
 
-  const handleMicClick = () => {
+  const handleMicClick = () => handleUserInteraction(() => {
     if (isListening) {
       recognitionRef.current?.stop();
     } else {
       setSpeechError(null);
       recognitionRef.current?.start();
     }
-  };
+  });
   
-  const handleDeselectWord = (word: Word) => {
+  const handleDeselectWord = (word: Word) => handleUserInteraction(() => {
     setConstructedWords(prev => prev.filter(w => w.id !== word.id));
     const newAvailableWord: AvailableWord = { ...word, originalIndex: availableWords.length + constructedWords.findIndex(w => w.id === word.id) };
     setAvailableWords(prev => [...prev, newAvailableWord].sort((a,b) => a.originalIndex - b.originalIndex));
-  };
+  });
 
-  const handleReset = () => {
-    resetAttempt();
-  };
+  const handleReset = () => handleUserInteraction(resetAttempt);
   
-  const handleSelectWord = (word: AvailableWord) => {
+  const handleSelectWord = (word: AvailableWord) => handleUserInteraction(() => {
     if (!!evaluation) return;
     setConstructedWords(prev => [...prev, word]);
     setAvailableWords(prev => prev.filter(w => w.id !== word.id));
-  };
+  });
 
   const handleDragStart = (e: React.DragEvent<HTMLButtonElement>, word: Word, from: 'available' | 'constructed', index: number) => {
     setDraggedItem({ word, from, index });
@@ -369,7 +430,7 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
     setDropIndex(newIndex);
   };
   
-  const handleDrop = () => {
+  const handleDrop = () => handleUserInteraction(() => {
     if (!draggedItem || dropIndex === null) return;
     const { word, from, index } = draggedItem;
     let newConstructed = [...constructedWords];
@@ -378,7 +439,7 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
     setConstructedWords(newConstructed);
     if (from === 'available') setAvailableWords(prev => prev.filter(w => w.id !== word.id));
     setDraggedItem(null); setDropIndex(null); setGhostPosition(null);
-  };
+  });
   
   const handleDragEnd = () => {
     setDraggedItem(null); setDropIndex(null); setGhostPosition(null);
@@ -428,6 +489,24 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
     // Default fixed order
     return [buttonData[0], buttonData[1], buttonData[2]];
   }, [settings.dynamicButtonLayout, buttonUsage, handleActionButtonClick, onClose, onNextPhrase, onPracticeNext]);
+
+  const handleFailureAndReveal = useCallback(() => {
+    if (!phrase) return;
+    onFailure(phrase);
+    setEvaluation({
+      isCorrect: false,
+      feedback: 'Вот правильный ответ. Попробуйте в следующий раз!',
+      correctedPhrase: phrase.german,
+    });
+    setIsStuck(false);
+    setShowPostHintButtons(false);
+  }, [phrase, onFailure]);
+  
+  const handleLearn = useCallback(() => {
+    if (!phrase) return;
+    onOpenLearningAssistant(phrase);
+    onClose();
+  }, [phrase, onOpenLearningAssistant, onClose]);
 
   if (!isOpen || !phrase) return null;
   
@@ -489,7 +568,22 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
                   <button onClick={handleReset} disabled={isChecking || !!evaluation || constructedWords.length === 0} className="p-3 self-center rounded-full bg-slate-600/50 hover:bg-slate-600 disabled:opacity-30"><BackspaceIcon className="w-5 h-5 text-white" /></button>
               </div>
               
-              <div className="flex-grow my-4 min-h-0">
+              <div className="flex-grow my-4 min-h-0 flex flex-col justify-end">
+                  {(isStuck || showPostHintButtons) && (
+                    <div className="flex-shrink-0 flex justify-center items-center gap-x-4 mb-4 animate-fade-in">
+                      {isStuck &&
+                        <button onClick={handleFailureAndReveal} className="px-4 py-2 rounded-lg bg-yellow-600/80 hover:bg-yellow-600 transition-colors text-white font-medium">
+                          Не знаю
+                        </button>
+                      }
+                      <button onClick={handleFailureAndReveal} className="px-4 py-2 rounded-lg bg-red-600/80 hover:bg-red-600 transition-colors text-white font-medium">
+                        Забыл
+                      </button>
+                      <button onClick={handleLearn} className="px-4 py-2 rounded-lg bg-sky-600/80 hover:bg-sky-600 transition-colors text-white font-medium flex items-center gap-x-2">
+                        <BookOpenIcon className="w-5 h-5" /> Учить
+                      </button>
+                    </div>
+                  )}
                   <div className="w-full max-h-full bg-slate-900/50 flex flex-wrap items-end content-end justify-center gap-2 p-4 rounded-lg overflow-y-auto hide-scrollbar">
                       {isLoadingOptions ? (
                         <WordBankSkeleton />
@@ -504,7 +598,7 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
                               onDragStart={(e) => handleDragStart(e, word, 'available', index)}
                               onDragEnd={handleDragEnd}
                               disabled={!!evaluation} 
-                              className="px-3 py-1.5 bg-slate-600 text-slate-200 rounded-lg transition-all text-lg font-medium disabled:opacity-30 cursor-grab active:cursor-grabbing"
+                              className={`px-3 py-1.5 bg-slate-600 text-slate-200 rounded-lg transition-all text-lg font-medium disabled:opacity-30 cursor-grab active:cursor-grabbing ${word.id === hintWordId ? 'word-hint-glow-animation' : 'hover:bg-slate-500'}`}
                             >
                                 {word.text}
                             </button>

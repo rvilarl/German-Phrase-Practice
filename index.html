@@ -288,6 +288,23 @@
     animation: toast-shine-effect 1.5s ease-in-out;
     animation-delay: 0.1s;
   }
+
+  /* Word Hint Glow for Voice Workspace */
+  @keyframes word-hint-glow {
+    0%, 100% {
+      box-shadow: 0 0 8px #38bdf8, 0 0 12px #38bdf8;
+      background-color: rgba(56, 189, 248, 0.3);
+      transform: scale(1.05);
+    }
+    50% {
+      box-shadow: 0 0 16px #38bdf8, 0 0 24px #38bdf8;
+      background-color: rgba(56, 189, 248, 0.5);
+      transform: scale(1.1);
+    }
+  }
+  .word-hint-glow-animation {
+    animation: word-hint-glow 1.5s infinite ease-in-out;
+  }
 </style>
 </head>
   <body class="bg-slate-900">

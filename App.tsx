@@ -2,6 +2,8 @@
 
 
 
+
+
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Phrase, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, SentenceContinuation, PhraseBuilderOptions, PhraseEvaluation, ChatMessage } from './types';
 import * as srsService from './services/srsService';
@@ -1064,6 +1066,7 @@ const App: React.FC = () => {
             habitTracker={habitTracker}
             onHabitTrackerChange={handleHabitTrackerChange}
             showToast={showToast}
+            onOpenLearningAssistant={handleOpenLearningAssistant}
        />
        {learningAssistantPhrase && <LearningAssistantModal
             isOpen={isLearningAssistantModalOpen}

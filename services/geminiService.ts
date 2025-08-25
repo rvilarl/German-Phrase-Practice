@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import type { Phrase, ChatMessage, ExamplePair, ProactiveSuggestion, ContentPart, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, SentenceContinuation, TranslationChatRequest, TranslationChatResponse, PhraseBuilderOptions, PhraseEvaluation } from '../types';
 import { AiService } from './aiService';
@@ -1031,19 +1032,14 @@ const generatePhraseBuilderOptions: AiService['generatePhraseBuilderOptions'] = 
     const api = initializeApi();
     if (!api) throw new Error("Gemini API key not configured.");
     
-    const prompt = `Для упражнения "собери фразу" по немецкому языку, подготовь набор слов.
-Исходная фраза на русском: "${phrase.russian}"
-Правильный перевод на немецком: "${phrase.german}"
+    const prompt = `Создай набор слов для упражнения "собери фразу".
+Немецкая фраза: "${phrase.german}" (Русский перевод: "${phrase.russian}").
 
-Твоя задача:
-1.  Включи в набор ВСЕ слова из правильного немецкого перевода. ВАЖНО: Сохраняй знаки препинания (точки, вопросительные знаки) как часть последнего слова. Например: "Hallo.", "geht's?".
-2.  Добавь 5-7 "отвлекающих" слов. Это должны быть правдоподобные, но неверные варианты:
-    - Слова с похожим значением (синонимы, которые не подходят по контексту).
-    - Неправильные грамматические формы (другой падеж, другое время глагола, неправильное окончание прилагательного).
-    - Слова, которые часто путают (ложные друзья переводчика).
-    - Лишние артикли или предлоги.
-3.  Перемешай все слова в случайном порядке.
-4.  Верни результат в виде JSON-объекта с одним ключом "words", содержащим массив строк.`;
+Правила:
+1. Включи в набор ВСЕ слова из немецкой фразы. Знаки препинания должны оставаться частью слова (например, "Hallo.").
+2. Добавь 5-7 подходящих, но неверных "отвлекающих" слов (например, неправильные грамматические формы, синонимы не по контексту, лишние артикли).
+3. Перемешай все слова случайным образом.
+4. Верни JSON-объект с одним ключом "words", который содержит массив всех слов.`;
 
     try {
         const response = await api.models.generateContent({

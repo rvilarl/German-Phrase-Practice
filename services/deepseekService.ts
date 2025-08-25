@@ -1,3 +1,4 @@
+
 import type { Phrase, ChatMessage, DeepDiveAnalysis, ContentPart, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, SentenceContinuation, TranslationChatRequest, TranslationChatResponse, PhraseBuilderOptions, PhraseEvaluation } from '../types';
 import { AiService } from './aiService';
 import { getDeepseekApiKey } from './env';
@@ -560,15 +561,14 @@ const generatePhraseBuilderOptions: AiService['generatePhraseBuilderOptions'] = 
         required: ["words"]
     };
     
-    const prompt = `Для упражнения "собери фразу" по немецкому языку, подготовь набор слов.
-Исходная фраза на русском: "${phrase.russian}"
-Правильный перевод на немецком: "${phrase.german}"
+    const prompt = `Создай набор слов для упражнения "собери фразу".
+Немецкая фраза: "${phrase.german}" (Русский перевод: "${phrase.russian}").
 
-Твоя задача:
-1.  Включи в набор ВСЕ слова из правильного немецкого перевода. ВАЖНО: Сохраняй знаки препинания (точки, вопросительные знаки) как часть последнего слова. Например: "Hallo.", "geht's?".
-2.  Добавь 5-7 "отвлекающих" слов (неверные формы, похожие слова).
-3.  Перемешай все слова.
-4.  Верни JSON-объект с ключом "words".`;
+Правила:
+1. Включи в набор ВСЕ слова из немецкой фразы. Знаки препинания должны оставаться частью слова (например, "Hallo.").
+2. Добавь 5-7 подходящих, но неверных "отвлекающих" слов.
+3. Перемешай все слова случайным образом.
+4. Верни JSON-объект с ключом "words".`;
 
     const messages = [
         { role: "system", content: "You are a German teaching assistant. Respond only in JSON." },
