@@ -163,7 +163,7 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
 
   // Effect for detecting "thinking"
   useEffect(() => {
-    if (isOpen && phrase && !evaluation) {
+    if (isOpen && phrase && !evaluation && !hasUserPausedInSession) {
         const resetThinkTimer = () => {
             if (thinkTimerRef.current) clearTimeout(thinkTimerRef.current);
             thinkTimerRef.current = window.setTimeout(() => {
@@ -182,7 +182,7 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
             interactionNode?.removeEventListener('touchstart', resetThinkTimer);
         };
     }
-  }, [isOpen, phrase, evaluation, constructedWords, availableWords]); // Reset timer on any word change
+  }, [isOpen, phrase, evaluation, constructedWords, availableWords, hasUserPausedInSession]); // dependencies updated
 
   const handleCheck = useCallback(async () => {
     if (!phrase) return;
@@ -218,9 +218,6 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
       setTimeout(() => {
           setLocalFeedback(null);
           resetAttempt();
-          try {
-            recognitionRef.current?.start();
-          } catch(e) { console.error("Could not start recognition for second attempt:", e); }
       }, 2000);
     } else {
       setIsChecking(true);

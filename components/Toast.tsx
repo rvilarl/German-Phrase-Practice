@@ -50,7 +50,7 @@ const Toast: React.FC<ToastProps> = ({ toast, onDismiss }) => {
 
     return (
       <div
-        className={`fixed bottom-24 left-1/2 -translate-x-1/2 rounded-full shadow-lg transition-all duration-300 ease-out z-50 overflow-hidden ${
+        className={`fixed bottom-24 left-1/2 -translate-x-1/2 rounded-full shadow-lg transition-all duration-300 ease-out z-[100] overflow-hidden ${
           isHiding ? 'opacity-0 translate-y-4' : 'opacity-100 translate-y-0'
         }`}
       >
@@ -75,7 +75,7 @@ const Toast: React.FC<ToastProps> = ({ toast, onDismiss }) => {
   // Fallback for default toast
   return (
     <div
-      className={`fixed bottom-24 left-1/2 -translate-x-1/2 bg-gray-800/90 text-white px-4 py-2 rounded-full shadow-lg transition-all duration-300 ease-out z-50 ${
+      className={`fixed bottom-24 left-1/2 -translate-x-1/2 bg-gray-800/90 text-white px-4 py-2 rounded-full shadow-lg transition-all duration-300 ease-out z-[100] ${
         isDefaultVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
       }`}
     >
