@@ -5,6 +5,7 @@ import Spinner from '../components/Spinner';
 import ListIcon from '../components/icons/ListIcon';
 import TrashIcon from '../components/icons/TrashIcon';
 import MessageQuestionIcon from '../components/icons/MessageQuestionIcon';
+import CheckIcon from '../components/icons/CheckIcon';
 
 
 const SWIPE_THRESHOLD = 50; // pixels
@@ -61,7 +62,7 @@ interface PracticePageProps {
   error: string | null;
   isGenerating: boolean;
   apiProviderAvailable: boolean;
-  onUpdateMastery: (action: 'know' | 'forgot' | 'dont_know') => void;
+  onUpdateMastery: (action: 'know' | 'forgot' | 'dont_know', options?: { autoAdvance?: boolean }) => void;
   onContinue: () => void;
   onSwipeLeft: () => void;
   onSwipeRight: () => void;
@@ -77,7 +78,9 @@ interface PracticePageProps {
   onGoToList: (phrase: Phrase) => void;
   onOpenDiscussTranslation: (phrase: Phrase) => void;
   onGenerateHint: (phrase: Phrase) => Promise<string>;
-  settings: { dynamicButtonLayout: boolean };
+  settings: { 
+    dynamicButtonLayout: boolean;
+  };
   masteryButtonUsage: { know: number; forgot: number; dont_know: number };
 }
 
@@ -101,31 +104,24 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
   const [isHintVisible, setIsHintVisible] = useState(false);
 
   useEffect(() => {
-    if (currentPhrase) {
-        setHint(null);
-        setIsHintVisible(false);
-        setIsHintLoading(false);
+    if (currentPhrase && !isAnswerRevealed) {
+      setHint(null);
+      setIsHintVisible(false);
+      setIsHintLoading(false);
     }
-  }, [currentPhrase]);
+  }, [currentPhrase, isAnswerRevealed]);
+
 
   const handleShowHint = useCallback(async () => {
     if (!currentPhrase || isHintVisible || isHintLoading || isAnswerRevealed) return;
-
-    if (hint) {
-        setIsHintVisible(true);
-        return;
-    }
-
+    if (hint) { setIsHintVisible(true); return; }
     setIsHintLoading(true);
     try {
         const generatedHint = await onGenerateHint(currentPhrase);
         setHint(generatedHint);
         setIsHintVisible(true);
-    } catch (e) {
-        console.error("Failed to generate hint", e);
-    } finally {
-        setIsHintLoading(false);
-    }
+    } catch (e) { console.error("Failed to generate hint", e); }
+    finally { setIsHintLoading(false); }
   }, [currentPhrase, hint, isHintVisible, isHintLoading, isAnswerRevealed, onGenerateHint]);
 
   const speak = useCallback((text: string) => {
@@ -137,49 +133,62 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
       window.speechSynthesis.speak(utterance);
     }
   }, []);
+
+  const handleMasteryButtonClick = (action: 'know' | 'forgot' | 'dont_know') => {
+    if (isExiting) return;
+    
+    const shouldAutoAdvance = action === 'know';
+    onUpdateMastery(action, { autoAdvance: shouldAutoAdvance });
+
+    if (shouldAutoAdvance) {
+      // Don't wait for card to flip, immediately start transition to next card
+      onContinue();
+    }
+  };
   
-  const handleTouchStart = (e: React.TouchEvent) => {
-    touchMoveRef.current = null;
-    touchStartRef.current = e.targetTouches[0].clientX;
-  };
-  const handleTouchMove = (e: React.TouchEvent) => {
-    touchMoveRef.current = e.targetTouches[0].clientX;
-  };
+  const handleTouchStart = (e: React.TouchEvent) => { touchMoveRef.current = null; touchStartRef.current = e.targetTouches[0].clientX; };
+  const handleTouchMove = (e: React.TouchEvent) => { touchMoveRef.current = e.targetTouches[0].clientX; };
   const handleTouchEnd = () => {
     if (touchStartRef.current !== null && touchMoveRef.current !== null) {
       const deltaX = touchMoveRef.current - touchStartRef.current;
       if (deltaX < -SWIPE_THRESHOLD) onSwipeLeft();
       else if (deltaX > SWIPE_THRESHOLD) onSwipeRight();
     }
-    touchStartRef.current = null;
-    touchMoveRef.current = null;
+    touchStartRef.current = null; touchMoveRef.current = null;
   };
 
   const renderButtons = () => {
      if (isAnswerRevealed) {
-        return <div className="flex justify-center mt-8"><button onClick={onContinue} className="px-10 py-3 rounded-lg bg-purple-600 hover:bg-purple-700 transition-colors font-semibold text-white shadow-md" disabled={isExiting}>Продолжить</button></div>;
+        return (
+            <div className="flex justify-center mt-8 h-12">
+                <button
+                    onClick={onContinue}
+                    disabled={isExiting}
+                    className="px-10 py-3 rounded-lg font-semibold text-white shadow-md transition-all duration-300 bg-purple-600 hover:bg-purple-700"
+                >
+                    Продолжить
+                </button>
+            </div>
+        );
      }
      
      const hasBeenReviewed = currentPhrase?.lastReviewedAt !== null;
-
      const allButtons = [
         { key: 'dont_know' as const, label: 'Не знаю', className: 'bg-yellow-600 hover:bg-yellow-700', condition: !hasBeenReviewed },
         { key: 'forgot' as const, label: 'Забыл', className: 'bg-red-600 hover:bg-red-700', condition: true },
         { key: 'know' as const, label: 'Знаю', className: 'bg-green-600 hover:bg-green-700', condition: true },
     ];
-
     let buttonsToRender = allButtons.filter(btn => btn.condition);
-
     if (settings.dynamicButtonLayout) {
         buttonsToRender.sort((a, b) => (masteryButtonUsage[a.key] || 0) - (masteryButtonUsage[b.key] || 0));
     }
 
      return (
-        <div className="flex justify-center space-x-2 sm:space-x-4 mt-8">
+        <div className="flex justify-center space-x-2 sm:space-x-4 mt-8 h-12">
              {buttonsToRender.map(btn => (
                 <button 
                     key={btn.key} 
-                    onClick={() => onUpdateMastery(btn.key)} 
+                    onClick={() => handleMasteryButtonClick(btn.key)} 
                     className={`px-4 sm:px-6 py-3 rounded-lg font-semibold text-white shadow-md transition-colors ${btn.className}`}
                 >
                     {btn.label}
@@ -210,7 +219,8 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
 
     return (
         <div className="flex flex-col items-center w-full px-2">
-            <div 
+            <div
+              id="practice-card-container"
               className="w-full max-w-md h-64 relative"
               onTouchStart={handleTouchStart}
               onTouchMove={handleTouchMove}

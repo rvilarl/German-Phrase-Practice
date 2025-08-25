@@ -1,22 +1,37 @@
 import React from 'react';
 import CloseIcon from './icons/CloseIcon';
 
+interface Settings {
+  autoSpeak: boolean;
+  soundEffects: boolean;
+  dynamicButtonLayout: boolean;
+  automation: {
+    autoCheckShortPhrases: boolean;
+    learnNextPhraseHabit: boolean;
+  };
+}
+
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  settings: {
-    autoSpeak: boolean;
-    soundEffects: boolean;
-    dynamicButtonLayout: boolean;
-  };
-  onSettingsChange: (newSettings: Partial<SettingsModalProps['settings']>) => void;
+  settings: Settings;
+  onSettingsChange: (newSettings: Partial<Settings>) => void;
 }
 
 const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings, onSettingsChange }) => {
   if (!isOpen) return null;
 
-  const handleSettingChange = (setting: keyof typeof settings, value: boolean) => {
-    onSettingsChange({ [setting]: value });
+  const handleSettingChange = (setting: keyof Settings, value: boolean) => {
+    onSettingsChange({ [setting]: value } as Partial<Settings>);
+  };
+
+  const handleAutomationChange = (setting: keyof Settings['automation'], value: boolean) => {
+    onSettingsChange({
+      automation: {
+        ...settings.automation,
+        [setting]: value,
+      },
+    });
   };
   
   return (
@@ -34,52 +49,88 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
             <CloseIcon className="w-6 h-6 text-slate-400" />
           </button>
         </header>
-        <div className="p-6 space-y-4">
-            <div className="flex items-center justify-between">
-                <label htmlFor="auto-speak" className="text-slate-200">
-                    Авто-озвучка при обороте карты
-                </label>
-                <label className="relative inline-flex items-center cursor-pointer">
-                    <input 
-                        type="checkbox"
-                        id="auto-speak"
-                        className="sr-only peer"
-                        checked={settings.autoSpeak}
-                        onChange={(e) => handleSettingChange('autoSpeak', e.target.checked)}
-                    />
-                    <div className="w-11 h-6 bg-slate-600 rounded-full peer peer-focus:ring-2 peer-focus:ring-purple-500 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
-                </label>
-            </div>
-            <div className="flex items-center justify-between">
-                <label htmlFor="sound-effects" className="text-slate-200">
-                    Звуковые эффекты
-                </label>
-                <label className="relative inline-flex items-center cursor-pointer">
-                    <input 
-                        type="checkbox"
-                        id="sound-effects"
-                        className="sr-only peer"
-                        checked={settings.soundEffects}
-                        onChange={(e) => handleSettingChange('soundEffects', e.target.checked)}
-                    />
-                    <div className="w-11 h-6 bg-slate-600 rounded-full peer peer-focus:ring-2 peer-focus:ring-purple-500 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
-                </label>
-            </div>
-             <div className="flex items-center justify-between">
-                <label htmlFor="dynamic-layout" className="text-slate-200">
-                    Динамическое расположение кнопок
-                </label>
-                <label className="relative inline-flex items-center cursor-pointer">
-                    <input 
-                        type="checkbox"
-                        id="dynamic-layout"
-                        className="sr-only peer"
-                        checked={settings.dynamicButtonLayout}
-                        onChange={(e) => handleSettingChange('dynamicButtonLayout', e.target.checked)}
-                    />
-                    <div className="w-11 h-6 bg-slate-600 rounded-full peer peer-focus:ring-2 peer-focus:ring-purple-500 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
-                </label>
-            </div>
+        <div className="p-6 space-y-6">
+            <section className="space-y-4">
+                 <h3 className="text-sm font-semibold text-slate-400">Основные</h3>
+                <div className="flex items-center justify-between">
+                    <label htmlFor="auto-speak" className="text-slate-200">
+                        Авто-озвучка при обороте карты
+                    </label>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                        <input 
+                            type="checkbox"
+                            id="auto-speak"
+                            className="sr-only peer"
+                            checked={settings.autoSpeak}
+                            onChange={(e) => handleSettingChange('autoSpeak', e.target.checked)}
+                        />
+                        <div className="w-11 h-6 bg-slate-600 rounded-full peer peer-focus:ring-2 peer-focus:ring-purple-500 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                    </label>
+                </div>
+                <div className="flex items-center justify-between">
+                    <label htmlFor="sound-effects" className="text-slate-200">
+                        Звуковые эффекты
+                    </label>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                        <input 
+                            type="checkbox"
+                            id="sound-effects"
+                            className="sr-only peer"
+                            checked={settings.soundEffects}
+                            onChange={(e) => handleSettingChange('soundEffects', e.target.checked)}
+                        />
+                        <div className="w-11 h-6 bg-slate-600 rounded-full peer peer-focus:ring-2 peer-focus:ring-purple-500 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                    </label>
+                </div>
+                 <div className="flex items-center justify-between">
+                    <label htmlFor="dynamic-layout" className="text-slate-200">
+                        Динамическое расположение кнопок
+                    </label>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                        <input 
+                            type="checkbox"
+                            id="dynamic-layout"
+                            className="sr-only peer"
+                            checked={settings.dynamicButtonLayout}
+                            onChange={(e) => handleSettingChange('dynamicButtonLayout', e.target.checked)}
+                        />
+                        <div className="w-11 h-6 bg-slate-600 rounded-full peer peer-focus:ring-2 peer-focus:ring-purple-500 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                    </label>
+                </div>
+            </section>
+            <section className="space-y-4 border-t border-slate-700 pt-6">
+                 <h3 className="text-sm font-semibold text-slate-400">Автоматизация</h3>
+                <div className="flex items-center justify-between">
+                    <label htmlFor="auto-check" className="text-slate-200 pr-4">
+                        Умная авто-проверка коротких фраз
+                    </label>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                        <input 
+                            type="checkbox"
+                            id="auto-check"
+                            className="sr-only peer"
+                            checked={settings.automation.autoCheckShortPhrases}
+                            onChange={(e) => handleAutomationChange('autoCheckShortPhrases', e.target.checked)}
+                        />
+                        <div className="w-11 h-6 bg-slate-600 rounded-full peer peer-focus:ring-2 peer-focus:ring-purple-500 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                    </label>
+                </div>
+                 <div className="flex items-center justify-between">
+                    <label htmlFor="auto-next" className="text-slate-200 pr-4">
+                        Авто-переход к следующей фразе
+                    </label>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                        <input 
+                            type="checkbox"
+                            id="auto-next"
+                            className="sr-only peer"
+                            checked={settings.automation.learnNextPhraseHabit}
+                            onChange={(e) => handleAutomationChange('learnNextPhraseHabit', e.target.checked)}
+                        />
+                        <div className="w-11 h-6 bg-slate-600 rounded-full peer peer-focus:ring-2 peer-focus:ring-purple-500 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                    </label>
+                </div>
+            </section>
         </div>
       </div>
     </div>

@@ -20,9 +20,18 @@ interface VoiceWorkspaceModalProps {
   onNextPhrase: () => void;
   onPracticeNext: () => void;
   onGeneratePhraseBuilderOptions: (phrase: Phrase) => Promise<PhraseBuilderOptions>;
-  settings: { dynamicButtonLayout: boolean };
+  settings: { 
+    dynamicButtonLayout: boolean;
+    automation: {
+        autoCheckShortPhrases: boolean;
+        learnNextPhraseHabit: boolean;
+    }
+  };
   buttonUsage: { close: number; continue: number; next: number };
   onLogButtonUsage: (button: 'close' | 'continue' | 'next') => void;
+  habitTracker: { quickNextCount: number, quickBuilderNextCount?: number };
+  onHabitTrackerChange: (updater: React.SetStateAction<{ quickNextCount: number, quickBuilderNextCount?: number }>) => void;
+  showToast: (message: string) => void;
 }
 
 interface Word {
@@ -52,7 +61,7 @@ const normalizeString = (str: string) => str.toLowerCase().replace(/[.,!?]/g, ''
 
 const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
   isOpen, onClose, phrase, onEvaluate, onSuccess, onFailure, onNextPhrase, onGeneratePhraseBuilderOptions, onPracticeNext,
-  settings, buttonUsage, onLogButtonUsage
+  settings, buttonUsage, onLogButtonUsage, habitTracker, onHabitTrackerChange, showToast
 }) => {
   const [constructedWords, setConstructedWords] = useState<Word[]>([]);
   const [availableWords, setAvailableWords] = useState<AvailableWord[]>([]);
@@ -69,6 +78,12 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
   const [draggedItem, setDraggedItem] = useState<DraggedItem | null>(null);
   const [dropIndex, setDropIndex] = useState<number | null>(null);
   const [ghostPosition, setGhostPosition] = useState<{ x: number, y: number } | null>(null);
+  
+  // Automation State
+  const [successTimestamp, setSuccessTimestamp] = useState<number | null>(null);
+  const [hasUserPausedInSession, setHasUserPausedInSession] = useState(false);
+  const thinkTimerRef = useRef<number | null>(null);
+  const interactionRef = useRef<HTMLDivElement>(null);
   
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const constructedPhraseRef = useRef<HTMLDivElement>(null);
@@ -92,6 +107,9 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
     setLocalFeedback(null);
     setOptionsError(null);
     setSpeechError(null);
+    setSuccessTimestamp(null);
+    setHasUserPausedInSession(false);
+    if (thinkTimerRef.current) clearTimeout(thinkTimerRef.current);
   }, []);
   
   const loadWordOptions = useCallback(async () => {
@@ -143,16 +161,43 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
     };
   }, [isOpen, phrase, resetState, loadWordOptions]);
 
+  // Effect for detecting "thinking"
+  useEffect(() => {
+    if (isOpen && phrase && !evaluation) {
+        const resetThinkTimer = () => {
+            if (thinkTimerRef.current) clearTimeout(thinkTimerRef.current);
+            thinkTimerRef.current = window.setTimeout(() => {
+                setHasUserPausedInSession(true);
+            }, 5000); // 5 seconds
+        };
+        
+        resetThinkTimer();
+        const interactionNode = interactionRef.current;
+        interactionNode?.addEventListener('mousemove', resetThinkTimer);
+        interactionNode?.addEventListener('touchstart', resetThinkTimer);
+        
+        return () => {
+            if (thinkTimerRef.current) clearTimeout(thinkTimerRef.current);
+            interactionNode?.removeEventListener('mousemove', resetThinkTimer);
+            interactionNode?.removeEventListener('touchstart', resetThinkTimer);
+        };
+    }
+  }, [isOpen, phrase, evaluation, constructedWords, availableWords]); // Reset timer on any word change
+
   const handleCheck = useCallback(async () => {
     if (!phrase) return;
     const userAttempt = constructedWords.map(w => w.text).join(' ');
     if (!userAttempt) return;
+    
+    setSuccessTimestamp(null);
+    if (thinkTimerRef.current) clearTimeout(thinkTimerRef.current);
 
     const isCorrectLocally = normalizeString(userAttempt) === normalizeString(phrase.german);
 
     if (isCorrectLocally) {
       setEvaluation({ isCorrect: true, feedback: 'Отлично! Всё верно.' });
       onSuccess(phrase);
+      setSuccessTimestamp(Date.now());
       return;
     }
 
@@ -174,6 +219,7 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
         const result = await onEvaluate(phrase, userAttempt);
         setEvaluation(result);
         onFailure(phrase);
+        if(result.isCorrect) setSuccessTimestamp(Date.now());
       } catch (err) {
         setEvaluation({ isCorrect: false, feedback: err instanceof Error ? err.message : 'Ошибка проверки.' });
         onFailure(phrase);
@@ -185,42 +231,37 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
 
   // Effect for intelligent auto-checking
   useEffect(() => {
+    if (!settings.automation.autoCheckShortPhrases) return;
+
     const autoCheck = () => {
-      // Condition 1: Don't run if not ready, already checking, has a result, or listening to speech.
       if (!isOpen || !phrase || isLoadingOptions || isChecking || evaluation || isListening) {
         return;
       }
       
       const userAttempt = constructedWords.map(w => w.text).join(' ');
-      // Condition 2: Don't run on empty attempt
       if (!userAttempt) {
         return;
       }
       
-      // Condition 3: Only run for short phrases (<= 3 words). This is the core heuristic.
       const wordCount = phrase.german.split(' ').length;
       if (wordCount > 3) {
         return;
       }
 
-      // Condition 4: The constructed phrase must be a perfect match.
       if (normalizeString(userAttempt) === normalizeString(phrase.german)) {
-        // A brief delay for better UX, allowing the user to see the last word placed.
         const timer = setTimeout(() => {
-          // Double-check state inside timeout as things might have changed
           if (isOpen && !isChecking && !evaluation) {
             handleCheck();
           }
         }, 400);
         
-        // Cleanup to prevent multiple timers if words are added quickly
         return () => clearTimeout(timer);
       }
     };
 
     const cleanup = autoCheck();
     return cleanup;
-  }, [constructedWords, phrase, isOpen, isLoadingOptions, isChecking, evaluation, isListening, handleCheck]);
+  }, [constructedWords, phrase, isOpen, isLoadingOptions, isChecking, evaluation, isListening, handleCheck, settings.automation.autoCheckShortPhrases]);
   
   useEffect(() => {
     const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -332,25 +373,38 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
     setDraggedItem(null); setDropIndex(null); setGhostPosition(null);
   };
 
+  const handleActionButtonClick = useCallback((key: 'close' | 'continue' | 'next', action: () => void) => {
+      onLogButtonUsage(key);
+      if (successTimestamp) {
+          const timeSinceSuccess = Date.now() - successTimestamp;
+          if (timeSinceSuccess < 2000) { // 2 seconds threshold
+              onHabitTrackerChange(prev => ({ ...prev, quickBuilderNextCount: (prev.quickBuilderNextCount || 0) + 1 }));
+          } else {
+              onHabitTrackerChange(prev => ({ ...prev, quickBuilderNextCount: 0 }));
+          }
+      }
+      action();
+  }, [onLogButtonUsage, successTimestamp, onHabitTrackerChange]);
+
   const buttons = useMemo(() => {
     const buttonData = [
       {
         key: 'close' as const,
-        action: () => { onLogButtonUsage('close'); onClose(); },
+        action: () => handleActionButtonClick('close', onClose),
         icon: <CloseIcon className="w-6 h-6" />,
         className: 'bg-slate-600 hover:bg-slate-700',
         label: 'Закрыть',
       },
       {
         key: 'continue' as const,
-        action: () => { onLogButtonUsage('continue'); onNextPhrase(); },
+        action: () => handleActionButtonClick('continue', onNextPhrase),
         icon: <CheckIcon className="w-6 h-6" />,
         className: 'bg-green-600 hover:bg-green-700',
         label: 'Продолжить',
       },
       {
         key: 'next' as const,
-        action: () => { onLogButtonUsage('next'); onPracticeNext(); },
+        action: () => handleActionButtonClick('next', onPracticeNext),
         icon: <ArrowRightIcon className="w-6 h-6" />,
         className: 'bg-purple-600 hover:bg-purple-700',
         label: 'Следующая фраза',
@@ -362,7 +416,21 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
     }
     // Default fixed order
     return [buttonData[0], buttonData[1], buttonData[2]];
-  }, [settings.dynamicButtonLayout, buttonUsage, onLogButtonUsage, onClose, onNextPhrase, onPracticeNext]);
+  }, [settings.dynamicButtonLayout, buttonUsage, handleActionButtonClick, onClose, onNextPhrase, onPracticeNext]);
+  
+  const habitLearned = (habitTracker.quickBuilderNextCount || 0) >= 5;
+  const shouldAutoAdvance = evaluation?.isCorrect && settings.automation.learnNextPhraseHabit && habitLearned && !hasUserPausedInSession;
+  
+  useEffect(() => {
+      let timer: number;
+      if (shouldAutoAdvance) {
+          timer = window.setTimeout(() => {
+              showToast('Следующая фраза');
+              onPracticeNext();
+          }, 1000);
+      }
+      return () => clearTimeout(timer);
+  }, [shouldAutoAdvance, onPracticeNext, showToast]);
 
 
   if (!isOpen || !phrase) return null;
@@ -388,7 +456,7 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
             </button>
           </header>
 
-          <div className="flex-grow flex flex-col p-4 overflow-hidden relative">
+          <div ref={interactionRef} className="flex-grow flex flex-col p-4 overflow-hidden relative">
               {localFeedback && (
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-red-800/90 text-white p-4 rounded-lg shadow-lg animate-fade-in text-lg font-semibold z-10">
                     {localFeedback}
@@ -472,27 +540,35 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
               
               <div className={`absolute bottom-0 left-0 right-0 p-6 pt-4 bg-slate-800 border-t border-slate-700/50 shadow-[0_-10px_20px_-5px_rgba(0,0,0,0.2)] transition-transform duration-300 ease-out ${evaluation ? 'translate-y-0' : 'translate-y-full'}`}>
                 {evaluation && (
-                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <div className={`flex-grow w-full sm:w-auto p-3 rounded-lg ${evaluation.isCorrect ? 'bg-green-500/20' : 'bg-red-500/20'} flex items-start space-x-3`}>
-                      <div className="flex-shrink-0 mt-0.5">{evaluation.isCorrect ? <CheckIcon className="w-5 h-5 text-green-400" /> : <XCircleIcon className="w-5 h-5 text-red-400" />}</div>
-                      <div>
-                        <p className="text-slate-200 text-sm">{evaluation.feedback}</p>
-                        {evaluation.correctedPhrase && <div className="mt-2 flex items-center gap-x-2 text-sm bg-slate-800/50 p-1.5 rounded-md"><AudioPlayer textToSpeak={evaluation.correctedPhrase} /><p className="text-slate-300"><strong className="font-semibold text-slate-100">{evaluation.correctedPhrase}</strong></p></div>}
+                    shouldAutoAdvance ? (
+                         <div className="flex justify-center w-full">
+                            <div className="w-full h-16 rounded-lg bg-green-600 flex items-center justify-center animate-fade-in">
+                                <CheckIcon className="w-8 h-8 text-white" />
+                            </div>
+                        </div>
+                    ) : (
+                      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div className={`flex-grow w-full sm:w-auto p-3 rounded-lg ${evaluation.isCorrect ? 'bg-green-500/20' : 'bg-red-500/20'} flex items-start space-x-3`}>
+                          <div className="flex-shrink-0 mt-0.5">{evaluation.isCorrect ? <CheckIcon className="w-5 h-5 text-green-400" /> : <XCircleIcon className="w-5 h-5 text-red-400" />}</div>
+                          <div>
+                            <p className="text-slate-200 text-sm">{evaluation.feedback}</p>
+                            {evaluation.correctedPhrase && <div className="mt-2 flex items-center gap-x-2 text-sm bg-slate-800/50 p-1.5 rounded-md"><AudioPlayer textToSpeak={evaluation.correctedPhrase} /><p className="text-slate-300"><strong className="font-semibold text-slate-100">{evaluation.correctedPhrase}</strong></p></div>}
+                          </div>
+                        </div>
+                        <div className="w-full sm:w-auto flex-shrink-0 flex items-center justify-center gap-3">
+                            {buttons.map(button => (
+                               <button
+                                    key={button.key}
+                                    onClick={button.action}
+                                    className={`flex-1 p-3.5 rounded-lg transition-colors text-white shadow-md flex justify-center ${button.className}`}
+                                    aria-label={button.label}
+                               >
+                                 {button.icon}
+                               </button>
+                            ))}
+                        </div>
                       </div>
-                    </div>
-                    <div className="w-full sm:w-auto flex-shrink-0 flex items-center justify-center gap-3">
-                        {buttons.map(button => (
-                           <button
-                                key={button.key}
-                                onClick={button.action}
-                                className={`flex-1 p-3.5 rounded-lg transition-colors text-white shadow-md flex justify-center ${button.className}`}
-                                aria-label={button.label}
-                           >
-                             {button.icon}
-                           </button>
-                        ))}
-                    </div>
-                  </div>
+                    )
                 )}
               </div>
           </div>

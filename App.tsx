@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Phrase, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, SentenceContinuation, PhraseBuilderOptions, PhraseEvaluation, ChatMessage } from './types';
 import * as srsService from './services/srsService';
@@ -29,11 +30,14 @@ import DiscussTranslationModal from './components/DiscussTranslationModal';
 import LearningAssistantModal from './components/LearningAssistantModal';
 import PronounsModal from './components/PronounsModal';
 import WFragenModal from './components/WFragenModal';
+import Toast from './components/Toast';
+
 
 const PHRASES_STORAGE_KEY = 'germanPhrases';
 const SETTINGS_STORAGE_KEY = 'germanAppSettings';
 const BUTTON_USAGE_STORAGE_KEY = 'germanAppButtonUsage';
 const MASTERY_BUTTON_USAGE_STORAGE_KEY = 'germanAppMasteryButtonUsage';
+const HABIT_TRACKER_STORAGE_KEY = 'germanAppHabitTracker';
 
 type View = 'practice' | 'list';
 type AnimationDirection = 'left' | 'right';
@@ -41,6 +45,21 @@ interface AnimationState {
   key: string;
   direction: AnimationDirection;
 }
+
+const defaultSettings = {
+  autoSpeak: true,
+  soundEffects: true,
+  dynamicButtonLayout: true,
+  automation: {
+    autoCheckShortPhrases: true,
+    learnNextPhraseHabit: true,
+  },
+};
+
+const defaultHabitTracker = { 
+    quickNextCount: 0, 
+    quickBuilderNextCount: 0 
+};
 
 const App: React.FC = () => {
   const [allPhrases, setAllPhrases] = useState<Phrase[]>([]);
@@ -62,9 +81,12 @@ const App: React.FC = () => {
   const [chatContextPhrase, setChatContextPhrase] = useState<Phrase | null>(null);
   
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
-  const [settings, setSettings] = useState({ autoSpeak: true, soundEffects: true, dynamicButtonLayout: true });
+  const [settings, setSettings] = useState(defaultSettings);
   const [buttonUsage, setButtonUsage] = useState({ close: 0, continue: 0, next: 0 });
   const [masteryButtonUsage, setMasteryButtonUsage] = useState({ know: 0, forgot: 0, dont_know: 0 });
+  const [habitTracker, setHabitTracker] = useState(defaultHabitTracker);
+  
+  const [toast, setToast] = useState<{ message: string, id: number } | null>(null);
 
   const [isDeepDiveModalOpen, setIsDeepDiveModalOpen] = useState(false);
   const [deepDivePhrase, setDeepDivePhrase] = useState<Phrase | null>(null);
@@ -166,16 +188,26 @@ const App: React.FC = () => {
             const storedSettings = localStorage.getItem(SETTINGS_STORAGE_KEY);
             if (storedSettings) {
                 const parsedSettings = JSON.parse(storedSettings);
-                setSettings(prev => ({ ...prev, ...parsedSettings }));
+                // Merge with defaults to ensure new settings are applied
+                setSettings(prev => ({
+                    ...defaultSettings,
+                    ...prev,
+                    ...parsedSettings,
+                    automation: { ...defaultSettings.automation, ...parsedSettings.automation },
+                }));
             }
             const storedUsage = localStorage.getItem(BUTTON_USAGE_STORAGE_KEY);
-            if (storedUsage) {
-                setButtonUsage(JSON.parse(storedUsage));
-            }
+            if (storedUsage) setButtonUsage(JSON.parse(storedUsage));
+
             const storedMasteryUsage = localStorage.getItem(MASTERY_BUTTON_USAGE_STORAGE_KEY);
-            if (storedMasteryUsage) {
-                setMasteryButtonUsage(JSON.parse(storedMasteryUsage));
+            if (storedMasteryUsage) setMasteryButtonUsage(JSON.parse(storedMasteryUsage));
+
+            const storedHabitTracker = localStorage.getItem(HABIT_TRACKER_STORAGE_KEY);
+            if (storedHabitTracker) {
+                const parsedTracker = JSON.parse(storedHabitTracker);
+                setHabitTracker(prev => ({ ...defaultHabitTracker, ...prev, ...parsedTracker }));
             }
+
         } catch (e) { console.error("Failed to load settings", e); }
 
         let loadedPhrases: Phrase[] = [];
@@ -270,6 +302,18 @@ const App: React.FC = () => {
         return updated;
     });
   }
+
+  const handleHabitTrackerChange = useCallback((updater: React.SetStateAction<typeof habitTracker>) => {
+    setHabitTracker(prev => {
+        const newTracker = typeof updater === 'function' ? updater(prev) : updater;
+        localStorage.setItem(HABIT_TRACKER_STORAGE_KEY, JSON.stringify(newTracker));
+        return newTracker;
+    });
+  }, []);
+
+  const showToast = useCallback((message: string) => {
+    setToast({ message, id: Date.now() });
+  }, []);
 
   const handleLogButtonUsage = useCallback((button: 'close' | 'continue' | 'next') => {
     const DECAY_FACTOR = 0.95;
@@ -774,7 +818,7 @@ const App: React.FC = () => {
     }, 250);
   }, [selectNextPracticePhrase]);
   
-  const handlePracticeUpdateMastery = (action: 'know' | 'forgot' | 'dont_know') => {
+  const handlePracticeUpdateMastery = (action: 'know' | 'forgot' | 'dont_know', options?: { autoAdvance?: boolean }) => {
     if (!currentPracticePhrase || practiceIsExitingRef.current) return;
 
     handleLogMasteryButtonUsage(action);
@@ -784,18 +828,23 @@ const App: React.FC = () => {
     
     updateAndSavePhrases(prev => prev.map(p => p.id === updatedPhrase.id ? updatedPhrase : p));
     setCurrentPracticePhrase(updatedPhrase);
-
-    if (action === 'know') {
+    
+    // When auto-advancing, we don't reveal the card. The transition is handled by the caller.
+    if (action === 'know' && options?.autoAdvance) {
         if (settings.soundEffects) playCorrectSound();
-        transitionToNext();
     } else {
-        if (settings.soundEffects) playIncorrectSound();
         setIsPracticeAnswerRevealed(true);
-        if (settings.autoSpeak && 'speechSynthesis' in window) {
-            const utterance = new SpeechSynthesisUtterance(phraseToSpeak);
-            utterance.lang = 'de-DE';
-            utterance.rate = 0.9;
-            window.speechSynthesis.speak(utterance);
+
+        if (action === 'know') {
+            if (settings.soundEffects) playCorrectSound();
+        } else {
+            if (settings.soundEffects) playIncorrectSound();
+            if (settings.autoSpeak && 'speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(phraseToSpeak);
+                utterance.lang = 'de-DE';
+                utterance.rate = 0.9;
+                window.speechSynthesis.speak(utterance);
+            }
         }
     }
   };
@@ -888,6 +937,8 @@ const App: React.FC = () => {
         {isGenerating ? "Идет генерация новых фраз..." : (apiProvider ? `Powered by ${getProviderDisplayName()}`: "")}
       </footer>
       
+      <Toast toast={toast} onDismiss={() => setToast(null)} />
+
       {chatContextPhrase && apiProviderType && <ChatModal 
           isOpen={isChatModalOpen} 
           onClose={() => setIsChatModalOpen(false)} 
@@ -1000,6 +1051,9 @@ const App: React.FC = () => {
             settings={settings}
             buttonUsage={buttonUsage}
             onLogButtonUsage={handleLogButtonUsage}
+            habitTracker={habitTracker}
+            onHabitTrackerChange={handleHabitTrackerChange}
+            showToast={showToast}
        />
        {learningAssistantPhrase && <LearningAssistantModal
             isOpen={isLearningAssistantModalOpen}
