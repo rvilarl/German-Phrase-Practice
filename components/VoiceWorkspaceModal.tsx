@@ -69,15 +69,22 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
     let startTimer: number;
     if (isOpen && phrase) {
       resetState();
+
+      // Immediately schedule the microphone to start after a short delay for modal animation.
+      startTimer = window.setTimeout(() => {
+          try {
+              recognitionRef.current?.start();
+          } catch (e) { console.error("Auto-start recognition failed", e); }
+      }, 500);
+
+      // Fetch word options in the background.
       onGeneratePhraseBuilderOptions(phrase)
         .then(options => {
           setAvailableWords(options.words.map((w, i) => ({ text: w, id: `avail-${i}`, originalIndex: i })));
-          // Automatically start listening after a short delay for modal animation
-          startTimer = window.setTimeout(() => {
-              try {
-                  recognitionRef.current?.start();
-              } catch (e) { console.error("Auto-start recognition failed", e); }
-          }, 500);
+        })
+        .catch(err => {
+            console.error("Failed to load phrase builder options:", err);
+            // The component is still usable via voice even if this fails.
         })
         .finally(() => setIsLoadingOptions(false));
     }
