@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import type { Phrase, PhraseEvaluation, PhraseBuilderOptions, SpeechRecognition, SpeechRecognitionErrorEvent } from '../types';
 import CloseIcon from './icons/CloseIcon';
 import MicrophoneIcon from './icons/MicrophoneIcon';
@@ -20,6 +20,9 @@ interface VoiceWorkspaceModalProps {
   onNextPhrase: () => void;
   onPracticeNext: () => void;
   onGeneratePhraseBuilderOptions: (phrase: Phrase) => Promise<PhraseBuilderOptions>;
+  settings: { dynamicButtonLayout: boolean };
+  buttonUsage: { close: number; continue: number; next: number };
+  onLogButtonUsage: (button: 'close' | 'continue' | 'next') => void;
 }
 
 interface Word {
@@ -48,7 +51,8 @@ const WordBankSkeleton = () => (
 const normalizeString = (str: string) => str.toLowerCase().replace(/[.,!?]/g, '').trim();
 
 const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
-  isOpen, onClose, phrase, onEvaluate, onSuccess, onFailure, onNextPhrase, onGeneratePhraseBuilderOptions, onPracticeNext
+  isOpen, onClose, phrase, onEvaluate, onSuccess, onFailure, onNextPhrase, onGeneratePhraseBuilderOptions, onPracticeNext,
+  settings, buttonUsage, onLogButtonUsage
 }) => {
   const [constructedWords, setConstructedWords] = useState<Word[]>([]);
   const [availableWords, setAvailableWords] = useState<AvailableWord[]>([]);
@@ -285,6 +289,39 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
     setDraggedItem(null); setDropIndex(null); setGhostPosition(null);
   };
 
+  const buttons = useMemo(() => {
+    const buttonData = [
+      {
+        key: 'close' as const,
+        action: () => { onLogButtonUsage('close'); onClose(); },
+        icon: <CloseIcon className="w-6 h-6" />,
+        className: 'bg-slate-600 hover:bg-slate-700',
+        label: 'Закрыть',
+      },
+      {
+        key: 'continue' as const,
+        action: () => { onLogButtonUsage('continue'); onNextPhrase(); },
+        icon: <CheckIcon className="w-6 h-6" />,
+        className: 'bg-green-600 hover:bg-green-700',
+        label: 'Продолжить',
+      },
+      {
+        key: 'next' as const,
+        action: () => { onLogButtonUsage('next'); onPracticeNext(); resetState(); loadWordOptions(); },
+        icon: <ArrowRightIcon className="w-6 h-6" />,
+        className: 'bg-purple-600 hover:bg-purple-700',
+        label: 'Следующая фраза',
+      },
+    ];
+
+    if (settings.dynamicButtonLayout) {
+        return buttonData.sort((a, b) => (buttonUsage[a.key] || 0) - (buttonUsage[b.key] || 0));
+    }
+    // Default fixed order
+    return [buttonData[0], buttonData[1], buttonData[2]];
+  }, [settings.dynamicButtonLayout, buttonUsage, onLogButtonUsage, onClose, onNextPhrase, onPracticeNext, resetState, loadWordOptions]);
+
+
   if (!isOpen || !phrase) return null;
   
   const userAttempt = constructedWords.map(w => w.text).join(' ');
@@ -369,8 +406,8 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
                   </div>
               </div>
 
-              <div className="flex-shrink-0 pt-4 border-t border-slate-700/50 flex items-center justify-center relative min-h-[80px]">
-                  <div className="absolute left-0 top-1/2 -translate-y-1/2 flex flex-col items-start w-32">
+              <div className="flex-shrink-0 pt-4 border-t border-slate-700/50 flex items-center justify-center min-h-[80px]">
+                  <div className="flex items-center space-x-4">
                       <button 
                         onClick={handleMicClick} 
                         disabled={isLoadingOptions}
@@ -378,15 +415,15 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
                       >
                         <MicrophoneIcon className="w-6 h-6 text-white" />
                       </button>
-                      {speechError && <p className="text-xs text-red-400 mt-1">{speechError}</p>}
+                      
+                      {!evaluation && (
+                          <button onClick={handleCheck} disabled={constructedWords.length === 0 || isChecking} className="relative px-8 py-3 rounded-lg bg-green-600 hover:bg-green-700 transition-colors font-semibold text-white shadow-md disabled:bg-slate-600 disabled:cursor-not-allowed flex items-center justify-center min-w-[150px] h-[48px]">
+                              <span className={`flex items-center transition-opacity ${isChecking ? 'opacity-0' : 'opacity-100'}`}><CheckIcon className="w-5 h-5 mr-2" /><span>Проверить</span></span>
+                              {isChecking && <div className="absolute inset-0 flex items-center justify-center"><Spinner /></div>}
+                          </button>
+                      )}
                   </div>
-                  
-                  {!evaluation && (
-                      <button onClick={handleCheck} disabled={constructedWords.length === 0 || isChecking} className="relative px-8 py-3 rounded-lg bg-green-600 hover:bg-green-700 transition-colors font-semibold text-white shadow-md disabled:bg-slate-600 disabled:cursor-not-allowed flex items-center justify-center min-w-[150px] h-[48px]">
-                          <span className={`flex items-center transition-opacity ${isChecking ? 'opacity-0' : 'opacity-100'}`}><CheckIcon className="w-5 h-5 mr-2" /><span>Проверить</span></span>
-                          {isChecking && <div className="absolute inset-0 flex items-center justify-center"><Spinner /></div>}
-                      </button>
-                  )}
+                  {speechError && <p className="absolute bottom-2 text-xs text-red-400 mt-1">{speechError}</p>}
               </div>
               
               <div className={`absolute bottom-0 left-0 right-0 p-6 pt-4 bg-slate-800 border-t border-slate-700/50 shadow-[0_-10px_20px_-5px_rgba(0,0,0,0.2)] transition-transform duration-300 ease-out ${evaluation ? 'translate-y-0' : 'translate-y-full'}`}>
@@ -400,27 +437,16 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
                       </div>
                     </div>
                     <div className="w-full sm:w-auto flex-shrink-0 flex items-center justify-center gap-3">
-                        <button
-                            onClick={onNextPhrase}
-                            className="flex-grow sm:flex-grow-0 px-6 py-3 rounded-lg bg-green-600 hover:bg-green-700 transition-colors font-semibold text-white shadow-md flex items-center justify-center"
-                        >
-                            <CheckIcon className="w-5 h-5 mr-2" />
-                            <span>Продолжить</span>
-                        </button>
-                        <button
-                            onClick={onPracticeNext}
-                            className="flex-grow sm:flex-grow-0 px-6 py-3 rounded-lg bg-purple-600 hover:bg-purple-700 transition-colors font-semibold text-white shadow-md flex items-center justify-center"
-                        >
-                            <span>Следующая</span>
-                            <ArrowRightIcon className="w-5 h-5 ml-2" />
-                        </button>
-                        <button
-                            onClick={onClose}
-                            className="p-3.5 rounded-lg bg-slate-600 hover:bg-slate-700 transition-colors text-white shadow-md"
-                            aria-label="Закрыть"
-                        >
-                            <CloseIcon className="w-6 h-6" />
-                        </button>
+                        {buttons.map(button => (
+                           <button
+                                key={button.key}
+                                onClick={button.action}
+                                className={`flex-1 p-3.5 rounded-lg transition-colors text-white shadow-md flex justify-center ${button.className}`}
+                                aria-label={button.label}
+                           >
+                             {button.icon}
+                           </button>
+                        ))}
                     </div>
                   </div>
                 )}

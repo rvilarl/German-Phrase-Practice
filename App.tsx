@@ -31,6 +31,7 @@ import WFragenModal from './components/WFragenModal';
 
 const PHRASES_STORAGE_KEY = 'germanPhrases';
 const SETTINGS_STORAGE_KEY = 'germanAppSettings';
+const BUTTON_USAGE_STORAGE_KEY = 'germanAppButtonUsage';
 
 type View = 'practice' | 'list';
 type AnimationDirection = 'left' | 'right';
@@ -59,7 +60,8 @@ const App: React.FC = () => {
   const [chatContextPhrase, setChatContextPhrase] = useState<Phrase | null>(null);
   
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
-  const [settings, setSettings] = useState({ autoSpeak: true, soundEffects: true });
+  const [settings, setSettings] = useState({ autoSpeak: true, soundEffects: true, dynamicButtonLayout: false });
+  const [buttonUsage, setButtonUsage] = useState({ close: 0, continue: 0, next: 0 });
 
   const [isDeepDiveModalOpen, setIsDeepDiveModalOpen] = useState(false);
   const [deepDivePhrase, setDeepDivePhrase] = useState<Phrase | null>(null);
@@ -161,8 +163,11 @@ const App: React.FC = () => {
             const storedSettings = localStorage.getItem(SETTINGS_STORAGE_KEY);
             if (storedSettings) {
                 const parsedSettings = JSON.parse(storedSettings);
-                // Merge with defaults to ensure new settings are applied
                 setSettings(prev => ({ ...prev, ...parsedSettings }));
+            }
+            const storedUsage = localStorage.getItem(BUTTON_USAGE_STORAGE_KEY);
+            if (storedUsage) {
+                setButtonUsage(JSON.parse(storedUsage));
             }
         } catch (e) { console.error("Failed to load settings", e); }
 
@@ -258,6 +263,14 @@ const App: React.FC = () => {
         return updated;
     });
   }
+
+  const handleLogButtonUsage = useCallback((button: 'close' | 'continue' | 'next') => {
+    setButtonUsage(prev => {
+        const newUsage = { ...prev, [button]: (prev[button] || 0) + 1 };
+        localStorage.setItem(BUTTON_USAGE_STORAGE_KEY, JSON.stringify(newUsage));
+        return newUsage;
+    });
+  }, []);
   
   const handleGenerateHint = useCallback(async (phrase: Phrase): Promise<string> => {
     if (phrase.hint) return phrase.hint;
@@ -951,6 +964,9 @@ const App: React.FC = () => {
             }}
             onGeneratePhraseBuilderOptions={useCallback((phrase: Phrase) => callApiWithFallback(p => p.generatePhraseBuilderOptions(phrase)), [callApiWithFallback])}
             onPracticeNext={() => selectNextPracticePhrase()}
+            settings={settings}
+            buttonUsage={buttonUsage}
+            onLogButtonUsage={handleLogButtonUsage}
        />
        {learningAssistantPhrase && <LearningAssistantModal
             isOpen={isLearningAssistantModalOpen}
