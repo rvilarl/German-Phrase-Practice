@@ -50,17 +50,17 @@ const Toast: React.FC<ToastProps> = ({ toast, onDismiss }) => {
 
     return (
       <div
-        className={`fixed bottom-24 left-1/2 -translate-x-1/2 rounded-full shadow-lg transition-all duration-300 ease-out z-[100] overflow-hidden ${
+        className={`fixed bottom-14 left-1/2 -translate-x-1/2 rounded-full shadow-lg transition-all duration-300 ease-out z-[100] overflow-hidden ${
           isHiding ? 'opacity-0 translate-y-4' : 'opacity-100 translate-y-0'
         }`}
       >
         <div
           className={`flex items-center justify-center transition-all duration-500 ease-in-out ${
-            isInitial ? 'w-12 h-12 bg-green-500' : 'w-48 h-12 bg-gray-700'
+            isInitial ? 'w-9 h-9 bg-green-500' : 'w-32 h-9 bg-gray-700'
           }`}
         >
           {isInitial ? (
-            <CheckIcon className="w-6 h-6 text-white" />
+            <CheckIcon className="w-5 h-5 text-white" />
           ) : (
             <div className="relative w-full h-full flex items-center justify-center">
               <span className="text-white text-sm font-medium">{toast.message}</span>

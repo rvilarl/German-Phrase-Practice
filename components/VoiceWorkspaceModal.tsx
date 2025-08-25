@@ -72,7 +72,8 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
   const [isListening, setIsListening] = useState(false);
   const [isLoadingOptions, setIsLoadingOptions] = useState(false);
   const [attemptNumber, setAttemptNumber] = useState(1);
-  const [localFeedback, setLocalFeedback] = useState<string | null>(null);
+  const [transientFeedback, setTransientFeedback] = useState<{ message: string; key: number } | null>(null);
+  const [isFeedbackFading, setIsFeedbackFading] = useState(false);
   const [optionsError, setOptionsError] = useState<string | null>(null);
   const [speechError, setSpeechError] = useState<string | null>(null);
 
@@ -97,11 +98,6 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const constructedPhraseRef = useRef<HTMLDivElement>(null);
 
-  const resetAttempt = useCallback(() => {
-    setAvailableWords(prev => [...prev, ...constructedWords.map((w,i)=> ({...w, originalIndex: 1000+i}))].sort((a,b) => a.originalIndex - b.originalIndex));
-    setConstructedWords([]);
-  }, [constructedWords]);
-
   const resetState = useCallback(() => {
     setConstructedWords([]);
     setAvailableWords([]);
@@ -113,7 +109,8 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
     setDropIndex(null);
     setGhostPosition(null);
     setAttemptNumber(1);
-    setLocalFeedback(null);
+    setTransientFeedback(null);
+    setIsFeedbackFading(false);
     setOptionsError(null);
     setSpeechError(null);
     setSuccessTimestamp(null);
@@ -176,6 +173,20 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
     };
   }, [isOpen, phrase, resetState, loadWordOptions]);
 
+  // Effect for transient feedback visibility
+  useEffect(() => {
+    if (transientFeedback) {
+      const timer = setTimeout(() => {
+        setIsFeedbackFading(true);
+        const fadeOutTimer = setTimeout(() => {
+            setTransientFeedback(null);
+        }, 500); // match animation duration
+        return () => clearTimeout(fadeOutTimer);
+      }, 3000); // 3 seconds visible
+      return () => clearTimeout(timer);
+    }
+  }, [transientFeedback]);
+
   // Effect for detecting "thinking"
   useEffect(() => {
     if (isOpen && phrase && !evaluation && !hasUserPausedInSession) {
@@ -197,7 +208,7 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
             interactionNode?.removeEventListener('touchstart', resetThinkTimer);
         };
     }
-  }, [isOpen, phrase, evaluation, constructedWords, availableWords, hasUserPausedInSession]); // dependencies updated
+  }, [isOpen, phrase, evaluation, constructedWords, availableWords, hasUserPausedInSession]);
 
   // Effect for inactivity and hinting
   useEffect(() => {
@@ -219,10 +230,11 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
             const germanWords = phrase.german.split(' ');
             if (nextWordIndex < germanWords.length) {
               const nextCorrectWord = germanWords[nextWordIndex];
-              const hintedWord = availableWords.find(aw => aw.text === nextCorrectWord);
+              const hintedWord = availableWords.find(aw => normalizeString(aw.text) === normalizeString(nextCorrectWord));
               if (hintedWord) {
                 setHintWordId(hintedWord.id);
                 setHintCount(prev => prev + 1);
+                setTimeout(() => setHintWordId(null), 1000); // Reset after animation
               }
             }
           } else { 
@@ -232,7 +244,7 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
       }
     };
 
-    const delay = (constructedWords.length === 0) ? 3000 : 2000;
+    const delay = (constructedWords.length === 0) ? 5000 : 2000;
     inactivityTimerRef.current = window.setTimeout(handleTimeout, delay);
 
     return () => {
@@ -254,7 +266,7 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
     
     if (shouldAutoAdvance) {
         onSuccess(phrase);
-        setSuccessTimestamp(Date.now()); // For next habit check
+        setSuccessTimestamp(Date.now());
         onPracticeNext();
         showToast({ message: 'Следующая фраза', type: 'automationSuccess' });
         return; 
@@ -267,14 +279,11 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
       return;
     }
 
-    if (attemptNumber === 1 && availableWords.length > 0) {
+    if (attemptNumber === 1) {
       setAttemptNumber(2);
-      setLocalFeedback('Неверно. Попробуйте еще раз!');
+      setTransientFeedback({ message: 'К сожалению ошибка. Попробуй еще раз ...', key: Date.now() });
+      setIsFeedbackFading(false);
       recognitionRef.current?.stop();
-      setTimeout(() => {
-          setLocalFeedback(null);
-          resetAttempt();
-      }, 2000);
     } else {
       setIsChecking(true);
       setEvaluation(null);
@@ -294,7 +303,7 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
         setIsChecking(false);
       }
     }
-  }, [phrase, constructedWords, onSuccess, onFailure, onEvaluate, attemptNumber, availableWords.length, resetAttempt, habitTracker.quickBuilderNextCount, settings.automation.learnNextPhraseHabit, hasUserPausedInSession, onPracticeNext, showToast]);
+  }, [phrase, constructedWords, onSuccess, onFailure, onEvaluate, attemptNumber, habitTracker.quickBuilderNextCount, settings.automation.learnNextPhraseHabit, hasUserPausedInSession, onPracticeNext, showToast]);
 
   // Effect for intelligent auto-checking
   useEffect(() => {
@@ -376,6 +385,7 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
     setIsStuck(false);
     setShowPostHintButtons(false);
     setHintWordId(null);
+    if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current);
     callback();
   };
 
@@ -394,7 +404,10 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
     setAvailableWords(prev => [...prev, newAvailableWord].sort((a,b) => a.originalIndex - b.originalIndex));
   });
 
-  const handleReset = () => handleUserInteraction(resetAttempt);
+  const handleReset = () => handleUserInteraction(() => {
+    setAvailableWords(prev => [...prev, ...constructedWords.map((w,i)=> ({...w, originalIndex: 1000+i}))].sort((a,b) => a.originalIndex - b.originalIndex));
+    setConstructedWords([]);
+  });
   
   const handleSelectWord = (word: AvailableWord) => handleUserInteraction(() => {
     if (!!evaluation) return;
@@ -532,11 +545,6 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
           </header>
 
           <div ref={interactionRef} className="flex-grow flex flex-col p-4 overflow-hidden relative">
-              {localFeedback && (
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-red-800/90 text-white p-4 rounded-lg shadow-lg animate-fade-in text-lg font-semibold z-10">
-                    {localFeedback}
-                </div>
-              )}
               <div className="flex-shrink-0 flex items-center gap-x-2">
                   <AudioPlayer textToSpeak={userAttempt} />
                   <div 
@@ -569,21 +577,29 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
               </div>
               
               <div className="flex-grow my-4 min-h-0 flex flex-col justify-end">
-                  {(isStuck || showPostHintButtons) && (
-                    <div className="flex-shrink-0 flex justify-center items-center gap-x-4 mb-4 animate-fade-in">
-                      {isStuck &&
-                        <button onClick={handleFailureAndReveal} className="px-4 py-2 rounded-lg bg-yellow-600/80 hover:bg-yellow-600 transition-colors text-white font-medium">
-                          Не знаю
+                  <div className="flex-shrink-0 flex justify-center items-center gap-x-3 h-12 mb-2">
+                    {(isStuck || showPostHintButtons) && (
+                      <div className="flex justify-center items-center gap-x-3 animate-fade-in">
+                        {isStuck &&
+                          <button onClick={handleFailureAndReveal} className="px-3 py-1.5 rounded-full bg-slate-600/80 hover:bg-slate-600 transition-colors text-white font-medium text-sm">
+                            Не знаю
+                          </button>
+                        }
+                        <button onClick={handleFailureAndReveal} className="px-3 py-1.5 rounded-full bg-slate-600/80 hover:bg-slate-600 transition-colors text-white font-medium text-sm">
+                          Забыл
                         </button>
-                      }
-                      <button onClick={handleFailureAndReveal} className="px-4 py-2 rounded-lg bg-red-600/80 hover:bg-red-600 transition-colors text-white font-medium">
-                        Забыл
-                      </button>
-                      <button onClick={handleLearn} className="px-4 py-2 rounded-lg bg-sky-600/80 hover:bg-sky-600 transition-colors text-white font-medium flex items-center gap-x-2">
-                        <BookOpenIcon className="w-5 h-5" /> Учить
-                      </button>
-                    </div>
-                  )}
+                        <button onClick={handleLearn} className="p-2 rounded-full bg-slate-600/80 hover:bg-slate-600 transition-colors text-white">
+                          <BookOpenIcon className="w-5 h-5" />
+                        </button>
+                      </div>
+                    )}
+                     {transientFeedback && (
+                        <div key={transientFeedback.key} className={`relative text-slate-400 text-sm overflow-hidden transition-opacity duration-500 ${isFeedbackFading ? 'opacity-0' : 'opacity-100'}`}>
+                           {transientFeedback.message}
+                           <span className="feedback-text-shine" />
+                       </div>
+                    )}
+                  </div>
                   <div className="w-full max-h-full bg-slate-900/50 flex flex-wrap items-end content-end justify-center gap-2 p-4 rounded-lg overflow-y-auto hide-scrollbar">
                       {isLoadingOptions ? (
                         <WordBankSkeleton />
@@ -598,7 +614,7 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
                               onDragStart={(e) => handleDragStart(e, word, 'available', index)}
                               onDragEnd={handleDragEnd}
                               disabled={!!evaluation} 
-                              className={`px-3 py-1.5 bg-slate-600 text-slate-200 rounded-lg transition-all text-lg font-medium disabled:opacity-30 cursor-grab active:cursor-grabbing ${word.id === hintWordId ? 'word-hint-glow-animation' : 'hover:bg-slate-500'}`}
+                              className={`relative overflow-hidden px-3 py-1.5 bg-slate-600 text-slate-200 rounded-lg transition-all text-lg font-medium disabled:opacity-30 cursor-grab active:cursor-grabbing ${word.id === hintWordId ? 'word-hint-shine' : 'hover:bg-slate-500'}`}
                             >
                                 {word.text}
                             </button>
