@@ -438,6 +438,19 @@ const learningAssistantResponseSchema = {
             items: {
                 type: Type.STRING
             }
+        },
+        cheatSheetOptions: {
+            type: Type.ARRAY,
+            description: "An optional list of cheat sheet buttons to show the user based on the current question.",
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    type: { type: Type.STRING, enum: ['verbConjugation', 'nounDeclension', 'pronouns', 'wFragen'] },
+                    label: { type: Type.STRING, description: "The button text, e.g., 'Спряжение: gehen'" },
+                    data: { type: Type.STRING, description: "Data for the cheat sheet. Verb infinitive, or a JSON string for nouns like '{\"noun\":\"Tisch\",\"article\":\"der\"}'." }
+                },
+                required: ["type", "label", "data"]
+            }
         }
     },
     required: ["responseParts", "isCorrect", "promptSuggestions", "wordOptions"]
@@ -492,10 +505,17 @@ const guideToTranslation: AiService['guideToTranslation'] = async (phrase, histo
 - В \`responseParts\` напиши поздравительное сообщение. Пример: "Великолепно! Ты собрал всю фразу: 'Schlafzimmerblick'. Отличная работа!"
 - \`wordOptions\` и \`promptSuggestions\` должны быть пустыми.
 
+**Интерактивные подсказки (Cheat Sheets):**
+- Если твой наводящий вопрос касается **спряжения глагола**, ОБЯЗАТЕЛЬНО добавь в \`cheatSheetOptions\` объект для вызова шпаргалки. Пример: \`[{\"type\": \"verbConjugation\", \"label\": \"Спряжение: gehen\", \"data\": \"gehen\"}]\`.
+- Если вопрос касается **существительного и его артикля**, сделай то же самое. Пример: \`[{\"type\": \"nounDeclension\", \"label\": \"Артикли: der Tisch\", \"data\": \"{\\\"noun\\\":\\\"Tisch\\\",\\\"article\\\":\\\"der\\\"}\"}]\`.
+- Если вопрос о **личном местоимении** (ich, du, er...), добавь: \`[{\"type\": \"pronouns\", \"label\": \"Местоимения\", \"data\": \"\"}]\`.
+- Если вопрос о **вопросительном слове** (Wie, Was, Wo...), добавь: \`[{\"type\": \"wFragen\", \"label\": \"Вопросительные слова\", \"data\": \"\"}]\`.
+- Включай эти подсказки только тогда, когда они релевантны для текущего шага.
+
 **Общие правила:**
 - **НИКОГДА** не давай полный ответ до самого конца.
 - Всегда отвечай на русском.
-- Используй JSON-формат с полями 'responseParts', 'isCorrect', 'promptSuggestions', 'wordOptions'.`;
+- Используй JSON-формат со всеми полями из схемы. Поле \`cheatSheetOptions\` является необязательным.`;
     
     const userMessage = userAnswer || "(Начало сессии, дай первую подсказку)";
 
@@ -520,6 +540,7 @@ const guideToTranslation: AiService['guideToTranslation'] = async (phrase, histo
             isCorrect: parsedResponse.isCorrect || false,
             promptSuggestions: parsedResponse.promptSuggestions || [],
             wordOptions: parsedResponse.wordOptions || [],
+            cheatSheetOptions: parsedResponse.cheatSheetOptions || [],
         };
 
     } catch (error) {

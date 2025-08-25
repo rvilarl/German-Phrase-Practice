@@ -26,6 +26,8 @@ import PhraseBuilderModal from './components/PhraseBuilderModal';
 import ExpandingFab from './components/ExpandingFab';
 import DiscussTranslationModal from './components/DiscussTranslationModal';
 import LearningAssistantModal from './components/LearningAssistantModal';
+import PronounsModal from './components/PronounsModal';
+import WFragenModal from './components/WFragenModal';
 
 const PHRASES_STORAGE_KEY = 'germanPhrases';
 const SETTINGS_STORAGE_KEY = 'germanAppSettings';
@@ -120,6 +122,9 @@ const App: React.FC = () => {
   const [isDiscussModalOpen, setIsDiscussModalOpen] = useState(false);
   const [phraseToDiscuss, setPhraseToDiscuss] = useState<Phrase | null>(null);
   
+  const [isPronounsModalOpen, setIsPronounsModalOpen] = useState(false);
+  const [isWFragenModalOpen, setIsWFragenModalOpen] = useState(false);
+
   const isPrefetchingRef = useRef(false);
 
 
@@ -927,6 +932,10 @@ const App: React.FC = () => {
             phrase={learningAssistantPhrase}
             onGuide={handleGuideToTranslation}
             onSuccess={handleLearningAssistantSuccess}
+            onOpenVerbConjugation={handleOpenVerbConjugation}
+            onOpenNounDeclension={handleOpenNounDeclension}
+            onOpenPronounsModal={() => setIsPronounsModalOpen(true)}
+            onOpenWFragenModal={() => setIsWFragenModalOpen(true)}
        />}
        {phraseToDiscuss && apiProvider && <DiscussTranslationModal
             isOpen={isDiscussModalOpen}
@@ -936,6 +945,8 @@ const App: React.FC = () => {
             onDiscuss={handleDiscussTranslation}
             onAccept={handleDiscussionAccept}
         />}
+        <PronounsModal isOpen={isPronounsModalOpen} onClose={() => setIsPronounsModalOpen(false)} />
+        <WFragenModal isOpen={isWFragenModalOpen} onClose={() => setIsWFragenModalOpen(false)} />
     </div>
   );
 };

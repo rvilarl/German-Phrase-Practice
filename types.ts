@@ -83,6 +83,12 @@ export interface ContentPart {
   text: string;
 }
 
+export interface CheatSheetOption {
+  type: 'verbConjugation' | 'nounDeclension' | 'pronouns' | 'wFragen';
+  label: string; // e.g., "Спряжение: sprechen"
+  data: string; // e.g., 'sprechen' or a JSON string like '{"noun":"Tisch","article":"der"}'
+}
+
 export interface ChatMessage {
   role: 'user' | 'model';
   text?: string;
@@ -92,6 +98,7 @@ export interface ChatMessage {
   promptSuggestions?: string[];
   isCorrect?: boolean;
   wordOptions?: string[];
+  cheatSheetOptions?: CheatSheetOption[];
 }
 
 export interface DeepDiveAnalysis {

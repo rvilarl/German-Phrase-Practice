@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Phrase, ChatMessage } from '../types';
+import { Phrase, ChatMessage, CheatSheetOption } from '../types';
 import CloseIcon from './icons/CloseIcon';
 import SendIcon from './icons/SendIcon';
 import SoundIcon from './icons/SoundIcon';
@@ -12,6 +12,10 @@ interface LearningAssistantModalProps {
   phrase: Phrase;
   onGuide: (phrase: Phrase, history: ChatMessage[], userAnswer: string) => Promise<ChatMessage>;
   onSuccess: (phrase: Phrase) => void;
+  onOpenVerbConjugation: (infinitive: string) => void;
+  onOpenNounDeclension: (noun: string, article: string) => void;
+  onOpenPronounsModal: () => void;
+  onOpenWFragenModal: () => void;
 }
 
 const ChatMessageContent: React.FC<{ message: ChatMessage; onSpeak: (text: string) => void }> = ({ message, onSpeak }) => {
@@ -43,11 +47,12 @@ const ChatMessageContent: React.FC<{ message: ChatMessage; onSpeak: (text: strin
     return message.text ? <p>{message.text}</p> : null;
 };
 
-const LearningAssistantModal: React.FC<LearningAssistantModalProps> = ({ isOpen, onClose, phrase, onGuide, onSuccess }) => {
+const LearningAssistantModal: React.FC<LearningAssistantModalProps> = ({ isOpen, onClose, phrase, onGuide, onSuccess, onOpenVerbConjugation, onOpenNounDeclension, onOpenPronounsModal, onOpenWFragenModal }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [input, setInput] = useState('');
   const [wordOptions, setWordOptions] = useState<string[]>([]);
+  const [cheatSheetOptions, setCheatSheetOptions] = useState<CheatSheetOption[]>([]);
   const [isSuccess, setIsSuccess] = useState(false);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -71,6 +76,7 @@ const LearningAssistantModal: React.FC<LearningAssistantModalProps> = ({ isOpen,
     if (isOpen && phrase) {
       setMessages([]);
       setWordOptions([]);
+      setCheatSheetOptions([]);
       setIsLoading(true);
       setIsSuccess(false);
 
@@ -78,6 +84,7 @@ const LearningAssistantModal: React.FC<LearningAssistantModalProps> = ({ isOpen,
         .then(initialMessage => {
           setMessages([initialMessage]);
           setWordOptions(initialMessage.wordOptions || []);
+          setCheatSheetOptions(initialMessage.cheatSheetOptions || []);
         })
         .catch(err => {
           setMessages([{ role: 'model', contentParts: [{type: 'text', text: `Произошла ошибка: ${(err as Error).message}`}] }]);
@@ -100,7 +107,8 @@ const LearningAssistantModal: React.FC<LearningAssistantModalProps> = ({ isOpen,
   const handleSendMessage = useCallback(async (messageText: string) => {
     if (!messageText.trim() || isLoading || isSuccess) return;
 
-    setWordOptions([]); // Clear options immediately for responsiveness
+    setWordOptions([]);
+    setCheatSheetOptions([]);
 
     const userMessage: ChatMessage = { role: 'user', text: messageText };
     const messagesWithUser = [...messages, userMessage];
@@ -112,6 +120,7 @@ const LearningAssistantModal: React.FC<LearningAssistantModalProps> = ({ isOpen,
         const modelResponse = await onGuide(phrase, messagesWithUser, messageText);
         setMessages(prev => [...prev, modelResponse]);
         setWordOptions(modelResponse.wordOptions || []);
+        setCheatSheetOptions(modelResponse.cheatSheetOptions || []);
         if (modelResponse.isCorrect) {
           setIsSuccess(true);
           onSuccess(phrase);
@@ -128,10 +137,33 @@ const LearningAssistantModal: React.FC<LearningAssistantModalProps> = ({ isOpen,
     handleSendMessage(suggestion);
   };
   
+  const handleCheatSheetClick = (option: CheatSheetOption) => {
+    switch (option.type) {
+      case 'verbConjugation':
+        onOpenVerbConjugation(option.data);
+        break;
+      case 'nounDeclension':
+        try {
+          const nounData = JSON.parse(option.data);
+          if (nounData.noun && nounData.article) {
+            onOpenNounDeclension(nounData.noun, nounData.article);
+          }
+        } catch (e) { console.error("Failed to parse noun data for cheat sheet", e); }
+        break;
+      case 'pronouns':
+        onOpenPronounsModal();
+        break;
+      case 'wFragen':
+        onOpenWFragenModal();
+        break;
+    }
+  };
+
   if (!isOpen) return null;
 
   const latestMessage = messages[messages.length - 1];
   const promptSuggestions = (latestMessage?.role === 'model' && latestMessage.promptSuggestions) || [];
+  const showOptions = (wordOptions.length > 0 || cheatSheetOptions.length > 0) && !isLoading && !isSuccess;
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex justify-center items-end" onClick={() => onClose(false)}>
@@ -180,7 +212,7 @@ const LearningAssistantModal: React.FC<LearningAssistantModalProps> = ({ isOpen,
         </div>
 
         <div className="p-4 border-t border-slate-700 flex-shrink-0 bg-slate-800/80 backdrop-blur-sm">
-          {wordOptions.length > 0 && !isLoading && !isSuccess && (
+          {showOptions && (
             <div className="pb-3 mb-3 border-b border-slate-700/50">
               <div className="flex flex-wrap justify-center gap-2">
                 {wordOptions.map((word, index) => (
@@ -190,6 +222,16 @@ const LearningAssistantModal: React.FC<LearningAssistantModalProps> = ({ isOpen,
                     className="px-4 py-2 bg-slate-600/80 hover:bg-slate-600 rounded-lg transition-colors text-slate-100 font-medium animate-fade-in"
                   >
                     {word}
+                  </button>
+                ))}
+                {cheatSheetOptions.map((option, index) => (
+                  <button
+                    key={`cheat-${index}`}
+                    onClick={() => handleCheatSheetClick(option)}
+                    className="px-4 py-2 bg-sky-600/80 hover:bg-sky-600 rounded-lg transition-colors text-slate-100 font-medium animate-fade-in flex items-center gap-x-2"
+                  >
+                    <BookOpenIcon className="w-4 h-4" />
+                    <span>{option.label}</span>
                   </button>
                 ))}
               </div>
