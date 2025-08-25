@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Phrase, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, SentenceContinuation, PhraseBuilderOptions, PhraseEvaluation, ChatMessage } from './types';
 import * as srsService from './services/srsService';
@@ -32,6 +33,7 @@ import WFragenModal from './components/WFragenModal';
 const PHRASES_STORAGE_KEY = 'germanPhrases';
 const SETTINGS_STORAGE_KEY = 'germanAppSettings';
 const BUTTON_USAGE_STORAGE_KEY = 'germanAppButtonUsage';
+const MASTERY_BUTTON_USAGE_STORAGE_KEY = 'germanAppMasteryButtonUsage';
 
 type View = 'practice' | 'list';
 type AnimationDirection = 'left' | 'right';
@@ -60,8 +62,9 @@ const App: React.FC = () => {
   const [chatContextPhrase, setChatContextPhrase] = useState<Phrase | null>(null);
   
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
-  const [settings, setSettings] = useState({ autoSpeak: true, soundEffects: true, dynamicButtonLayout: false });
+  const [settings, setSettings] = useState({ autoSpeak: true, soundEffects: true, dynamicButtonLayout: true });
   const [buttonUsage, setButtonUsage] = useState({ close: 0, continue: 0, next: 0 });
+  const [masteryButtonUsage, setMasteryButtonUsage] = useState({ know: 0, forgot: 0, dont_know: 0 });
 
   const [isDeepDiveModalOpen, setIsDeepDiveModalOpen] = useState(false);
   const [deepDivePhrase, setDeepDivePhrase] = useState<Phrase | null>(null);
@@ -169,6 +172,10 @@ const App: React.FC = () => {
             if (storedUsage) {
                 setButtonUsage(JSON.parse(storedUsage));
             }
+            const storedMasteryUsage = localStorage.getItem(MASTERY_BUTTON_USAGE_STORAGE_KEY);
+            if (storedMasteryUsage) {
+                setMasteryButtonUsage(JSON.parse(storedMasteryUsage));
+            }
         } catch (e) { console.error("Failed to load settings", e); }
 
         let loadedPhrases: Phrase[] = [];
@@ -265,9 +272,31 @@ const App: React.FC = () => {
   }
 
   const handleLogButtonUsage = useCallback((button: 'close' | 'continue' | 'next') => {
+    const DECAY_FACTOR = 0.95;
+    const INCREMENT = 1;
     setButtonUsage(prev => {
-        const newUsage = { ...prev, [button]: (prev[button] || 0) + 1 };
+        const newUsage = {
+            close: prev.close * DECAY_FACTOR,
+            continue: prev.continue * DECAY_FACTOR,
+            next: prev.next * DECAY_FACTOR,
+        };
+        newUsage[button] += INCREMENT;
         localStorage.setItem(BUTTON_USAGE_STORAGE_KEY, JSON.stringify(newUsage));
+        return newUsage;
+    });
+  }, []);
+
+  const handleLogMasteryButtonUsage = useCallback((button: 'know' | 'forgot' | 'dont_know') => {
+    const DECAY_FACTOR = 0.95;
+    const INCREMENT = 1;
+    setMasteryButtonUsage(prev => {
+        const newUsage = {
+            know: prev.know * DECAY_FACTOR,
+            forgot: prev.forgot * DECAY_FACTOR,
+            dont_know: prev.dont_know * DECAY_FACTOR,
+        };
+        newUsage[button] += INCREMENT;
+        localStorage.setItem(MASTERY_BUTTON_USAGE_STORAGE_KEY, JSON.stringify(newUsage));
         return newUsage;
     });
   }, []);
@@ -748,6 +777,8 @@ const App: React.FC = () => {
   const handlePracticeUpdateMastery = (action: 'know' | 'forgot' | 'dont_know') => {
     if (!currentPracticePhrase || practiceIsExitingRef.current) return;
 
+    handleLogMasteryButtonUsage(action);
+
     const phraseToSpeak = currentPracticePhrase.german;
     const updatedPhrase = srsService.updatePhraseMastery(currentPracticePhrase, action);
     
@@ -829,6 +860,8 @@ const App: React.FC = () => {
              onGoToList={handleGoToListFromPractice}
              onOpenDiscussTranslation={handleOpenDiscussModal}
              onGenerateHint={handleGenerateHint}
+             settings={settings}
+             masteryButtonUsage={masteryButtonUsage}
            />
         ) : (
           <PhraseListPage 

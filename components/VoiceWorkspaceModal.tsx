@@ -142,6 +142,85 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
         recognitionRef.current?.abort();
     };
   }, [isOpen, phrase, resetState, loadWordOptions]);
+
+  const handleCheck = useCallback(async () => {
+    if (!phrase) return;
+    const userAttempt = constructedWords.map(w => w.text).join(' ');
+    if (!userAttempt) return;
+
+    const isCorrectLocally = normalizeString(userAttempt) === normalizeString(phrase.german);
+
+    if (isCorrectLocally) {
+      setEvaluation({ isCorrect: true, feedback: 'Отлично! Всё верно.' });
+      onSuccess(phrase);
+      return;
+    }
+
+    if (attemptNumber === 1 && availableWords.length > 0) {
+      setAttemptNumber(2);
+      setLocalFeedback('Неверно. Попробуйте еще раз!');
+      recognitionRef.current?.stop();
+      setTimeout(() => {
+          setLocalFeedback(null);
+          resetAttempt();
+          try {
+            recognitionRef.current?.start();
+          } catch(e) { console.error("Could not start recognition for second attempt:", e); }
+      }, 2000);
+    } else {
+      setIsChecking(true);
+      setEvaluation(null);
+      try {
+        const result = await onEvaluate(phrase, userAttempt);
+        setEvaluation(result);
+        onFailure(phrase);
+      } catch (err) {
+        setEvaluation({ isCorrect: false, feedback: err instanceof Error ? err.message : 'Ошибка проверки.' });
+        onFailure(phrase);
+      } finally {
+        setIsChecking(false);
+      }
+    }
+  }, [phrase, constructedWords, onSuccess, attemptNumber, availableWords, resetAttempt, onEvaluate, onFailure]);
+
+  // Effect for intelligent auto-checking
+  useEffect(() => {
+    const autoCheck = () => {
+      // Condition 1: Don't run if not ready, already checking, has a result, or listening to speech.
+      if (!isOpen || !phrase || isLoadingOptions || isChecking || evaluation || isListening) {
+        return;
+      }
+      
+      const userAttempt = constructedWords.map(w => w.text).join(' ');
+      // Condition 2: Don't run on empty attempt
+      if (!userAttempt) {
+        return;
+      }
+      
+      // Condition 3: Only run for short phrases (<= 3 words). This is the core heuristic.
+      const wordCount = phrase.german.split(' ').length;
+      if (wordCount > 3) {
+        return;
+      }
+
+      // Condition 4: The constructed phrase must be a perfect match.
+      if (normalizeString(userAttempt) === normalizeString(phrase.german)) {
+        // A brief delay for better UX, allowing the user to see the last word placed.
+        const timer = setTimeout(() => {
+          // Double-check state inside timeout as things might have changed
+          if (isOpen && !isChecking && !evaluation) {
+            handleCheck();
+          }
+        }, 400);
+        
+        // Cleanup to prevent multiple timers if words are added quickly
+        return () => clearTimeout(timer);
+      }
+    };
+
+    const cleanup = autoCheck();
+    return cleanup;
+  }, [constructedWords, phrase, isOpen, isLoadingOptions, isChecking, evaluation, isListening, handleCheck]);
   
   useEffect(() => {
     const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -191,46 +270,6 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
     } else {
       setSpeechError(null);
       recognitionRef.current?.start();
-    }
-  };
-
-  const handleCheck = async () => {
-    if (!phrase) return;
-    const userAttempt = constructedWords.map(w => w.text).join(' ');
-    if (!userAttempt) return;
-
-    const isCorrectLocally = normalizeString(userAttempt) === normalizeString(phrase.german);
-
-    if (isCorrectLocally) {
-      setEvaluation({ isCorrect: true, feedback: 'Отлично! Всё верно.' });
-      onSuccess(phrase);
-      return;
-    }
-
-    if (attemptNumber === 1 && availableWords.length > 0) {
-      setAttemptNumber(2);
-      setLocalFeedback('Неверно. Попробуйте еще раз!');
-      recognitionRef.current?.stop();
-      setTimeout(() => {
-          setLocalFeedback(null);
-          resetAttempt();
-          try {
-            recognitionRef.current?.start();
-          } catch(e) { console.error("Could not start recognition for second attempt:", e); }
-      }, 2000);
-    } else {
-      setIsChecking(true);
-      setEvaluation(null);
-      try {
-        const result = await onEvaluate(phrase, userAttempt);
-        setEvaluation(result);
-        onFailure(phrase);
-      } catch (err) {
-        setEvaluation({ isCorrect: false, feedback: err instanceof Error ? err.message : 'Ошибка проверки.' });
-        onFailure(phrase);
-      } finally {
-        setIsChecking(false);
-      }
     }
   };
   
@@ -387,7 +426,7 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
               </div>
               
               <div className="flex-grow my-4 min-h-0">
-                  <div className="w-full h-full bg-slate-900/50 flex flex-wrap items-start content-start justify-center gap-2 p-4 rounded-lg overflow-y-auto hide-scrollbar">
+                  <div className="w-full max-h-full bg-slate-900/50 flex flex-wrap items-end content-end justify-center gap-2 p-4 rounded-lg overflow-y-auto hide-scrollbar">
                       {isLoadingOptions ? (
                         <WordBankSkeleton />
                       ) : optionsError ? (

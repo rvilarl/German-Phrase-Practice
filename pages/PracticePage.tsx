@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState, useEffect } from 'react';
+import React, { useCallback, useRef, useState, useEffect, useMemo } from 'react';
 import type { Phrase } from '../types';
 import PhraseCard from '../components/PhraseCard';
 import Spinner from '../components/Spinner';
@@ -77,6 +77,8 @@ interface PracticePageProps {
   onGoToList: (phrase: Phrase) => void;
   onOpenDiscussTranslation: (phrase: Phrase) => void;
   onGenerateHint: (phrase: Phrase) => Promise<string>;
+  settings: { dynamicButtonLayout: boolean };
+  masteryButtonUsage: { know: number; forgot: number; dont_know: number };
 }
 
 const PracticePage: React.FC<PracticePageProps> = (props) => {
@@ -86,7 +88,8 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
     onUpdateMastery, onContinue, onSwipeLeft, onSwipeRight,
     onOpenChat, onOpenDeepDive, onOpenMovieExamples, onOpenWordAnalysis,
     onOpenSentenceChain, onOpenImprovePhrase, onOpenLearningAssistant,
-    onOpenVoiceWorkspace, onDeletePhrase, onGoToList, onOpenDiscussTranslation, onGenerateHint
+    onOpenVoiceWorkspace, onDeletePhrase, onGoToList, onOpenDiscussTranslation, onGenerateHint,
+    settings, masteryButtonUsage
   } = props;
 
   const [contextMenuPhrase, setContextMenuPhrase] = React.useState<Phrase | null>(null);
@@ -156,12 +159,32 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
      if (isAnswerRevealed) {
         return <div className="flex justify-center mt-8"><button onClick={onContinue} className="px-10 py-3 rounded-lg bg-purple-600 hover:bg-purple-700 transition-colors font-semibold text-white shadow-md" disabled={isExiting}>Продолжить</button></div>;
      }
+     
      const hasBeenReviewed = currentPhrase?.lastReviewedAt !== null;
+
+     const allButtons = [
+        { key: 'dont_know' as const, label: 'Не знаю', className: 'bg-yellow-600 hover:bg-yellow-700', condition: !hasBeenReviewed },
+        { key: 'forgot' as const, label: 'Забыл', className: 'bg-red-600 hover:bg-red-700', condition: true },
+        { key: 'know' as const, label: 'Знаю', className: 'bg-green-600 hover:bg-green-700', condition: true },
+    ];
+
+    let buttonsToRender = allButtons.filter(btn => btn.condition);
+
+    if (settings.dynamicButtonLayout) {
+        buttonsToRender.sort((a, b) => (masteryButtonUsage[a.key] || 0) - (masteryButtonUsage[b.key] || 0));
+    }
+
      return (
         <div className="flex justify-center space-x-2 sm:space-x-4 mt-8">
-            {!hasBeenReviewed && <button onClick={() => onUpdateMastery('dont_know')} className="px-4 sm:px-6 py-3 rounded-lg bg-yellow-600 hover:bg-yellow-700 transition-colors font-semibold text-white shadow-md">Не знаю</button>}
-            <button onClick={() => onUpdateMastery('forgot')} className="px-4 sm:px-6 py-3 rounded-lg bg-red-600 hover:bg-red-700 transition-colors font-semibold text-white shadow-md">Забыл</button>
-            <button onClick={() => onUpdateMastery('know')} className="px-4 sm:px-6 py-3 rounded-lg bg-green-600 hover:bg-green-700 transition-colors font-semibold text-white shadow-md">Знаю</button>
+             {buttonsToRender.map(btn => (
+                <button 
+                    key={btn.key} 
+                    onClick={() => onUpdateMastery(btn.key)} 
+                    className={`px-4 sm:px-6 py-3 rounded-lg font-semibold text-white shadow-md transition-colors ${btn.className}`}
+                >
+                    {btn.label}
+                </button>
+            ))}
         </div>
      );
   };
