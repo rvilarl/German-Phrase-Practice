@@ -141,6 +141,12 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
     setAvailableWords([...availableWords, ...constructedWords.map((w,i)=> ({...w, originalIndex: 1000+i}))].sort((a,b) => a.originalIndex - b.originalIndex));
     setConstructedWords([]);
   };
+  
+  const handleSelectWord = (word: AvailableWord) => {
+    if (!!evaluation) return; // Don't allow changes after evaluation
+    setConstructedWords(prev => [...prev, word]);
+    setAvailableWords(prev => prev.filter(w => w.id !== word.id));
+  };
 
   // --- Drag & Drop Handlers ---
   const handleDragStart = (e: React.DragEvent<HTMLButtonElement>, word: Word, from: 'available' | 'constructed', index: number) => {
@@ -270,7 +276,8 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
                   <div className="w-full h-full bg-slate-900/50 flex flex-wrap items-start content-start justify-center gap-2 p-4 rounded-lg overflow-y-auto hide-scrollbar">
                       {isLoadingOptions ? <Spinner /> : availableWords.map((word, index) => (
                           <button 
-                            key={word.id} 
+                            key={word.id}
+                            onClick={() => handleSelectWord(word)}
                             draggable
                             onDragStart={(e) => handleDragStart(e, word, 'available', index)}
                             onDragEnd={handleDragEnd}
