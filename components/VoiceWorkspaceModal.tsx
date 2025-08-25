@@ -53,11 +53,12 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
   const [evaluation, setEvaluation] = useState<PhraseEvaluation | null>(null);
   const [isChecking, setIsChecking] = useState(false);
   const [isListening, setIsListening] = useState(false);
-  const [isLoadingOptions, setIsLoadingOptions] = useState(true);
+  const [isLoadingOptions, setIsLoadingOptions] = useState(false);
   const [attemptNumber, setAttemptNumber] = useState(1);
   const [localFeedback, setLocalFeedback] = useState<string | null>(null);
   const [optionsError, setOptionsError] = useState<string | null>(null);
   const [speechError, setSpeechError] = useState<string | null>(null);
+  const [optionsFetched, setOptionsFetched] = useState(false);
 
   // Drag & Drop State
   const [draggedItem, setDraggedItem] = useState<DraggedItem | null>(null);
@@ -73,7 +74,7 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
     setEvaluation(null);
     setIsChecking(false);
     setIsListening(false);
-    setIsLoadingOptions(true);
+    setIsLoadingOptions(false);
     setDraggedItem(null);
     setDropIndex(null);
     setGhostPosition(null);
@@ -81,46 +82,58 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
     setLocalFeedback(null);
     setOptionsError(null);
     setSpeechError(null);
+    setOptionsFetched(false);
   }, []);
+  
+  const loadWordOptions = useCallback(async () => {
+      if (!phrase) return;
+      setIsLoadingOptions(true);
+      setOptionsError(null);
+      try {
+          const options = await onGeneratePhraseBuilderOptions(phrase);
+          setAvailableWords(options.words.map((w, i) => ({ text: w, id: `avail-${i}`, originalIndex: i })));
+      } catch (err) {
+          let displayError = "Произошла непредвиденная ошибка.";
+          console.error("Failed to load phrase builder options:", err);
+          if (err instanceof Error) {
+              if (err.message.includes("500") || err.message.includes("Internal Server Error")) {
+                  displayError = "Сервис временно недоступен (ошибка 500).";
+              } else if (err.message.includes("API key")) {
+                  displayError = "Ошибка конфигурации API ключа.";
+              } else {
+                  displayError = "Не удалось выполнить запрос.";
+              }
+          }
+          setOptionsError(`Не удалось загрузить варианты слов. ${displayError}`);
+      } finally {
+          setIsLoadingOptions(false);
+      }
+  }, [phrase, onGeneratePhraseBuilderOptions]);
 
+  // Effect to trigger fetching words after the first speech result.
   useEffect(() => {
-    let startTimer: number;
+    if (optionsFetched && availableWords.length === 0 && !isLoadingOptions) {
+      loadWordOptions();
+    }
+  }, [optionsFetched, availableWords.length, isLoadingOptions, loadWordOptions]);
+
+  // Effect to handle modal opening and closing.
+  useEffect(() => {
     if (isOpen && phrase) {
       resetState();
-
-      startTimer = window.setTimeout(() => {
-          try {
-              setSpeechError(null);
-              recognitionRef.current?.start();
-          } catch (e) { console.error("Auto-start recognition failed", e); }
-      }, 500);
-
-      onGeneratePhraseBuilderOptions(phrase)
-        .then(options => {
-          setAvailableWords(options.words.map((w, i) => ({ text: w, id: `avail-${i}`, originalIndex: i })));
-        })
-        .catch(err => {
-            let displayError = "Произошла непредвиденная ошибка.";
-            console.error("Failed to load phrase builder options:", err);
-            if (err instanceof Error) {
-                if (err.message.includes("500") || err.message.includes("Internal Server Error")) {
-                    displayError = "Сервис временно недоступен (ошибка 500).";
-                } else if (err.message.includes("API key")) {
-                    displayError = "Ошибка конфигурации API ключа.";
-                } else {
-                    displayError = "Не удалось выполнить запрос.";
-                }
-            }
-            setOptionsError(`Не удалось загрузить варианты слов. ${displayError}`);
-        })
-        .finally(() => setIsLoadingOptions(false));
+      try {
+        setSpeechError(null);
+        recognitionRef.current?.start();
+      } catch (e) {
+        console.error("Auto-start recognition failed", e);
+        setSpeechError("Не удалось запустить микрофон.");
+      }
     }
 
     return () => {
-        clearTimeout(startTimer);
         recognitionRef.current?.abort();
     };
-  }, [isOpen, phrase, onGeneratePhraseBuilderOptions, resetState]);
+  }, [isOpen, phrase, resetState]);
   
   useEffect(() => {
     const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -157,6 +170,7 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
         if (finalTranscript.trim()) {
             const newWords = finalTranscript.trim().split(' ').map((text, index) => ({ text, id: `spoken-${Date.now()}-${index}` }));
             setConstructedWords(prev => [...prev, ...newWords]);
+            setOptionsFetched(true); // Trigger word bank loading
         }
       };
       recognitionRef.current = recognition;
