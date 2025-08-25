@@ -115,6 +115,7 @@ const App: React.FC = () => {
   
   const [isLearningAssistantModalOpen, setIsLearningAssistantModalOpen] = useState(false);
   const [learningAssistantPhrase, setLearningAssistantPhrase] = useState<Phrase | null>(null);
+  const [learningAssistantCache, setLearningAssistantCache] = useState<{ [phraseId: string]: ChatMessage[] }>({});
 
   const [apiProvider, setApiProvider] = useState<AiService | null>(null);
   const [apiProviderType, setApiProviderType] = useState<ApiProviderType | null>(null);
@@ -663,9 +664,18 @@ const App: React.FC = () => {
   }, []);
 
   const selectNextPracticePhrase = useCallback((addToHistory: boolean = true) => {
-    if (currentPracticePhrase && addToHistory) {
-      setCardHistory(prev => [...prev, currentPracticePhrase.id]);
+    if (currentPracticePhrase) {
+      if (addToHistory) {
+        setCardHistory(prev => [...prev, currentPracticePhrase.id]);
+      }
+      // Clear the learning assistant cache for the card that is going away
+      setLearningAssistantCache(prev => {
+        const newCache = { ...prev };
+        delete newCache[currentPracticePhrase.id];
+        return newCache;
+      });
     }
+
     const nextPhrase = srsService.selectNextPhrase(unmasteredPhrases, currentPracticePhrase?.id ?? null);
     changePracticePhrase(nextPhrase, 'right');
     
@@ -936,6 +946,8 @@ const App: React.FC = () => {
             onOpenNounDeclension={handleOpenNounDeclension}
             onOpenPronounsModal={() => setIsPronounsModalOpen(true)}
             onOpenWFragenModal={() => setIsWFragenModalOpen(true)}
+            cache={learningAssistantCache}
+            setCache={setLearningAssistantCache}
        />}
        {phraseToDiscuss && apiProvider && <DiscussTranslationModal
             isOpen={isDiscussModalOpen}

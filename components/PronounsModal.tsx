@@ -1,6 +1,7 @@
 import React from 'react';
 import CloseIcon from './icons/CloseIcon';
 import UsersIcon from './icons/UsersIcon';
+import AudioPlayer from './AudioPlayer';
 
 interface PronounsModalProps {
   isOpen: boolean;
@@ -39,6 +40,7 @@ const PronounsModal: React.FC<PronounsModalProps> = ({ isOpen, onClose }) => {
                 <table className="w-full text-left">
                     <thead>
                         <tr className="border-b border-slate-600">
+                            <th className="p-3 w-1/6"><span className="sr-only">Озвучить</span></th>
                             <th className="p-3 text-sm font-semibold text-slate-400">Немецкий</th>
                             <th className="p-3 text-sm font-semibold text-slate-400">Русский</th>
                         </tr>
@@ -46,7 +48,10 @@ const PronounsModal: React.FC<PronounsModalProps> = ({ isOpen, onClose }) => {
                     <tbody>
                         {pronouns.map(p => (
                             <tr key={p.german} className="border-b border-slate-700 last:border-b-0">
-                                <td className="p-3 text-slate-100 font-semibold text-lg">{p.german}</td>
+                                <td className="p-3">
+                                  <AudioPlayer textToSpeak={p.german.replace(/ \/ /g, ', ')} />
+                                </td>
+                                <td className="p-3 text-slate-100 font-semibold text-lg whitespace-nowrap">{p.german}</td>
                                 <td className="p-3 text-slate-300 text-lg">{p.russian}</td>
                             </tr>
                         ))}

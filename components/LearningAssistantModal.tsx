@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Phrase, ChatMessage, CheatSheetOption } from '../types';
+import { Phrase, ChatMessage, CheatSheetOption, SpeechRecognition, SpeechRecognitionErrorEvent } from '../types';
 import CloseIcon from './icons/CloseIcon';
 import SendIcon from './icons/SendIcon';
 import SoundIcon from './icons/SoundIcon';
 import BookOpenIcon from './icons/BookOpenIcon';
 import CheckIcon from './icons/CheckIcon';
+import MicrophoneIcon from './icons/MicrophoneIcon';
 
 interface LearningAssistantModalProps {
   isOpen: boolean;
@@ -16,6 +17,8 @@ interface LearningAssistantModalProps {
   onOpenNounDeclension: (noun: string, article: string) => void;
   onOpenPronounsModal: () => void;
   onOpenWFragenModal: () => void;
+  cache: { [phraseId: string]: ChatMessage[] };
+  setCache: React.Dispatch<React.SetStateAction<{ [phraseId: string]: ChatMessage[] }>>;
 }
 
 const ChatMessageContent: React.FC<{ message: ChatMessage; onSpeak: (text: string) => void }> = ({ message, onSpeak }) => {
@@ -47,16 +50,27 @@ const ChatMessageContent: React.FC<{ message: ChatMessage; onSpeak: (text: strin
     return message.text ? <p>{message.text}</p> : null;
 };
 
-const LearningAssistantModal: React.FC<LearningAssistantModalProps> = ({ isOpen, onClose, phrase, onGuide, onSuccess, onOpenVerbConjugation, onOpenNounDeclension, onOpenPronounsModal, onOpenWFragenModal }) => {
+const LearningAssistantModal: React.FC<LearningAssistantModalProps> = ({ isOpen, onClose, phrase, onGuide, onSuccess, onOpenVerbConjugation, onOpenNounDeclension, onOpenPronounsModal, onOpenWFragenModal, cache, setCache }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [input, setInput] = useState('');
   const [wordOptions, setWordOptions] = useState<string[]>([]);
   const [cheatSheetOptions, setCheatSheetOptions] = useState<CheatSheetOption[]>([]);
   const [isSuccess, setIsSuccess] = useState(false);
+  
+  const [recognitionLang, setRecognitionLang] = useState<'ru' | 'de'>('ru');
+  const [isListening, setIsListening] = useState(false);
+  const ruRecognitionRef = useRef<SpeechRecognition | null>(null);
+  const deRecognitionRef = useRef<SpeechRecognition | null>(null);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  
+  const updateMessages = useCallback((updater: (prev: ChatMessage[]) => ChatMessage[]) => {
+    const newMessages = updater(messages);
+    setMessages(newMessages);
+    setCache(prev => ({ ...prev, [phrase.id]: newMessages }));
+  }, [messages, setCache, phrase.id]);
 
   const onSpeak = useCallback((text: string) => {
     if ('speechSynthesis' in window) {
@@ -71,29 +85,95 @@ const LearningAssistantModal: React.FC<LearningAssistantModalProps> = ({ isOpen,
   const scrollToBottom = () => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
-  
+
   useEffect(() => {
     if (isOpen && phrase) {
-      setMessages([]);
+      const cachedMessages = cache[phrase.id];
+      setIsSuccess(false);
       setWordOptions([]);
       setCheatSheetOptions([]);
-      setIsLoading(true);
-      setIsSuccess(false);
-
-      onGuide(phrase, [], '')
-        .then(initialMessage => {
-          setMessages([initialMessage]);
-          setWordOptions(initialMessage.wordOptions || []);
-          setCheatSheetOptions(initialMessage.cheatSheetOptions || []);
-        })
-        .catch(err => {
-          setMessages([{ role: 'model', contentParts: [{type: 'text', text: `Произошла ошибка: ${(err as Error).message}`}] }]);
-        })
-        .finally(() => {
-          setIsLoading(false);
-        });
+      
+      if (cachedMessages) {
+        setMessages(cachedMessages);
+        const lastMessage = cachedMessages[cachedMessages.length - 1];
+        if (lastMessage?.role === 'model') {
+            setWordOptions(lastMessage.wordOptions || []);
+            setCheatSheetOptions(lastMessage.cheatSheetOptions || []);
+            if (lastMessage.isCorrect) {
+              setIsSuccess(true);
+            }
+        }
+        setIsLoading(false);
+      } else {
+        setIsLoading(true);
+        setMessages([]);
+        onGuide(phrase, [], '')
+          .then(initialMessage => {
+            updateMessages(() => [initialMessage]);
+            setWordOptions(initialMessage.wordOptions || []);
+            setCheatSheetOptions(initialMessage.cheatSheetOptions || []);
+          })
+          .catch(err => {
+            const errorMsg: ChatMessage = { role: 'model', contentParts: [{type: 'text', text: `Произошла ошибка: ${(err as Error).message}`}] };
+            updateMessages(() => [errorMsg]);
+          })
+          .finally(() => {
+            setIsLoading(false);
+          });
+      }
     }
   }, [isOpen, phrase, onGuide]);
+  
+  useEffect(() => {
+    const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognitionAPI) {
+        const setupRecognizer = (lang: 'ru-RU' | 'de-DE'): SpeechRecognition => {
+            const recognition = new SpeechRecognitionAPI();
+            recognition.lang = lang;
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.onstart = () => setIsListening(true);
+            recognition.onend = () => setIsListening(false);
+            recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+                if (event.error !== 'aborted' && event.error !== 'no-speech') {
+                  console.error(`Speech recognition error (${lang}):`, event.error);
+                }
+                setIsListening(false);
+            };
+            recognition.onresult = (event) => {
+                const transcript = event.results[0]?.[0]?.transcript;
+                if (transcript && transcript.trim()) {
+                    setInput(prev => (prev ? prev + ' ' : '') + transcript);
+                }
+            };
+            return recognition;
+        }
+        ruRecognitionRef.current = setupRecognizer('ru-RU');
+        deRecognitionRef.current = setupRecognizer('de-DE');
+    }
+  }, []);
+
+  const handleLangChange = (lang: 'ru' | 'de') => {
+      if (isListening) return;
+      setRecognitionLang(lang);
+  };
+
+  const handleMicClick = () => {
+      const recognizer = recognitionLang === 'ru' ? ruRecognitionRef.current : deRecognitionRef.current;
+      if (!recognizer) return;
+      
+      if (isListening) {
+          recognizer.stop();
+      } else {
+          try {
+              (recognitionLang === 'ru' ? deRecognitionRef.current : ruRecognitionRef.current)?.stop();
+              recognizer.start();
+          } catch (e) {
+              console.error("Could not start recognition:", e);
+              setIsListening(false);
+          }
+      }
+  };
   
   useEffect(scrollToBottom, [messages]);
   
@@ -106,19 +186,22 @@ const LearningAssistantModal: React.FC<LearningAssistantModalProps> = ({ isOpen,
 
   const handleSendMessage = useCallback(async (messageText: string) => {
     if (!messageText.trim() || isLoading || isSuccess) return;
+    
+    if (isListening) {
+      (recognitionLang === 'ru' ? ruRecognitionRef.current : deRecognitionRef.current)?.stop();
+    }
 
     setWordOptions([]);
     setCheatSheetOptions([]);
 
     const userMessage: ChatMessage = { role: 'user', text: messageText };
-    const messagesWithUser = [...messages, userMessage];
-    setMessages(messagesWithUser);
+    updateMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
 
     try {
-        const modelResponse = await onGuide(phrase, messagesWithUser, messageText);
-        setMessages(prev => [...prev, modelResponse]);
+        const modelResponse = await onGuide(phrase, [...messages, userMessage], messageText);
+        updateMessages(prev => [...prev, modelResponse]);
         setWordOptions(modelResponse.wordOptions || []);
         setCheatSheetOptions(modelResponse.cheatSheetOptions || []);
         if (modelResponse.isCorrect) {
@@ -127,11 +210,12 @@ const LearningAssistantModal: React.FC<LearningAssistantModalProps> = ({ isOpen,
           setTimeout(() => onClose(true), 2500);
         }
     } catch (error) {
-        setMessages(prev => [...prev, { role: 'model', contentParts: [{type: 'text', text: `Произошла ошибка: ${(error as Error).message}`}] }]);
+        const errorMsg: ChatMessage = { role: 'model', contentParts: [{type: 'text', text: `Произошла ошибка: ${(error as Error).message}`}] };
+        updateMessages(prev => [...prev, errorMsg]);
     } finally {
         setIsLoading(false);
     }
-  }, [isLoading, isSuccess, messages, phrase, onGuide, onSuccess, onClose]);
+  }, [isLoading, isSuccess, messages, phrase, onGuide, onSuccess, onClose, updateMessages, recognitionLang, isListening]);
 
   const handleSuggestionClick = (suggestion: string) => {
     handleSendMessage(suggestion);
@@ -219,7 +303,7 @@ const LearningAssistantModal: React.FC<LearningAssistantModalProps> = ({ isOpen,
                   <button
                     key={index}
                     onClick={() => handleSendMessage(word)}
-                    className="px-4 py-2 bg-slate-600/80 hover:bg-slate-600 rounded-lg transition-colors text-slate-100 font-medium animate-fade-in"
+                    className={`px-4 py-2 rounded-lg transition-colors text-slate-100 font-medium animate-fade-in ${word === 'Не знаю' ? 'bg-yellow-600/80 hover:bg-yellow-600' : 'bg-slate-600/80 hover:bg-slate-600'}`}
                   >
                     {word}
                   </button>
@@ -237,7 +321,7 @@ const LearningAssistantModal: React.FC<LearningAssistantModalProps> = ({ isOpen,
               </div>
             </div>
           )}
-          {!isSuccess && promptSuggestions.length > 0 && (
+          {!isSuccess && promptSuggestions.length > 0 && !showOptions && (
             <div className="flex space-x-2 overflow-x-auto pb-3 mb-2 -mx-4 px-4 hide-scrollbar">
                 {promptSuggestions.map(prompt => (
                     <button 
@@ -251,22 +335,41 @@ const LearningAssistantModal: React.FC<LearningAssistantModalProps> = ({ isOpen,
                 ))}
             </div>
           )}
-          <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(input); }} className="flex items-end space-x-3">
-            <textarea
-              ref={textareaRef}
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSendMessage(input);
-                  }
-              }}
-              placeholder="Ваш ответ..."
-              className="flex-grow bg-slate-700 rounded-lg p-3 text-slate-200 resize-none max-h-32 min-h-12 focus:outline-none focus:ring-2 focus:ring-purple-500"
-              rows={1}
-              disabled={isLoading || isSuccess}
-            />
+          <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(input); }} className="flex items-end space-x-2">
+            <div className="relative flex-grow">
+               <textarea
+                ref={textareaRef}
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSendMessage(input);
+                    }
+                }}
+                placeholder={isListening ? "Слушаю..." : "Ваш ответ..."}
+                className="w-full bg-slate-700 rounded-lg p-3 pr-24 text-slate-200 resize-none max-h-32 min-h-12 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                rows={1}
+                disabled={isLoading || isSuccess}
+              />
+               <div className="absolute inset-y-0 right-0 flex items-center pr-2">
+                  <div className="flex items-center bg-slate-600/50 rounded-full p-0.5">
+                      <button 
+                          type="button"
+                          onClick={() => handleLangChange('ru')}
+                          className={`px-2 py-0.5 text-xs font-bold rounded-full transition-colors ${recognitionLang === 'ru' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:bg-slate-500'}`}
+                      >RU</button>
+                      <button 
+                          type="button"
+                          onClick={() => handleLangChange('de')}
+                          className={`px-2 py-0.5 text-xs font-bold rounded-full transition-colors ${recognitionLang === 'de' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:bg-slate-500'}`}
+                      >DE</button>
+                  </div>
+                  <button type="button" onClick={handleMicClick} className="p-2 transition-colors ml-1">
+                      <MicrophoneIcon className={`w-5 h-5 ${isListening ? 'mic-color-shift-animation' : 'text-slate-400 hover:text-white'}`} />
+                  </button>
+              </div>
+            </div>
             <button type="submit" disabled={!input.trim() || isLoading || isSuccess} className="p-3 bg-purple-600 rounded-lg hover:bg-purple-700 disabled:bg-slate-600 disabled:cursor-not-allowed transition-colors flex-shrink-0">
               <SendIcon className="w-6 h-6 text-white"/>
             </button>
