@@ -111,7 +111,7 @@ const App: React.FC = () => {
   const [isPhraseBuilderModalOpen, setIsPhraseBuilderModalOpen] = useState(false);
   const [phraseBuilderPhrase, setPhraseBuilderPhrase] = useState<Phrase | null>(null);
   const [phraseBuilderOptions, setPhraseBuilderOptions] = useState<PhraseBuilderOptions | null>(null);
-  const [isPhraseBuilderLoading, setIsPhraseBuilderLoading] = useState(false);
+  const [isPhraseBuilderLoading, setIsPhraseBuilderLoading] = useState<boolean>(false);
   const [phraseBuilderError, setPhraseBuilderError] = useState<string | null>(null);
   
   const [isVoiceWorkspaceModalOpen, setIsVoiceWorkspaceModalOpen] = useState(false);
@@ -195,6 +195,7 @@ const App: React.FC = () => {
                                 lastReviewedAt: p.lastReviewedAt ?? null,
                                 nextReviewAt: p.nextReviewAt ?? Date.now(),
                                 isMastered: p.isMastered ?? false,
+                                hint: p.hint,
                             };
                             return {
                                 ...phraseData,
@@ -264,6 +265,31 @@ const App: React.FC = () => {
         return updated;
     });
   }
+  
+  const handleGenerateHint = useCallback(async (phrase: Phrase): Promise<string> => {
+    if (phrase.hint) return phrase.hint;
+
+    const cacheKey = `hint_${phrase.id}`;
+    const cachedHint = hintCache[phrase.id] || cacheService.getCache<string>(cacheKey);
+
+    if (cachedHint) {
+        if (!phrase.hint) {
+          updateAndSavePhrases(prev => prev.map(p => p.id === phrase.id ? { ...p, hint: cachedHint } : p));
+        }
+        if (!hintCache[phrase.id]) {
+            setHintCache(prev => ({ ...prev, [phrase.id]: cachedHint }));
+        }
+        return cachedHint;
+    }
+
+    const { hint } = await callApiWithFallback(provider => provider.generatePhraseHint(phrase));
+    
+    setHintCache(prev => ({ ...prev, [phrase.id]: hint }));
+    cacheService.setCache(cacheKey, hint);
+    updateAndSavePhrases(prev => prev.map(p => p.id === phrase.id ? { ...p, hint } : p));
+    
+    return hint;
+  }, [callApiWithFallback, hintCache, updateAndSavePhrases]);
 
   const fetchNewPhrases = useCallback(async (count: number = 5) => {
     if (isGenerating || !apiProvider) {
@@ -284,12 +310,20 @@ const App: React.FC = () => {
             knowCount: 0, knowStreak: 0, isMastered: false,
         }));
         updateAndSavePhrases(prev => [...prev, ...phrasesToAdd]);
+        
+        // Proactively generate hints in the background
+        phrasesToAdd.forEach(p => {
+          handleGenerateHint(p).catch(err => {
+            console.warn(`Hint pre-fetching failed for new phrase ${p.id}:`, err);
+          });
+        });
+
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error during phrase generation.');
     } finally {
       setIsGenerating(false);
     }
-  }, [allPhrases, isGenerating, updateAndSavePhrases, callApiWithFallback, apiProvider, error]);
+  }, [allPhrases, isGenerating, updateAndSavePhrases, callApiWithFallback, apiProvider, error, handleGenerateHint]);
 
   const openChatForPhrase = (phrase: Phrase) => {
     if (!apiProvider) return;
@@ -570,6 +604,11 @@ const App: React.FC = () => {
         isMastered: false,
     };
     updateAndSavePhrases(prev => [newPhrase, ...prev]);
+    
+    handleGenerateHint(newPhrase).catch(err => {
+      console.warn(`Hint generation failed for created phrase ${newPhrase.id}:`, err);
+    });
+
     setIsAddPhraseModalOpen(false);
     // Show the new card immediately
     setCurrentPracticePhrase(newPhrase);
@@ -661,22 +700,6 @@ const App: React.FC = () => {
       setCurrentPracticePhrase(updatedPhrase);
     }
   }, [updateAndSavePhrases, currentPracticePhrase, settings.soundEffects]);
-  
-  const handleGenerateHint = useCallback(async (phrase: Phrase): Promise<string> => {
-    const cacheKey = `hint_${phrase.id}`;
-    const cachedHint = hintCache[phrase.id] || cacheService.getCache<string>(cacheKey);
-    if (cachedHint) {
-        if (!hintCache[phrase.id]) {
-            setHintCache(prev => ({...prev, [phrase.id]: cachedHint}));
-        }
-        return cachedHint;
-    }
-
-    const { hint } = await callApiWithFallback(provider => provider.generatePhraseHint(phrase));
-    setHintCache(prev => ({ ...prev, [phrase.id]: hint }));
-    cacheService.setCache(cacheKey, hint);
-    return hint;
-  }, [callApiWithFallback, hintCache]);
 
   // --- Practice Page Logic ---
   const unmasteredPhrases = useMemo(() => allPhrases.filter(p => p && !p.isMastered), [allPhrases]);
@@ -707,6 +730,16 @@ const App: React.FC = () => {
     const nextPhrase = srsService.selectNextPhrase(unmasteredPhrases, currentPracticePhrase?.id ?? null);
     changePracticePhrase(nextPhrase, 'right');
     
+    // Pre-fetch hint for the card *after* the next one.
+    if (nextPhrase && apiProvider) {
+      const phraseAfterNext = srsService.selectNextPhrase(unmasteredPhrases, nextPhrase.id);
+      if (phraseAfterNext) {
+        handleGenerateHint(phraseAfterNext).catch(err => {
+          console.warn(`Hint pre-fetching failed for phrase ${phraseAfterNext.id}:`, err);
+        });
+      }
+    }
+
     const POOL_FETCH_THRESHOLD = 7;
     const ACTIVE_POOL_TARGET = 10;
     const PHRASES_TO_FETCH = 5;
@@ -714,7 +747,7 @@ const App: React.FC = () => {
         const needed = ACTIVE_POOL_TARGET - unmasteredPhrases.length;
         fetchNewPhrases(Math.max(needed, PHRASES_TO_FETCH));
     }
-  }, [unmasteredPhrases, currentPracticePhrase, fetchNewPhrases, isGenerating, allPhrases.length, changePracticePhrase]);
+  }, [unmasteredPhrases, currentPracticePhrase, fetchNewPhrases, isGenerating, allPhrases.length, changePracticePhrase, apiProvider, handleGenerateHint]);
 
   useEffect(() => {
     if (!isLoading && allPhrases.length > 0 && !currentPracticePhrase && view === 'practice') {

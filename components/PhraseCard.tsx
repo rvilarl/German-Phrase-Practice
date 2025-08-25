@@ -9,7 +9,6 @@ import WandIcon from './icons/WandIcon';
 import BlocksIcon from './icons/BlocksIcon';
 import MicrophoneIcon from './icons/MicrophoneIcon';
 import BookOpenIcon from './icons/BookOpenIcon';
-import Spinner from './Spinner';
 
 interface PhraseCardProps {
   phrase: Phrase;
@@ -125,14 +124,13 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
         {/* Front Side (Russian) */}
         <div 
             onClick={onShowHint}
-            className={`h-full absolute inset-0 [backface-visibility:hidden] bg-gradient-to-br from-slate-700/80 to-slate-800/80 backdrop-blur-sm border border-white/10 rounded-xl p-6 flex flex-col justify-between items-center text-center transition-colors duration-500 relative overflow-hidden cursor-pointer`}
+            className={`h-full absolute inset-0 [backface-visibility:hidden] bg-gradient-to-br from-slate-700/80 to-slate-800/80 backdrop-blur-sm border border-white/10 rounded-xl p-6 flex flex-col justify-between items-center text-center transition-colors duration-500 relative overflow-hidden cursor-pointer ${isHintLoading ? 'checking-border' : ''}`}
         >
             <div className="flex-grow flex flex-col items-center justify-center w-full">
                 <h2 className="text-2xl font-semibold text-slate-100">{phrase.russian}</h2>
                  <div className="mt-4 h-10 flex items-center justify-center">
-                    {isHintLoading && <Spinner className="w-6 h-6" />}
                     {isHintVisible && hint && !isHintLoading && (
-                        <div className="flex items-center gap-x-2 bg-slate-900/50 px-3 py-1.5 rounded-full animate-fade-in">
+                        <div className="flex items-center gap-x-2 animate-fade-in">
                             <button 
                                 onClick={(e) => {
                                     e.stopPropagation();

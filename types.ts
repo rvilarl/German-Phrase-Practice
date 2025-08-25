@@ -8,6 +8,7 @@ export interface Phrase {
   knowCount: number; // Total times 'know' was clicked
   knowStreak: number; // Consecutive times 'know' was clicked
   isMastered: boolean; // True if knowCount >= 3 or knowStreak >= 2
+  hint?: string;
 }
 
 export interface MovieExample {
