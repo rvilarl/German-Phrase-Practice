@@ -66,14 +66,27 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
   }, []);
 
   useEffect(() => {
+    let startTimer: number;
     if (isOpen && phrase) {
       resetState();
       onGeneratePhraseBuilderOptions(phrase)
         .then(options => {
           setAvailableWords(options.words.map((w, i) => ({ text: w, id: `avail-${i}`, originalIndex: i })));
+          // Automatically start listening after a short delay for modal animation
+          startTimer = window.setTimeout(() => {
+              try {
+                  recognitionRef.current?.start();
+              } catch (e) { console.error("Auto-start recognition failed", e); }
+          }, 500);
         })
         .finally(() => setIsLoadingOptions(false));
     }
+
+    return () => {
+        clearTimeout(startTimer);
+        // When the effect cleans up (e.g., on close), abort any active recognition.
+        recognitionRef.current?.abort();
+    };
   }, [isOpen, phrase, onGeneratePhraseBuilderOptions, resetState]);
   
   useEffect(() => {
@@ -228,7 +241,7 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
       )}
       <div className="fixed inset-0 bg-black/60 z-50 flex justify-center items-end" onClick={onClose}>
         <div
-          className={`bg-slate-800 w-full max-w-3xl h-[95%] max-h-[95vh] rounded-t-2xl shadow-2xl flex flex-col transition-transform duration-300 ease-out ${isOpen ? 'translate-y-0' : 'translate-y-full'}`}
+          className={`bg-slate-800 w-full max-w-3xl h-[90%] max-h-[90vh] rounded-t-2xl shadow-2xl flex flex-col transition-transform duration-300 ease-out ${isOpen ? 'translate-y-0' : 'translate-y-full'}`}
           onClick={e => e.stopPropagation()}
         >
           <header className="flex-shrink-0 flex items-center justify-between p-4 border-b border-slate-700">
@@ -238,7 +251,7 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
             </button>
           </header>
 
-          <div className="flex-grow flex flex-col p-4 overflow-hidden">
+          <div className="flex-grow flex flex-col p-4 overflow-hidden relative">
               {/* Constructed phrase area */}
               <div className="flex-shrink-0 flex items-center gap-x-2">
                   <AudioPlayer textToSpeak={userAttempt} />
@@ -291,25 +304,38 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
               </div>
 
               {/* Footer with mic and check */}
-              <div className="flex-shrink-0 pt-4 border-t border-slate-700/50 flex justify-between items-center">
+              <div className="flex-shrink-0 pt-4 border-t border-slate-700/50 flex items-center justify-between min-h-[80px]">
                   <button onClick={handleMicClick} className={`p-4 rounded-full transition-colors ${isListening ? 'bg-red-600 hover:bg-red-700 animate-pulse' : 'bg-slate-600 hover:bg-slate-500'}`}><MicrophoneIcon className="w-6 h-6 text-white" /></button>
                   
-                  {!evaluation ? (
+                  {!evaluation && (
                       <button onClick={handleCheck} disabled={constructedWords.length === 0 || isChecking} className="relative px-8 py-3 rounded-lg bg-green-600 hover:bg-green-700 transition-colors font-semibold text-white shadow-md disabled:bg-slate-600 disabled:cursor-not-allowed flex items-center justify-center min-w-[150px] h-[48px]">
                           <span className={`flex items-center transition-opacity ${isChecking ? 'opacity-0' : 'opacity-100'}`}><CheckIcon className="w-5 h-5 mr-2" /><span>Проверить</span></span>
                           {isChecking && <div className="absolute inset-0 flex items-center justify-center"><Spinner /></div>}
                       </button>
-                  ) : (
-                      <div className={`flex-grow mx-4 p-3 rounded-lg ${evaluation.isCorrect ? 'bg-green-500/20' : 'bg-red-500/20'} flex items-start space-x-3`}>
-                          <div className="flex-shrink-0 mt-0.5">{evaluation.isCorrect ? <CheckIcon className="w-5 h-5 text-green-400" /> : <XCircleIcon className="w-5 h-5 text-red-400" />}</div>
-                          <div>
-                              <p className="text-slate-200 text-sm">{evaluation.feedback}</p>
-                              {evaluation.correctedPhrase && <div className="mt-2 flex items-center gap-x-2 text-sm bg-slate-800/50 p-1.5 rounded-md"><AudioPlayer textToSpeak={evaluation.correctedPhrase} /><p className="text-slate-300"><strong>{evaluation.correctedPhrase}</strong></p></div>}
-                          </div>
-                      </div>
                   )}
-
-                  <button onClick={onNextPhrase} disabled={!evaluation} className="p-4 rounded-full bg-purple-600 hover:bg-purple-700 transition-colors font-semibold text-white shadow-md disabled:bg-slate-600 disabled:cursor-not-allowed"><ArrowRightIcon className="w-6 h-6" /></button>
+                  {/* Placeholder for alignment */}
+                  <div className="w-16 h-16" />
+              </div>
+              
+              {/* Absolutely Positioned Feedback Panel */}
+              <div className={`absolute bottom-0 left-0 right-0 p-6 pt-4 bg-slate-800 border-t border-slate-700/50 shadow-[0_-10px_20px_-5px_rgba(0,0,0,0.2)] transition-transform duration-300 ease-out ${evaluation ? 'translate-y-0' : 'translate-y-full'}`}>
+                {evaluation && (
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div className={`flex-grow w-full sm:w-auto p-3 rounded-lg ${evaluation.isCorrect ? 'bg-green-500/20' : 'bg-red-500/20'} flex items-start space-x-3`}>
+                      <div className="flex-shrink-0 mt-0.5">{evaluation.isCorrect ? <CheckIcon className="w-5 h-5 text-green-400" /> : <XCircleIcon className="w-5 h-5 text-red-400" />}</div>
+                      <div>
+                        <p className="text-slate-200 text-sm">{evaluation.feedback}</p>
+                        {evaluation.correctedPhrase && <div className="mt-2 flex items-center gap-x-2 text-sm bg-slate-800/50 p-1.5 rounded-md"><AudioPlayer textToSpeak={evaluation.correctedPhrase} /><p className="text-slate-300"><strong className="font-semibold text-slate-100">{evaluation.correctedPhrase}</strong></p></div>}
+                      </div>
+                    </div>
+                    <div className="w-full sm:w-auto flex-shrink-0 flex items-center justify-center gap-3">
+                      <button onClick={onClose} className="flex-1 sm:flex-none px-6 py-3 rounded-lg bg-slate-600 hover:bg-slate-700 transition-colors font-semibold text-white shadow-md text-center">Закрыть</button>
+                      <button onClick={onNextPhrase} className="flex-1 sm:flex-none px-6 py-3 rounded-lg bg-purple-600 hover:bg-purple-700 transition-colors font-semibold text-white shadow-md flex items-center justify-center">
+                        <span>Продолжить</span><ArrowRightIcon className="w-5 h-5 ml-2" />
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
           </div>
         </div>
