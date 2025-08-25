@@ -18,10 +18,39 @@ interface ChatModalProps {
   onGenerateInitialExamples: (phrase: Phrase) => Promise<ChatMessage>;
   onContinueChat: (phrase: Phrase, history: ChatMessage[], newMessage: string) => Promise<ChatMessage>;
   apiProviderType: ApiProviderType;
+  onOpenWordAnalysis: (phrase: Phrase, word: string) => void;
 }
 
-const ChatMessageContent: React.FC<{ message: ChatMessage; onSpeak: (text: string) => void }> = ({ message, onSpeak }) => {
+const ChatMessageContent: React.FC<{
+    message: ChatMessage;
+    onSpeak: (text: string) => void;
+    basePhrase?: Phrase;
+    onOpenWordAnalysis?: (phrase: Phrase, word: string) => void;
+}> = ({ message, onSpeak, basePhrase, onOpenWordAnalysis }) => {
     const { text, examples, suggestions, contentParts } = message;
+
+    const handleWordClick = (contextText: string, word: string) => {
+        if (!onOpenWordAnalysis || !basePhrase) return;
+        const proxyPhrase = { ...basePhrase, id: `${basePhrase.id}_proxy_${contextText.slice(0, 5)}`, german: contextText };
+        onOpenWordAnalysis(proxyPhrase, word);
+    };
+
+    const renderClickableGerman = (text: string) => {
+        if (!text) return null;
+        return text.split(' ').map((word, i, arr) => (
+            <span
+                key={i}
+                onClick={(e) => {
+                    e.stopPropagation();
+                    const cleanedWord = word.replace(/[.,!?()"“”:;]/g, '');
+                    if (cleanedWord) handleWordClick(text, cleanedWord);
+                }}
+                className="cursor-pointer hover:bg-white/20 px-1 py-0.5 rounded-md transition-colors"
+            >
+                {word}{i < arr.length - 1 ? ' ' : ''}
+            </span>
+        ));
+    };
     
     // Render structured model responses with inline speakable parts
     if (contentParts) {
@@ -30,7 +59,7 @@ const ChatMessageContent: React.FC<{ message: ChatMessage; onSpeak: (text: strin
                 {contentParts.map((part, index) =>
                     part.type === 'german' ? (
                         <span key={index} className="inline-flex items-center align-middle bg-slate-600/50 px-1.5 py-0.5 rounded-md mx-0.5">
-                            <span className="font-medium text-purple-300">{part.text}</span>
+                            <span className="font-medium text-purple-300">{renderClickableGerman(part.text)}</span>
                             <button
                                 onClick={() => onSpeak(part.text)}
                                 className="p-0.5 rounded-full hover:bg-white/20 flex-shrink-0 ml-1.5"
@@ -65,7 +94,7 @@ const ChatMessageContent: React.FC<{ message: ChatMessage; onSpeak: (text: strin
                                     >
                                         <SoundIcon className="w-4 h-4 text-slate-300" />
                                     </button>
-                                    <p className="flex-1 text-slate-100">{example.german}</p>
+                                    <p className="flex-1 text-slate-100 leading-relaxed">{renderClickableGerman(example.german)}</p>
                                 </div>
                                 <p className="pl-7 text-sm text-slate-400 italic">{example.russian}</p>
                             </div>
@@ -82,7 +111,7 @@ const ChatMessageContent: React.FC<{ message: ChatMessage; onSpeak: (text: strin
                                     {suggestion.contentParts.map((part, partIndex) =>
                                         part.type === 'german' ? (
                                             <span key={partIndex} className="inline-flex items-center align-middle bg-slate-500/50 px-1.5 py-0.5 rounded-md mx-0.5">
-                                                <span className="font-medium text-purple-200">{part.text}</span>
+                                                <span className="font-medium text-purple-200">{renderClickableGerman(part.text)}</span>
                                                 <button
                                                     onClick={() => onSpeak(part.text)}
                                                     className="p-0.5 rounded-full hover:bg-white/20 flex-shrink-0 ml-1.5"
@@ -125,7 +154,7 @@ const ChatSkeleton: React.FC = () => (
 );
 
 
-const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, phrase, onGenerateInitialExamples, onContinueChat, apiProviderType }) => {
+const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, phrase, onGenerateInitialExamples, onContinueChat, apiProviderType, onOpenWordAnalysis }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [input, setInput] = useState('');
@@ -317,7 +346,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, phrase, onGenera
             {messages.map((msg, index) => (
               <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[85%] px-4 py-3 rounded-2xl break-words ${msg.role === 'user' ? 'bg-purple-600 text-white rounded-br-lg' : 'bg-slate-700 text-slate-200 rounded-bl-lg'}`}>
-                   <ChatMessageContent message={msg} onSpeak={onSpeak} />
+                   <ChatMessageContent message={msg} onSpeak={onSpeak} basePhrase={phrase} onOpenWordAnalysis={onOpenWordAnalysis} />
                 </div>
               </div>
             ))}

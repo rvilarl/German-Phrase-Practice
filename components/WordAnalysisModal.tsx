@@ -1,5 +1,5 @@
 import React from 'react';
-import type { WordAnalysis } from '../types';
+import type { Phrase, WordAnalysis } from '../types';
 import Spinner from './Spinner';
 import CloseIcon from './icons/CloseIcon';
 import BookOpenIcon from './icons/BookOpenIcon';
@@ -9,15 +9,40 @@ interface WordAnalysisModalProps {
   isOpen: boolean;
   onClose: () => void;
   word: string;
+  phrase: Phrase;
   analysis: WordAnalysis | null;
   isLoading: boolean;
   error: string | null;
   onOpenVerbConjugation: (infinitive: string) => void;
   onOpenNounDeclension: (noun: string, article: string) => void;
+  onOpenWordAnalysis: (phrase: Phrase, word: string) => void;
 }
 
-const WordAnalysisModal: React.FC<WordAnalysisModalProps> = ({ isOpen, onClose, word, analysis, isLoading, error, onOpenVerbConjugation, onOpenNounDeclension }) => {
+const WordAnalysisModal: React.FC<WordAnalysisModalProps> = ({ isOpen, onClose, word, phrase, analysis, isLoading, error, onOpenVerbConjugation, onOpenNounDeclension, onOpenWordAnalysis }) => {
   if (!isOpen) return null;
+
+  const handleWordClick = (contextText: string, clickedWord: string) => {
+    const proxyPhrase = { ...phrase, id: `proxy_${phrase.id}_analysis`, german: contextText };
+    onOpenWordAnalysis(proxyPhrase, clickedWord);
+  };
+  
+  const renderClickableGerman = (text: string) => {
+      if (!text) return null;
+      return text.split(' ').map((word, i, arr) => (
+          <span
+              key={i}
+              onClick={(e) => {
+                  e.stopPropagation();
+                  const cleanedWord = word.replace(/[.,!?()"“”:;]/g, '');
+                  if (cleanedWord) handleWordClick(text, cleanedWord);
+              }}
+              className="cursor-pointer hover:bg-white/20 px-1 py-0.5 rounded-md transition-colors"
+          >
+              {word}{i < arr.length - 1 ? ' ' : ''}
+          </span>
+      ));
+  };
+
 
   const renderContent = () => {
     if (isLoading) {
@@ -71,7 +96,7 @@ const WordAnalysisModal: React.FC<WordAnalysisModalProps> = ({ isOpen, onClose, 
              <div className="flex items-start space-x-3">
                 <AudioPlayer textToSpeak={analysis.exampleSentence} />
                 <div className="flex-1">
-                    <p className="text-slate-200 text-lg leading-relaxed">"{analysis.exampleSentence}"</p>
+                    <p className="text-slate-200 text-lg leading-relaxed">"{renderClickableGerman(analysis.exampleSentence)}"</p>
                     <p className="text-slate-400 italic mt-1">«{analysis.exampleSentenceTranslation}»</p>
                 </div>
             </div>

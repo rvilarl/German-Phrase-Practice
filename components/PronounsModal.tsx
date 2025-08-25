@@ -1,4 +1,5 @@
 import React from 'react';
+import { Phrase } from '../types';
 import CloseIcon from './icons/CloseIcon';
 import UsersIcon from './icons/UsersIcon';
 import AudioPlayer from './AudioPlayer';
@@ -6,6 +7,7 @@ import AudioPlayer from './AudioPlayer';
 interface PronounsModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onOpenWordAnalysis: (phrase: Phrase, word: string) => void;
 }
 
 const pronouns = [
@@ -17,8 +19,40 @@ const pronouns = [
     { german: 'sie / Sie', russian: 'они / Вы (форм.)' },
 ];
 
-const PronounsModal: React.FC<PronounsModalProps> = ({ isOpen, onClose }) => {
+const PronounsModal: React.FC<PronounsModalProps> = ({ isOpen, onClose, onOpenWordAnalysis }) => {
   if (!isOpen) return null;
+
+  const handleWordClick = (contextText: string, word: string, russianText: string) => {
+    const proxyPhrase: Omit<Phrase, 'id'> & { id?: string } = {
+        id: `proxy_pronoun_${word}`,
+        german: contextText,
+        russian: russianText,
+        masteryLevel: 0, lastReviewedAt: null, nextReviewAt: Date.now(),
+        knowCount: 0, knowStreak: 0, isMastered: false
+    };
+    onOpenWordAnalysis(proxyPhrase as Phrase, word);
+  };
+  
+  const renderClickableGerman = (text: string, russian: string) => {
+      if (!text) return null;
+      return text.split(' ').map((word, i, arr) => {
+          if (word === '/') return <span key={i}> / </span>;
+          return (
+              <span
+                  key={i}
+                  onClick={(e) => {
+                      e.stopPropagation();
+                      const cleanedWord = word.replace(/[.,!?()"“”:;]/g, '');
+                      if (cleanedWord) handleWordClick(text, cleanedWord, russian);
+                  }}
+                  className="cursor-pointer hover:bg-white/20 px-1 py-0.5 rounded-md transition-colors"
+              >
+                  {word}
+              </span>
+          );
+      });
+  };
+
 
   return (
     <div className="fixed inset-0 bg-black/60 z-[70] flex justify-center items-center" onClick={onClose}>
@@ -51,7 +85,7 @@ const PronounsModal: React.FC<PronounsModalProps> = ({ isOpen, onClose }) => {
                                 <td className="p-3">
                                   <AudioPlayer textToSpeak={p.german.replace(/ \/ /g, ', ')} />
                                 </td>
-                                <td className="p-3 text-slate-100 font-semibold text-lg whitespace-nowrap">{p.german}</td>
+                                <td className="p-3 text-slate-100 font-semibold text-lg whitespace-nowrap">{renderClickableGerman(p.german, p.russian)}</td>
                                 <td className="p-3 text-slate-300 text-lg">{p.russian}</td>
                             </tr>
                         ))}

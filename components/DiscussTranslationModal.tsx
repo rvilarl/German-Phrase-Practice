@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import type { ChatMessage, ContentPart, TranslationChatResponse, SpeechRecognition, SpeechRecognitionErrorEvent } from '../types';
+import type { Phrase, ChatMessage, ContentPart, TranslationChatResponse, SpeechRecognition, SpeechRecognitionErrorEvent } from '../types';
 import CloseIcon from './icons/CloseIcon';
 import SendIcon from './icons/SendIcon';
 import MicrophoneIcon from './icons/MicrophoneIcon';
@@ -14,10 +14,38 @@ interface DiscussTranslationModalProps {
     currentGerman: string;
     onDiscuss: (request: any) => Promise<TranslationChatResponse>;
     onAccept: (suggestion: { russian: string; german: string }) => void;
+    onOpenWordAnalysis: (phrase: Phrase, word: string) => void;
 }
 
-const ChatMessageContent: React.FC<{ message: ChatMessage; onSpeak: (text: string) => void }> = ({ message, onSpeak }) => {
+const ChatMessageContent: React.FC<{ 
+    message: ChatMessage; 
+    onSpeak: (text: string) => void;
+    basePhrase: Omit<Phrase, 'id'>;
+    onOpenWordAnalysis: (phrase: Phrase, word: string) => void;
+}> = ({ message, onSpeak, basePhrase, onOpenWordAnalysis }) => {
     const { text, contentParts } = message;
+
+    const handleWordClick = (contextText: string, word: string) => {
+        const proxyPhrase = { ...basePhrase, id: `proxy_discuss_${contextText.slice(0, 5)}`, german: contextText };
+        onOpenWordAnalysis(proxyPhrase as Phrase, word);
+    };
+
+    const renderClickableGerman = (text: string) => {
+        if (!text) return null;
+        return text.split(' ').map((word, i, arr) => (
+            <span
+                key={i}
+                onClick={(e) => {
+                    e.stopPropagation();
+                    const cleanedWord = word.replace(/[.,!?()"“”:;]/g, '');
+                    if (cleanedWord) handleWordClick(text, cleanedWord);
+                }}
+                className="cursor-pointer hover:bg-white/20 px-1 py-0.5 rounded-md transition-colors"
+            >
+                {word}{i < arr.length - 1 ? ' ' : ''}
+            </span>
+        ));
+    };
     
     if (contentParts) {
         return (
@@ -25,7 +53,7 @@ const ChatMessageContent: React.FC<{ message: ChatMessage; onSpeak: (text: strin
                 {contentParts.map((part, index) =>
                     part.type === 'german' ? (
                         <span key={index} className="inline-flex items-center align-middle bg-slate-600/50 px-1.5 py-0.5 rounded-md mx-0.5">
-                            <span className="font-medium text-purple-300">{part.text}</span>
+                            <span className="font-medium text-purple-300">{renderClickableGerman(part.text)}</span>
                             <button onClick={() => onSpeak(part.text)} className="p-0.5 rounded-full hover:bg-white/20 ml-1.5">
                                 <SoundIcon className="w-3.5 h-3.5 text-slate-300" />
                             </button>
@@ -40,7 +68,7 @@ const ChatMessageContent: React.FC<{ message: ChatMessage; onSpeak: (text: strin
     return text ? <p>{text}</p> : null;
 };
 
-const DiscussTranslationModal: React.FC<DiscussTranslationModalProps> = ({ isOpen, onClose, originalRussian, currentGerman, onDiscuss, onAccept }) => {
+const DiscussTranslationModal: React.FC<DiscussTranslationModalProps> = ({ isOpen, onClose, originalRussian, currentGerman, onDiscuss, onAccept, onOpenWordAnalysis }) => {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [input, setInput] = useState('');
@@ -48,6 +76,13 @@ const DiscussTranslationModal: React.FC<DiscussTranslationModalProps> = ({ isOpe
     const [isListening, setIsListening] = useState(false);
     const recognitionRef = useRef<SpeechRecognition | null>(null);
     const chatEndRef = useRef<HTMLDivElement>(null);
+
+    const basePhrase = {
+        russian: originalRussian,
+        german: currentGerman,
+        masteryLevel: 0, lastReviewedAt: null, nextReviewAt: Date.now(),
+        knowCount: 0, knowStreak: 0, isMastered: false
+    };
 
     const handleSendMessage = useCallback(async (messageText: string) => {
         if (!messageText.trim() || isLoading) return;
@@ -155,7 +190,7 @@ const DiscussTranslationModal: React.FC<DiscussTranslationModalProps> = ({ isOpe
                     {messages.map((msg, index) => (
                         <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                             <div className={`max-w-[85%] px-4 py-3 rounded-2xl break-words ${msg.role === 'user' ? 'bg-purple-600 text-white rounded-br-lg' : 'bg-slate-700 text-slate-200 rounded-bl-lg'}`}>
-                               <ChatMessageContent message={msg} onSpeak={onSpeak} />
+                               <ChatMessageContent message={msg} onSpeak={onSpeak} basePhrase={basePhrase} onOpenWordAnalysis={onOpenWordAnalysis} />
                             </div>
                         </div>
                     ))}

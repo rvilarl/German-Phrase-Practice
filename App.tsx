@@ -832,6 +832,7 @@ const App: React.FC = () => {
           onGenerateInitialExamples={handleGenerateInitialExamples}
           onContinueChat={handleContinueChat}
           apiProviderType={apiProviderType}
+          onOpenWordAnalysis={handleOpenWordAnalysis}
       />}
       <SettingsModal isOpen={isSettingsModalOpen} onClose={() => setIsSettingsModalOpen(false)} settings={settings} onSettingsChange={handleSettingsChange} />
       {deepDivePhrase && <DeepDiveModal 
@@ -841,6 +842,7 @@ const App: React.FC = () => {
         analysis={deepDiveAnalysis}
         isLoading={isDeepDiveLoading}
         error={deepDiveError}
+        onOpenWordAnalysis={handleOpenWordAnalysis}
       />}
        {movieExamplesPhrase && <MovieExamplesModal 
         isOpen={isMovieExamplesModalOpen} 
@@ -849,6 +851,7 @@ const App: React.FC = () => {
         examples={movieExamples}
         isLoading={isMovieExamplesLoading}
         error={movieExamplesError}
+        onOpenWordAnalysis={handleOpenWordAnalysis}
       />}
        {sentenceChainPhrase && <SentenceChainModal
         isOpen={isSentenceChainModalOpen}
@@ -861,11 +864,13 @@ const App: React.FC = () => {
         isOpen={isWordAnalysisModalOpen}
         onClose={() => setIsWordAnalysisModalOpen(false)}
         word={selectedWord}
+        phrase={wordAnalysisPhrase}
         analysis={wordAnalysis}
         isLoading={isWordAnalysisLoading}
         error={wordAnalysisError}
         onOpenVerbConjugation={handleOpenVerbConjugation}
         onOpenNounDeclension={handleOpenNounDeclension}
+        onOpenWordAnalysis={handleOpenWordAnalysis}
       />}
       {conjugationVerb && <VerbConjugationModal
         isOpen={isVerbConjugationModalOpen}
@@ -874,6 +879,7 @@ const App: React.FC = () => {
         data={verbConjugationData}
         isLoading={isVerbConjugationLoading}
         error={verbConjugationError}
+        onOpenWordAnalysis={handleOpenWordAnalysis}
        />}
        {declensionNoun && <NounDeclensionModal
         isOpen={isNounDeclensionModalOpen}
@@ -882,6 +888,7 @@ const App: React.FC = () => {
         data={nounDeclensionData}
         isLoading={isNounDeclensionLoading}
         error={nounDeclensionError}
+        onOpenWordAnalysis={handleOpenWordAnalysis}
        />}
        {apiProvider && <AddPhraseModal 
           isOpen={isAddPhraseModalOpen} 
@@ -906,6 +913,7 @@ const App: React.FC = () => {
             onSave={handlePhraseImproved}
             onTranslate={handleTranslatePhrase}
             onDiscuss={handleDiscussTranslation}
+            onOpenWordAnalysis={handleOpenWordAnalysis}
        />}
        <ConfirmDeleteModal
             isOpen={isDeleteModalOpen}
@@ -948,6 +956,7 @@ const App: React.FC = () => {
             onOpenWFragenModal={() => setIsWFragenModalOpen(true)}
             cache={learningAssistantCache}
             setCache={setLearningAssistantCache}
+            onOpenWordAnalysis={handleOpenWordAnalysis}
        />}
        {phraseToDiscuss && apiProvider && <DiscussTranslationModal
             isOpen={isDiscussModalOpen}
@@ -956,9 +965,10 @@ const App: React.FC = () => {
             currentGerman={phraseToDiscuss.german}
             onDiscuss={handleDiscussTranslation}
             onAccept={handleDiscussionAccept}
+            onOpenWordAnalysis={handleOpenWordAnalysis}
         />}
-        <PronounsModal isOpen={isPronounsModalOpen} onClose={() => setIsPronounsModalOpen(false)} />
-        <WFragenModal isOpen={isWFragenModalOpen} onClose={() => setIsWFragenModalOpen(false)} />
+        <PronounsModal isOpen={isPronounsModalOpen} onClose={() => setIsPronounsModalOpen(false)} onOpenWordAnalysis={handleOpenWordAnalysis} />
+        <WFragenModal isOpen={isWFragenModalOpen} onClose={() => setIsWFragenModalOpen(false)} onOpenWordAnalysis={handleOpenWordAnalysis} />
     </div>
   );
 };

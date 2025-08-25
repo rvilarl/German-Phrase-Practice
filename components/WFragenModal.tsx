@@ -1,4 +1,5 @@
 import React from 'react';
+import { Phrase } from '../types';
 import CloseIcon from './icons/CloseIcon';
 import QuestionMarkCircleIcon from './icons/QuestionMarkCircleIcon';
 import AudioPlayer from './AudioPlayer';
@@ -6,6 +7,7 @@ import AudioPlayer from './AudioPlayer';
 interface WFragenModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onOpenWordAnalysis: (phrase: Phrase, word: string) => void;
 }
 
 const wFragen = [
@@ -19,8 +21,37 @@ const wFragen = [
     { german: 'Wohin?', russian: 'Куда?' },
 ];
 
-const WFragenModal: React.FC<WFragenModalProps> = ({ isOpen, onClose }) => {
+const WFragenModal: React.FC<WFragenModalProps> = ({ isOpen, onClose, onOpenWordAnalysis }) => {
   if (!isOpen) return null;
+
+  const handleWordClick = (contextText: string, word: string, russianText: string) => {
+    const proxyPhrase: Omit<Phrase, 'id'> & { id?: string } = {
+        id: `proxy_wfrage_${word}`,
+        german: contextText,
+        russian: russianText,
+        masteryLevel: 0, lastReviewedAt: null, nextReviewAt: Date.now(),
+        knowCount: 0, knowStreak: 0, isMastered: false
+    };
+    onOpenWordAnalysis(proxyPhrase as Phrase, word);
+  };
+  
+  const renderClickableGerman = (text: string, russian: string) => {
+      if (!text) return null;
+      return text.split(' ').map((word, i, arr) => (
+          <span
+              key={i}
+              onClick={(e) => {
+                  e.stopPropagation();
+                  const cleanedWord = word.replace(/[.,!?()"“”:;]/g, '');
+                  if (cleanedWord) handleWordClick(text, cleanedWord, russian);
+              }}
+              className="cursor-pointer hover:bg-white/20 px-1 py-0.5 rounded-md transition-colors"
+          >
+              {word}{i < arr.length - 1 ? ' ' : ''}
+          </span>
+      ));
+  };
+
 
   return (
     <div className="fixed inset-0 bg-black/60 z-[70] flex justify-center items-center" onClick={onClose}>
@@ -53,7 +84,7 @@ const WFragenModal: React.FC<WFragenModalProps> = ({ isOpen, onClose }) => {
                                 <td className="p-3">
                                   <AudioPlayer textToSpeak={p.german} />
                                 </td>
-                                <td className="p-3 text-slate-100 font-semibold text-lg">{p.german}</td>
+                                <td className="p-3 text-slate-100 font-semibold text-lg">{renderClickableGerman(p.german, p.russian)}</td>
                                 <td className="p-3 text-slate-300 text-lg">{p.russian}</td>
                             </tr>
                         ))}

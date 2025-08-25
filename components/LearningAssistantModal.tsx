@@ -19,10 +19,39 @@ interface LearningAssistantModalProps {
   onOpenWFragenModal: () => void;
   cache: { [phraseId: string]: ChatMessage[] };
   setCache: React.Dispatch<React.SetStateAction<{ [phraseId: string]: ChatMessage[] }>>;
+  onOpenWordAnalysis: (phrase: Phrase, word: string) => void;
 }
 
-const ChatMessageContent: React.FC<{ message: ChatMessage; onSpeak: (text: string) => void }> = ({ message, onSpeak }) => {
+const ChatMessageContent: React.FC<{ 
+    message: ChatMessage; 
+    onSpeak: (text: string) => void;
+    basePhrase?: Phrase;
+    onOpenWordAnalysis?: (phrase: Phrase, word: string) => void;
+}> = ({ message, onSpeak, basePhrase, onOpenWordAnalysis }) => {
     const { contentParts } = message;
+
+    const handleWordClick = (contextText: string, word: string) => {
+        if (!onOpenWordAnalysis || !basePhrase) return;
+        const proxyPhrase = { ...basePhrase, id: `${basePhrase.id}_proxy_${contextText.slice(0, 5)}`, german: contextText };
+        onOpenWordAnalysis(proxyPhrase, word);
+    };
+
+    const renderClickableGerman = (text: string) => {
+        if (!text) return null;
+        return text.split(' ').map((word, i, arr) => (
+            <span
+                key={i}
+                onClick={(e) => {
+                    e.stopPropagation();
+                    const cleanedWord = word.replace(/[.,!?()"“”:;]/g, '');
+                    if (cleanedWord) handleWordClick(text, cleanedWord);
+                }}
+                className="cursor-pointer hover:bg-white/20 px-1 py-0.5 rounded-md transition-colors"
+            >
+                {word}{i < arr.length - 1 ? ' ' : ''}
+            </span>
+        ));
+    };
     
     if (contentParts) {
         return (
@@ -30,7 +59,7 @@ const ChatMessageContent: React.FC<{ message: ChatMessage; onSpeak: (text: strin
                 {contentParts.map((part, index) =>
                     part.type === 'german' ? (
                         <span key={index} className="inline-flex items-center align-middle bg-slate-600/50 px-1.5 py-0.5 rounded-md mx-0.5">
-                            <span className="font-medium text-purple-300">{part.text}</span>
+                            <span className="font-medium text-purple-300">{renderClickableGerman(part.text)}</span>
                             <button
                                 onClick={() => onSpeak(part.text)}
                                 className="p-0.5 rounded-full hover:bg-white/20 flex-shrink-0 ml-1.5"
@@ -50,7 +79,7 @@ const ChatMessageContent: React.FC<{ message: ChatMessage; onSpeak: (text: strin
     return message.text ? <p>{message.text}</p> : null;
 };
 
-const LearningAssistantModal: React.FC<LearningAssistantModalProps> = ({ isOpen, onClose, phrase, onGuide, onSuccess, onOpenVerbConjugation, onOpenNounDeclension, onOpenPronounsModal, onOpenWFragenModal, cache, setCache }) => {
+const LearningAssistantModal: React.FC<LearningAssistantModalProps> = ({ isOpen, onClose, phrase, onGuide, onSuccess, onOpenVerbConjugation, onOpenNounDeclension, onOpenPronounsModal, onOpenWFragenModal, cache, setCache, onOpenWordAnalysis }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [input, setInput] = useState('');
@@ -270,7 +299,7 @@ const LearningAssistantModal: React.FC<LearningAssistantModalProps> = ({ isOpen,
             {messages.map((msg, index) => (
               <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[85%] px-4 py-3 rounded-2xl break-words ${msg.role === 'user' ? 'bg-purple-600 text-white rounded-br-lg' : 'bg-slate-700 text-slate-200 rounded-bl-lg'}`}>
-                   <ChatMessageContent message={msg} onSpeak={onSpeak} />
+                   <ChatMessageContent message={msg} onSpeak={onSpeak} basePhrase={phrase} onOpenWordAnalysis={onOpenWordAnalysis} />
                 </div>
               </div>
             ))}

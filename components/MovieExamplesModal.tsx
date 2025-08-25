@@ -11,26 +11,47 @@ interface MovieExamplesModalProps {
   examples: MovieExample[];
   isLoading: boolean;
   error: string | null;
+  onOpenWordAnalysis: (phrase: Phrase, word: string) => void;
 }
 
-// A simple utility to highlight the phrase in the dialogue
-const HighlightedDialogue: React.FC<{ text: string; phrase: string }> = ({ text, phrase }) => {
-    if (!phrase || !text) {
-        return <>{text}</>;
-    }
-    const parts = text.split(new RegExp(`(${phrase})`, 'gi'));
+const HighlightedDialogue: React.FC<{ 
+    text: string; 
+    phraseToHighlight: string;
+    basePhrase: Phrase;
+    onOpenWordAnalysis: (phrase: Phrase, word: string) => void;
+}> = ({ text, phraseToHighlight, basePhrase, onOpenWordAnalysis }) => {
+    if (!text) return null;
+    
+    const handleWordClick = (contextText: string, word: string) => {
+        const proxyPhrase = { ...basePhrase, id: `proxy_${basePhrase.id}_movie`, german: contextText };
+        onOpenWordAnalysis(proxyPhrase, word);
+    };
+
+    const renderClickableText = (textSegment: string, isHighlighted: boolean) => {
+        return textSegment.split(/(\s+)/).map((part, i) => {
+            if (part.trim() === '') return <span key={i}>{part}</span>; // Keep spaces
+            return (
+                <span 
+                    key={i} 
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        const cleanedWord = part.replace(/[.,!?()"“”:;]/g, '');
+                        if (cleanedWord) handleWordClick(text, cleanedWord);
+                    }}
+                    className={`cursor-pointer hover:bg-white/20 p-0.5 rounded-sm transition-colors ${isHighlighted ? 'font-bold text-purple-300' : ''}`}
+                >
+                    {part}
+                </span>
+            );
+        });
+    };
+
+    const parts = text.split(new RegExp(`(${phraseToHighlight})`, 'gi'));
     return (
-        <span>
-            {parts.map((part, index) =>
-                part.toLowerCase() === phrase.toLowerCase() ? (
-                    <strong key={index} className="text-purple-300">{part}</strong>
-                ) : (
-                    part
-                )
-            )}
-        </span>
+        <>{parts.map((part, index) => renderClickableText(part, part.toLowerCase() === phraseToHighlight.toLowerCase()))}</>
     );
 };
+
 
 const MovieExamplesSkeleton: React.FC = () => (
     <div className="space-y-4 animate-pulse">
@@ -51,7 +72,7 @@ const MovieExamplesSkeleton: React.FC = () => (
 );
 
 
-const MovieExamplesModal: React.FC<MovieExamplesModalProps> = ({ isOpen, onClose, phrase, examples, isLoading, error }) => {
+const MovieExamplesModal: React.FC<MovieExamplesModalProps> = ({ isOpen, onClose, phrase, examples, isLoading, error, onOpenWordAnalysis }) => {
   if (!isOpen) return null;
 
   const renderContent = () => {
@@ -77,7 +98,7 @@ const MovieExamplesModal: React.FC<MovieExamplesModalProps> = ({ isOpen, onClose
                     <AudioPlayer textToSpeak={example.dialogue} />
                     <div className="flex-1">
                         <p className="text-slate-300 leading-relaxed">
-                            <HighlightedDialogue text={example.dialogue} phrase={phrase.german} />
+                            <HighlightedDialogue text={example.dialogue} phraseToHighlight={phrase.german} basePhrase={phrase} onOpenWordAnalysis={onOpenWordAnalysis} />
                         </p>
                         {example.dialogueRussian && (
                             <p className="text-slate-400 leading-relaxed italic mt-1 border-l-2 border-slate-600 pl-3">

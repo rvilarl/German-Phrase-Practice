@@ -1,5 +1,5 @@
 import React from 'react';
-import type { NounDeclension } from '../types';
+import type { Phrase, NounDeclension } from '../types';
 import Spinner from './Spinner';
 import CloseIcon from './icons/CloseIcon';
 import TableIcon from './icons/TableIcon';
@@ -12,12 +12,42 @@ interface NounDeclensionModalProps {
   data: NounDeclension | null;
   isLoading: boolean;
   error: string | null;
+  onOpenWordAnalysis: (phrase: Phrase, word: string) => void;
 }
 
 type CaseKey = keyof NounDeclension['singular'];
 
-const NounDeclensionModal: React.FC<NounDeclensionModalProps> = ({ isOpen, onClose, noun, data, isLoading, error }) => {
+const NounDeclensionModal: React.FC<NounDeclensionModalProps> = ({ isOpen, onClose, noun, data, isLoading, error, onOpenWordAnalysis }) => {
   if (!isOpen) return null;
+
+  const handleWordClick = (contextText: string, word: string) => {
+    const proxyPhrase: Omit<Phrase, 'id'> & { id?: string } = {
+        id: `proxy_noun_${noun}`,
+        german: contextText,
+        russian: `Склонение: ${noun}`,
+        masteryLevel: 0, lastReviewedAt: null, nextReviewAt: Date.now(),
+        knowCount: 0, knowStreak: 0, isMastered: false
+    };
+    onOpenWordAnalysis(proxyPhrase as Phrase, word);
+  };
+  
+  const renderClickableGerman = (text: string) => {
+      if (!text) return null;
+      return text.split(' ').map((word, i, arr) => (
+          <span
+              key={i}
+              onClick={(e) => {
+                  e.stopPropagation();
+                  const cleanedWord = word.replace(/[.,!?()"“”:;]/g, '');
+                  if (cleanedWord) handleWordClick(text, cleanedWord);
+              }}
+              className="cursor-pointer hover:bg-white/20 px-1 py-0.5 rounded-md transition-colors"
+          >
+              {word}{i < arr.length - 1 ? ' ' : ''}
+          </span>
+      ));
+  };
+
 
   const renderContent = () => {
     if (isLoading) {
@@ -40,7 +70,7 @@ const NounDeclensionModal: React.FC<NounDeclensionModalProps> = ({ isOpen, onClo
     
     const renderCellContent = (text: string) => (
         <div className="flex items-center justify-between w-full gap-x-2">
-            <span>{text}</span>
+            <span className="flex-grow">{renderClickableGerman(text)}</span>
             <AudioPlayer textToSpeak={text} />
         </div>
     );

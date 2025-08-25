@@ -14,6 +14,7 @@ interface EditPhraseModalProps {
     onSave: (phraseId: string, newGerman: string, newRussian: string) => void;
     onTranslate: (russianPhrase: string) => Promise<{ german: string }>;
     onDiscuss: (request: any) => Promise<TranslationChatResponse>;
+    onOpenWordAnalysis: (phrase: Phrase, word: string) => void;
 }
 
 const useDebounce = (value: string, delay: number) => {
@@ -29,7 +30,7 @@ const useDebounce = (value: string, delay: number) => {
     return debouncedValue;
 };
 
-const EditPhraseModal: React.FC<EditPhraseModalProps> = ({ isOpen, onClose, phrase, onSave, onTranslate, onDiscuss }) => {
+const EditPhraseModal: React.FC<EditPhraseModalProps> = ({ isOpen, onClose, phrase, onSave, onTranslate, onDiscuss, onOpenWordAnalysis }) => {
     const [russian, setRussian] = useState(phrase.russian);
     const [german, setGerman] = useState(phrase.german);
     const [isLoading, setIsLoading] = useState(false);
@@ -187,6 +188,7 @@ const EditPhraseModal: React.FC<EditPhraseModalProps> = ({ isOpen, onClose, phra
                 currentGerman={german}
                 onDiscuss={onDiscuss}
                 onAccept={handleDiscussionAccept}
+                onOpenWordAnalysis={onOpenWordAnalysis}
             />}
         </>
     );

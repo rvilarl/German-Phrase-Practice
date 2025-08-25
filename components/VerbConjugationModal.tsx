@@ -1,5 +1,5 @@
 import React from 'react';
-import type { VerbConjugation } from '../types';
+import type { Phrase, VerbConjugation } from '../types';
 import Spinner from './Spinner';
 import CloseIcon from './icons/CloseIcon';
 import TableIcon from './icons/TableIcon';
@@ -12,10 +12,40 @@ interface VerbConjugationModalProps {
   data: VerbConjugation | null;
   isLoading: boolean;
   error: string | null;
+  onOpenWordAnalysis: (phrase: Phrase, word: string) => void;
 }
 
-const VerbConjugationModal: React.FC<VerbConjugationModalProps> = ({ isOpen, onClose, infinitive, data, isLoading, error }) => {
+const VerbConjugationModal: React.FC<VerbConjugationModalProps> = ({ isOpen, onClose, infinitive, data, isLoading, error, onOpenWordAnalysis }) => {
   if (!isOpen) return null;
+
+  const handleWordClick = (contextText: string, word: string) => {
+    const proxyPhrase: Omit<Phrase, 'id'> & { id?: string } = {
+        id: `proxy_verb_${infinitive}`,
+        german: contextText,
+        russian: `Спряжение: ${infinitive}`,
+        masteryLevel: 0, lastReviewedAt: null, nextReviewAt: Date.now(),
+        knowCount: 0, knowStreak: 0, isMastered: false
+    };
+    onOpenWordAnalysis(proxyPhrase as Phrase, word);
+  };
+  
+  const renderClickableGerman = (text: string) => {
+      if (!text) return null;
+      return text.split(' ').map((word, i, arr) => (
+          <span
+              key={i}
+              onClick={(e) => {
+                  e.stopPropagation();
+                  const cleanedWord = word.replace(/[.,!?()"“”:;]/g, '');
+                  if (cleanedWord) handleWordClick(text, cleanedWord);
+              }}
+              className="cursor-pointer hover:bg-white/20 px-1 py-0.5 rounded-md transition-colors"
+          >
+              {word}{i < arr.length - 1 ? ' ' : ''}
+          </span>
+      ));
+  };
+
 
   const renderContent = () => {
     if (isLoading) {
@@ -54,7 +84,7 @@ const VerbConjugationModal: React.FC<VerbConjugationModalProps> = ({ isOpen, onC
                                 <AudioPlayer textToSpeak={`${pair.pronoun} ${pair.form}`} />
                             </td>
                             <td className="p-3 text-slate-300 text-lg">{pair.pronoun}</td>
-                            <td className="p-3 text-slate-100 font-semibold text-lg">{pair.form}</td>
+                            <td className="p-3 text-slate-100 font-semibold text-lg">{renderClickableGerman(pair.form)}</td>
                         </tr>
                     ))}
                 </tbody>

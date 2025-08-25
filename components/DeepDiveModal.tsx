@@ -11,6 +11,7 @@ interface DeepDiveModalProps {
   analysis: DeepDiveAnalysis | null;
   isLoading: boolean;
   error: string | null;
+  onOpenWordAnalysis: (phrase: Phrase, word: string) => void;
 }
 
 const chunkColorMap: { [key: string]: string } = {
@@ -69,8 +70,31 @@ const DeepDiveSkeleton: React.FC = () => (
 );
 
 
-const DeepDiveModal: React.FC<DeepDiveModalProps> = ({ isOpen, onClose, phrase, analysis, isLoading, error }) => {
+const DeepDiveModal: React.FC<DeepDiveModalProps> = ({ isOpen, onClose, phrase, analysis, isLoading, error, onOpenWordAnalysis }) => {
   if (!isOpen) return null;
+  
+  const handleWordClick = (contextText: string, word: string) => {
+    const proxyPhrase = { ...phrase, german: contextText };
+    onOpenWordAnalysis(proxyPhrase, word);
+  };
+  
+  const renderClickableGerman = (text: string) => {
+    if (!text) return null;
+    return text.split(' ').map((word, i, arr) => (
+        <span
+            key={i}
+            onClick={(e) => {
+                e.stopPropagation();
+                const cleanedWord = word.replace(/[.,!?()"“”:;]/g, '');
+                if (cleanedWord) handleWordClick(text, cleanedWord);
+            }}
+            className="cursor-pointer hover:bg-white/20 px-1 py-0.5 rounded-md transition-colors"
+        >
+            {word}{i < arr.length - 1 ? ' ' : ''}
+        </span>
+    ));
+  };
+
 
   const renderContent = () => {
     if (isLoading) {
@@ -89,13 +113,13 @@ const DeepDiveModal: React.FC<DeepDiveModalProps> = ({ isOpen, onClose, phrase, 
         <section>
           <h3 className="text-xl font-bold text-purple-300 mb-4">Этап 1: Деконструкция</h3>
           <div className="bg-slate-700/50 p-4 rounded-lg">
-            <p className="text-lg font-semibold text-slate-100 mb-4 leading-relaxed flex flex-wrap items-center gap-x-1 gap-y-2">
+            <div className="text-lg font-semibold text-slate-100 mb-4 leading-relaxed flex flex-wrap items-center gap-x-1 gap-y-2">
               {analysis.chunks.map((chunk, index) => (
-                <span key={index} className={`px-2 py-1 rounded-md ring-1 ring-inset ${chunkColorMap[chunk.type] || chunkColorMap.Default}`}>
-                  {chunk.text}
-                </span>
+                <div key={index} className={`px-2 py-1 rounded-md ring-1 ring-inset ${chunkColorMap[chunk.type] || chunkColorMap.Default}`}>
+                  {renderClickableGerman(chunk.text)}
+                </div>
               ))}
-            </p>
+            </div>
             <div className="space-y-3 border-t border-slate-600/50 pt-4">
               {analysis.chunks.map((chunk, index) => (
                 <div key={index} className="flex items-start text-sm">
