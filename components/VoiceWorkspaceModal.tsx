@@ -73,6 +73,11 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const constructedPhraseRef = useRef<HTMLDivElement>(null);
 
+  const resetAttempt = useCallback(() => {
+    setAvailableWords(prev => [...prev, ...constructedWords.map((w,i)=> ({...w, originalIndex: 1000+i}))].sort((a,b) => a.originalIndex - b.originalIndex));
+    setConstructedWords([]);
+  }, [constructedWords]);
+
   const resetState = useCallback(() => {
     setConstructedWords([]);
     setAvailableWords([]);
@@ -208,7 +213,7 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
       recognitionRef.current?.stop();
       setTimeout(() => {
           setLocalFeedback(null);
-          setConstructedWords([]);
+          resetAttempt();
           try {
             recognitionRef.current?.start();
           } catch(e) { console.error("Could not start recognition for second attempt:", e); }
@@ -236,8 +241,7 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
   };
 
   const handleReset = () => {
-    setAvailableWords([...availableWords, ...constructedWords.map((w,i)=> ({...w, originalIndex: 1000+i}))].sort((a,b) => a.originalIndex - b.originalIndex));
-    setConstructedWords([]);
+    resetAttempt();
   };
   
   const handleSelectWord = (word: AvailableWord) => {
@@ -307,7 +311,7 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
       },
       {
         key: 'next' as const,
-        action: () => { onLogButtonUsage('next'); onPracticeNext(); resetState(); loadWordOptions(); },
+        action: () => { onLogButtonUsage('next'); onPracticeNext(); },
         icon: <ArrowRightIcon className="w-6 h-6" />,
         className: 'bg-purple-600 hover:bg-purple-700',
         label: 'Следующая фраза',
@@ -319,7 +323,7 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
     }
     // Default fixed order
     return [buttonData[0], buttonData[1], buttonData[2]];
-  }, [settings.dynamicButtonLayout, buttonUsage, onLogButtonUsage, onClose, onNextPhrase, onPracticeNext, resetState, loadWordOptions]);
+  }, [settings.dynamicButtonLayout, buttonUsage, onLogButtonUsage, onClose, onNextPhrase, onPracticeNext]);
 
 
   if (!isOpen || !phrase) return null;
@@ -406,24 +410,25 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
                   </div>
               </div>
 
-              <div className="flex-shrink-0 pt-4 border-t border-slate-700/50 flex items-center justify-center min-h-[80px]">
-                  <div className="flex items-center space-x-4">
-                      <button 
-                        onClick={handleMicClick} 
-                        disabled={isLoadingOptions}
-                        className={`p-4 rounded-full transition-colors ${isListening ? 'bg-red-600 hover:bg-red-700 animate-pulse' : 'bg-slate-600 hover:bg-slate-500'} disabled:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50`}
-                      >
-                        <MicrophoneIcon className="w-6 h-6 text-white" />
+              <div className="flex-shrink-0 pt-4 border-t border-slate-700/50 flex items-center justify-between relative min-h-[80px]">
+                  <button 
+                    onClick={handleMicClick} 
+                    disabled={isLoadingOptions || !!evaluation}
+                    className={`p-4 rounded-full transition-colors ${isListening ? 'bg-red-600 hover:bg-red-700 animate-pulse' : 'bg-slate-600 hover:bg-slate-500'} disabled:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50`}
+                  >
+                    <MicrophoneIcon className="w-6 h-6 text-white" />
+                  </button>
+                  
+                  {!evaluation && (
+                      <button onClick={handleCheck} disabled={constructedWords.length === 0 || isChecking} className="relative px-8 py-3 rounded-lg bg-green-600 hover:bg-green-700 transition-colors font-semibold text-white shadow-md disabled:bg-slate-600 disabled:cursor-not-allowed flex items-center justify-center min-w-[150px] h-[48px]">
+                          <span className={`flex items-center transition-opacity ${isChecking ? 'opacity-0' : 'opacity-100'}`}><CheckIcon className="w-5 h-5 mr-2" /><span>Проверить</span></span>
+                          {isChecking && <div className="absolute inset-0 flex items-center justify-center"><Spinner /></div>}
                       </button>
-                      
-                      {!evaluation && (
-                          <button onClick={handleCheck} disabled={constructedWords.length === 0 || isChecking} className="relative px-8 py-3 rounded-lg bg-green-600 hover:bg-green-700 transition-colors font-semibold text-white shadow-md disabled:bg-slate-600 disabled:cursor-not-allowed flex items-center justify-center min-w-[150px] h-[48px]">
-                              <span className={`flex items-center transition-opacity ${isChecking ? 'opacity-0' : 'opacity-100'}`}><CheckIcon className="w-5 h-5 mr-2" /><span>Проверить</span></span>
-                              {isChecking && <div className="absolute inset-0 flex items-center justify-center"><Spinner /></div>}
-                          </button>
-                      )}
-                  </div>
-                  {speechError && <p className="absolute bottom-2 text-xs text-red-400 mt-1">{speechError}</p>}
+                  )}
+                  {/* Placeholder to keep mic button left-aligned */}
+                  {evaluation && <div />}
+
+                  {speechError && <p className="absolute -bottom-1 left-1/2 -translate-x-1/2 text-xs text-red-400 mt-1 w-full text-center">{speechError}</p>}
               </div>
               
               <div className={`absolute bottom-0 left-0 right-0 p-6 pt-4 bg-slate-800 border-t border-slate-700/50 shadow-[0_-10px_20px_-5px_rgba(0,0,0,0.2)] transition-transform duration-300 ease-out ${evaluation ? 'translate-y-0' : 'translate-y-full'}`}>
