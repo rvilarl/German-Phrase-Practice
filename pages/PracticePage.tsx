@@ -30,7 +30,7 @@ const ContextMenu: React.FC<{
     <>
       <div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <div
-        className="fixed z-50 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-slate-700 rounded-lg shadow-2xl animate-fade-in text-white w-64 overflow-hidden"
+        className="fixed z-50 top-1/2 left-1/2 bg-slate-700 rounded-lg shadow-2xl animate-fade-in-center text-white w-64 overflow-hidden"
       >
         <button onClick={handleGoToList} className="w-full flex items-center px-4 py-3 text-left hover:bg-slate-600 transition-colors">
           <ListIcon className="w-5 h-5 mr-3 text-slate-300" />
@@ -71,7 +71,6 @@ interface PracticePageProps {
   onOpenWordAnalysis: (phrase: Phrase, word: string) => void;
   onOpenSentenceChain: (phrase: Phrase) => void;
   onOpenImprovePhrase: (phrase: Phrase) => void;
-  onOpenPhraseBuilder: (phrase: Phrase) => void;
   onOpenLearningAssistant: (phrase: Phrase) => void;
   onOpenVoiceWorkspace: (phrase: Phrase) => void;
   onDeletePhrase: (phraseId: string) => void;
@@ -86,7 +85,7 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
     fetchNewPhrases, isLoading, error, isGenerating, apiProviderAvailable,
     onUpdateMastery, onContinue, onSwipeLeft, onSwipeRight,
     onOpenChat, onOpenDeepDive, onOpenMovieExamples, onOpenWordAnalysis,
-    onOpenSentenceChain, onOpenImprovePhrase, onOpenPhraseBuilder, onOpenLearningAssistant,
+    onOpenSentenceChain, onOpenImprovePhrase, onOpenLearningAssistant,
     onOpenVoiceWorkspace, onDeletePhrase, onGoToList, onOpenDiscussTranslation, onGenerateHint
   } = props;
 
@@ -206,7 +205,6 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
                       onWordClick={onOpenWordAnalysis}
                       onOpenSentenceChain={onOpenSentenceChain}
                       onOpenImprovePhrase={onOpenImprovePhrase}
-                      onOpenPhraseBuilder={onOpenPhraseBuilder}
                       onOpenContextMenu={setContextMenuPhrase}
                       onOpenVoicePractice={onOpenVoiceWorkspace}
                       onOpenLearningAssistant={onOpenLearningAssistant}

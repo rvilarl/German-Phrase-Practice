@@ -8,6 +8,7 @@ import XCircleIcon from './icons/XCircleIcon';
 import AudioPlayer from './AudioPlayer';
 import BackspaceIcon from './icons/BackspaceIcon';
 import ArrowRightIcon from './icons/ArrowRightIcon';
+import * as cacheService from '../services/cacheService';
 
 interface VoiceWorkspaceModalProps {
   isOpen: boolean;
@@ -17,6 +18,7 @@ interface VoiceWorkspaceModalProps {
   onSuccess: (phrase: Phrase) => void;
   onFailure: (phrase: Phrase) => void;
   onNextPhrase: () => void;
+  onPracticeNext: () => void;
   onGeneratePhraseBuilderOptions: (phrase: Phrase) => Promise<PhraseBuilderOptions>;
 }
 
@@ -46,7 +48,7 @@ const WordBankSkeleton = () => (
 const normalizeString = (str: string) => str.toLowerCase().replace(/[.,!?]/g, '').trim();
 
 const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
-  isOpen, onClose, phrase, onEvaluate, onSuccess, onFailure, onNextPhrase, onGeneratePhraseBuilderOptions
+  isOpen, onClose, phrase, onEvaluate, onSuccess, onFailure, onNextPhrase, onGeneratePhraseBuilderOptions, onPracticeNext
 }) => {
   const [constructedWords, setConstructedWords] = useState<Word[]>([]);
   const [availableWords, setAvailableWords] = useState<AvailableWord[]>([]);
@@ -58,7 +60,6 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
   const [localFeedback, setLocalFeedback] = useState<string | null>(null);
   const [optionsError, setOptionsError] = useState<string | null>(null);
   const [speechError, setSpeechError] = useState<string | null>(null);
-  const [optionsFetched, setOptionsFetched] = useState(false);
 
   // Drag & Drop State
   const [draggedItem, setDraggedItem] = useState<DraggedItem | null>(null);
@@ -82,15 +83,25 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
     setLocalFeedback(null);
     setOptionsError(null);
     setSpeechError(null);
-    setOptionsFetched(false);
   }, []);
   
   const loadWordOptions = useCallback(async () => {
       if (!phrase) return;
       setIsLoadingOptions(true);
       setOptionsError(null);
+      
+      const cacheKey = `phrase_builder_${phrase.id}`;
+      const cachedOptions = cacheService.getCache<PhraseBuilderOptions>(cacheKey);
+
+      if (cachedOptions) {
+          setAvailableWords(cachedOptions.words.map((w, i) => ({ text: w, id: `avail-${i}`, originalIndex: i })));
+          setIsLoadingOptions(false);
+          return;
+      }
+
       try {
           const options = await onGeneratePhraseBuilderOptions(phrase);
+          cacheService.setCache(cacheKey, options);
           setAvailableWords(options.words.map((w, i) => ({ text: w, id: `avail-${i}`, originalIndex: i })));
       } catch (err) {
           let displayError = "Произошла непредвиденная ошибка.";
@@ -110,30 +121,18 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
       }
   }, [phrase, onGeneratePhraseBuilderOptions]);
 
-  // Effect to trigger fetching words after the first speech result.
-  useEffect(() => {
-    if (optionsFetched && availableWords.length === 0 && !isLoadingOptions) {
-      loadWordOptions();
-    }
-  }, [optionsFetched, availableWords.length, isLoadingOptions, loadWordOptions]);
 
   // Effect to handle modal opening and closing.
   useEffect(() => {
     if (isOpen && phrase) {
       resetState();
-      try {
-        setSpeechError(null);
-        recognitionRef.current?.start();
-      } catch (e) {
-        console.error("Auto-start recognition failed", e);
-        setSpeechError("Не удалось запустить микрофон.");
-      }
+      loadWordOptions();
     }
 
     return () => {
         recognitionRef.current?.abort();
     };
-  }, [isOpen, phrase, resetState]);
+  }, [isOpen, phrase, resetState, loadWordOptions]);
   
   useEffect(() => {
     const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -170,7 +169,6 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
         if (finalTranscript.trim()) {
             const newWords = finalTranscript.trim().split(' ').map((text, index) => ({ text, id: `spoken-${Date.now()}-${index}` }));
             setConstructedWords(prev => [...prev, ...newWords]);
-            setOptionsFetched(true); // Trigger word bank loading
         }
       };
       recognitionRef.current = recognition;
@@ -182,7 +180,6 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
     if (isListening) {
       recognitionRef.current?.stop();
     } else {
-      setConstructedWords([]);
       setSpeechError(null);
       recognitionRef.current?.start();
     }
@@ -201,7 +198,7 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
       return;
     }
 
-    if (attemptNumber === 1) {
+    if (attemptNumber === 1 && availableWords.length > 0) {
       setAttemptNumber(2);
       setLocalFeedback('Неверно. Попробуйте еще раз!');
       recognitionRef.current?.stop();
@@ -374,7 +371,13 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
 
               <div className="flex-shrink-0 pt-4 border-t border-slate-700/50 flex items-center justify-center relative min-h-[80px]">
                   <div className="absolute left-0 top-1/2 -translate-y-1/2 flex flex-col items-start w-32">
-                      <button onClick={handleMicClick} className={`p-4 rounded-full transition-colors ${isListening ? 'bg-red-600 hover:bg-red-700 animate-pulse' : 'bg-slate-600 hover:bg-slate-500'}`}><MicrophoneIcon className="w-6 h-6 text-white" /></button>
+                      <button 
+                        onClick={handleMicClick} 
+                        disabled={isLoadingOptions}
+                        className={`p-4 rounded-full transition-colors ${isListening ? 'bg-red-600 hover:bg-red-700 animate-pulse' : 'bg-slate-600 hover:bg-slate-500'} disabled:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50`}
+                      >
+                        <MicrophoneIcon className="w-6 h-6 text-white" />
+                      </button>
                       {speechError && <p className="text-xs text-red-400 mt-1">{speechError}</p>}
                   </div>
                   
@@ -397,10 +400,27 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
                       </div>
                     </div>
                     <div className="w-full sm:w-auto flex-shrink-0 flex items-center justify-center gap-3">
-                      <button onClick={onClose} className="flex-1 sm:flex-none px-6 py-3 rounded-lg bg-slate-600 hover:bg-slate-700 transition-colors font-semibold text-white shadow-md text-center">Закрыть</button>
-                      <button onClick={onNextPhrase} className="flex-1 sm:flex-none px-6 py-3 rounded-lg bg-purple-600 hover:bg-purple-700 transition-colors font-semibold text-white shadow-md flex items-center justify-center">
-                        <span>Продолжить</span><ArrowRightIcon className="w-5 h-5 ml-2" />
-                      </button>
+                        <button
+                            onClick={onNextPhrase}
+                            className="flex-grow sm:flex-grow-0 px-6 py-3 rounded-lg bg-green-600 hover:bg-green-700 transition-colors font-semibold text-white shadow-md flex items-center justify-center"
+                        >
+                            <CheckIcon className="w-5 h-5 mr-2" />
+                            <span>Продолжить</span>
+                        </button>
+                        <button
+                            onClick={onPracticeNext}
+                            className="flex-grow sm:flex-grow-0 px-6 py-3 rounded-lg bg-purple-600 hover:bg-purple-700 transition-colors font-semibold text-white shadow-md flex items-center justify-center"
+                        >
+                            <span>Следующая</span>
+                            <ArrowRightIcon className="w-5 h-5 ml-2" />
+                        </button>
+                        <button
+                            onClick={onClose}
+                            className="p-3.5 rounded-lg bg-slate-600 hover:bg-slate-700 transition-colors text-white shadow-md"
+                            aria-label="Закрыть"
+                        >
+                            <CloseIcon className="w-6 h-6" />
+                        </button>
                     </div>
                   </div>
                 )}

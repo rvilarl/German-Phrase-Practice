@@ -6,7 +6,6 @@ import AnalysisIcon from './icons/AnalysisIcon';
 import FilmIcon from './icons/FilmIcon';
 import LinkIcon from './icons/LinkIcon';
 import WandIcon from './icons/WandIcon';
-import BlocksIcon from './icons/BlocksIcon';
 import MicrophoneIcon from './icons/MicrophoneIcon';
 import BookOpenIcon from './icons/BookOpenIcon';
 
@@ -21,7 +20,6 @@ interface PhraseCardProps {
   onWordClick: (phrase: Phrase, word: string) => void;
   onOpenSentenceChain: (phrase: Phrase) => void;
   onOpenImprovePhrase: (phrase: Phrase) => void;
-  onOpenPhraseBuilder: (phrase: Phrase) => void;
   onOpenContextMenu: (phrase: Phrase) => void;
   onOpenVoicePractice: (phrase: Phrase) => void;
   onOpenLearningAssistant: (phrase: Phrase) => void;
@@ -34,7 +32,7 @@ interface PhraseCardProps {
 const PhraseCard: React.FC<PhraseCardProps> = ({
   phrase, onSpeak, isFlipped, onFlip, onOpenChat,
   onOpenDeepDive, onOpenMovieExamples, onWordClick, onOpenSentenceChain,
-  onOpenImprovePhrase, onOpenPhraseBuilder, onOpenContextMenu, onOpenVoicePractice,
+  onOpenImprovePhrase, onOpenContextMenu, onOpenVoicePractice,
   onOpenLearningAssistant, hint, isHintVisible, isHintLoading, onShowHint
 }) => {
 
@@ -77,11 +75,6 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
     e.stopPropagation();
     onOpenSentenceChain(phrase);
   }
-  
-  const handleOpenPhraseBuilder = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onOpenPhraseBuilder(phrase);
-  };
   
   const handleOpenVoicePractice = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -160,13 +153,6 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
                >
                    <BookOpenIcon className="w-5 h-5" />
                </button>
-               <button
-                   onClick={handleOpenPhraseBuilder}
-                   className="p-3 rounded-full bg-slate-600/50 hover:bg-slate-600 transition-colors text-slate-100"
-                   aria-label="Конструктор фраз"
-               >
-                   <BlocksIcon className="w-5 h-5" />
-               </button>
                 <button
                     onClick={handleOpenSentenceChain}
                     className="p-3 rounded-full bg-slate-600/50 hover:bg-slate-600 transition-colors text-slate-100"
@@ -177,7 +163,7 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
                 <button
                    onClick={handleOpenVoicePractice}
                    className="p-3 rounded-full bg-slate-600/50 hover:bg-slate-600 transition-all text-slate-100"
-                   aria-label="Практика произношения"
+                   aria-label="Конструктор фраз"
                >
                    <MicrophoneIcon className="w-5 h-5 text-white" />
                </button>
