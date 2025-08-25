@@ -1,4 +1,4 @@
-import React, { useCallback, useRef } from 'react';
+import React, { useCallback, useRef, useState, useEffect } from 'react';
 import type { Phrase } from '../types';
 import PhraseCard from '../components/PhraseCard';
 import Spinner from '../components/Spinner';
@@ -77,6 +77,7 @@ interface PracticePageProps {
   onDeletePhrase: (phraseId: string) => void;
   onGoToList: (phrase: Phrase) => void;
   onOpenDiscussTranslation: (phrase: Phrase) => void;
+  onGenerateHint: (phrase: Phrase) => Promise<string>;
 }
 
 const PracticePage: React.FC<PracticePageProps> = (props) => {
@@ -86,13 +87,45 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
     onUpdateMastery, onContinue, onSwipeLeft, onSwipeRight,
     onOpenChat, onOpenDeepDive, onOpenMovieExamples, onOpenWordAnalysis,
     onOpenSentenceChain, onOpenImprovePhrase, onOpenPhraseBuilder, onOpenLearningAssistant,
-    onOpenVoiceWorkspace, onDeletePhrase, onGoToList, onOpenDiscussTranslation
+    onOpenVoiceWorkspace, onDeletePhrase, onGoToList, onOpenDiscussTranslation, onGenerateHint
   } = props;
 
   const [contextMenuPhrase, setContextMenuPhrase] = React.useState<Phrase | null>(null);
   const touchStartRef = useRef<number | null>(null);
   const touchMoveRef = useRef<number | null>(null);
   
+  const [hint, setHint] = useState<string | null>(null);
+  const [isHintLoading, setIsHintLoading] = useState(false);
+  const [isHintVisible, setIsHintVisible] = useState(false);
+
+  useEffect(() => {
+    if (currentPhrase) {
+        setHint(null);
+        setIsHintVisible(false);
+        setIsHintLoading(false);
+    }
+  }, [currentPhrase]);
+
+  const handleShowHint = useCallback(async () => {
+    if (!currentPhrase || isHintVisible || isHintLoading || isAnswerRevealed) return;
+
+    if (hint) {
+        setIsHintVisible(true);
+        return;
+    }
+
+    setIsHintLoading(true);
+    try {
+        const generatedHint = await onGenerateHint(currentPhrase);
+        setHint(generatedHint);
+        setIsHintVisible(true);
+    } catch (e) {
+        console.error("Failed to generate hint", e);
+    } finally {
+        setIsHintLoading(false);
+    }
+  }, [currentPhrase, hint, isHintVisible, isHintLoading, isAnswerRevealed, onGenerateHint]);
+
   const speak = useCallback((text: string) => {
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
@@ -177,6 +210,10 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
                       onOpenContextMenu={setContextMenuPhrase}
                       onOpenVoicePractice={onOpenVoiceWorkspace}
                       onOpenLearningAssistant={onOpenLearningAssistant}
+                      hint={hint}
+                      isHintVisible={isHintVisible}
+                      isHintLoading={isHintLoading}
+                      onShowHint={handleShowHint}
                     />
                 </div>
             </div>

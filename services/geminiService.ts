@@ -1168,6 +1168,42 @@ const evaluateSpokenPhraseAttempt: AiService['evaluateSpokenPhraseAttempt'] = as
     }
 };
 
+const hintSchema = {
+    type: Type.OBJECT,
+    properties: {
+      hint: {
+        type: Type.STRING,
+        description: 'The single most important keyword or two-word pair from the German phrase.',
+      },
+    },
+    required: ["hint"],
+};
+
+
+const generatePhraseHint: AiService['generatePhraseHint'] = async (phrase) => {
+    const api = initializeApi();
+    if (!api) throw new Error("Gemini API key not configured.");
+    
+    const prompt = `Ты — лингвистический ассистент. Проанализируй русскую фразу "${phrase.russian}" и её немецкий перевод "${phrase.german}". Выдели ОДНО или ДВА (если они неотделимы по смыслу, например, артикль и существительное) ключевых, фундаментальных слова из НЕМЕЦКОЙ фразы, которые служат лучшей подсказкой для её вспоминания. Верни JSON с одним ключом 'hint'.`;
+
+    try {
+        const response = await api.models.generateContent({
+            model: model,
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: hintSchema,
+                temperature: 0.2,
+            },
+        });
+        const jsonText = response.text.trim();
+        return JSON.parse(jsonText);
+    } catch (error) {
+        console.error("Error generating phrase hint with Gemini:", error);
+        throw new Error(`Failed to call the Gemini API: ${(error as any)?.message || 'Unknown error'}`);
+    }
+};
+
 const healthCheck: AiService['healthCheck'] = async () => {
     const api = initializeApi();
     if (!api) return false;
@@ -1203,6 +1239,7 @@ export const geminiService: AiService = {
     generatePhraseBuilderOptions,
     evaluatePhraseAttempt,
     evaluateSpokenPhraseAttempt,
+    generatePhraseHint,
     healthCheck,
     getProviderName: () => "Google Gemini",
 };

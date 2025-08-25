@@ -9,6 +9,7 @@ import WandIcon from './icons/WandIcon';
 import BlocksIcon from './icons/BlocksIcon';
 import MicrophoneIcon from './icons/MicrophoneIcon';
 import BookOpenIcon from './icons/BookOpenIcon';
+import Spinner from './Spinner';
 
 interface PhraseCardProps {
   phrase: Phrase;
@@ -25,13 +26,17 @@ interface PhraseCardProps {
   onOpenContextMenu: (phrase: Phrase) => void;
   onOpenVoicePractice: (phrase: Phrase) => void;
   onOpenLearningAssistant: (phrase: Phrase) => void;
+  hint: string | null;
+  isHintVisible: boolean;
+  isHintLoading: boolean;
+  onShowHint: () => void;
 }
 
 const PhraseCard: React.FC<PhraseCardProps> = ({
   phrase, onSpeak, isFlipped, onFlip, onOpenChat,
   onOpenDeepDive, onOpenMovieExamples, onWordClick, onOpenSentenceChain,
   onOpenImprovePhrase, onOpenPhraseBuilder, onOpenContextMenu, onOpenVoicePractice,
-  onOpenLearningAssistant
+  onOpenLearningAssistant, hint, isHintVisible, isHintLoading, onShowHint
 }) => {
 
   const longPressTimer = useRef<number | null>(null);
@@ -119,10 +124,34 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
       >
         {/* Front Side (Russian) */}
         <div 
-            className={`h-full absolute inset-0 [backface-visibility:hidden] bg-gradient-to-br from-slate-700/80 to-slate-800/80 backdrop-blur-sm border border-white/10 rounded-xl p-6 flex flex-col justify-between items-center text-center transition-colors duration-500 relative overflow-hidden`}
+            onClick={onShowHint}
+            className={`h-full absolute inset-0 [backface-visibility:hidden] bg-gradient-to-br from-slate-700/80 to-slate-800/80 backdrop-blur-sm border border-white/10 rounded-xl p-6 flex flex-col justify-between items-center text-center transition-colors duration-500 relative overflow-hidden cursor-pointer`}
         >
-            <div className="flex-grow flex items-center justify-center w-full">
+            <div className="flex-grow flex flex-col items-center justify-center w-full">
                 <h2 className="text-2xl font-semibold text-slate-100">{phrase.russian}</h2>
+                 <div className="mt-4 h-10 flex items-center justify-center">
+                    {isHintLoading && <Spinner className="w-6 h-6" />}
+                    {isHintVisible && hint && !isHintLoading && (
+                        <div className="flex items-center gap-x-2 bg-slate-900/50 px-3 py-1.5 rounded-full animate-fade-in">
+                            <button 
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onSpeak(hint);
+                                }}
+                                className="p-1 rounded-full hover:bg-white/20 transition-colors"
+                                aria-label={`Speak hint: ${hint}`}
+                            >
+                                <SoundIcon className="w-4 h-4 text-slate-300" />
+                            </button>
+                            <button 
+                                 onClick={(e) => handleWordClick(e, hint)}
+                                className="text-slate-300 font-medium hover:text-white transition-colors"
+                            >
+                                {hint}
+                            </button>
+                        </div>
+                    )}
+                </div>
             </div>
             
             <div className="w-full flex justify-center items-center gap-x-3">

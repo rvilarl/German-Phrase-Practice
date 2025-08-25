@@ -129,6 +129,8 @@ const App: React.FC = () => {
   
   const [isPronounsModalOpen, setIsPronounsModalOpen] = useState(false);
   const [isWFragenModalOpen, setIsWFragenModalOpen] = useState(false);
+  
+  const [hintCache, setHintCache] = useState<{ [phraseId: string]: string }>({});
 
   const isPrefetchingRef = useRef(false);
 
@@ -660,6 +662,22 @@ const App: React.FC = () => {
     }
   }, [updateAndSavePhrases, currentPracticePhrase, settings.soundEffects]);
   
+  const handleGenerateHint = useCallback(async (phrase: Phrase): Promise<string> => {
+    const cacheKey = `hint_${phrase.id}`;
+    const cachedHint = hintCache[phrase.id] || cacheService.getCache<string>(cacheKey);
+    if (cachedHint) {
+        if (!hintCache[phrase.id]) {
+            setHintCache(prev => ({...prev, [phrase.id]: cachedHint}));
+        }
+        return cachedHint;
+    }
+
+    const { hint } = await callApiWithFallback(provider => provider.generatePhraseHint(phrase));
+    setHintCache(prev => ({ ...prev, [phrase.id]: hint }));
+    cacheService.setCache(cacheKey, hint);
+    return hint;
+  }, [callApiWithFallback, hintCache]);
+
   // --- Practice Page Logic ---
   const unmasteredPhrases = useMemo(() => allPhrases.filter(p => p && !p.isMastered), [allPhrases]);
 
@@ -805,6 +823,7 @@ const App: React.FC = () => {
              onDeletePhrase={handleDeletePhrase}
              onGoToList={handleGoToListFromPractice}
              onOpenDiscussTranslation={handleOpenDiscussModal}
+             onGenerateHint={handleGenerateHint}
            />
         ) : (
           <PhraseListPage 

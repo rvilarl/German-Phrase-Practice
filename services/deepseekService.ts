@@ -659,6 +659,26 @@ const evaluateSpokenPhraseAttempt: AiService['evaluateSpokenPhraseAttempt'] = as
     return await callDeepSeekApi(messages, schema);
 };
 
+const generatePhraseHint: AiService['generatePhraseHint'] = async (phrase) => {
+    const schema = {
+        type: "object",
+        properties: {
+          hint: { type: "string" },
+        },
+        required: ["hint"],
+    };
+    
+    const prompt = `Ты — лингвистический ассистент. Проанализируй русскую фразу "${phrase.russian}" и её немецкий перевод "${phrase.german}". Выдели ОДНО или ДВА (если они неотделимы по смыслу, например, артикль и существительное) ключевых, фундаментальных слова из НЕМЕЦКОЙ фразы, которые служат лучшей подсказкой для её вспоминания. Верни JSON с одним ключом 'hint'.`;
+
+    const messages = [
+        { role: "system", content: "You are a linguistic assistant. Respond only in JSON." },
+        { role: "user", content: prompt }
+    ];
+
+    return await callDeepSeekApi(messages, schema);
+};
+
+
 const healthCheck: AiService['healthCheck'] = async () => {
     const apiKey = getDeepseekApiKey();
     if (!apiKey) {
@@ -713,6 +733,7 @@ export const deepseekService: AiService = {
     generatePhraseBuilderOptions,
     evaluatePhraseAttempt,
     evaluateSpokenPhraseAttempt,
+    generatePhraseHint,
     healthCheck,
     getProviderName: () => "DeepSeek",
 };
