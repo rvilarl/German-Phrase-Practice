@@ -35,6 +35,16 @@ type DraggedItem = {
   index: number;
 }
 
+const WordBankSkeleton = () => (
+    <div className="flex flex-wrap justify-center gap-2 w-full animate-pulse">
+      {['w-20', 'w-28', 'w-24', 'w-16', 'w-32', 'w-20', 'w-24', 'w-28', 'w-16', 'w-24'].map((width, index) => (
+        <div key={index} className={`h-11 bg-slate-700 rounded-lg ${width}`}></div>
+      ))}
+    </div>
+);
+
+const normalizeString = (str: string) => str.toLowerCase().replace(/[.,!?]/g, '').trim();
+
 const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
   isOpen, onClose, phrase, onEvaluate, onSuccess, onFailure, onNextPhrase, onGeneratePhraseBuilderOptions
 }) => {
@@ -44,6 +54,10 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
   const [isChecking, setIsChecking] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isLoadingOptions, setIsLoadingOptions] = useState(true);
+  const [attemptNumber, setAttemptNumber] = useState(1);
+  const [localFeedback, setLocalFeedback] = useState<string | null>(null);
+  const [optionsError, setOptionsError] = useState<string | null>(null);
+  const [speechError, setSpeechError] = useState<string | null>(null);
 
   // Drag & Drop State
   const [draggedItem, setDraggedItem] = useState<DraggedItem | null>(null);
@@ -63,6 +77,10 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
     setDraggedItem(null);
     setDropIndex(null);
     setGhostPosition(null);
+    setAttemptNumber(1);
+    setLocalFeedback(null);
+    setOptionsError(null);
+    setSpeechError(null);
   }, []);
 
   useEffect(() => {
@@ -70,28 +88,36 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
     if (isOpen && phrase) {
       resetState();
 
-      // Immediately schedule the microphone to start after a short delay for modal animation.
       startTimer = window.setTimeout(() => {
           try {
+              setSpeechError(null);
               recognitionRef.current?.start();
           } catch (e) { console.error("Auto-start recognition failed", e); }
       }, 500);
 
-      // Fetch word options in the background.
       onGeneratePhraseBuilderOptions(phrase)
         .then(options => {
           setAvailableWords(options.words.map((w, i) => ({ text: w, id: `avail-${i}`, originalIndex: i })));
         })
         .catch(err => {
+            let displayError = "Произошла непредвиденная ошибка.";
             console.error("Failed to load phrase builder options:", err);
-            // The component is still usable via voice even if this fails.
+            if (err instanceof Error) {
+                if (err.message.includes("500") || err.message.includes("Internal Server Error")) {
+                    displayError = "Сервис временно недоступен (ошибка 500).";
+                } else if (err.message.includes("API key")) {
+                    displayError = "Ошибка конфигурации API ключа.";
+                } else {
+                    displayError = "Не удалось выполнить запрос.";
+                }
+            }
+            setOptionsError(`Не удалось загрузить варианты слов. ${displayError}`);
         })
         .finally(() => setIsLoadingOptions(false));
     }
 
     return () => {
         clearTimeout(startTimer);
-        // When the effect cleans up (e.g., on close), abort any active recognition.
         recognitionRef.current?.abort();
     };
   }, [isOpen, phrase, onGeneratePhraseBuilderOptions, resetState]);
@@ -101,21 +127,36 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
     if (SpeechRecognitionAPI) {
       const recognition = new SpeechRecognitionAPI();
       recognition.lang = 'de-DE';
-      recognition.continuous = false; // Stops automatically after a pause
+      recognition.continuous = true;
       recognition.interimResults = true;
       
       recognition.onstart = () => setIsListening(true);
       recognition.onend = () => setIsListening(false);
-      recognition.onerror = (e: SpeechRecognitionErrorEvent) => { if (e.error !== 'aborted') console.error('Speech error:', e.error); setIsListening(false); };
+      recognition.onerror = (e: SpeechRecognitionErrorEvent) => { 
+        if (e.error !== 'aborted' && e.error !== 'no-speech') {
+          console.error('Speech error:', e.error);
+          let userFriendlyError = 'Произошла ошибка распознавания речи.';
+          if (e.error === 'network') {
+              userFriendlyError = 'Ошибка сети при распознавании речи.';
+          } else if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+              userFriendlyError = 'Доступ к микрофону не разрешен.';
+          }
+          setSpeechError(userFriendlyError);
+        }
+        setIsListening(false); 
+      };
       
       recognition.onresult = (event) => {
-        const result = event.results[event.results.length - 1];
-        if (result.isFinal) {
-            const finalTranscript = result[0].transcript.trim();
-            if (finalTranscript) {
-                const newWords = finalTranscript.split(' ').map((text, index) => ({ text, id: `spoken-${Date.now()}-${index}` }));
-                setConstructedWords(newWords);
+        let finalTranscript = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+            if (event.results[i].isFinal) {
+                finalTranscript += event.results[i][0].transcript;
             }
+        }
+
+        if (finalTranscript.trim()) {
+            const newWords = finalTranscript.trim().split(' ').map((text, index) => ({ text, id: `spoken-${Date.now()}-${index}` }));
+            setConstructedWords(prev => [...prev, ...newWords]);
         }
       };
       recognitionRef.current = recognition;
@@ -128,6 +169,7 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
       recognitionRef.current?.stop();
     } else {
       setConstructedWords([]);
+      setSpeechError(null);
       recognitionRef.current?.start();
     }
   };
@@ -136,18 +178,39 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
     if (!phrase) return;
     const userAttempt = constructedWords.map(w => w.text).join(' ');
     if (!userAttempt) return;
-    setIsChecking(true);
-    setEvaluation(null);
-    try {
-      const result = await onEvaluate(phrase, userAttempt);
-      setEvaluation(result);
-      if (result.isCorrect) onSuccess(phrase);
-      else onFailure(phrase);
-    } catch (err) {
-      setEvaluation({ isCorrect: false, feedback: err instanceof Error ? err.message : 'Ошибка проверки.' });
-      onFailure(phrase);
-    } finally {
-      setIsChecking(false);
+
+    const isCorrectLocally = normalizeString(userAttempt) === normalizeString(phrase.german);
+
+    if (isCorrectLocally) {
+      setEvaluation({ isCorrect: true, feedback: 'Отлично! Всё верно.' });
+      onSuccess(phrase);
+      return;
+    }
+
+    if (attemptNumber === 1) {
+      setAttemptNumber(2);
+      setLocalFeedback('Неверно. Попробуйте еще раз!');
+      recognitionRef.current?.stop();
+      setTimeout(() => {
+          setLocalFeedback(null);
+          setConstructedWords([]);
+          try {
+            recognitionRef.current?.start();
+          } catch(e) { console.error("Could not start recognition for second attempt:", e); }
+      }, 2000);
+    } else {
+      setIsChecking(true);
+      setEvaluation(null);
+      try {
+        const result = await onEvaluate(phrase, userAttempt);
+        setEvaluation(result);
+        onFailure(phrase);
+      } catch (err) {
+        setEvaluation({ isCorrect: false, feedback: err instanceof Error ? err.message : 'Ошибка проверки.' });
+        onFailure(phrase);
+      } finally {
+        setIsChecking(false);
+      }
     }
   };
   
@@ -163,18 +226,15 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
   };
   
   const handleSelectWord = (word: AvailableWord) => {
-    if (!!evaluation) return; // Don't allow changes after evaluation
+    if (!!evaluation) return;
     setConstructedWords(prev => [...prev, word]);
     setAvailableWords(prev => prev.filter(w => w.id !== word.id));
   };
 
-  // --- Drag & Drop Handlers ---
   const handleDragStart = (e: React.DragEvent<HTMLButtonElement>, word: Word, from: 'available' | 'constructed', index: number) => {
     setDraggedItem({ word, from, index });
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', word.id);
-    
-    // Custom drag ghost
     const emptyImage = new Image();
     e.dataTransfer.setDragImage(emptyImage, 0, 0);
     setGhostPosition({ x: e.clientX, y: e.clientY });
@@ -183,56 +243,35 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     if (!draggedItem) return;
-
-    if (ghostPosition) {
-      setGhostPosition({ x: e.clientX, y: e.clientY });
-    }
-
+    if (ghostPosition) setGhostPosition({ x: e.clientX, y: e.clientY });
     const dropZone = constructedPhraseRef.current;
     if (!dropZone) return;
-
     const children = Array.from(dropZone.children).filter(child => child.hasAttribute('data-word-id'));
     let newIndex = children.length;
-
     for (let i = 0; i < children.length; i++) {
         const child = children[i] as HTMLElement;
         const rect = child.getBoundingClientRect();
-        const midpoint = rect.left + rect.width / 2;
-        if (e.clientX < midpoint) {
+        if (e.clientX < rect.left + rect.width / 2) {
             newIndex = i;
             break;
         }
     }
-    
     setDropIndex(newIndex);
   };
   
   const handleDrop = () => {
     if (!draggedItem || dropIndex === null) return;
-
     const { word, from, index } = draggedItem;
-    
     let newConstructed = [...constructedWords];
-    if (from === 'constructed') {
-        newConstructed.splice(index, 1);
-    }
-
+    if (from === 'constructed') newConstructed.splice(index, 1);
     newConstructed.splice(dropIndex, 0, word);
     setConstructedWords(newConstructed);
-    
-    if (from === 'available') {
-        setAvailableWords(prev => prev.filter(w => w.id !== word.id));
-    }
-
-    setDraggedItem(null);
-    setDropIndex(null);
-    setGhostPosition(null);
+    if (from === 'available') setAvailableWords(prev => prev.filter(w => w.id !== word.id));
+    setDraggedItem(null); setDropIndex(null); setGhostPosition(null);
   };
   
   const handleDragEnd = () => {
-    setDraggedItem(null);
-    setDropIndex(null);
-    setGhostPosition(null);
+    setDraggedItem(null); setDropIndex(null); setGhostPosition(null);
   };
 
   if (!isOpen || !phrase) return null;
@@ -259,7 +298,11 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
           </header>
 
           <div className="flex-grow flex flex-col p-4 overflow-hidden relative">
-              {/* Constructed phrase area */}
+              {localFeedback && (
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-red-800/90 text-white p-4 rounded-lg shadow-lg animate-fade-in text-lg font-semibold z-10">
+                    {localFeedback}
+                </div>
+              )}
               <div className="flex-shrink-0 flex items-center gap-x-2">
                   <AudioPlayer textToSpeak={userAttempt} />
                   <div 
@@ -291,28 +334,35 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
                   <button onClick={handleReset} disabled={isChecking || !!evaluation || constructedWords.length === 0} className="p-3 self-center rounded-full bg-slate-600/50 hover:bg-slate-600 disabled:opacity-30"><BackspaceIcon className="w-5 h-5 text-white" /></button>
               </div>
               
-              {/* Word bank */}
               <div className="flex-grow my-4 min-h-0">
                   <div className="w-full h-full bg-slate-900/50 flex flex-wrap items-start content-start justify-center gap-2 p-4 rounded-lg overflow-y-auto hide-scrollbar">
-                      {isLoadingOptions ? <Spinner /> : availableWords.map((word, index) => (
-                          <button 
-                            key={word.id}
-                            onClick={() => handleSelectWord(word)}
-                            draggable
-                            onDragStart={(e) => handleDragStart(e, word, 'available', index)}
-                            onDragEnd={handleDragEnd}
-                            disabled={!!evaluation} 
-                            className="px-3 py-1.5 bg-slate-600 text-slate-200 rounded-lg transition-all text-lg font-medium disabled:opacity-30 cursor-grab active:cursor-grabbing"
-                          >
-                              {word.text}
-                          </button>
-                      ))}
+                      {isLoadingOptions ? (
+                        <WordBankSkeleton />
+                      ) : optionsError ? (
+                        <div className="text-center text-red-400 p-4">{optionsError}</div>
+                      ) : (
+                        availableWords.map((word, index) => (
+                            <button 
+                              key={word.id}
+                              onClick={() => handleSelectWord(word)}
+                              draggable
+                              onDragStart={(e) => handleDragStart(e, word, 'available', index)}
+                              onDragEnd={handleDragEnd}
+                              disabled={!!evaluation} 
+                              className="px-3 py-1.5 bg-slate-600 text-slate-200 rounded-lg transition-all text-lg font-medium disabled:opacity-30 cursor-grab active:cursor-grabbing"
+                            >
+                                {word.text}
+                            </button>
+                        ))
+                      )}
                   </div>
               </div>
 
-              {/* Footer with mic and check */}
-              <div className="flex-shrink-0 pt-4 border-t border-slate-700/50 flex items-center justify-between min-h-[80px]">
-                  <button onClick={handleMicClick} className={`p-4 rounded-full transition-colors ${isListening ? 'bg-red-600 hover:bg-red-700 animate-pulse' : 'bg-slate-600 hover:bg-slate-500'}`}><MicrophoneIcon className="w-6 h-6 text-white" /></button>
+              <div className="flex-shrink-0 pt-4 border-t border-slate-700/50 flex items-center justify-center relative min-h-[80px]">
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 flex flex-col items-start w-32">
+                      <button onClick={handleMicClick} className={`p-4 rounded-full transition-colors ${isListening ? 'bg-red-600 hover:bg-red-700 animate-pulse' : 'bg-slate-600 hover:bg-slate-500'}`}><MicrophoneIcon className="w-6 h-6 text-white" /></button>
+                      {speechError && <p className="text-xs text-red-400 mt-1">{speechError}</p>}
+                  </div>
                   
                   {!evaluation && (
                       <button onClick={handleCheck} disabled={constructedWords.length === 0 || isChecking} className="relative px-8 py-3 rounded-lg bg-green-600 hover:bg-green-700 transition-colors font-semibold text-white shadow-md disabled:bg-slate-600 disabled:cursor-not-allowed flex items-center justify-center min-w-[150px] h-[48px]">
@@ -320,11 +370,8 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
                           {isChecking && <div className="absolute inset-0 flex items-center justify-center"><Spinner /></div>}
                       </button>
                   )}
-                  {/* Placeholder for alignment */}
-                  <div className="w-16 h-16" />
               </div>
               
-              {/* Absolutely Positioned Feedback Panel */}
               <div className={`absolute bottom-0 left-0 right-0 p-6 pt-4 bg-slate-800 border-t border-slate-700/50 shadow-[0_-10px_20px_-5px_rgba(0,0,0,0.2)] transition-transform duration-300 ease-out ${evaluation ? 'translate-y-0' : 'translate-y-full'}`}>
                 {evaluation && (
                   <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
