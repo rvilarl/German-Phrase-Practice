@@ -8,7 +8,6 @@ import LinkIcon from './icons/LinkIcon';
 import WandIcon from './icons/WandIcon';
 import BlocksIcon from './icons/BlocksIcon';
 import MicrophoneIcon from './icons/MicrophoneIcon';
-import Spinner from './Spinner';
 import BookOpenIcon from './icons/BookOpenIcon';
 
 interface PhraseCardProps {
@@ -26,15 +25,13 @@ interface PhraseCardProps {
   onOpenContextMenu: (phrase: Phrase) => void;
   onOpenVoicePractice: (phrase: Phrase) => void;
   onOpenLearningAssistant: (phrase: Phrase) => void;
-  practiceState: 'idle' | 'listening' | 'checking' | 'correct' | 'incorrect';
-  liveTranscript: string | null;
 }
 
 const PhraseCard: React.FC<PhraseCardProps> = ({
   phrase, onSpeak, isFlipped, onFlip, onOpenChat,
   onOpenDeepDive, onOpenMovieExamples, onWordClick, onOpenSentenceChain,
   onOpenImprovePhrase, onOpenPhraseBuilder, onOpenContextMenu, onOpenVoicePractice,
-  onOpenLearningAssistant, practiceState, liveTranscript
+  onOpenLearningAssistant
 }) => {
 
   const longPressTimer = useRef<number | null>(null);
@@ -106,14 +103,6 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
     }
   };
 
-  const stateClasses = {
-    idle: 'from-slate-700/80 to-slate-800/80',
-    listening: 'from-slate-700/80 to-slate-800/80', // Same as idle, mic glows
-    checking: 'from-slate-700/80 to-slate-800/80', // Same as idle, spinner shows
-    correct: 'from-slate-700/80 to-slate-800/80', // Base color doesn't change
-    incorrect: 'from-slate-700/80 to-slate-800/80', // Base color doesn't change
-  };
-
   return (
     <div 
         className="group [perspective:1000px] w-full max-w-md h-full"
@@ -130,20 +119,20 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
       >
         {/* Front Side (Russian) */}
         <div 
-            className={`absolute inset-0 [backface-visibility:hidden] bg-gradient-to-br ${stateClasses[practiceState]} backdrop-blur-sm border border-white/10 rounded-xl p-6 flex flex-col justify-between items-center text-center transition-colors duration-500 relative overflow-hidden ${practiceState === 'checking' ? 'checking-border' : ''}`}
+            className={`h-full absolute inset-0 [backface-visibility:hidden] bg-gradient-to-br from-slate-700/80 to-slate-800/80 backdrop-blur-sm border border-white/10 rounded-xl p-6 flex flex-col justify-between items-center text-center transition-colors duration-500 relative overflow-hidden`}
         >
-            <div className={`flash-container ${practiceState === 'correct' ? 'flash-green-animation' : practiceState === 'incorrect' ? 'flash-red-animation' : ''}`}></div>
-            
-            <div className="flex-grow flex flex-col justify-center items-center w-full">
+            <div className="flex-grow flex items-center justify-center w-full">
                 <h2 className="text-2xl font-semibold text-slate-100">{phrase.russian}</h2>
-                
-                {/* Transcript/Feedback container, always present to prevent layout shift */}
-                <div className="mt-4 min-h-[5rem] w-full flex items-center justify-center">
-                    <p className="text-slate-300 text-lg italic">{liveTranscript || ' '}</p>
-                </div>
             </div>
             
-            <div className="w-full flex justify-center items-center gap-x-3 pt-4">
+            <div className="w-full flex justify-center items-center gap-x-3">
+                <button
+                   onClick={handleOpenLearningAssistant}
+                   className="p-3 rounded-full bg-slate-600/50 hover:bg-slate-600 transition-colors text-slate-100"
+                   aria-label="Изучать с AI"
+               >
+                   <BookOpenIcon className="w-5 h-5" />
+               </button>
                <button
                    onClick={handleOpenPhraseBuilder}
                    className="p-3 rounded-full bg-slate-600/50 hover:bg-slate-600 transition-colors text-slate-100"
@@ -152,18 +141,18 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
                    <BlocksIcon className="w-5 h-5" />
                </button>
                 <button
-                   onClick={handleOpenLearningAssistant}
-                   className="p-3 rounded-full bg-slate-600/50 hover:bg-slate-600 transition-colors text-slate-100"
-                   aria-label="Изучать с AI"
-               >
-                   <BookOpenIcon className="w-5 h-5" />
-               </button>
+                    onClick={handleOpenSentenceChain}
+                    className="p-3 rounded-full bg-slate-600/50 hover:bg-slate-600 transition-colors text-slate-100"
+                    aria-label="Цепочка фраз"
+                >
+                    <LinkIcon className="w-5 h-5" />
+                </button>
                 <button
                    onClick={handleOpenVoicePractice}
-                   className={`p-3 rounded-full bg-slate-600/50 hover:bg-slate-600 transition-all text-slate-100 ${practiceState === 'listening' ? 'mic-glowing' : ''}`}
+                   className="p-3 rounded-full bg-slate-600/50 hover:bg-slate-600 transition-all text-slate-100"
                    aria-label="Практика произношения"
                >
-                   <MicrophoneIcon className="w-5 h-5" />
+                   <MicrophoneIcon className="w-5 h-5 text-white" />
                </button>
            </div>
         </div>

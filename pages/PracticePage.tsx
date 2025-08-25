@@ -1,13 +1,10 @@
-import React, { useCallback, useRef, useState, useEffect } from 'react';
-import type { Phrase, PhraseEvaluation, SpeechRecognition, SpeechRecognitionErrorEvent } from '../types';
+import React, { useCallback, useRef } from 'react';
+import type { Phrase } from '../types';
 import PhraseCard from '../components/PhraseCard';
 import Spinner from '../components/Spinner';
 import ListIcon from '../components/icons/ListIcon';
 import TrashIcon from '../components/icons/TrashIcon';
 import MessageQuestionIcon from '../components/icons/MessageQuestionIcon';
-import * as srsService from '../services/srsService';
-import PracticeResultModal from '../components/PracticeResultModal';
-import { playIncorrectSound } from '../services/soundService';
 
 
 const SWIPE_THRESHOLD = 50; // pixels
@@ -58,14 +55,11 @@ interface PracticePageProps {
   isAnswerRevealed: boolean;
   animationState: AnimationState;
   isExiting: boolean;
-  allPhrases: Phrase[]; // Needed for swipe right fallback
   unmasteredCount: number;
-  updateAndSavePhrases: (updater: (prevPhrases: Phrase[]) => Phrase[]) => void;
   fetchNewPhrases: (count?: number) => Promise<void>;
   isLoading: boolean;
   error: string | null;
   isGenerating: boolean;
-  settings: { autoSpeak: boolean; soundEffects: boolean; };
   apiProviderAvailable: boolean;
   onUpdateMastery: (action: 'know' | 'forgot' | 'dont_know') => void;
   onContinue: () => void;
@@ -79,11 +73,10 @@ interface PracticePageProps {
   onOpenImprovePhrase: (phrase: Phrase) => void;
   onOpenPhraseBuilder: (phrase: Phrase) => void;
   onOpenLearningAssistant: (phrase: Phrase) => void;
+  onOpenVoiceWorkspace: (phrase: Phrase) => void;
   onDeletePhrase: (phraseId: string) => void;
   onGoToList: (phrase: Phrase) => void;
   onOpenDiscussTranslation: (phrase: Phrase) => void;
-  onEvaluatePhraseAttempt: (phrase: Phrase, userAttempt: string) => Promise<PhraseEvaluation>;
-  onEvaluateSpokenPhraseAttempt: (phrase: Phrase, userAttempt: string) => Promise<PhraseEvaluation>;
 }
 
 const PracticePage: React.FC<PracticePageProps> = (props) => {
@@ -93,22 +86,13 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
     onUpdateMastery, onContinue, onSwipeLeft, onSwipeRight,
     onOpenChat, onOpenDeepDive, onOpenMovieExamples, onOpenWordAnalysis,
     onOpenSentenceChain, onOpenImprovePhrase, onOpenPhraseBuilder, onOpenLearningAssistant,
-    onDeletePhrase, onGoToList, onOpenDiscussTranslation,
-    onEvaluatePhraseAttempt, onEvaluateSpokenPhraseAttempt,
-    settings
+    onOpenVoiceWorkspace, onDeletePhrase, onGoToList, onOpenDiscussTranslation
   } = props;
 
   const [contextMenuPhrase, setContextMenuPhrase] = React.useState<Phrase | null>(null);
   const touchStartRef = useRef<number | null>(null);
   const touchMoveRef = useRef<number | null>(null);
   
-  const [practiceState, setPracticeState] = useState<'idle' | 'listening' | 'checking' | 'correct' | 'incorrect'>('idle');
-  const [liveTranscript, setLiveTranscript] = useState<string | null>(null);
-  const [evaluationResult, setEvaluationResult] = useState<PhraseEvaluation | null>(null);
-  const [isResultModalOpen, setIsResultModalOpen] = useState(false);
-  const [voiceAttemptCount, setVoiceAttemptCount] = useState(0);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
-
   const speak = useCallback((text: string) => {
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
@@ -119,125 +103,6 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
     }
   }, []);
   
-  // Reset local practice state whenever the card changes
-  useEffect(() => {
-    setPracticeState('idle');
-    setLiveTranscript(null);
-    setEvaluationResult(null);
-    setIsResultModalOpen(false);
-    setVoiceAttemptCount(0);
-  }, [currentPhrase?.id]);
-
-  const handleContinueFromVoiceFailure = () => {
-      if (!currentPhrase) return;
-      // Mark as incorrect before moving on
-      const updatedPhrase = srsService.updatePhraseMastery(currentPhrase, 'forgot');
-      props.updateAndSavePhrases(prev => prev.map(p => p.id === updatedPhrase.id ? updatedPhrase : p));
-      // Transition to next card
-      onContinue();
-  };
-
-  const handleVoicePracticeSubmit = useCallback(async (spokenText: string) => {
-    if (!currentPhrase) return;
-
-    const normalizeGerman = (text: string) => text.toLowerCase().replace(/[.,!?]/g, '').trim();
-    const normalizedAttempt = normalizeGerman(spokenText);
-    const normalizedCorrect = normalizeGerman(currentPhrase.german);
-
-    if (normalizedAttempt === normalizedCorrect) {
-        // SUCCESS PATH (CLIENT-SIDE)
-        setPracticeState('correct');
-        // Wait for flash animation to be visible before transitioning
-        setTimeout(() => {
-            onUpdateMastery('know'); // This updates SRS and triggers transition
-        }, 300);
-    } else {
-        // FAILURE PATH
-        if (settings.soundEffects) playIncorrectSound();
-        if (voiceAttemptCount < 1) { // First failed attempt
-            setVoiceAttemptCount(prev => prev + 1);
-            setLiveTranscript('Попробуйте еще раз...');
-            setTimeout(() => {
-                setPracticeState('listening');
-                try {
-                    recognitionRef.current?.start();
-                } catch (e) {
-                    console.error("Could not restart recognition for second attempt:", e);
-                    setPracticeState('idle'); // Fallback
-                }
-            }, 1200);
-        } else { // Second failed attempt
-            setPracticeState('checking');
-            try {
-                const result = await onEvaluateSpokenPhraseAttempt(currentPhrase, spokenText);
-                setEvaluationResult(result);
-                setPracticeState('incorrect');
-                setIsResultModalOpen(true);
-            } catch (err) {
-                console.error("Evaluation error:", err);
-                const errorFeedback = err instanceof Error ? err.message : 'Произошла ошибка при проверке.';
-                setEvaluationResult({ isCorrect: false, feedback: errorFeedback });
-                setPracticeState('incorrect');
-                setIsResultModalOpen(true);
-            }
-        }
-    }
-  }, [currentPhrase, onEvaluateSpokenPhraseAttempt, onUpdateMastery, voiceAttemptCount, settings.soundEffects]);
-
-  useEffect(() => {
-    const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognitionAPI) {
-        console.warn("Speech Recognition API not supported in this browser.");
-        return;
-    }
-    const recognition = new SpeechRecognitionAPI();
-    recognition.lang = 'de-DE';
-    recognition.continuous = false;
-    recognition.interimResults = true;
-    
-    recognition.onstart = () => {
-        // State is already 'listening', no need to set it here
-    };
-    recognition.onend = () => {
-        // Only revert to idle if we are still in listening state (i.e., no result was finalized)
-        setPracticeState(prev => (prev === 'listening' ? 'idle' : prev));
-    };
-    recognition.onerror = (e: SpeechRecognitionErrorEvent) => {
-        if (e.error !== 'aborted' && e.error !== 'no-speech') console.error('Speech recognition error:', e.error);
-        setPracticeState('idle');
-    };
-    recognition.onresult = (event) => {
-        const fullTranscript = Array.from(event.results).map(r => r[0].transcript).join('');
-        setLiveTranscript(fullTranscript);
-        if (event.results[event.results.length - 1].isFinal) {
-            if (fullTranscript.trim()) {
-                handleVoicePracticeSubmit(fullTranscript.trim());
-            } else {
-                setPracticeState('idle');
-            }
-        }
-    };
-    recognitionRef.current = recognition;
-    return () => recognitionRef.current?.abort();
-  }, [handleVoicePracticeSubmit]);
-
-  const handleOpenVoicePractice = () => {
-    if (isExiting || !apiProviderAvailable || practiceState !== 'idle') return;
-    
-    // Reset state for the new attempt and provide immediate visual feedback
-    setLiveTranscript('');
-    setEvaluationResult(null);
-    setVoiceAttemptCount(0);
-    setPracticeState('listening');
-
-    try {
-        recognitionRef.current?.start();
-    } catch (e) {
-        console.error("Could not start recognition:", e);
-        setPracticeState('idle'); // Revert on error
-    }
-  };
-
   const handleTouchStart = (e: React.TouchEvent) => {
     touchMoveRef.current = null;
     touchStartRef.current = e.targetTouches[0].clientX;
@@ -258,9 +123,6 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
   const renderButtons = () => {
      if (isAnswerRevealed) {
         return <div className="flex justify-center mt-8"><button onClick={onContinue} className="px-10 py-3 rounded-lg bg-purple-600 hover:bg-purple-700 transition-colors font-semibold text-white shadow-md" disabled={isExiting}>Продолжить</button></div>;
-     }
-     if (practiceState !== 'idle') {
-        return <div className="h-[60px] mt-8"></div>; // Placeholder to prevent layout shift
      }
      const hasBeenReviewed = currentPhrase?.lastReviewedAt !== null;
      return (
@@ -294,7 +156,7 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
     return (
         <div className="flex flex-col items-center w-full px-2">
             <div 
-              className="w-full max-w-md min-h-64 relative"
+              className="w-full max-w-md h-64 relative"
               onTouchStart={handleTouchStart}
               onTouchMove={handleTouchMove}
               onTouchEnd={handleTouchEnd}
@@ -313,10 +175,8 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
                       onOpenImprovePhrase={onOpenImprovePhrase}
                       onOpenPhraseBuilder={onOpenPhraseBuilder}
                       onOpenContextMenu={setContextMenuPhrase}
-                      onOpenVoicePractice={handleOpenVoicePractice}
+                      onOpenVoicePractice={onOpenVoiceWorkspace}
                       onOpenLearningAssistant={onOpenLearningAssistant}
-                      practiceState={practiceState}
-                      liveTranscript={liveTranscript}
                     />
                 </div>
             </div>
@@ -337,16 +197,6 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
           onDiscuss={onOpenDiscussTranslation}
         />
       )}
-      <PracticeResultModal
-        isOpen={isResultModalOpen}
-        onClose={() => {
-            setIsResultModalOpen(false);
-            handleContinueFromVoiceFailure();
-        }}
-        isCorrect={evaluationResult?.isCorrect ?? false}
-        phrase={currentPhrase}
-        evaluation={evaluationResult}
-    />
     </>
   );
 };

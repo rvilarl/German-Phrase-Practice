@@ -659,7 +659,6 @@ const evaluateSpokenPhraseAttempt: AiService['evaluateSpokenPhraseAttempt'] = as
     return await callDeepSeekApi(messages, schema);
 };
 
-
 const healthCheck: AiService['healthCheck'] = async () => {
     const apiKey = getDeepseekApiKey();
     if (!apiKey) {

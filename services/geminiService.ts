@@ -446,7 +446,7 @@ const learningAssistantResponseSchema = {
                 type: Type.OBJECT,
                 properties: {
                     type: { type: Type.STRING, enum: ['verbConjugation', 'nounDeclension', 'pronouns', 'wFragen'] },
-                    label: { type: Type.STRING, description: "The button text, e.g., 'Спряжение: gehen'" },
+                    label: { type: Type.STRING, description: "The button text, e.g., 'Спряжение глагола'" },
                     data: { type: Type.STRING, description: "Data for the cheat sheet. Verb infinitive, or a JSON string for nouns like '{\"noun\":\"Tisch\",\"article\":\"der\"}'." }
                 },
                 required: ["type", "label", "data"]
@@ -503,7 +503,11 @@ const guideToTranslation: AiService['guideToTranslation'] = async (phrase, histo
 **Правила для генерируемых полей:**
 - \`wordOptions\`: **ВСЕГДА** включай "Не знаю" как первый элемент массива, если только фраза не собрана полностью (\`isCorrect: true\`). Варианты могут быть как отдельными словами, так и словосочетаниями.
 - \`promptSuggestions\`: Должны быть обучающими вопросами, а не прямыми подсказками. Примеры: 'Какой падеж здесь нужен?', 'Почему такой порядок слов?', 'Можно ли сказать это иначе?'. Избегай подсказок вроде 'Как сказать "взгляд"?'.
-- \`cheatSheetOptions\`: Включай шпаргалки, только когда твой вопрос напрямую касается их темы (спряжение глагола, артикли, местоимения, вопросительные слова).
+- \`cheatSheetOptions\`: Включай шпаргалки, только когда твой вопрос напрямую касается их темы. **ВАЖНО:** Текст кнопки (\`label\`) должен быть ОБЩИМ и НЕ должен содержать сам ответ.
+    - **ПРАВИЛЬНО:** Если спрашиваешь про глагол, \`label\` должен быть "Спряжение глагола".
+    - **НЕПРАВИЛЬНО:** \`label\`: "Спряжение: gehen".
+    - **ПРАВИЛЬНО:** Если спрашиваешь про артикль, \`label\` должен быть "Склонение существительного".
+    - **НЕПРАВИЛЬНО:** \`label\`: "Склонение: der Tisch".
 - **Общие правила:**
     - **НИКОГДА** не давай полный ответ до самого конца, если пользователь не попросил.
     - Всегда отвечай на русском.
@@ -1163,7 +1167,6 @@ const evaluateSpokenPhraseAttempt: AiService['evaluateSpokenPhraseAttempt'] = as
         throw new Error(`Failed to call the Gemini API: ${(error as any)?.message || 'Unknown error'}`);
     }
 };
-
 
 const healthCheck: AiService['healthCheck'] = async () => {
     const api = initializeApi();

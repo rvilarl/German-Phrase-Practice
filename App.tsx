@@ -23,6 +23,7 @@ import ImprovePhraseModal from './components/ImprovePhraseModal';
 import EditPhraseModal from './components/EditPhraseModal';
 import ConfirmDeleteModal from './components/ConfirmDeleteModal';
 import PhraseBuilderModal from './components/PhraseBuilderModal';
+import VoiceWorkspaceModal from './components/VoiceWorkspaceModal';
 import ExpandingFab from './components/ExpandingFab';
 import DiscussTranslationModal from './components/DiscussTranslationModal';
 import LearningAssistantModal from './components/LearningAssistantModal';
@@ -112,6 +113,9 @@ const App: React.FC = () => {
   const [phraseBuilderOptions, setPhraseBuilderOptions] = useState<PhraseBuilderOptions | null>(null);
   const [isPhraseBuilderLoading, setIsPhraseBuilderLoading] = useState(false);
   const [phraseBuilderError, setPhraseBuilderError] = useState<string | null>(null);
+  
+  const [isVoiceWorkspaceModalOpen, setIsVoiceWorkspaceModalOpen] = useState(false);
+  const [voiceWorkspacePhrase, setVoiceWorkspacePhrase] = useState<Phrase | null>(null);
   
   const [isLearningAssistantModalOpen, setIsLearningAssistantModalOpen] = useState(false);
   const [learningAssistantPhrase, setLearningAssistantPhrase] = useState<Phrase | null>(null);
@@ -496,6 +500,12 @@ const App: React.FC = () => {
     }
   }, [apiProvider, callApiWithFallback]);
   
+  const handleOpenVoiceWorkspace = (phrase: Phrase) => {
+    if (!apiProvider) return;
+    setVoiceWorkspacePhrase(phrase);
+    setIsVoiceWorkspaceModalOpen(true);
+  }
+  
   const handleRequestNextPhraseInBuilder = useCallback(() => {
     const lastCompletedPhraseId = phraseBuilderPhrase?.id ?? null;
     const nextPhrase = srsService.selectNextPhrase(allPhrases.filter(p => p && !p.isMastered), lastCompletedPhraseId);
@@ -515,7 +525,7 @@ const App: React.FC = () => {
     return callApiWithFallback(provider => provider.evaluateSpokenPhraseAttempt(phrase, userAttempt));
   }, [callApiWithFallback]);
 
-  const handlePhraseBuilderSuccess = useCallback((phrase: Phrase) => {
+  const handlePhraseActionSuccess = useCallback((phrase: Phrase) => {
     if (settings.soundEffects) playCorrectSound();
     const updatedPhrase = srsService.updatePhraseMastery(phrase, 'know');
     updateAndSavePhrases(prev =>
@@ -523,7 +533,7 @@ const App: React.FC = () => {
     );
   }, [updateAndSavePhrases, settings.soundEffects]);
 
-  const handlePhraseBuilderFailure = useCallback((phrase: Phrase) => {
+  const handlePhraseActionFailure = useCallback((phrase: Phrase) => {
     if (settings.soundEffects) playIncorrectSound();
      const updatedPhrase = srsService.updatePhraseMastery(phrase, 'forgot');
     updateAndSavePhrases(prev =>
@@ -773,14 +783,11 @@ const App: React.FC = () => {
              isAnswerRevealed={isPracticeAnswerRevealed}
              animationState={practiceAnimationState}
              isExiting={practiceIsExitingRef.current}
-             allPhrases={allPhrases}
              unmasteredCount={unmasteredPhrases.length}
-             updateAndSavePhrases={updateAndSavePhrases}
              fetchNewPhrases={fetchNewPhrases}
              isLoading={isLoading}
              error={error}
              isGenerating={isGenerating}
-             settings={settings}
              apiProviderAvailable={!!apiProvider}
              onUpdateMastery={handlePracticeUpdateMastery}
              onContinue={() => transitionToNext('right')}
@@ -794,11 +801,10 @@ const App: React.FC = () => {
              onOpenImprovePhrase={handleOpenImproveModal}
              onOpenPhraseBuilder={handleOpenPhraseBuilder}
              onOpenLearningAssistant={handleOpenLearningAssistant}
+             onOpenVoiceWorkspace={handleOpenVoiceWorkspace}
              onDeletePhrase={handleDeletePhrase}
              onGoToList={handleGoToListFromPractice}
              onOpenDiscussTranslation={handleOpenDiscussModal}
-             onEvaluatePhraseAttempt={handleEvaluatePhraseAttempt}
-             onEvaluateSpokenPhraseAttempt={handleEvaluateSpokenPhraseAttempt}
            />
         ) : (
           <PhraseListPage 
@@ -925,8 +931,6 @@ const App: React.FC = () => {
             isOpen={isPhraseBuilderModalOpen}
             onClose={() => {
                 setIsPhraseBuilderModalOpen(false);
-                // After closing the builder, the current card might have been updated.
-                // We select the next one to avoid showing a stale card.
                 transitionToNext();
             }}
             phrase={phraseBuilderPhrase}
@@ -934,9 +938,24 @@ const App: React.FC = () => {
             isLoading={isPhraseBuilderLoading}
             error={phraseBuilderError}
             onEvaluate={handleEvaluatePhraseAttempt}
-            onSuccess={handlePhraseBuilderSuccess}
-            onFailure={handlePhraseBuilderFailure}
-            onNextPhrase={handleRequestNextPhraseInBuilder}
+            onSuccess={handlePhraseActionSuccess}
+            onFailure={handlePhraseActionFailure}
+            onNextPhrase={() => {
+                handleRequestNextPhraseInBuilder();
+            }}
+       />
+       <VoiceWorkspaceModal
+            isOpen={isVoiceWorkspaceModalOpen}
+            onClose={() => setIsVoiceWorkspaceModalOpen(false)}
+            phrase={voiceWorkspacePhrase}
+            onEvaluate={handleEvaluateSpokenPhraseAttempt}
+            onSuccess={handlePhraseActionSuccess}
+            onFailure={handlePhraseActionFailure}
+            onNextPhrase={() => {
+                setIsVoiceWorkspaceModalOpen(false);
+                transitionToNext();
+            }}
+            onGeneratePhraseBuilderOptions={useCallback((phrase: Phrase) => callApiWithFallback(p => p.generatePhraseBuilderOptions(phrase)), [callApiWithFallback])}
        />
        {learningAssistantPhrase && <LearningAssistantModal
             isOpen={isLearningAssistantModalOpen}
