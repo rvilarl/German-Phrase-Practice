@@ -94,8 +94,23 @@ const ChatContextMenu: React.FC<ChatContextMenuProps> = ({
     (p) => p.german.trim().toLowerCase() === getCanonicalWordGerman().trim().toLowerCase()
   );
 
-  const handleAction = (action: () => void) => {
-    action();
+  const handleAction = (e: React.MouseEvent, action: () => void) => {
+    // Prevent the event from bubbling up or causing default browser actions.
+    // This is crucial to stop the click from reaching any underlying elements.
+    e.preventDefault();
+    e.stopPropagation();
+
+    // First, close the context menu. This triggers a re-render where the menu is gone.
+    onClose();
+
+    // Then, schedule the actual action to run *after* the current event has
+    // been fully processed. A timeout of 0ms pushes the execution to the next
+    // tick of the event loop, ensuring the original click event is completely finished.
+    setTimeout(action, 0);
+  };
+
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
     onClose();
   };
 
@@ -112,7 +127,7 @@ const ChatContextMenu: React.FC<ChatContextMenuProps> = ({
 
   return (
     <>
-      <div className="fixed inset-0 z-[80] bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="fixed inset-0 z-[80] bg-black/60 backdrop-blur-sm" onClick={handleBackdropClick} />
       <div
         className="fixed z-[90] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-slate-700 rounded-lg shadow-2xl animate-fade-in-center text-white w-72 overflow-hidden"
         onClick={e => e.stopPropagation()}
@@ -125,7 +140,7 @@ const ChatContextMenu: React.FC<ChatContextMenuProps> = ({
             .map((item) => (
               <button
                 key={item.label}
-                onClick={() => handleAction(item.action)}
+                onClick={(e) => handleAction(e, item.action)}
                 className="w-full flex items-center px-4 py-3 text-left hover:bg-slate-600 transition-colors text-sm"
               >
                 <div className="w-5 h-5 mr-3 text-slate-300">{item.icon}</div>
