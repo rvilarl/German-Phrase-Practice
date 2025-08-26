@@ -39,6 +39,8 @@ interface PracticePageProps {
   onOpenDeepDive: (phrase: Phrase) => void;
   onOpenMovieExamples: (phrase: Phrase) => void;
   onOpenWordAnalysis: (phrase: Phrase, word: string) => void;
+  onOpenVerbConjugation: (infinitive: string) => void;
+  onOpenNounDeclension: (noun: string, article: string) => void;
   onOpenSentenceChain: (phrase: Phrase) => void;
   onOpenImprovePhrase: (phrase: Phrase) => void;
   onOpenLearningAssistant: (phrase: Phrase) => void;
@@ -67,6 +69,7 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
     fetchNewPhrases, isLoading, error, isGenerating, apiProviderAvailable,
     onUpdateMastery, onContinue, onSwipeRight,
     onOpenChat, onOpenDeepDive, onOpenMovieExamples, onOpenWordAnalysis,
+    onOpenVerbConjugation, onOpenNounDeclension,
     onOpenSentenceChain, onOpenImprovePhrase, onOpenLearningAssistant,
     onOpenVoiceWorkspace, onDeletePhrase, onGoToList, onOpenDiscussTranslation,
     settings, masteryButtonUsage, allPhrases, onCreateCard, onAnalyzeWord,
@@ -349,6 +352,9 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
           onDiscuss={onOpenDiscussTranslation}
           onCreateCard={onCreateCard}
           onAnalyzeWord={onAnalyzeWord}
+          onOpenWordAnalysis={onOpenWordAnalysis}
+          onOpenVerbConjugation={onOpenVerbConjugation}
+          onOpenNounDeclension={onOpenNounDeclension}
         />
       )}
       {quickReplyPhrase && (

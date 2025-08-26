@@ -1067,6 +1067,8 @@ const App: React.FC = () => {
              onOpenDeepDive={handleOpenDeepDive}
              onOpenMovieExamples={handleOpenMovieExamples}
              onOpenWordAnalysis={handleOpenWordAnalysis}
+             onOpenVerbConjugation={handleOpenVerbConjugation}
+             onOpenNounDeclension={handleOpenNounDeclension}
              onOpenSentenceChain={handleOpenSentenceChain}
              onOpenImprovePhrase={handleOpenImproveModal}
              onOpenLearningAssistant={handleOpenLearningAssistant}
