@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import type { Phrase, WordAnalysis } from '../types';
 import Spinner from './Spinner';
 import CloseIcon from './icons/CloseIcon';
 import BookOpenIcon from './icons/BookOpenIcon';
 import AudioPlayer from './AudioPlayer';
+import PlusIcon from './icons/PlusIcon';
 
 interface WordAnalysisModalProps {
   isOpen: boolean;
@@ -16,9 +17,52 @@ interface WordAnalysisModalProps {
   onOpenVerbConjugation: (infinitive: string) => void;
   onOpenNounDeclension: (noun: string, article: string) => void;
   onOpenWordAnalysis: (phrase: Phrase, word: string) => void;
+  allPhrases: Phrase[];
+  onCreateCard: (phraseData: { german: string; russian: string; }) => void;
 }
 
-const WordAnalysisModal: React.FC<WordAnalysisModalProps> = ({ isOpen, onClose, word, phrase, analysis, isLoading, error, onOpenVerbConjugation, onOpenNounDeclension, onOpenWordAnalysis }) => {
+const WordAnalysisModal: React.FC<WordAnalysisModalProps> = ({ 
+  isOpen, onClose, word, phrase, analysis, isLoading, error, 
+  onOpenVerbConjugation, onOpenNounDeclension, onOpenWordAnalysis, 
+  allPhrases, onCreateCard 
+}) => {
+  const [isCardCreated, setIsCardCreated] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+        setIsCardCreated(false); // Reset on open
+    }
+  }, [isOpen]);
+  
+  const getCanonicalGerman = useCallback((): string | null => {
+    if (!analysis) return null;
+    if (analysis.verbDetails?.infinitive) {
+        return analysis.verbDetails.infinitive;
+    }
+    if (analysis.nounDetails?.article) {
+        return `${analysis.nounDetails.article} ${analysis.word}`;
+    }
+    return analysis.word;
+  }, [analysis]);
+  
+  const cardExists = useMemo(() => {
+    const canonicalGerman = getCanonicalGerman();
+    if (!canonicalGerman) return false;
+    return allPhrases.some(p => p.german.trim().toLowerCase() === canonicalGerman.trim().toLowerCase());
+  }, [allPhrases, getCanonicalGerman]);
+
+  const handleCreateCard = () => {
+    const canonicalGerman = getCanonicalGerman();
+    if (!analysis || !canonicalGerman) return;
+    
+    onCreateCard({
+        german: canonicalGerman,
+        russian: analysis.translation,
+    });
+    setIsCardCreated(true);
+  };
+
+
   if (!isOpen) return null;
 
   const handleWordClick = (contextText: string, clickedWord: string) => {
@@ -102,8 +146,17 @@ const WordAnalysisModal: React.FC<WordAnalysisModalProps> = ({ isOpen, onClose, 
             </div>
         </div>
         
-        {/* Grammar Actions */}
-        <div className="pt-2">
+        {/* Grammar Actions & Create Card */}
+        <div className="pt-2 space-y-3">
+            {!cardExists && !isCardCreated && (
+              <button
+                onClick={handleCreateCard}
+                className="w-full flex items-center justify-center text-center px-4 py-3 rounded-lg bg-green-600/80 hover:bg-green-600 transition-colors font-semibold text-white shadow-md"
+              >
+                <PlusIcon className="w-5 h-5 mr-2" />
+                <span>Создать карточку</span>
+              </button>
+            )}
             {analysis.verbDetails && (
                 <button
                     onClick={() => onOpenVerbConjugation(analysis.verbDetails!.infinitive)}

@@ -1,4 +1,5 @@
 
+
 import type { Phrase, ChatMessage, DeepDiveAnalysis, ContentPart, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, SentenceContinuation, TranslationChatRequest, TranslationChatResponse, PhraseBuilderOptions, PhraseEvaluation } from '../types';
 import { AiService } from './aiService';
 import { getDeepseekApiKey } from './env';
@@ -659,25 +660,27 @@ const evaluateSpokenPhraseAttempt: AiService['evaluateSpokenPhraseAttempt'] = as
     return await callDeepSeekApi(messages, schema);
 };
 
-const generatePhraseHint: AiService['generatePhraseHint'] = async (phrase) => {
+const generateQuickReplyOptions: AiService['generateQuickReplyOptions'] = async (phrase) => {
     const schema = {
         type: "object",
         properties: {
-          hint: { type: "string" },
+            options: {
+                type: "array",
+                items: { type: "string" }
+            }
         },
-        required: ["hint"],
+        required: ["options"]
     };
-    
-    const prompt = `Ты — лингвистический ассистент. Проанализируй русскую фразу "${phrase.russian}" и её немецкий перевод "${phrase.german}". Выдели ОДНО или ДВА (если они неотделимы по смыслу, например, артикль и существительное) ключевых, фундаментальных слова из НЕМЕЦКОЙ фразы, которые служат лучшей подсказкой для её вспоминания. Верни JSON с одним ключом 'hint'.`;
+
+    const prompt = `Для немецкой фразы "${phrase.german}" (перевод: "${phrase.russian}") создай 3 правдоподобных, но неверных варианта-дистрактора для теста с множественным выбором. Дистракторы должны быть похожи по длине и грамматической категории. Верни JSON-объект с ключом "options", содержащим массив из 3 строк.`;
 
     const messages = [
-        { role: "system", content: "You are a linguistic assistant. Respond only in JSON." },
+        { role: "system", content: "You are a German teaching assistant that creates quiz distractors. Respond only in JSON." },
         { role: "user", content: prompt }
     ];
 
     return await callDeepSeekApi(messages, schema);
 };
-
 
 const healthCheck: AiService['healthCheck'] = async () => {
     const apiKey = getDeepseekApiKey();
@@ -733,7 +736,7 @@ export const deepseekService: AiService = {
     generatePhraseBuilderOptions,
     evaluatePhraseAttempt,
     evaluateSpokenPhraseAttempt,
-    generatePhraseHint,
+    generateQuickReplyOptions,
     healthCheck,
     getProviderName: () => "DeepSeek",
 };

@@ -1,11 +1,12 @@
 import React, { useCallback, useRef, useState, useEffect, useMemo } from 'react';
-import type { Phrase } from '../types';
+import type { Phrase, WordAnalysis } from '../types';
 import PhraseCard from '../components/PhraseCard';
 import Spinner from '../components/Spinner';
-import ListIcon from '../components/icons/ListIcon';
-import TrashIcon from '../components/icons/TrashIcon';
-import MessageQuestionIcon from '../components/icons/MessageQuestionIcon';
+import PracticePageContextMenu from '../components/PracticePageContextMenu';
 import CheckIcon from '../components/icons/CheckIcon';
+import QuickReplyModal from '../components/QuickReplyModal';
+import * as srsService from '../services/srsService';
+import * as cacheService from '../services/cacheService';
 
 
 const SWIPE_THRESHOLD = 50; // pixels
@@ -16,40 +17,8 @@ interface AnimationState {
   direction: AnimationDirection;
 }
 
-const ContextMenu: React.FC<{
-  phrase: Phrase;
-  onClose: () => void;
-  onGoToList: (phrase: Phrase) => void;
-  onDelete: (phraseId: string) => void;
-  onDiscuss: (phrase: Phrase) => void;
-}> = ({ phrase, onClose, onGoToList, onDelete, onDiscuss }) => {
-  const handleGoToList = () => { onGoToList(phrase); onClose(); };
-  const handleDiscuss = () => { onDiscuss(phrase); onClose(); };
-  const handleDelete = () => { onDelete(phrase.id); onClose(); };
-
-  return (
-    <>
-      <div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div
-        className="fixed z-50 top-1/2 left-1/2 bg-slate-700 rounded-lg shadow-2xl animate-fade-in-center text-white w-64 overflow-hidden"
-      >
-        <button onClick={handleGoToList} className="w-full flex items-center px-4 py-3 text-left hover:bg-slate-600 transition-colors">
-          <ListIcon className="w-5 h-5 mr-3 text-slate-300" />
-          <span>Перейти в список</span>
-        </button>
-         <button onClick={handleDiscuss} className="w-full flex items-center px-4 py-3 text-left hover:bg-slate-600 transition-colors">
-          <MessageQuestionIcon className="w-5 h-5 mr-3 text-slate-300" />
-          <span>Обсудить перевод</span>
-        </button>
-        <button onClick={handleDelete} className="w-full flex items-center px-4 py-3 text-left hover:bg-slate-600 transition-colors text-red-400">
-          <TrashIcon className="w-5 h-5 mr-3" />
-          <span>Удалить</span>
-        </button>
-      </div>
-    </>
-  );
-};
-
+const W_FRAGEN_POOL = ["Was", "Wer", "Wo", "Wann", "Wie", "Warum", "Woher", "Wohin", "Welcher", "Wie viel", "Wie viele"];
+const PRONOUN_POOL = ["ich", "du", "er", "sie", "es", "wir", "ihr", "Sie"];
 
 interface PracticePageProps {
   currentPhrase: Phrase | null;
@@ -77,11 +46,15 @@ interface PracticePageProps {
   onDeletePhrase: (phraseId: string) => void;
   onGoToList: (phrase: Phrase) => void;
   onOpenDiscussTranslation: (phrase: Phrase) => void;
-  onGenerateHint: (phrase: Phrase) => Promise<string>;
   settings: { 
     dynamicButtonLayout: boolean;
   };
   masteryButtonUsage: { know: number; forgot: number; dont_know: number };
+  allPhrases: Phrase[];
+  onCreateCard: (phraseData: { german: string; russian: string; }) => void;
+  onAnalyzeWord: (phrase: Phrase, word: string) => Promise<WordAnalysis | null>;
+  onGenerateQuickReplyOptions: (phrase: Phrase) => Promise<{ options: string[] }>;
+  isWordAnalysisLoading: boolean;
 }
 
 const PracticePage: React.FC<PracticePageProps> = (props) => {
@@ -91,38 +64,18 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
     onUpdateMastery, onContinue, onSwipeLeft, onSwipeRight,
     onOpenChat, onOpenDeepDive, onOpenMovieExamples, onOpenWordAnalysis,
     onOpenSentenceChain, onOpenImprovePhrase, onOpenLearningAssistant,
-    onOpenVoiceWorkspace, onDeletePhrase, onGoToList, onOpenDiscussTranslation, onGenerateHint,
-    settings, masteryButtonUsage
+    onOpenVoiceWorkspace, onDeletePhrase, onGoToList, onOpenDiscussTranslation,
+    settings, masteryButtonUsage, allPhrases, onCreateCard, onAnalyzeWord,
+    onGenerateQuickReplyOptions, isWordAnalysisLoading
   } = props;
 
-  const [contextMenuPhrase, setContextMenuPhrase] = React.useState<Phrase | null>(null);
+  const [contextMenuTarget, setContextMenuTarget] = useState<{ phrase: Phrase; word?: string } | null>(null);
+  const [quickReplyPhrase, setQuickReplyPhrase] = useState<Phrase | null>(null);
+  const [quickReplyOptions, setQuickReplyOptions] = useState<string[]>([]);
+  const [isQuickReplyLoading, setIsQuickReplyLoading] = useState(false);
+  const [quickReplyError, setQuickReplyError] = useState<string | null>(null);
   const touchStartRef = useRef<number | null>(null);
   const touchMoveRef = useRef<number | null>(null);
-  
-  const [hint, setHint] = useState<string | null>(null);
-  const [isHintLoading, setIsHintLoading] = useState(false);
-  const [isHintVisible, setIsHintVisible] = useState(false);
-
-  useEffect(() => {
-    if (currentPhrase && !isAnswerRevealed) {
-      setHint(null);
-      setIsHintVisible(false);
-      setIsHintLoading(false);
-    }
-  }, [currentPhrase, isAnswerRevealed]);
-
-
-  const handleShowHint = useCallback(async () => {
-    if (!currentPhrase || isHintVisible || isHintLoading || isAnswerRevealed) return;
-    if (hint) { setIsHintVisible(true); return; }
-    setIsHintLoading(true);
-    try {
-        const generatedHint = await onGenerateHint(currentPhrase);
-        setHint(generatedHint);
-        setIsHintVisible(true);
-    } catch (e) { console.error("Failed to generate hint", e); }
-    finally { setIsHintLoading(false); }
-  }, [currentPhrase, hint, isHintVisible, isHintLoading, isAnswerRevealed, onGenerateHint]);
 
   const speak = useCallback((text: string) => {
     if ('speechSynthesis' in window) {
@@ -133,6 +86,86 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
       window.speechSynthesis.speak(utterance);
     }
   }, []);
+  
+  const isQuickReplyReady = useMemo(() => {
+    if (!currentPhrase) return false;
+    const category = srsService.getPhraseCategory(currentPhrase);
+    
+    switch (category) {
+        case 'w-frage':
+        case 'personal-pronoun':
+            return true; // These are hardcoded, always ready.
+        case 'short-phrase':
+            // This is the crucial check: only ready if data is in cache.
+            const cacheKey = `quick_reply_options_${currentPhrase.id}`;
+            return !!cacheService.getCache<string[]>(cacheKey);
+        default:
+            return false;
+    }
+  }, [currentPhrase]);
+
+
+  const handleOpenQuickReply = useCallback(async (phraseToReply: Phrase) => {
+    setQuickReplyPhrase(phraseToReply);
+    setQuickReplyError(null);
+    setQuickReplyOptions([]);
+    setIsQuickReplyLoading(true);
+
+    try {
+        const category = srsService.getPhraseCategory(phraseToReply);
+        const correctAnswer = phraseToReply.german.replace(/[?]/g, '');
+        let distractors: string[] = [];
+
+        if (category === 'w-frage') {
+            distractors = W_FRAGEN_POOL
+                .filter(p => p !== correctAnswer)
+                .sort(() => 0.5 - Math.random())
+                .slice(0, 3);
+        } else if (category === 'personal-pronoun') {
+            distractors = PRONOUN_POOL
+                .filter(p => p !== correctAnswer)
+                .sort(() => 0.5 - Math.random())
+                .slice(0, 3);
+        } else if (category === 'short-phrase') {
+            const cacheKey = `quick_reply_options_${phraseToReply.id}`;
+            const cachedDistractors = cacheService.getCache<string[]>(cacheKey);
+
+            if (cachedDistractors) {
+                distractors = cachedDistractors;
+            } else {
+                // This case should ideally not be hit if the UI is controlled by `isQuickReplyReady`
+                console.error("Attempted to open quick reply for a short-phrase without cached options.");
+                setQuickReplyError("Варианты ответа еще не загружены. Попробуйте через секунду.");
+                setIsQuickReplyLoading(false);
+                return;
+            }
+        } else {
+             throw new Error("Неподходящая категория фразы для быстрого ответа.");
+        }
+          
+        const options = [correctAnswer, ...distractors].sort(() => 0.5 - Math.random());
+        setQuickReplyOptions(options);
+        setIsQuickReplyLoading(false);
+
+    } catch (error) {
+        console.error("Failed to prepare quick reply options:", error);
+        setQuickReplyError(error instanceof Error ? error.message : "Не удалось загрузить варианты.");
+        setIsQuickReplyLoading(false);
+    }
+  }, []);
+  
+  const handleQuickReplyCorrect = useCallback(() => {
+    if (!quickReplyPhrase) return;
+    onUpdateMastery('know', { autoAdvance: true });
+    onContinue();
+    setQuickReplyPhrase(null);
+  }, [quickReplyPhrase, onUpdateMastery, onContinue]);
+
+  const handleQuickReplyIncorrect = useCallback(() => {
+    if (!quickReplyPhrase) return;
+    onUpdateMastery('forgot');
+    setQuickReplyPhrase(null);
+  }, [quickReplyPhrase, onUpdateMastery]);
 
   const handleMasteryButtonClick = (action: 'know' | 'forgot' | 'dont_know') => {
     if (isExiting) return;
@@ -172,30 +205,66 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
         );
      }
      
-     const hasBeenReviewed = currentPhrase?.lastReviewedAt !== null;
-     const allButtons = [
-        { key: 'dont_know' as const, label: 'Не знаю', className: 'bg-yellow-600 hover:bg-yellow-700', condition: !hasBeenReviewed },
-        { key: 'forgot' as const, label: 'Забыл', className: 'bg-red-600 hover:bg-red-700', condition: true },
-        { key: 'know' as const, label: 'Знаю', className: 'bg-green-600 hover:bg-green-700', condition: true },
-    ];
-    let buttonsToRender = allButtons.filter(btn => btn.condition);
-    if (settings.dynamicButtonLayout) {
-        buttonsToRender.sort((a, b) => (masteryButtonUsage[a.key] || 0) - (masteryButtonUsage[b.key] || 0));
-    }
+     if (!currentPhrase) {
+       return <div className="mt-8 h-12" />;
+     }
 
-     return (
-        <div className="flex justify-center space-x-2 sm:space-x-4 mt-8 h-12">
-             {buttonsToRender.map(btn => (
-                <button 
-                    key={btn.key} 
-                    onClick={() => handleMasteryButtonClick(btn.key)} 
-                    className={`px-4 sm:px-6 py-3 rounded-lg font-semibold text-white shadow-md transition-colors ${btn.className}`}
-                >
-                    {btn.label}
-                </button>
-            ))}
-        </div>
-     );
+     const phraseCategory = srsService.getPhraseCategory(currentPhrase);
+     const isExcludedCategory = phraseCategory === 'w-frage' || phraseCategory === 'personal-pronoun';
+     
+     if (isExcludedCategory) {
+         return <div className="mt-8 h-12" />;
+     }
+     
+     const hasBeenReviewed = currentPhrase.lastReviewedAt !== null;
+     
+     // For regular phrases, show the full set
+     if (phraseCategory === 'regular' || phraseCategory === null) {
+         const allButtons = [
+            { key: 'dont_know' as const, label: 'Не знаю', className: 'bg-yellow-600 hover:bg-yellow-700', condition: !hasBeenReviewed },
+            { key: 'forgot' as const, label: 'Забыл', className: 'bg-red-600 hover:bg-red-700', condition: hasBeenReviewed },
+            { key: 'know' as const, label: 'Знаю', className: 'bg-green-600 hover:bg-green-700', condition: true },
+         ];
+         let buttonsToRender = allButtons.filter(btn => btn.condition);
+         if (settings.dynamicButtonLayout) {
+             buttonsToRender.sort((a, b) => (masteryButtonUsage[a.key] || 0) - (masteryButtonUsage[b.key] || 0));
+         }
+
+         return (
+            <div className="flex justify-center space-x-2 sm:space-x-4 mt-8 h-12">
+                 {buttonsToRender.map(btn => (
+                    <button 
+                        key={btn.key} 
+                        onClick={() => handleMasteryButtonClick(btn.key)} 
+                        className={`px-4 sm:px-6 py-3 rounded-lg font-semibold text-white shadow-md transition-colors ${btn.className}`}
+                    >
+                        {btn.label}
+                    </button>
+                ))}
+            </div>
+         );
+     }
+     
+     // For short phrases, only show the "Forgot"/"Don't Know" button
+     if (phraseCategory === 'short-phrase') {
+         const buttonKey = hasBeenReviewed ? 'forgot' : 'dont_know';
+         const buttonLabel = hasBeenReviewed ? 'Забыл' : 'Не знаю';
+         const buttonClass = hasBeenReviewed ? 'bg-red-600 hover:bg-red-700' : 'bg-yellow-600 hover:bg-yellow-700';
+         
+         return (
+             <div className="flex justify-center mt-8 h-12">
+                 <button 
+                     key={buttonKey} 
+                     onClick={() => handleMasteryButtonClick(buttonKey)} 
+                     className={`px-4 sm:px-6 py-3 rounded-lg font-semibold text-white shadow-md transition-colors ${buttonClass}`}
+                 >
+                     {buttonLabel}
+                 </button>
+             </div>
+         );
+     }
+     
+     return <div className="mt-8 h-12" />;
   };
 
   const renderContent = () => {
@@ -231,20 +300,18 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
                       phrase={currentPhrase} 
                       onSpeak={speak} 
                       isFlipped={isAnswerRevealed}
-                      onFlip={() => { /* Flipping is handled by mastery buttons now */ }}
                       onOpenChat={onOpenChat} 
                       onOpenDeepDive={onOpenDeepDive}
                       onOpenMovieExamples={onOpenMovieExamples}
                       onWordClick={onOpenWordAnalysis}
                       onOpenSentenceChain={onOpenSentenceChain}
                       onOpenImprovePhrase={onOpenImprovePhrase}
-                      onOpenContextMenu={setContextMenuPhrase}
+                      onOpenContextMenu={setContextMenuTarget}
                       onOpenVoicePractice={onOpenVoiceWorkspace}
                       onOpenLearningAssistant={onOpenLearningAssistant}
-                      hint={hint}
-                      isHintVisible={isHintVisible}
-                      isHintLoading={isHintLoading}
-                      onShowHint={handleShowHint}
+                      onOpenQuickReply={handleOpenQuickReply}
+                      isWordAnalysisLoading={isWordAnalysisLoading}
+                      isQuickReplyReady={isQuickReplyReady}
                     />
                 </div>
             </div>
@@ -256,13 +323,28 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
   return (
     <>
       {renderContent()}
-      {contextMenuPhrase && (
-        <ContextMenu
-          phrase={contextMenuPhrase}
-          onClose={() => setContextMenuPhrase(null)}
+      {contextMenuTarget && (
+        <PracticePageContextMenu
+          target={contextMenuTarget}
+          onClose={() => setContextMenuTarget(null)}
           onDelete={onDeletePhrase}
           onGoToList={onGoToList}
           onDiscuss={onOpenDiscussTranslation}
+          onCreateCard={onCreateCard}
+          onAnalyzeWord={onAnalyzeWord}
+        />
+      )}
+      {quickReplyPhrase && (
+        <QuickReplyModal
+          isOpen={!!quickReplyPhrase}
+          onClose={() => setQuickReplyPhrase(null)}
+          phrase={quickReplyPhrase}
+          options={quickReplyOptions}
+          correctAnswer={quickReplyPhrase.german}
+          onCorrect={handleQuickReplyCorrect}
+          onIncorrect={handleQuickReplyIncorrect}
+          isLoading={isQuickReplyLoading}
+          error={quickReplyError}
         />
       )}
     </>

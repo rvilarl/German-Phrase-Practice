@@ -245,7 +245,7 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
       }
     };
 
-    const delay = (constructedWords.length === 0) ? 5000 : 2000;
+    const delay = (constructedWords.length === 0) ? 5000 : 5000;
     inactivityTimerRef.current = window.setTimeout(handleTimeout, delay);
 
     return () => {
@@ -431,7 +431,8 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
     if (ghostPosition) setGhostPosition({ x: e.clientX, y: e.clientY });
     const dropZone = constructedPhraseRef.current;
     if (!dropZone) return;
-    const children = Array.from(dropZone.children).filter(child => child.hasAttribute('data-word-id'));
+    // FIX: Add explicit type cast to resolve TypeScript error.
+    const children = Array.from(dropZone.children).filter(child => (child as Element).hasAttribute('data-word-id'));
     let newIndex = children.length;
     for (let i = 0; i < children.length; i++) {
         const child = children[i] as HTMLElement;

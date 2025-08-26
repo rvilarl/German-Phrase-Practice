@@ -33,3 +33,41 @@ export const setCache = (key: string, value: unknown): void => {
     console.error(`Error writing to cache for key "${key}":`, error);
   }
 };
+
+
+/**
+ * Clears all cache entries associated with a specific phrase ID.
+ * @param phraseId The ID of the phrase to clear cache for.
+ */
+export const clearCacheForPhrase = (phraseId: string): void => {
+  const prefixes = [
+    `deep_dive_${phraseId}`,
+    `movie_examples_${phraseId}`,
+    `word_analysis_${phraseId}_`,
+    `phrase_builder_${phraseId}`,
+    `chat_initial_${phraseId}`,
+    `quick_reply_options_${phraseId}`,
+    `sentence_chain_api_cache_${phraseId}`,
+    `sentence_chain_history_${phraseId}`
+  ];
+
+  const keysToRemove: string[] = [];
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && prefixes.some(prefix => key.startsWith(prefix))) {
+        keysToRemove.push(key);
+      }
+    }
+
+    keysToRemove.forEach(key => {
+      localStorage.removeItem(key);
+    });
+
+    if (keysToRemove.length > 0) {
+      console.log(`Cleared ${keysToRemove.length} cache entries for mastered phrase ${phraseId}.`);
+    }
+  } catch (error) {
+    console.error(`Error clearing cache for phrase ${phraseId}:`, error);
+  }
+};

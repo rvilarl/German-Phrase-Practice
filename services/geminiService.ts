@@ -1,4 +1,5 @@
 
+
 import { GoogleGenAI, Type } from "@google/genai";
 import type { Phrase, ChatMessage, ExamplePair, ProactiveSuggestion, ContentPart, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, SentenceContinuation, TranslationChatRequest, TranslationChatResponse, PhraseBuilderOptions, PhraseEvaluation } from '../types';
 import { AiService } from './aiService';
@@ -1164,23 +1165,23 @@ const evaluateSpokenPhraseAttempt: AiService['evaluateSpokenPhraseAttempt'] = as
     }
 };
 
-const hintSchema = {
+const quickReplyOptionsSchema = {
     type: Type.OBJECT,
     properties: {
-      hint: {
-        type: Type.STRING,
-        description: 'The single most important keyword or two-word pair from the German phrase.',
-      },
+        options: {
+            type: Type.ARRAY,
+            description: "An array of 3 plausible but incorrect distractor options.",
+            items: { type: Type.STRING }
+        }
     },
-    required: ["hint"],
+    required: ["options"]
 };
 
-
-const generatePhraseHint: AiService['generatePhraseHint'] = async (phrase) => {
+const generateQuickReplyOptions: AiService['generateQuickReplyOptions'] = async (phrase) => {
     const api = initializeApi();
     if (!api) throw new Error("Gemini API key not configured.");
-    
-    const prompt = `Ты — лингвистический ассистент. Проанализируй русскую фразу "${phrase.russian}" и её немецкий перевод "${phrase.german}". Выдели ОДНО или ДВА (если они неотделимы по смыслу, например, артикль и существительное) ключевых, фундаментальных слова из НЕМЕЦКОЙ фразы, которые служат лучшей подсказкой для её вспоминания. Верни JSON с одним ключом 'hint'.`;
+
+    const prompt = `Для немецкой фразы "${phrase.german}" (перевод: "${phrase.russian}") создай 3 правдоподобных, но неверных варианта-дистрактора для теста с множественным выбором. Дистракторы должны быть похожи по длине и грамматической категории. Верни JSON-объект с ключом "options", содержащим массив из 3 строк.`;
 
     try {
         const response = await api.models.generateContent({
@@ -1188,14 +1189,15 @@ const generatePhraseHint: AiService['generatePhraseHint'] = async (phrase) => {
             contents: prompt,
             config: {
                 responseMimeType: "application/json",
-                responseSchema: hintSchema,
-                temperature: 0.2,
+                responseSchema: quickReplyOptionsSchema,
+                temperature: 0.9,
             },
         });
+
         const jsonText = response.text.trim();
-        return JSON.parse(jsonText);
+        return JSON.parse(jsonText) as { options: string[] };
     } catch (error) {
-        console.error("Error generating phrase hint with Gemini:", error);
+        console.error("Error generating quick reply options with Gemini:", error);
         throw new Error(`Failed to call the Gemini API: ${(error as any)?.message || 'Unknown error'}`);
     }
 };
@@ -1235,7 +1237,7 @@ export const geminiService: AiService = {
     generatePhraseBuilderOptions,
     evaluatePhraseAttempt,
     evaluateSpokenPhraseAttempt,
-    generatePhraseHint,
+    generateQuickReplyOptions,
     healthCheck,
     getProviderName: () => "Google Gemini",
 };

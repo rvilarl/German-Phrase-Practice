@@ -2,17 +2,50 @@ import { Phrase } from '../types';
 
 const now = Date.now();
 
+const basicPhrases = [
+  { russian: "Привет", german: "Hallo" },
+  { russian: "Спасибо", german: "Danke" },
+  { russian: "Пожалуйста", german: "Bitte" },
+  { russian: "Да", german: "Ja" },
+  { russian: "Нет", german: "Nein" },
+  { russian: "Как дела?", german: "Wie geht's?" },
+  { russian: "Хорошо, спасибо", german: "Gut, danke" },
+  { russian: "Меня зовут...", german: "Ich heiße..." },
+  { russian: "До свидания", german: "Auf Wiedersehen" },
+  { russian: "Прошу прощения", german: "Entschuldigung" }
+];
+
+const personalPronouns = [
+  { russian: "я", german: "ich" },
+  { russian: "ты", german: "du" },
+  { russian: "он", german: "er" },
+  { russian: "она", german: "sie" },
+  { russian: "оно", german: "es" },
+  { russian: "мы", german: "wir" },
+  { russian: "вы (неформ.)", german: "ihr" },
+  { russian: "они", german: "sie" },
+  { russian: "Вы (форм.)", german: "Sie" },
+];
+
+const wFragen = [
+  { russian: "Что?", german: "Was?" },
+  { russian: "Кто?", german: "Wer?" },
+  { russian: "Где?", german: "Wo?" },
+  { russian: "Когда?", german: "Wann?" },
+  { russian: "Как?", german: "Wie?" },
+  { russian: "Почему?", german: "Warum?" },
+  { russian: "Откуда?", german: "Woher?" },
+  { russian: "Куда?", german: "Wohin?" },
+  { russian: "Какой?", german: "Welcher?" },
+  { russian: "Сколько? (неисчисл.)", german: "Wie viel?" },
+  { russian: "Сколько? (исчисл.)", german: "Wie viele?" }
+];
+
+
 export const initialPhrases = [
-  { russian: "Привет", german: "Hallo", hint: "Hallo" },
-  { russian: "Спасибо", german: "Danke", hint: "Danke" },
-  { russian: "Пожалуйста", german: "Bitte", hint: "Bitte" },
-  { russian: "Да", german: "Ja", hint: "Ja" },
-  { russian: "Нет", german: "Nein", hint: "Nein" },
-  { russian: "Как дела?", german: "Wie geht's?", hint: "geht's" },
-  { russian: "Хорошо, спасибо", german: "Gut, danke", hint: "Gut, danke" },
-  { russian: "Меня зовут...", german: "Ich heiße...", hint: "heiße" },
-  { russian: "До свидания", german: "Auf Wiedersehen", hint: "Auf Wiedersehen" },
-  { russian: "Прошу прощения", german: "Entschuldigung", hint: "Entschuldigung" }
+  ...basicPhrases,
+  ...personalPronouns,
+  ...wFragen
 ].map(p => ({
     ...p,
     masteryLevel: 0,

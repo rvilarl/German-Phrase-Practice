@@ -18,6 +18,41 @@ export const isPhraseMastered = (phrase: Phrase): boolean => {
   return phrase.masteryLevel >= MAX_MASTERY_LEVEL || phrase.knowCount >= 3 || phrase.knowStreak >= 2;
 };
 
+const russianPronouns = [
+    "я", "ты", "он", "она", "оно", "мы", "вы (неформ.)", "они", "вы (форм.)"
+];
+
+
+// Helper to categorize phrases
+export const getPhraseCategory = (phrase: Phrase): string | null => {
+    if (!phrase) return null;
+    const russian = phrase.russian.trim().toLowerCase();
+    const german = phrase.german.trim().toLowerCase();
+
+    // List of W-Fragen from initial data
+    const wFragenList = [
+        "was?", "wer?", "wo?", "wann?", "wie?", "warum?", "woher?", "wohin?",
+        "welcher?", "wie viel?", "wie viele?"
+    ];
+
+    if (wFragenList.includes(german)) {
+        return 'w-frage';
+    }
+
+    if (russianPronouns.includes(russian)) {
+        return 'personal-pronoun';
+    }
+
+    // New logic for short phrases
+    const wordCount = german.split(' ').filter(word => word.length > 0).length;
+    if (wordCount > 0 && wordCount <= 2) {
+        return 'short-phrase';
+    }
+    
+    return 'regular';
+};
+
+
 export const selectNextPhrase = (phrases: Phrase[], currentPhraseId: string | null = null): Phrase | null => {
   // Guard against empty or invalid input
   if (!phrases || phrases.length === 0) {
@@ -28,15 +63,27 @@ export const selectNextPhrase = (phrases: Phrase[], currentPhraseId: string | nu
   const unmasteredPhrases = phrases.filter(p => p && !p.isMastered);
   if (unmasteredPhrases.length === 0) return null;
   
-  // Avoid immediate repetition unless it's the only option
-  const availablePhrasesPool = unmasteredPhrases.length > 1 && currentPhraseId
-    ? unmasteredPhrases.filter(p => p.id !== currentPhraseId)
-    : unmasteredPhrases;
-  
-  if (availablePhrasesPool.length === 0) {
-      return unmasteredPhrases[0] || null;
+  // If there's only one unmastered phrase, return it.
+  if (unmasteredPhrases.length === 1) {
+    return unmasteredPhrases[0];
   }
 
+  const currentPhrase = currentPhraseId ? phrases.find(p => p.id === currentPhraseId) : null;
+  const currentCategory = currentPhrase ? getPhraseCategory(currentPhrase) : null;
+  
+  // Pool of candidates, definitely without the current card.
+  const poolWithoutCurrent = unmasteredPhrases.filter(p => p.id !== currentPhraseId);
+  
+  let availablePhrasesPool = poolWithoutCurrent;
+  
+  // If we just showed a special category card, try to show a different category next.
+  if (currentCategory && currentCategory !== 'regular') {
+    const differentCategoryPhrases = poolWithoutCurrent.filter(p => getPhraseCategory(p) !== currentCategory);
+    if (differentCategoryPhrases.length > 0) {
+        availablePhrasesPool = differentCategoryPhrases;
+    }
+  }
+  
   const now = Date.now();
   
   // Priority 1: Phrases due for review (must have been reviewed before)
@@ -60,7 +107,7 @@ export const selectNextPhrase = (phrases: Phrase[], currentPhraseId: string | nu
   }
 
   // Fallback: should not be reached if there are unmastered phrases, but as a safeguard.
-  return availablePhrasesPool.length > 0 ? availablePhrasesPool[0] : null;
+  return availablePhrasesPool.length > 0 ? availablePhrasesPool[Math.floor(Math.random() * availablePhrasesPool.length)] : null;
 };
 
 type UserAction = 'know' | 'forgot' | 'dont_know';

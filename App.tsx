@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Phrase, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, SentenceContinuation, PhraseBuilderOptions, PhraseEvaluation, ChatMessage } from './types';
 import * as srsService from './services/srsService';
@@ -163,9 +155,8 @@ const App: React.FC = () => {
   const [isPronounsModalOpen, setIsPronounsModalOpen] = useState(false);
   const [isWFragenModalOpen, setIsWFragenModalOpen] = useState(false);
   
-  const [hintCache, setHintCache] = useState<{ [phraseId: string]: string }>({});
-
   const isPrefetchingRef = useRef(false);
+  const isQuickReplyPrefetchingRef = useRef(false);
 
 
   useEffect(() => {
@@ -245,7 +236,6 @@ const App: React.FC = () => {
                                 lastReviewedAt: p.lastReviewedAt ?? null,
                                 nextReviewAt: p.nextReviewAt ?? Date.now(),
                                 isMastered: p.isMastered ?? false,
-                                hint: p.hint,
                             };
                             return {
                                 ...phraseData,
@@ -358,31 +348,6 @@ const App: React.FC = () => {
     });
   }, []);
   
-  const handleGenerateHint = useCallback(async (phrase: Phrase): Promise<string> => {
-    if (phrase.hint) return phrase.hint;
-
-    const cacheKey = `hint_${phrase.id}`;
-    const cachedHint = hintCache[phrase.id] || cacheService.getCache<string>(cacheKey);
-
-    if (cachedHint) {
-        if (!phrase.hint) {
-          updateAndSavePhrases(prev => prev.map(p => p.id === phrase.id ? { ...p, hint: cachedHint } : p));
-        }
-        if (!hintCache[phrase.id]) {
-            setHintCache(prev => ({ ...prev, [phrase.id]: cachedHint }));
-        }
-        return cachedHint;
-    }
-
-    const { hint } = await callApiWithFallback(provider => provider.generatePhraseHint(phrase));
-    
-    setHintCache(prev => ({ ...prev, [phrase.id]: hint }));
-    cacheService.setCache(cacheKey, hint);
-    updateAndSavePhrases(prev => prev.map(p => p.id === phrase.id ? { ...p, hint } : p));
-    
-    return hint;
-  }, [callApiWithFallback, hintCache, updateAndSavePhrases]);
-
   const fetchNewPhrases = useCallback(async (count: number = 5) => {
     if (isGenerating || !apiProvider) {
         if (!apiProvider) setError("AI provider is not available for generating new phrases.");
@@ -403,19 +368,12 @@ const App: React.FC = () => {
         }));
         updateAndSavePhrases(prev => [...prev, ...phrasesToAdd]);
         
-        // Proactively generate hints in the background
-        phrasesToAdd.forEach(p => {
-          handleGenerateHint(p).catch(err => {
-            console.warn(`Hint pre-fetching failed for new phrase ${p.id}:`, err);
-          });
-        });
-
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error during phrase generation.');
     } finally {
       setIsGenerating(false);
     }
-  }, [allPhrases, isGenerating, updateAndSavePhrases, callApiWithFallback, apiProvider, error, handleGenerateHint]);
+  }, [allPhrases, isGenerating, updateAndSavePhrases, callApiWithFallback, apiProvider, error]);
 
   const openChatForPhrase = (phrase: Phrase) => {
     if (!apiProvider) return;
@@ -472,32 +430,40 @@ const App: React.FC = () => {
       setIsMovieExamplesLoading(false);
     }
   }, [callApiWithFallback, apiProvider]);
+
+  const analyzeWord = useCallback(async (phrase: Phrase, word: string): Promise<WordAnalysis | null> => {
+    if (!apiProvider) return null;
+    const cacheKey = `word_analysis_${phrase.id}_${word.toLowerCase()}`;
+    const cachedAnalysis = cacheService.getCache<WordAnalysis>(cacheKey);
+    if (cachedAnalysis) return cachedAnalysis;
+
+    try {
+        const analysis = await callApiWithFallback(provider => provider.analyzeWordInPhrase(phrase, word));
+        cacheService.setCache(cacheKey, analysis);
+        return analysis;
+    } catch (err) {
+        console.error("Error analyzing word:", err);
+        return null;
+    }
+  }, [callApiWithFallback, apiProvider]);
   
   const handleOpenWordAnalysis = useCallback(async (phrase: Phrase, word: string) => {
-    if (!apiProvider) return;
+    if (isWordAnalysisLoading) return;
     setWordAnalysisPhrase(phrase);
     setSelectedWord(word);
     setIsWordAnalysisModalOpen(true);
     setIsWordAnalysisLoading(true);
     setWordAnalysis(null);
     setWordAnalysisError(null);
-    const cacheKey = `word_analysis_${phrase.id}_${word.toLowerCase()}`;
-    const cachedAnalysis = cacheService.getCache<WordAnalysis>(cacheKey);
-    if (cachedAnalysis) {
-        setWordAnalysis(cachedAnalysis);
-        setIsWordAnalysisLoading(false);
-        return;
+    
+    const analysisResult = await analyzeWord(phrase, word);
+    if (analysisResult) {
+        setWordAnalysis(analysisResult);
+    } else {
+        setWordAnalysisError('Unknown error during word analysis.');
     }
-    try {
-        const analysis = await callApiWithFallback(provider => provider.analyzeWordInPhrase(phrase, word));
-        setWordAnalysis(analysis);
-        cacheService.setCache(cacheKey, analysis);
-    } catch (err) {
-        setWordAnalysisError(err instanceof Error ? err.message : 'Unknown error during word analysis.');
-    } finally {
-        setIsWordAnalysisLoading(false);
-    }
-  }, [callApiWithFallback, apiProvider]);
+    setIsWordAnalysisLoading(false);
+  }, [analyzeWord, isWordAnalysisLoading]);
 
   const handleOpenVerbConjugation = useCallback(async (infinitive: string) => {
     if (!apiProvider) return;
@@ -591,13 +557,56 @@ const App: React.FC = () => {
         isPrefetchingRef.current = false;
     }
   }, [allPhrases, callApiWithFallback, apiProvider]);
+
+  const prefetchQuickReplyOptions = useCallback(async (startingPhraseId: string | null) => {
+    if (isQuickReplyPrefetchingRef.current || !apiProvider) return;
+    isQuickReplyPrefetchingRef.current = true;
+
+    try {
+        const PREFETCH_COUNT = 3;
+        let nextPhraseId = startingPhraseId;
+        const phrasesToFetch: Phrase[] = [];
+        const unmastered = allPhrases.filter(p => p && !p.isMastered);
+
+        for (let i = 0; i < PREFETCH_COUNT; i++) {
+            const nextPhrase = srsService.selectNextPhrase(unmastered, nextPhraseId);
+            if (nextPhrase) {
+                if (phrasesToFetch.some(p => p.id === nextPhrase.id)) break;
+                const category = srsService.getPhraseCategory(nextPhrase);
+                if (category === 'short-phrase') {
+                    phrasesToFetch.push(nextPhrase);
+                }
+                nextPhraseId = nextPhrase.id;
+            } else {
+                break;
+            }
+        }
+        
+        await Promise.all(phrasesToFetch.map(async (phrase) => {
+            const cacheKey = `quick_reply_options_${phrase.id}`;
+            if (!cacheService.getCache<string[]>(cacheKey)) {
+                try {
+                    const result = await callApiWithFallback(provider => provider.generateQuickReplyOptions(phrase));
+                    if (result.options && result.options.length > 0) {
+                        cacheService.setCache(cacheKey, result.options);
+                    }
+                } catch (err) {
+                    console.warn(`Background prefetch for quick reply options failed for phrase ${phrase.id}:`, err);
+                }
+            }
+        }));
+    } finally {
+        isQuickReplyPrefetchingRef.current = false;
+    }
+  }, [allPhrases, callApiWithFallback, apiProvider]);
   
-  // New proactive pre-fetching effect
+  // New proactive pre-fetching effect for both phrase builder and quick replies
   useEffect(() => {
     if (view === 'practice' && currentPracticePhrase) {
         prefetchPhraseBuilderOptions(currentPracticePhrase.id);
+        prefetchQuickReplyOptions(currentPracticePhrase.id);
     }
-  }, [view, currentPracticePhrase, prefetchPhraseBuilderOptions]);
+  }, [view, currentPracticePhrase, prefetchPhraseBuilderOptions, prefetchQuickReplyOptions]);
 
 
   const handleOpenVoiceWorkspace = (phrase: Phrase) => {
@@ -613,27 +622,36 @@ const App: React.FC = () => {
   const handleEvaluateSpokenPhraseAttempt = useCallback((phrase: Phrase, userAttempt: string): Promise<PhraseEvaluation> => {
     return callApiWithFallback(provider => provider.evaluateSpokenPhraseAttempt(phrase, userAttempt));
   }, [callApiWithFallback]);
+  
+  const updatePhraseMasteryAndCache = useCallback((phrase: Phrase, action: 'know' | 'forgot' | 'dont_know') => {
+    const updatedPhrase = srsService.updatePhraseMastery(phrase, action);
+    updateAndSavePhrases(prev =>
+        prev.map(p => (p.id === phrase.id ? updatedPhrase : p))
+    );
+
+    if (updatedPhrase.isMastered && !phrase.isMastered) {
+        cacheService.clearCacheForPhrase(phrase.id);
+    }
+    
+    return updatedPhrase;
+  }, [updateAndSavePhrases]);
+
 
   const handlePhraseActionSuccess = useCallback((phrase: Phrase) => {
     if (settings.soundEffects) playCorrectSound();
-    const updatedPhrase = srsService.updatePhraseMastery(phrase, 'know');
-    updateAndSavePhrases(prev =>
-      prev.map(p => (p.id === phrase.id ? updatedPhrase : p))
-    );
-  }, [updateAndSavePhrases, settings.soundEffects]);
+    updatePhraseMasteryAndCache(phrase, 'know');
+  }, [settings.soundEffects, updatePhraseMasteryAndCache]);
 
   const handlePhraseActionFailure = useCallback((phrase: Phrase) => {
     if (settings.soundEffects) playIncorrectSound();
-     const updatedPhrase = srsService.updatePhraseMastery(phrase, 'forgot');
-    updateAndSavePhrases(prev =>
-      prev.map(p => (p.id === phrase.id ? updatedPhrase : p))
-    );
-  }, [updateAndSavePhrases, settings.soundEffects]);
+    updatePhraseMasteryAndCache(phrase, 'forgot');
+  }, [settings.soundEffects, updatePhraseMasteryAndCache]);
 
 
   const handleGenerateContinuations = useCallback((russianPhrase: string) => callApiWithFallback(provider => provider.generateSentenceContinuations(russianPhrase)),[callApiWithFallback]);
   const handleGenerateInitialExamples = useCallback((phrase: Phrase) => callApiWithFallback(provider => provider.generateInitialExamples(phrase)),[callApiWithFallback]);
   const handleContinueChat = useCallback((phrase: Phrase, history: any[], newMessage: string) => callApiWithFallback(provider => provider.continueChat(phrase, history, newMessage)),[callApiWithFallback]);
+  const handleGenerateQuickReplyOptions = useCallback((phrase: Phrase) => callApiWithFallback(provider => provider.generateQuickReplyOptions(phrase)),[callApiWithFallback]);
   const handleGuideToTranslation = useCallback((phrase: Phrase, history: ChatMessage[], userAnswer: string) => callApiWithFallback(provider => provider.guideToTranslation(phrase, history, userAnswer)),[callApiWithFallback]);
   const handleGenerateSinglePhrase = useCallback((russianPhrase: string) => callApiWithFallback(provider => provider.generateSinglePhrase(russianPhrase)),[callApiWithFallback]);
   const handleTranslateGermanToRussian = useCallback((germanPhrase: string) => callApiWithFallback(provider => provider.translateGermanToRussian(germanPhrase)), [callApiWithFallback]);
@@ -658,16 +676,36 @@ const App: React.FC = () => {
     };
     updateAndSavePhrases(prev => [newPhrase, ...prev]);
     
-    handleGenerateHint(newPhrase).catch(err => {
-      console.warn(`Hint generation failed for created phrase ${newPhrase.id}:`, err);
-    });
-
     setIsAddPhraseModalOpen(false);
     // Show the new card immediately
     setCurrentPracticePhrase(newPhrase);
     setIsPracticeAnswerRevealed(false);
     setView('practice');
   };
+  
+  const handleCreateCardFromWord = useCallback((phraseData: { german: string; russian: string; }) => {
+    // Check for duplicates before creating
+    const alreadyExists = allPhrases.some(p => p.german.trim().toLowerCase() === phraseData.german.trim().toLowerCase());
+    if (alreadyExists) {
+        showToast({ message: `Карточка "${phraseData.german}" уже существует.` });
+        return;
+    }
+
+    const newPhrase: Phrase = {
+        ...phraseData,
+        id: Math.random().toString(36).substring(2, 9),
+        masteryLevel: 0,
+        lastReviewedAt: null,
+        nextReviewAt: Date.now(),
+        knowCount: 0,
+        knowStreak: 0,
+        isMastered: false,
+    };
+    updateAndSavePhrases(prev => [newPhrase, ...prev]);
+    
+    showToast({ message: `Карточка для "${phraseData.german}" создана` });
+  }, [allPhrases, updateAndSavePhrases, showToast]);
+
 
   const handleOpenImproveModal = (phrase: Phrase) => {
     if (!apiProvider) return;
@@ -745,14 +783,11 @@ const App: React.FC = () => {
   
   const handleLearningAssistantSuccess = useCallback((phrase: Phrase) => {
     if (settings.soundEffects) playCorrectSound();
-    const updatedPhrase = srsService.updatePhraseMastery(phrase, 'know');
-    updateAndSavePhrases(prev =>
-      prev.map(p => (p.id === phrase.id ? updatedPhrase : p))
-    );
+    const updatedPhrase = updatePhraseMasteryAndCache(phrase, 'know');
     if (currentPracticePhrase?.id === phrase.id) {
       setCurrentPracticePhrase(updatedPhrase);
     }
-  }, [updateAndSavePhrases, currentPracticePhrase, settings.soundEffects]);
+  }, [updatePhraseMasteryAndCache, currentPracticePhrase, settings.soundEffects]);
 
   // --- Practice Page Logic ---
   const unmasteredPhrases = useMemo(() => allPhrases.filter(p => p && !p.isMastered), [allPhrases]);
@@ -783,16 +818,6 @@ const App: React.FC = () => {
     const nextPhrase = srsService.selectNextPhrase(unmasteredPhrases, currentPracticePhrase?.id ?? null);
     changePracticePhrase(nextPhrase, 'right');
     
-    // Pre-fetch hint for the card *after* the next one.
-    if (nextPhrase && apiProvider) {
-      const phraseAfterNext = srsService.selectNextPhrase(unmasteredPhrases, nextPhrase.id);
-      if (phraseAfterNext) {
-        handleGenerateHint(phraseAfterNext).catch(err => {
-          console.warn(`Hint pre-fetching failed for phrase ${phraseAfterNext.id}:`, err);
-        });
-      }
-    }
-
     const POOL_FETCH_THRESHOLD = 7;
     const ACTIVE_POOL_TARGET = 10;
     const PHRASES_TO_FETCH = 5;
@@ -800,7 +825,7 @@ const App: React.FC = () => {
         const needed = ACTIVE_POOL_TARGET - unmasteredPhrases.length;
         fetchNewPhrases(Math.max(needed, PHRASES_TO_FETCH));
     }
-  }, [unmasteredPhrases, currentPracticePhrase, fetchNewPhrases, isGenerating, allPhrases.length, changePracticePhrase, apiProvider, handleGenerateHint]);
+  }, [unmasteredPhrases, currentPracticePhrase, fetchNewPhrases, isGenerating, allPhrases.length, changePracticePhrase]);
 
   useEffect(() => {
     if (!isLoading && allPhrases.length > 0 && !currentPracticePhrase && view === 'practice') {
@@ -835,12 +860,17 @@ const App: React.FC = () => {
     if (!currentPracticePhrase || practiceIsExitingRef.current) return;
 
     handleLogMasteryButtonUsage(action);
+    const originalPhrase = currentPracticePhrase;
 
-    const phraseToSpeak = currentPracticePhrase.german;
-    const updatedPhrase = srsService.updatePhraseMastery(currentPracticePhrase, action);
+    const phraseToSpeak = originalPhrase.german;
+    const updatedPhrase = srsService.updatePhraseMastery(originalPhrase, action);
     
     updateAndSavePhrases(prev => prev.map(p => p.id === updatedPhrase.id ? updatedPhrase : p));
     
+    if (updatedPhrase.isMastered && !originalPhrase.isMastered) {
+      cacheService.clearCacheForPhrase(updatedPhrase.id);
+    }
+
     // Always show the flipped card if not auto-advancing, even for 'know'.
     if (action === 'know' && options?.autoAdvance) {
       if (settings.soundEffects) playCorrectSound();
@@ -923,9 +953,13 @@ const App: React.FC = () => {
              onDeletePhrase={handleDeletePhrase}
              onGoToList={handleGoToListFromPractice}
              onOpenDiscussTranslation={handleOpenDiscussModal}
-             onGenerateHint={handleGenerateHint}
              settings={settings}
              masteryButtonUsage={masteryButtonUsage}
+             allPhrases={allPhrases}
+             onCreateCard={handleCreateCardFromWord}
+             onAnalyzeWord={analyzeWord}
+             onGenerateQuickReplyOptions={handleGenerateQuickReplyOptions}
+             isWordAnalysisLoading={isWordAnalysisLoading}
            />
         ) : (
           <PhraseListPage 
@@ -1000,6 +1034,8 @@ const App: React.FC = () => {
         onOpenVerbConjugation={handleOpenVerbConjugation}
         onOpenNounDeclension={handleOpenNounDeclension}
         onOpenWordAnalysis={handleOpenWordAnalysis}
+        allPhrases={allPhrases}
+        onCreateCard={handleCreateCardFromWord}
       />}
       {conjugationVerb && <VerbConjugationModal
         isOpen={isVerbConjugationModalOpen}

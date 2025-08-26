@@ -20,7 +20,7 @@ export interface AiService {
   generatePhraseBuilderOptions(phrase: Phrase): Promise<PhraseBuilderOptions>;
   evaluatePhraseAttempt(phrase: Phrase, userAttempt: string): Promise<PhraseEvaluation>;
   evaluateSpokenPhraseAttempt(phrase: Phrase, userAttempt: string): Promise<PhraseEvaluation>;
-  generatePhraseHint(phrase: Phrase): Promise<{ hint: string }>;
+  generateQuickReplyOptions(phrase: Phrase): Promise<{ options: string[] }>;
   healthCheck(): Promise<boolean>;
   getProviderName(): string;
 }

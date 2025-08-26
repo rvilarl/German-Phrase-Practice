@@ -8,35 +8,51 @@ import LinkIcon from './icons/LinkIcon';
 import WandIcon from './icons/WandIcon';
 import MicrophoneIcon from './icons/MicrophoneIcon';
 import BookOpenIcon from './icons/BookOpenIcon';
+import { getPhraseCategory } from '../services/srsService';
 
 interface PhraseCardProps {
   phrase: Phrase;
   onSpeak: (text: string) => void;
   isFlipped: boolean;
-  onFlip: () => void;
   onOpenChat: (phrase: Phrase) => void;
   onOpenDeepDive: (phrase: Phrase) => void;
   onOpenMovieExamples: (phrase: Phrase) => void;
   onWordClick: (phrase: Phrase, word: string) => void;
   onOpenSentenceChain: (phrase: Phrase) => void;
   onOpenImprovePhrase: (phrase: Phrase) => void;
-  onOpenContextMenu: (phrase: Phrase) => void;
+  onOpenContextMenu: (target: { phrase: Phrase, word?: string }) => void;
   onOpenVoicePractice: (phrase: Phrase) => void;
   onOpenLearningAssistant: (phrase: Phrase) => void;
-  hint: string | null;
-  isHintVisible: boolean;
-  isHintLoading: boolean;
-  onShowHint: () => void;
+  onOpenQuickReply: (phrase: Phrase) => void;
+  isWordAnalysisLoading: boolean;
+  isQuickReplyReady: boolean;
 }
 
+const RussianPhraseDisplay: React.FC<{ text: string; as: 'h2' | 'div' }> = ({ text, as: Component }) => {
+  const match = text.match(/(.*?)\s*\(([^)]+)\)/);
+  if (match && match[1] && match[2]) {
+    const mainText = match[1].trim();
+    const noteText = match[2].trim();
+    return (
+      <Component className="text-2xl font-semibold text-slate-100">
+        {mainText}
+        <p className="text-sm text-slate-400 mt-1 font-normal">({noteText})</p>
+      </Component>
+    );
+  }
+  return <Component className="text-2xl font-semibold text-slate-100">{text}</Component>;
+};
+
 const PhraseCard: React.FC<PhraseCardProps> = ({
-  phrase, onSpeak, isFlipped, onFlip, onOpenChat,
+  phrase, onSpeak, isFlipped, onOpenChat,
   onOpenDeepDive, onOpenMovieExamples, onWordClick, onOpenSentenceChain,
   onOpenImprovePhrase, onOpenContextMenu, onOpenVoicePractice,
-  onOpenLearningAssistant, hint, isHintVisible, isHintLoading, onShowHint
+  onOpenLearningAssistant, onOpenQuickReply, isWordAnalysisLoading,
+  isQuickReplyReady
 }) => {
 
   const longPressTimer = useRef<number | null>(null);
+  const wordLongPressTimer = useRef<number | null>(null);
 
   const handleSpeak = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -65,6 +81,7 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
 
   const handleWordClick = (e: React.MouseEvent, word: string) => {
     e.stopPropagation();
+    if (isWordAnalysisLoading) return;
     const cleanedWord = word.replace(/[.,!?]/g, '');
     if (cleanedWord) {
       onWordClick(phrase, cleanedWord);
@@ -86,10 +103,18 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
     onOpenLearningAssistant(phrase);
   };
 
+  const handleQuickReplyClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isQuickReplyReady) {
+      onOpenQuickReply(phrase);
+    }
+  };
+
+
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     longPressTimer.current = window.setTimeout(() => {
-      onOpenContextMenu(phrase);
+      onOpenContextMenu({ phrase });
       longPressTimer.current = null;
     }, 500); // 500ms for long press
   };
@@ -100,6 +125,26 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
     }
   };
 
+  const handleWordPointerDown = (e: React.PointerEvent<HTMLSpanElement>, word: string) => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    e.stopPropagation(); // prevent card's context menu
+    if (isWordAnalysisLoading) return;
+    const cleanedWord = word.replace(/[.,!?]/g, '');
+    if (!cleanedWord) return;
+
+    wordLongPressTimer.current = window.setTimeout(() => {
+        onOpenContextMenu({ phrase, word: cleanedWord });
+        wordLongPressTimer.current = null;
+    }, 500);
+  };
+
+  const clearWordLongPress = (e: React.PointerEvent<HTMLSpanElement>) => {
+      e.stopPropagation();
+      if (wordLongPressTimer.current) {
+          clearTimeout(wordLongPressTimer.current);
+      }
+  };
+
   return (
     <div 
         className="group [perspective:1000px] w-full max-w-md h-full"
@@ -108,7 +153,7 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
         onPointerLeave={clearLongPress}
         onContextMenu={(e) => {
             e.preventDefault();
-            onOpenContextMenu(phrase);
+            onOpenContextMenu({ phrase });
         }}
     >
       <div 
@@ -116,33 +161,20 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
       >
         {/* Front Side (Russian) */}
         <div 
-            onClick={onShowHint}
-            className={`h-full absolute inset-0 [backface-visibility:hidden] bg-gradient-to-br from-slate-700/80 to-slate-800/80 backdrop-blur-sm border border-white/10 rounded-xl p-6 flex flex-col justify-between items-center text-center transition-colors duration-500 relative overflow-hidden cursor-pointer ${isHintLoading ? 'checking-border' : ''}`}
+            className={`h-full absolute inset-0 [backface-visibility:hidden] bg-gradient-to-br from-slate-700/80 to-slate-800/80 backdrop-blur-sm border border-white/10 rounded-xl p-6 flex flex-col justify-between items-center text-center transition-colors duration-500 relative overflow-hidden`}
         >
             <div className="flex-grow flex flex-col items-center justify-center w-full">
-                <h2 className="text-2xl font-semibold text-slate-100">{phrase.russian}</h2>
-                 <div className="mt-4 h-10 flex items-center justify-center">
-                    {isHintVisible && hint && !isHintLoading && (
-                        <div className="flex items-center gap-x-2 animate-fade-in">
-                            <button 
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    onSpeak(hint);
-                                }}
-                                className="p-1 rounded-full hover:bg-white/20 transition-colors"
-                                aria-label={`Speak hint: ${hint}`}
-                            >
-                                <SoundIcon className="w-4 h-4 text-slate-300" />
-                            </button>
-                            <button 
-                                 onClick={(e) => handleWordClick(e, hint)}
-                                className="text-slate-300 font-medium hover:text-white transition-colors"
-                            >
-                                {hint}
-                            </button>
-                        </div>
-                    )}
-                </div>
+                {isQuickReplyReady ? (
+                    <button
+                        onClick={handleQuickReplyClick}
+                        className="group/quick-reply relative text-center p-4 -m-4 rounded-lg hover:bg-slate-600/50 transition-colors"
+                    >
+                        <RussianPhraseDisplay text={phrase.russian} as="div" />
+                        <span className="absolute top-1 right-1 w-2.5 h-2.5 border-2 border-slate-800 bg-purple-400 rounded-full opacity-70 group-hover/quick-reply:opacity-100" />
+                    </button>
+                    ) : (
+                    <RussianPhraseDisplay text={phrase.russian} as="h2" />
+                )}
             </div>
             
             <div className="w-full flex justify-center items-center gap-x-3">
@@ -160,75 +192,54 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
                 >
                     <LinkIcon className="w-5 h-5" />
                 </button>
-                <button
-                   onClick={handleOpenVoicePractice}
-                   className="p-3 rounded-full bg-slate-600/50 hover:bg-slate-600 transition-all text-slate-100"
-                   aria-label="Конструктор фраз"
-               >
-                   <MicrophoneIcon className="w-5 h-5 text-white" />
-               </button>
-           </div>
+                 <button
+                    onClick={handleOpenVoicePractice}
+                    className="p-3 rounded-full bg-slate-600/50 hover:bg-slate-600 transition-colors text-slate-100"
+                    aria-label="Голосовая практика"
+                >
+                    <MicrophoneIcon className="w-5 h-5" />
+                </button>
+            </div>
+            <div className="flash-container"></div>
         </div>
-        
-        {/* Back Side (German) */}
-        <div 
-          onClick={onFlip}
-          className="absolute inset-0 [backface-visibility:hidden] [transform:rotateY(180deg)] bg-gradient-to-br from-purple-600/80 to-blue-600/80 backdrop-blur-sm border border-white/10 rounded-xl p-6 flex flex-col justify-between items-center text-center cursor-pointer"
-        >
-            <button
-                onClick={handleOpenImprovePhrase}
-                className="absolute top-3 right-3 p-1.5 rounded-full bg-white/10 hover:bg-white/20 transition-colors duration-200 z-10"
-                aria-label="Улучшить перевод"
-            >
-                <WandIcon className="w-5 h-5 text-white"/>
-            </button>
 
-            <div className="flex-grow flex items-center justify-center">
-                 <h2 className="text-3xl font-bold text-white leading-snug flex flex-wrap justify-center items-center gap-x-1.5">
+        {/* Back Side (German) */}
+        <div className="h-full absolute inset-0 [transform:rotateY(180deg)] [backface-visibility:hidden] bg-gradient-to-br from-purple-600/90 to-blue-600/90 backdrop-blur-sm border border-white/10 rounded-xl p-6 flex flex-col justify-between items-center text-center transition-colors duration-500">
+            <div className="flex-grow flex flex-col items-center justify-center w-full">
+                <div className="text-2xl font-bold text-white flex flex-wrap justify-center items-center gap-x-1">
                     {phrase.german.split(' ').map((word, index) => (
-                        <span key={index} onClick={(e) => handleWordClick(e, word)} className="cursor-pointer hover:bg-white/20 px-1.5 py-0.5 rounded-md transition-colors">
-                            {word}
-                        </span>
+                      <span 
+                        key={index} 
+                        className={`cursor-pointer hover:bg-white/20 px-1 py-0.5 rounded-md transition-colors ${isWordAnalysisLoading ? 'opacity-50 pointer-events-none' : ''}`}
+                        onClick={(e) => handleWordClick(e, word)}
+                        onPointerDown={(e) => handleWordPointerDown(e, word)}
+                        onPointerUp={clearWordLongPress}
+                        onPointerLeave={clearWordLongPress}
+                      >
+                          {word}
+                      </span>
                     ))}
-                </h2>
+                </div>
             </div>
-            <div className="w-full flex justify-center items-center flex-wrap gap-3 pt-4">
-                <button
-                    onClick={handleSpeak}
-                    className="p-2.5 rounded-full bg-white/10 hover:bg-white/20 transition-colors duration-200"
-                    aria-label="Speak phrase"
-                >
-                    <SoundIcon className="w-5 h-5 text-white"/>
+
+            <div className="w-full flex justify-center items-center gap-x-2">
+                <button onClick={handleSpeak} className="p-3 rounded-full bg-black/20 hover:bg-black/30 transition-colors text-white" aria-label="Озвучить">
+                    <SoundIcon className="w-5 h-5" />
                 </button>
-                 <button
-                    onClick={handleOpenChat}
-                    className="p-2.5 rounded-full bg-white/10 hover:bg-white/20 transition-colors duration-200"
-                    aria-label="Show examples"
-                >
-                    <ChatIcon className="w-5 h-5 text-white"/>
+                <button onClick={handleOpenChat} className="p-3 rounded-full bg-black/20 hover:bg-black/30 transition-colors text-white" aria-label="Обсудить с AI">
+                    <ChatIcon className="w-5 h-5" />
                 </button>
-                <button
-                    onClick={handleOpenMovieExamples}
-                    className="p-2.5 rounded-full bg-white/10 hover:bg-white/20 transition-colors duration-200"
-                    aria-label="Show movie examples"
-                >
-                    <FilmIcon className="w-5 h-5 text-white"/>
+                <button onClick={handleOpenDeepDive} className="p-3 rounded-full bg-black/20 hover:bg-black/30 transition-colors text-white" aria-label="Глубокий анализ">
+                    <AnalysisIcon className="w-5 h-5" />
                 </button>
-                 <button
-                    onClick={handleOpenSentenceChain}
-                    className="p-2.5 rounded-full bg-white/10 hover:bg-white/20 transition-colors duration-200"
-                    aria-label="Конструктор фраз"
-                >
-                    <LinkIcon className="w-5 h-5 text-white"/>
+                <button onClick={handleOpenMovieExamples} className="p-3 rounded-full bg-black/20 hover:bg-black/30 transition-colors text-white" aria-label="Примеры из фильмов">
+                    <FilmIcon className="w-5 h-5" />
                 </button>
-                <button
-                    onClick={handleOpenDeepDive}
-                    className="p-2.5 rounded-full bg-white/10 hover:bg-white/20 transition-colors duration-200"
-                    aria-label="Deep analysis"
-                >
-                    <AnalysisIcon className="w-5 h-5 text-white"/>
+                 <button onClick={handleOpenImprovePhrase} className="p-3 rounded-full bg-black/20 hover:bg-black/30 transition-colors text-white" aria-label="Улучшить перевод">
+                    <WandIcon className="w-5 h-5" />
                 </button>
             </div>
+            <div className="flash-container"></div>
         </div>
       </div>
     </div>

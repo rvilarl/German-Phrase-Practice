@@ -256,11 +256,16 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
                 group.forEach(phraseId => {
                     const phrase = phraseMap.get(phraseId);
                     if (phrase) {
-                        if (!bestPhrase || phrase.knowCount > bestPhrase.knowCount) {
-                            if (bestPhrase) idsToDelete.add(bestPhrase.id);
-                            bestPhrase = phrase;
+                        // FIX: Refactored logic to help TypeScript compiler with type inference.
+                        if (bestPhrase) {
+                            if (phrase.knowCount > bestPhrase.knowCount) {
+                                idsToDelete.add(bestPhrase.id);
+                                bestPhrase = phrase;
+                            } else {
+                                idsToDelete.add(phrase.id);
+                            }
                         } else {
-                            idsToDelete.add(phrase.id);
+                            bestPhrase = phrase;
                         }
                     }
                 });
