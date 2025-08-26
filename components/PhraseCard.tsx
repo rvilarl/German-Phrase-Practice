@@ -11,6 +11,8 @@ import { getPhraseCategory } from '../services/srsService';
 import MoreHorizontalIcon from './icons/MoreHorizontalIcon';
 import CloseIcon from './icons/CloseIcon';
 import MoreActionsMenu from './MoreActionsMenu';
+import ProgressBar from './ProgressBar';
+import { MAX_MASTERY_LEVEL } from '../services/srsService';
 
 
 interface PhraseCardProps {
@@ -236,7 +238,12 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
                 )}
             </div>
             
-            {renderActionButtons('front')}
+            <div className="w-full">
+                {renderActionButtons('front')}
+            </div>
+            <div className="absolute bottom-0 left-0 right-0 pb-1.5 px-2.5">
+                <ProgressBar current={phrase.masteryLevel} max={MAX_MASTERY_LEVEL} />
+            </div>
             <div className="flash-container"></div>
         </div>
 
@@ -268,6 +275,9 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
 
             <div className="relative w-full">
                 {renderActionButtons('back')}
+            </div>
+            <div className="absolute bottom-0 left-0 right-0 pb-1.5 px-2.5">
+                <ProgressBar current={phrase.masteryLevel} max={MAX_MASTERY_LEVEL} variant="inverted" />
             </div>
             <div className="flash-container"></div>
         </div>

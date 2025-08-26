@@ -8,6 +8,8 @@ import QuickReplyModal from '../components/QuickReplyModal';
 import * as srsService from '../services/srsService';
 import * as cacheService from '../services/cacheService';
 import { playCorrectSound } from '../services/soundService';
+import ArrowLeftIcon from '../components/icons/ArrowLeftIcon';
+import ArrowRightIcon from '../components/icons/ArrowRightIcon';
 
 
 const SWIPE_THRESHOLD = 50; // pixels
@@ -61,6 +63,7 @@ interface PracticePageProps {
   isWordAnalysisLoading: boolean;
   cardActionUsage: { [key: string]: number };
   onLogCardActionUsage: (button: string) => void;
+  cardHistoryLength: number;
 }
 
 const PracticePage: React.FC<PracticePageProps> = (props) => {
@@ -73,7 +76,8 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
     onOpenSentenceChain, onOpenImprovePhrase, onOpenLearningAssistant,
     onOpenVoiceWorkspace, onDeletePhrase, onGoToList, onOpenDiscussTranslation,
     settings, masteryButtonUsage, allPhrases, onCreateCard, onAnalyzeWord,
-    onGenerateQuickReplyOptions, isWordAnalysisLoading, cardActionUsage, onLogCardActionUsage
+    onGenerateQuickReplyOptions, isWordAnalysisLoading, cardActionUsage, onLogCardActionUsage,
+    cardHistoryLength
   } = props;
 
   const [contextMenuTarget, setContextMenuTarget] = useState<{ phrase: Phrase; word?: string } | null>(null);
@@ -305,37 +309,59 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
       : (animationState.direction === 'right' ? 'card-enter-right' : 'card-enter-left');
 
     return (
-        <div className="flex flex-col items-center w-full px-2">
-            <div
-              id="practice-card-container"
-              className="w-full max-w-md h-64 relative"
-              onTouchStart={handleTouchStart}
-              onTouchMove={handleTouchMove}
-              onTouchEnd={handleTouchEnd}
-            >
-                <div key={animationState.key} className={`absolute inset-0 ${animationClass}`}>
-                    <PhraseCard 
-                      phrase={currentPhrase} 
-                      onSpeak={speak} 
-                      isFlipped={isAnswerRevealed}
-                      onOpenChat={onOpenChat} 
-                      onOpenDeepDive={onOpenDeepDive}
-                      onOpenMovieExamples={onOpenMovieExamples}
-                      onWordClick={onOpenWordAnalysis}
-                      onOpenSentenceChain={onOpenSentenceChain}
-                      onOpenImprovePhrase={onOpenImprovePhrase}
-                      onOpenContextMenu={setContextMenuTarget}
-                      onOpenVoicePractice={onOpenVoiceWorkspace}
-                      onOpenLearningAssistant={onOpenLearningAssistant}
-                      onOpenQuickReply={handleOpenQuickReply}
-                      isWordAnalysisLoading={isWordAnalysisLoading}
-                      isQuickReplyEligible={isQuickReplyEligible}
-                      cardActionUsage={cardActionUsage}
-                      onLogCardActionUsage={onLogCardActionUsage}
-                    />
+        <div className="relative w-full max-w-2xl flex items-center justify-center">
+             {currentPhrase && (
+                <>
+                    <button
+                        onClick={onSwipeRight}
+                        disabled={cardHistoryLength === 0}
+                        className="hidden md:flex absolute top-1/2 left-0 -translate-y-1/2 w-12 h-12 bg-slate-800/50 hover:bg-slate-700/80 rounded-full items-center justify-center transition-colors text-slate-300 hover:text-white z-10 disabled:opacity-30 disabled:cursor-not-allowed"
+                        aria-label="Предыдущая карта"
+                    >
+                        <ArrowLeftIcon className="w-6 h-6" />
+                    </button>
+                    <button
+                        onClick={onContinue}
+                        disabled={unmasteredCount <= 1}
+                        className="hidden md:flex absolute top-1/2 right-0 -translate-y-1/2 w-12 h-12 bg-slate-800/50 hover:bg-slate-700/80 rounded-full items-center justify-center transition-colors text-slate-300 hover:text-white z-10 disabled:opacity-30 disabled:cursor-not-allowed"
+                        aria-label="Следующая карта"
+                    >
+                        <ArrowRightIcon className="w-6 h-6" />
+                    </button>
+                </>
+            )}
+            <div className="flex flex-col items-center w-full px-2">
+                <div
+                  id="practice-card-container"
+                  className="w-full max-w-md h-64 relative"
+                  onTouchStart={handleTouchStart}
+                  onTouchMove={handleTouchMove}
+                  onTouchEnd={handleTouchEnd}
+                >
+                    <div key={animationState.key} className={`absolute inset-0 ${animationClass}`}>
+                        <PhraseCard 
+                          phrase={currentPhrase} 
+                          onSpeak={speak} 
+                          isFlipped={isAnswerRevealed}
+                          onOpenChat={onOpenChat} 
+                          onOpenDeepDive={onOpenDeepDive}
+                          onOpenMovieExamples={onOpenMovieExamples}
+                          onWordClick={onOpenWordAnalysis}
+                          onOpenSentenceChain={onOpenSentenceChain}
+                          onOpenImprovePhrase={onOpenImprovePhrase}
+                          onOpenContextMenu={setContextMenuTarget}
+                          onOpenVoicePractice={onOpenVoiceWorkspace}
+                          onOpenLearningAssistant={onOpenLearningAssistant}
+                          onOpenQuickReply={handleOpenQuickReply}
+                          isWordAnalysisLoading={isWordAnalysisLoading}
+                          isQuickReplyEligible={isQuickReplyEligible}
+                          cardActionUsage={cardActionUsage}
+                          onLogCardActionUsage={onLogCardActionUsage}
+                        />
+                    </div>
                 </div>
+                {renderButtons()}
             </div>
-            {renderButtons()}
         </div>
     );
   }

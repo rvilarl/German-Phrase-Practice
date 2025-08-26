@@ -1085,6 +1085,7 @@ const App: React.FC = () => {
              isWordAnalysisLoading={isWordAnalysisLoading}
              cardActionUsage={cardActionUsage}
              onLogCardActionUsage={handleLogCardActionUsage}
+             cardHistoryLength={cardHistory.length}
            />
         ) : (
           <PhraseListPage 
