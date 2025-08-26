@@ -1170,7 +1170,7 @@ const quickReplyOptionsSchema = {
     properties: {
         options: {
             type: Type.ARRAY,
-            description: "An array of 3 plausible but incorrect distractor options.",
+            description: "An array of 3 plausible but incorrect distractor options in German.",
             items: { type: Type.STRING }
         }
     },
@@ -1181,7 +1181,7 @@ const generateQuickReplyOptions: AiService['generateQuickReplyOptions'] = async 
     const api = initializeApi();
     if (!api) throw new Error("Gemini API key not configured.");
 
-    const prompt = `Для немецкой фразы "${phrase.german}" (перевод: "${phrase.russian}") создай 3 правдоподобных, но неверных варианта-дистрактора для теста с множественным выбором. Дистракторы должны быть похожи по длине и грамматической категории. Верни JSON-объект с ключом "options", содержащим массив из 3 строк.`;
+    const prompt = `Для немецкой фразы "${phrase.german}" (перевод: "${phrase.russian}"), сгенерируй 3 правдоподобных, но неверных варианта ответа на немецком языке. Эти варианты будут использоваться в тесте с множественным выбором. Они должны быть похожи на правильный ответ, но содержать распространенные ошибки. Верни JSON-объект с ключом "options", который содержит массив из 3 строк-дистракторов на немецком.`;
 
     try {
         const response = await api.models.generateContent({

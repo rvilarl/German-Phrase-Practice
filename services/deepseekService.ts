@@ -672,7 +672,7 @@ const generateQuickReplyOptions: AiService['generateQuickReplyOptions'] = async 
         required: ["options"]
     };
 
-    const prompt = `Для немецкой фразы "${phrase.german}" (перевод: "${phrase.russian}") создай 3 правдоподобных, но неверных варианта-дистрактора для теста с множественным выбором. Дистракторы должны быть похожи по длине и грамматической категории. Верни JSON-объект с ключом "options", содержащим массив из 3 строк.`;
+    const prompt = `Для немецкой фразы "${phrase.german}" (перевод: "${phrase.russian}"), сгенерируй 3 правдоподобных, но неверных варианта ответа на немецком языке. Эти варианты будут использоваться в тесте с множественным выбором. Они должны быть похожи на правильный ответ, но содержать распространенные ошибки. Верни JSON-объект с ключом "options", который содержит массив из 3 строк-дистракторов на немецком.`;
 
     const messages = [
         { role: "system", content: "You are a German teaching assistant that creates quiz distractors. Respond only in JSON." },
