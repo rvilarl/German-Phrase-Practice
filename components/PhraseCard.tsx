@@ -62,15 +62,11 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
   const buttonContainerRef = useRef<HTMLDivElement>(null);
 
   const handleCardClick = useCallback(() => {
-    // Озвучиваем русскую или немецкую фразу в зависимости от стороны карточки.
+    // Speak only the German phrase when the card is flipped.
     if (isFlipped) {
       onSpeak(phrase.german, 'de-DE');
-    } else {
-      // Убираем примечания в скобках для лучшего произношения
-      const russianToSpeak = phrase.russian.replace(/\s*\([^)]+\)/, '').trim();
-      onSpeak(russianToSpeak, 'ru-RU');
     }
-  }, [isFlipped, phrase.german, phrase.russian, onSpeak]);
+  }, [isFlipped, phrase.german, onSpeak]);
   
   const createLoggedAction = useCallback((key: string, action: (p: Phrase) => void) => (e: React.MouseEvent) => {
     e.stopPropagation();
