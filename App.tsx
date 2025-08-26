@@ -4,6 +4,8 @@
 
 
 
+
+
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Phrase, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, SentenceContinuation, PhraseBuilderOptions, PhraseEvaluation, ChatMessage } from './types';
 import * as srsService from './services/srsService';
@@ -35,6 +37,7 @@ import LearningAssistantModal from './components/LearningAssistantModal';
 import PronounsModal from './components/PronounsModal';
 import WFragenModal from './components/WFragenModal';
 import Toast from './components/Toast';
+import FeedbackMessage from './components/FeedbackMessage';
 
 
 const PHRASES_STORAGE_KEY = 'germanPhrases';
@@ -1072,9 +1075,13 @@ const App: React.FC = () => {
             isOpen={isLearningAssistantModalOpen}
             onClose={(didSucceed?: boolean) => {
                 setIsLearningAssistantModalOpen(false);
+                const shouldReturnToWorkspace = isVoiceWorkspaceModalOpen;
+
                 if (didSucceed && learningAssistantPhrase) {
                     const finalPhraseState = allPhrases.find(p => p.id === learningAssistantPhrase.id) || learningAssistantPhrase;
                     handleOpenVoiceWorkspace(finalPhraseState);
+                } else if (shouldReturnToWorkspace && learningAssistantPhrase) {
+                    handleOpenVoiceWorkspace(learningAssistantPhrase);
                 }
             }}
             phrase={learningAssistantPhrase}

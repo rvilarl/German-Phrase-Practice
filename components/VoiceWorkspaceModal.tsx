@@ -10,6 +10,7 @@ import BackspaceIcon from './icons/BackspaceIcon';
 import ArrowRightIcon from './icons/ArrowRightIcon';
 import * as cacheService from '../services/cacheService';
 import BookOpenIcon from './icons/BookOpenIcon';
+import FeedbackMessage from './FeedbackMessage';
 
 interface VoiceWorkspaceModalProps {
   isOpen: boolean;
@@ -234,7 +235,7 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
               if (hintedWord) {
                 setHintWordId(hintedWord.id);
                 setHintCount(prev => prev + 1);
-                setTimeout(() => setHintWordId(null), 1000); // Reset after animation
+                setTimeout(() => setHintWordId(null), 6000); // Reset after 3*2s animation
               }
             }
           } else { 
@@ -281,7 +282,7 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
 
     if (attemptNumber === 1) {
       setAttemptNumber(2);
-      setTransientFeedback({ message: 'К сожалению ошибка. Попробуй еще раз ...', key: Date.now() });
+      setTransientFeedback({ message: 'К сожалению, ошибка. Попробуйте еще раз.', key: Date.now() });
       setIsFeedbackFading(false);
       recognitionRef.current?.stop();
     } else {
@@ -518,8 +519,7 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
   const handleLearn = useCallback(() => {
     if (!phrase) return;
     onOpenLearningAssistant(phrase);
-    onClose();
-  }, [phrase, onOpenLearningAssistant, onClose]);
+  }, [phrase, onOpenLearningAssistant]);
 
   if (!isOpen || !phrase) return null;
   
@@ -575,29 +575,32 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
                   </div>
                   <button onClick={handleReset} disabled={isChecking || !!evaluation || constructedWords.length === 0} className="p-3 self-center rounded-full bg-slate-600/50 hover:bg-slate-600 disabled:opacity-30"><BackspaceIcon className="w-5 h-5 text-white" /></button>
               </div>
+
+              <div className="flex-shrink-0 flex justify-center items-center min-h-[48px] my-2">
+                 {transientFeedback && (
+                    <div key={transientFeedback.key} className={`w-full max-w-md transition-opacity duration-500 ${isFeedbackFading ? 'opacity-0' : 'opacity-100'}`}>
+                        <FeedbackMessage type="error" message={transientFeedback.message} />
+                    </div>
+                 )}
+              </div>
               
-              <div className="flex-grow my-4 min-h-0 flex flex-col justify-end">
+              <div className="flex-grow -mt-14 min-h-0 flex flex-col justify-end">
                   <div className="flex-shrink-0 flex justify-center items-center gap-x-3 h-12 mb-2">
                     {(isStuck || showPostHintButtons) && (
                       <div className="flex justify-center items-center gap-x-3 animate-fade-in">
                         {isStuck &&
-                          <button onClick={handleFailureAndReveal} className="px-3 py-1.5 rounded-full bg-slate-600/80 hover:bg-slate-600 transition-colors text-white font-medium text-sm">
+                          <button onClick={handleFailureAndReveal} className="px-3 py-1.5 rounded-full bg-slate-600/60 hover:bg-slate-600/80 transition-colors text-white font-medium text-sm">
                             Не знаю
                           </button>
                         }
-                        <button onClick={handleFailureAndReveal} className="px-3 py-1.5 rounded-full bg-slate-600/80 hover:bg-slate-600 transition-colors text-white font-medium text-sm">
+                        <button onClick={handleFailureAndReveal} className="px-3 py-1.5 rounded-full bg-slate-600/60 hover:bg-slate-600/80 transition-colors text-white font-medium text-sm">
                           Забыл
                         </button>
-                        <button onClick={handleLearn} className="p-2 rounded-full bg-slate-600/80 hover:bg-slate-600 transition-colors text-white">
-                          <BookOpenIcon className="w-5 h-5" />
+                        <button onClick={handleLearn} className="px-3 py-1.5 rounded-full bg-slate-600/60 hover:bg-slate-600/80 transition-colors text-white font-medium text-sm flex items-center gap-x-1.5">
+                            <BookOpenIcon className="w-4 h-4" />
+                            <span>Учить</span>
                         </button>
                       </div>
-                    )}
-                     {transientFeedback && (
-                        <div key={transientFeedback.key} className={`relative text-slate-400 text-sm overflow-hidden transition-opacity duration-500 ${isFeedbackFading ? 'opacity-0' : 'opacity-100'}`}>
-                           {transientFeedback.message}
-                           <span className="feedback-text-shine" />
-                       </div>
                     )}
                   </div>
                   <div className="w-full max-h-full bg-slate-900/50 flex flex-wrap items-end content-end justify-center gap-2 p-4 rounded-lg overflow-y-auto hide-scrollbar">

@@ -289,9 +289,10 @@
     animation-delay: 0.1s;
   }
 
-  /* Subtle Shine Effect for Word Hint */
+  /* Enhanced Shine Effect for Word Hint */
   @keyframes word-hint-shine-effect {
-    0% { transform: translateX(-150%) skewX(-25deg); opacity: 0.5; }
+    0% { transform: translateX(-150%) skewX(-25deg); opacity: 0.8; }
+    75% { transform: translateX(150%) skewX(-25deg); opacity: 0; }
     100% { transform: translateX(150%) skewX(-25deg); opacity: 0; }
   }
   .word-hint-shine::after {
@@ -299,10 +300,10 @@
     position: absolute;
     top: 0;
     left: 0;
-    width: 50%;
+    width: 80%;
     height: 100%;
-    background: linear-gradient(to right, rgba(255, 255, 255, 0) 0%, rgba(56, 189, 248, 0.4) 50%, rgba(255, 255, 255, 0) 100%);
-    animation: word-hint-shine-effect 1s ease-in-out;
+    background: linear-gradient(to right, rgba(255, 255, 255, 0) 0%, rgba(220, 220, 220, 0.7) 50%, rgba(255, 255, 255, 0) 100%);
+    animation: word-hint-shine-effect 2s ease-in-out 3;
   }
 
   /* Shine effect for feedback text */

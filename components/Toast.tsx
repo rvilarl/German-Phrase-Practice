@@ -50,7 +50,7 @@ const Toast: React.FC<ToastProps> = ({ toast, onDismiss }) => {
 
     return (
       <div
-        className={`fixed bottom-14 left-1/2 -translate-x-1/2 rounded-full shadow-lg transition-all duration-300 ease-out z-[100] overflow-hidden ${
+        className={`fixed bottom-20 left-1/2 -translate-x-1/2 rounded-full shadow-lg transition-all duration-300 ease-out z-[100] overflow-hidden ${
           isHiding ? 'opacity-0 translate-y-4' : 'opacity-100 translate-y-0'
         }`}
       >
@@ -63,7 +63,7 @@ const Toast: React.FC<ToastProps> = ({ toast, onDismiss }) => {
             <CheckIcon className="w-5 h-5 text-white" />
           ) : (
             <div className="relative w-full h-full flex items-center justify-center">
-              <span className="text-white text-sm font-medium">{toast.message}</span>
+               <span className={`text-white text-sm font-medium text-nowrap transition-opacity duration-200 ${isInitial ? 'opacity-0' : 'opacity-100 delay-300'}`}>{toast.message}</span>
               {isTransformed && <div className="automation-toast-shine"></div>}
             </div>
           )}
