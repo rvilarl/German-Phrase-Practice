@@ -52,14 +52,10 @@ interface ToastState {
   type: ToastType;
 }
 
-// FIX: Define Theme type to correctly infer settings type.
-type Theme = 'light' | 'dark' | 'system';
-
 const defaultSettings = {
   autoSpeak: true,
   soundEffects: true,
   dynamicButtonLayout: true,
-  theme: 'system' as Theme,
   automation: {
     autoCheckShortPhrases: true,
     learnNextPhraseHabit: true,
@@ -284,31 +280,6 @@ const App: React.FC = () => {
 
     initializeApp();
   }, []);
-
-  useEffect(() => {
-    const applyTheme = () => {
-        const theme = settings.theme;
-        const root = window.document.documentElement;
-        const metaThemeColor = document.querySelector('meta[name="theme-color"]');
-
-        if (theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            root.classList.add('dark');
-            metaThemeColor?.setAttribute('content', '#18181b'); // Dark background (zinc-900)
-        } else {
-            root.classList.remove('dark');
-            metaThemeColor?.setAttribute('content', '#f4f4f5'); // Light background (zinc-100)
-        }
-    };
-
-    applyTheme();
-
-    if (settings.theme === 'system') {
-        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-        mediaQuery.addEventListener('change', applyTheme);
-        return () => mediaQuery.removeEventListener('change', applyTheme);
-    }
-}, [settings.theme]);
-
 
   const callApiWithFallback = useCallback(async <T,>(
     apiCall: (provider: AiService) => Promise<T>
@@ -1069,7 +1040,7 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-100 dark:bg-zinc-900 text-zinc-900 dark:text-white font-sans p-4 flex flex-col items-center overflow-x-hidden">
+    <div className="min-h-screen bg-slate-900 text-white font-sans p-4 flex flex-col items-center overflow-x-hidden">
       <Header 
         view={view} 
         onSetView={setView} 
@@ -1136,7 +1107,7 @@ const App: React.FC = () => {
         />
       )}
 
-      <footer className="text-center text-zinc-500 dark:text-slate-500 py-4 text-sm h-6">
+      <footer className="text-center text-slate-500 py-4 text-sm h-6">
         {isGenerating ? "Идет генерация новых фраз..." : (apiProvider ? `Powered by ${getProviderDisplayName()}`: "")}
       </footer>
       

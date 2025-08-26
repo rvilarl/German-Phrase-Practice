@@ -41,13 +41,13 @@ const RussianPhraseDisplay: React.FC<{ text: string; as: 'h2' | 'div' }> = ({ te
     const mainText = match[1].trim();
     const noteText = match[2].trim();
     return (
-      <Component className="text-2xl font-semibold text-zinc-800 dark:text-zinc-100">
+      <Component className="text-2xl font-semibold text-slate-100">
         {mainText}
-        <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1 font-normal">({noteText})</p>
+        <p className="text-sm text-slate-400 mt-1 font-normal">({noteText})</p>
       </Component>
     );
   }
-  return <Component className="text-2xl font-semibold text-zinc-800 dark:text-zinc-100">{text}</Component>;
+  return <Component className="text-2xl font-semibold text-slate-100">{text}</Component>;
 };
 
 const PhraseCard: React.FC<PhraseCardProps> = ({
@@ -160,7 +160,7 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
 
   const renderActionButtons = (theme: 'front' | 'back') => {
     const themeClasses = theme === 'front' 
-      ? 'bg-zinc-100 hover:bg-zinc-200 text-zinc-600 dark:bg-zinc-700/50 dark:hover:bg-zinc-700 dark:text-zinc-200'
+      ? 'bg-slate-700/50 hover:bg-slate-700 text-slate-200'
       : 'bg-black/20 hover:bg-black/30 text-white';
 
     return (
@@ -215,11 +215,11 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
       >
         {/* Front Side (Russian) */}
         <div 
-            className={`h-full absolute inset-0 [backface-visibility:hidden] bg-white dark:bg-zinc-800 backdrop-blur-sm border border-zinc-200 dark:border-zinc-700 rounded-xl p-6 flex flex-col justify-between items-center text-center transition-colors duration-500 relative overflow-hidden`}
+            className={`h-full absolute inset-0 [backface-visibility:hidden] bg-slate-800 backdrop-blur-sm border border-slate-700 rounded-xl p-6 flex flex-col justify-between items-center text-center transition-colors duration-500 relative overflow-hidden`}
         >
             <button
                 onClick={handleOpenImprovePhrase}
-                className="absolute top-3 right-3 p-2 rounded-full text-zinc-500 dark:text-slate-300 hover:bg-zinc-100 dark:hover:bg-slate-600/50 hover:text-zinc-800 dark:hover:text-white transition-colors z-10"
+                className="absolute top-3 right-3 p-2 rounded-full text-slate-300 hover:bg-slate-600/50 hover:text-white transition-colors z-10"
                 aria-label="Улучшить перевод"
             >
                 <SettingsIcon className="w-5 h-5" />
@@ -228,10 +228,10 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
                 {isQuickReplyEligible ? (
                     <button
                         onClick={handleQuickReplyClick}
-                        className="group/quick-reply relative text-center p-4 -m-4 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-700/50 transition-colors"
+                        className="group/quick-reply relative text-center p-4 -m-4 rounded-lg hover:bg-slate-700/50 transition-colors"
                     >
                         <RussianPhraseDisplay text={phrase.russian} as="div" />
-                        <span className="absolute top-1 right-1 w-2.5 h-2.5 border-2 border-white dark:border-zinc-800 bg-red-500 rounded-full opacity-70 group-hover/quick-reply:opacity-100" />
+                        <span className="absolute top-1 right-1 w-2.5 h-2.5 border-2 border-slate-800 bg-red-500 rounded-full opacity-70 group-hover/quick-reply:opacity-100" />
                     </button>
                     ) : (
                     <RussianPhraseDisplay text={phrase.russian} as="h2" />
@@ -248,7 +248,7 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
         </div>
 
         {/* Back Side (German) */}
-        <div className="h-full absolute inset-0 [transform:rotateY(180deg)] [backface-visibility:hidden] bg-red-500 dark:bg-red-800 backdrop-blur-sm border border-red-400/50 dark:border-red-700/50 rounded-xl p-6 flex flex-col justify-between items-center text-center transition-colors duration-500">
+        <div className="h-full absolute inset-0 [transform:rotateY(180deg)] [backface-visibility:hidden] bg-gradient-to-br from-purple-600 to-blue-600 backdrop-blur-sm border border-purple-500/50 rounded-xl p-6 flex flex-col justify-between items-center text-center transition-colors duration-500">
             <div className="flex-grow flex flex-col items-center justify-center w-full">
                 <button
                     onClick={handleOpenImprovePhrase}

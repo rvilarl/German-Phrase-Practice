@@ -34,7 +34,7 @@ const PhraseListItem: React.FC<PhraseListItemProps> = React.memo(({ phrase, onEd
     };
 
     const getRingClass = () => {
-        if (isHighlighted) return 'ring-2 ring-cyan-400 ring-offset-2 ring-offset-zinc-100 dark:ring-offset-slate-900';
+        if (isHighlighted) return 'ring-2 ring-cyan-400 ring-offset-2 ring-offset-slate-900';
         if (isDuplicate) return 'ring-2 ring-amber-500';
         return '';
     }
@@ -42,12 +42,12 @@ const PhraseListItem: React.FC<PhraseListItemProps> = React.memo(({ phrase, onEd
     return (
         <li 
             id={`phrase-item-${phrase.id}`}
-            className={`bg-white dark:bg-slate-800/50 backdrop-blur-sm border border-zinc-200 dark:border-white/10 p-4 rounded-lg flex items-start space-x-4 cursor-pointer hover:bg-zinc-50 dark:hover:bg-slate-700/70 transition-all duration-300 ${getRingClass()}`}
+            className={`bg-slate-800/50 backdrop-blur-sm border border-white/10 p-4 rounded-lg flex items-start space-x-4 cursor-pointer hover:bg-slate-700/70 transition-all duration-300 ${getRingClass()}`}
             onClick={() => onPreview(phrase)}
         >
             <div className="flex-grow">
-                <p className="font-semibold text-zinc-800 dark:text-slate-100">{phrase.russian}</p>
-                <p className="text-sm text-zinc-500 dark:text-slate-400">{phrase.german}</p>
+                <p className="font-semibold text-slate-100">{phrase.russian}</p>
+                <p className="text-sm text-slate-400">{phrase.german}</p>
                 <div className="mt-2">
                     <ProgressBar current={phrase.masteryLevel} max={srsService.MAX_MASTERY_LEVEL} />
                 </div>
@@ -55,21 +55,21 @@ const PhraseListItem: React.FC<PhraseListItemProps> = React.memo(({ phrase, onEd
             <div className="flex-shrink-0 flex items-center space-x-1">
                  <button 
                     onClick={handlePracticeClick} 
-                    className="p-2 text-zinc-500 dark:text-slate-400 hover:text-green-500 dark:hover:text-green-400 transition-colors"
+                    className="p-2 text-slate-400 hover:text-green-400 transition-colors"
                     aria-label="Учить эту фразу"
                 >
                     <GraduationCapIcon className="w-5 h-5" />
                 </button>
                 <button 
                     onClick={handleEditClick} 
-                    className="p-2 text-zinc-500 dark:text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
+                    className="p-2 text-slate-400 hover:text-blue-400 transition-colors"
                     aria-label="Редактировать фразу"
                 >
                     <PencilIcon className="w-5 h-5" />
                 </button>
                 <button 
                     onClick={handleDeleteClick} 
-                    className="p-2 text-zinc-500 dark:text-slate-400 hover:text-red-500 dark:hover:text-red-400 transition-colors"
+                    className="p-2 text-slate-400 hover:text-red-400 transition-colors"
                     aria-label="Удалить фразу"
                 >
                     <TrashIcon className="w-5 h-5" />

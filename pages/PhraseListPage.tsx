@@ -282,7 +282,7 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
     return (
         <>
             <div className="w-full max-w-2xl mx-auto flex flex-col h-full">
-                <div className="flex-shrink-0 sticky top-20 z-20 bg-zinc-100/95 dark:bg-slate-900/95 backdrop-blur-sm px-2 py-3">
+                <div className="flex-shrink-0 sticky top-20 z-20 bg-slate-900/95 backdrop-blur-sm px-2 py-3">
                     <div className="relative group">
                         <input
                             ref={searchInputRef}
@@ -290,30 +290,30 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             placeholder={isListening ? "Слушаю..." : "Поиск по фразам..."}
-                            className="w-full bg-white dark:bg-slate-800 border border-zinc-300 dark:border-slate-700 rounded-full py-4 pl-5 pr-40 text-lg text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
+                            className="w-full bg-slate-800 border border-slate-700 rounded-full py-4 pl-5 pr-40 text-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
                         />
                         <div className="absolute inset-y-0 right-0 flex items-center pr-3 space-x-1 z-10">
                             {searchTerm && !isListening && (
-                                <button onClick={handleClearSearch} className="p-1 text-zinc-400 dark:text-slate-400 hover:text-zinc-800 dark:hover:text-white">
+                                <button onClick={handleClearSearch} className="p-1 text-slate-400 hover:text-white">
                                     <XCircleIcon className="w-6 h-6" />
                                 </button>
                             )}
-                            <div className="flex items-center bg-zinc-200 dark:bg-slate-700/50 rounded-full p-0.5">
+                            <div className="flex items-center bg-slate-700/50 rounded-full p-0.5">
                                 <button 
                                     onClick={() => handleLangChange('ru')}
-                                    className={`px-2 py-0.5 text-xs font-bold rounded-full transition-colors ${recognitionLang === 'ru' ? 'bg-purple-600 text-white' : 'text-zinc-500 dark:text-slate-400 hover:bg-zinc-300 dark:hover:bg-slate-600'}`}
+                                    className={`px-2 py-0.5 text-xs font-bold rounded-full transition-colors ${recognitionLang === 'ru' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:bg-slate-600'}`}
                                 >
                                     RU
                                 </button>
                                 <button 
                                     onClick={() => handleLangChange('de')}
-                                    className={`px-2 py-0.5 text-xs font-bold rounded-full transition-colors ${recognitionLang === 'de' ? 'bg-purple-600 text-white' : 'text-zinc-500 dark:text-slate-400 hover:bg-zinc-300 dark:hover:bg-slate-600'}`}
+                                    className={`px-2 py-0.5 text-xs font-bold rounded-full transition-colors ${recognitionLang === 'de' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:bg-slate-600'}`}
                                 >
                                     DE
                                 </button>
                             </div>
                             <button onClick={handleMicClick} className="p-2 transition-colors">
-                                <MicrophoneIcon className={`w-6 h-6 ${isListening ? 'mic-color-shift-animation' : 'text-zinc-400 dark:text-slate-400 group-hover:text-zinc-800 dark:group-hover:text-white'}`} />
+                                <MicrophoneIcon className={`w-6 h-6 ${isListening ? 'mic-color-shift-animation' : 'text-slate-400 group-hover:text-white'}`} />
                             </button>
                         </div>
                     </div>
@@ -322,7 +322,7 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
                              <div className="flex space-x-2">
                                 <button
                                     onClick={() => setDuplicateGroups([])}
-                                    className="px-3 py-1.5 text-sm bg-zinc-200 dark:bg-slate-600 hover:bg-zinc-300 dark:hover:bg-slate-700 text-zinc-800 dark:text-white font-semibold rounded-md transition-colors"
+                                    className="px-3 py-1.5 text-sm bg-slate-600 hover:bg-slate-700 text-white font-semibold rounded-md transition-colors"
                                 >
                                     Отмена
                                 </button>
@@ -337,7 +337,7 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
                             <button
                                 onClick={handleFindDuplicates}
                                 disabled={isProcessingDuplicates}
-                                className="relative text-sm text-zinc-500 dark:text-slate-400 hover:text-zinc-800 dark:hover:text-slate-200 font-medium transition-colors disabled:opacity-50 h-[34px] flex items-center justify-center px-3"
+                                className="relative text-sm text-slate-400 hover:text-slate-200 font-medium transition-colors disabled:opacity-50 h-[34px] flex items-center justify-center px-3"
                             >
                                 <span className={isProcessingDuplicates ? 'opacity-0' : 'opacity-100'}>
                                     Найти дубликаты
@@ -358,7 +358,7 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
                                 if (item.type === 'header') {
                                     return (
                                         <li key={`header-${index}`}>
-                                            <h2 className="text-lg font-bold text-zinc-600 dark:text-slate-300 my-4 px-2 sticky top-0 bg-zinc-100/95 dark:bg-slate-900/95 backdrop-blur-sm py-2 z-10 -mx-2">
+                                            <h2 className="text-lg font-bold text-slate-300 my-4 px-2 sticky top-0 bg-slate-900/95 backdrop-blur-sm py-2 z-10 -mx-2">
                                                 {item.title}
                                             </h2>
                                         </li>
@@ -379,7 +379,7 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
                             })}
                         </ul>
                     ) : (
-                         <p className="text-center text-zinc-500 dark:text-slate-400 mt-8">
+                         <p className="text-center text-slate-400 mt-8">
                             {searchTerm ? 'Фразы не найдены.' : 'Список фраз пуст.'}
                         </p>
                     )}

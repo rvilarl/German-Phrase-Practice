@@ -291,12 +291,12 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
 
   const renderContent = () => {
     if (isLoading) return <div className="flex justify-center items-center h-64"><Spinner /></div>;
-    if (error) return <div className="text-center bg-red-500/10 dark:bg-red-900/50 border border-red-500/30 dark:border-red-700 text-red-600 dark:text-red-300 p-4 rounded-lg max-w-md mx-auto"><p className="font-semibold">Произошла ошибка</p><p className="text-sm">{error}</p></div>;
+    if (error) return <div className="text-center bg-red-900/50 border border-red-700 text-red-300 p-4 rounded-lg max-w-md mx-auto"><p className="font-semibold">Произошла ошибка</p><p className="text-sm">{error}</p></div>;
     if (!currentPhrase) {
       if (unmasteredCount === 0) {
         return (
-            <div className="text-center text-zinc-600 dark:text-slate-400 p-4">
-                <h2 className="text-2xl font-bold text-zinc-900 dark:text-white mb-4">Поздравляем!</h2>
+            <div className="text-center text-slate-400 p-4">
+                <h2 className="text-2xl font-bold text-white mb-4">Поздравляем!</h2>
                 <p>Вы выучили все доступные фразы. Сгенерировать новые?</p>
                 <button onClick={() => fetchNewPhrases()} disabled={isGenerating || !apiProviderAvailable} className="mt-6 px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-md text-white font-bold transition-colors disabled:opacity-50">{isGenerating ? 'Генерация...' : 'Сгенерировать фразы'}</button>
             </div>
@@ -315,7 +315,7 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
                     <button
                         onClick={onSwipeRight}
                         disabled={cardHistoryLength === 0}
-                        className="hidden md:flex absolute top-1/2 left-0 -translate-y-1/2 w-12 h-12 bg-zinc-200/50 dark:bg-slate-800/50 hover:bg-zinc-300/80 dark:hover:bg-slate-700/80 rounded-full items-center justify-center transition-colors text-zinc-600 dark:text-slate-300 hover:text-zinc-800 dark:hover:text-white z-10 disabled:opacity-30 disabled:cursor-not-allowed"
+                        className="hidden md:flex absolute top-1/2 left-0 -translate-y-1/2 w-12 h-12 bg-slate-800/50 hover:bg-slate-700/80 rounded-full items-center justify-center transition-colors text-slate-300 hover:text-white z-10 disabled:opacity-30 disabled:cursor-not-allowed"
                         aria-label="Предыдущая карта"
                     >
                         <ArrowLeftIcon className="w-6 h-6" />
@@ -323,7 +323,7 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
                     <button
                         onClick={onContinue}
                         disabled={unmasteredCount <= 1}
-                        className="hidden md:flex absolute top-1/2 right-0 -translate-y-1/2 w-12 h-12 bg-zinc-200/50 dark:bg-slate-800/50 hover:bg-zinc-300/80 dark:hover:bg-slate-700/80 rounded-full items-center justify-center transition-colors text-zinc-600 dark:text-slate-300 hover:text-zinc-800 dark:hover:text-white z-10 disabled:opacity-30 disabled:cursor-not-allowed"
+                        className="hidden md:flex absolute top-1/2 right-0 -translate-y-1/2 w-12 h-12 bg-slate-800/50 hover:bg-slate-700/80 rounded-full items-center justify-center transition-colors text-slate-300 hover:text-white z-10 disabled:opacity-30 disabled:cursor-not-allowed"
                         aria-label="Следующая карта"
                     >
                         <ArrowRightIcon className="w-6 h-6" />
