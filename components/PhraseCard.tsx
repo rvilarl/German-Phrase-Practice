@@ -175,7 +175,7 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
                 )}
             </div>
             
-            <div className="w-full flex justify-center items-center gap-x-3">
+            <div className="w-full flex justify-center items-center flex-wrap gap-2">
                 <button
                    onClick={handleOpenLearningAssistant}
                    className="p-3 rounded-full bg-slate-600/50 hover:bg-slate-600 transition-colors text-slate-100"
@@ -196,6 +196,18 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
                     aria-label="Голосовая практика"
                 >
                     <MicrophoneIcon className="w-5 h-5" />
+                </button>
+                 <button onClick={handleOpenChat} className="p-3 rounded-full bg-slate-600/50 hover:bg-slate-600 transition-colors text-slate-100" aria-label="Обсудить с AI">
+                    <ChatIcon className="w-5 h-5" />
+                </button>
+                <button onClick={handleOpenDeepDive} className="p-3 rounded-full bg-slate-600/50 hover:bg-slate-600 transition-colors text-slate-100" aria-label="Глубокий анализ">
+                    <AnalysisIcon className="w-5 h-5" />
+                </button>
+                <button onClick={handleOpenMovieExamples} className="p-3 rounded-full bg-slate-600/50 hover:bg-slate-600 transition-colors text-slate-100" aria-label="Примеры из фильмов">
+                    <FilmIcon className="w-5 h-5" />
+                </button>
+                 <button onClick={handleOpenImprovePhrase} className="p-3 rounded-full bg-slate-600/50 hover:bg-slate-600 transition-colors text-slate-100" aria-label="Улучшить перевод">
+                    <WandIcon className="w-5 h-5" />
                 </button>
             </div>
             <div className="flash-container"></div>
@@ -220,11 +232,32 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
                 </div>
             </div>
 
-            <div className="w-full flex justify-center items-center gap-x-2">
+            <div className="w-full flex justify-center items-center flex-wrap gap-2">
                 <button onClick={handleSpeak} className="p-3 rounded-full bg-black/20 hover:bg-black/30 transition-colors text-white" aria-label="Озвучить">
                     <SoundIcon className="w-5 h-5" />
                 </button>
-                <button onClick={handleOpenChat} className="p-3 rounded-full bg-black/20 hover:bg-black/30 transition-colors text-white" aria-label="Обсудить с AI">
+                <button
+                   onClick={handleOpenLearningAssistant}
+                   className="p-3 rounded-full bg-black/20 hover:bg-black/30 transition-colors text-white"
+                   aria-label="Изучать с AI"
+               >
+                   <BookOpenIcon className="w-5 h-5" />
+               </button>
+                <button
+                    onClick={handleOpenSentenceChain}
+                    className="p-3 rounded-full bg-black/20 hover:bg-black/30 transition-colors text-white"
+                    aria-label="Цепочка фраз"
+                >
+                    <LinkIcon className="w-5 h-5" />
+                </button>
+                 <button
+                    onClick={handleOpenVoicePractice}
+                    className="p-3 rounded-full bg-black/20 hover:bg-black/30 transition-colors text-white"
+                    aria-label="Голосовая практика"
+                >
+                    <MicrophoneIcon className="w-5 h-5" />
+                </button>
+                 <button onClick={handleOpenChat} className="p-3 rounded-full bg-black/20 hover:bg-black/30 transition-colors text-white" aria-label="Обсудить с AI">
                     <ChatIcon className="w-5 h-5" />
                 </button>
                 <button onClick={handleOpenDeepDive} className="p-3 rounded-full bg-black/20 hover:bg-black/30 transition-colors text-white" aria-label="Глубокий анализ">
