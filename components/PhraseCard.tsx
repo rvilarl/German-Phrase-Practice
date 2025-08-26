@@ -1,6 +1,5 @@
 import React, { useRef, useState, useMemo, useCallback, useEffect } from 'react';
 import type { Phrase } from '../types';
-import SoundIcon from './icons/SoundIcon';
 import ChatIcon from './icons/ChatIcon';
 import AnalysisIcon from './icons/AnalysisIcon';
 import FilmIcon from './icons/FilmIcon';
@@ -16,7 +15,7 @@ import MoreActionsMenu from './MoreActionsMenu';
 
 interface PhraseCardProps {
   phrase: Phrase;
-  onSpeak: (text: string) => void;
+  onSpeak: (text: string, lang: 'de-DE' | 'ru-RU') => void;
   isFlipped: boolean;
   onOpenChat: (phrase: Phrase) => void;
   onOpenDeepDive: (phrase: Phrase) => void;
@@ -61,6 +60,17 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
   const wordLongPressTimer = useRef<number | null>(null);
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const buttonContainerRef = useRef<HTMLDivElement>(null);
+
+  const handleCardClick = useCallback(() => {
+    // Озвучиваем русскую или немецкую фразу в зависимости от стороны карточки.
+    if (isFlipped) {
+      onSpeak(phrase.german, 'de-DE');
+    } else {
+      // Убираем примечания в скобках для лучшего произношения
+      const russianToSpeak = phrase.russian.replace(/\s*\([^)]+\)/, '').trim();
+      onSpeak(russianToSpeak, 'ru-RU');
+    }
+  }, [isFlipped, phrase.german, phrase.russian, onSpeak]);
   
   const createLoggedAction = useCallback((key: string, action: (p: Phrase) => void) => (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -95,11 +105,6 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isMoreMenuOpen]);
-
-  const handleSpeak = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onSpeak(phrase.german);
-  }
   
   const handleOpenImprovePhrase = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -208,6 +213,7 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
     >
       <div 
         className={`relative w-full h-full rounded-xl shadow-lg transition-transform duration-700 ease-in-out [transform-style:preserve-3d] ${isFlipped ? '[transform:rotateY(180deg)]' : ''}`}
+        onClick={handleCardClick}
       >
         {/* Front Side (Russian) */}
         <div 
@@ -266,13 +272,6 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
 
             <div className="relative w-full">
                 {renderActionButtons('back')}
-                <button
-                    onClick={handleSpeak}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-full text-slate-200 hover:bg-black/20 hover:text-white transition-colors"
-                    aria-label="Озвучить"
-                >
-                    <SoundIcon className="w-5 h-5" />
-                </button>
             </div>
             <div className="flash-container"></div>
         </div>

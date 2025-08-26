@@ -76,6 +76,9 @@ const defaultCardActionUsage = {
     movieExamples: 0,
 };
 
+// Helper function for retrying API calls with a delay
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 const App: React.FC = () => {
   const [allPhrases, setAllPhrases] = useState<Phrase[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -283,8 +286,53 @@ const App: React.FC = () => {
     apiCall: (provider: AiService) => Promise<T>
   ): Promise<T> => {
     if (!apiProvider || !apiProviderType) throw new Error("AI provider not initialized.");
+
+    const maxRetries = 3;
+    
+    const executeWithRetries = async (provider: AiService, type: ApiProviderType): Promise<T> => {
+        let attempt = 0;
+        let delay = 1000; // 1s initial delay
+        while (attempt < maxRetries) {
+            try {
+                return await apiCall(provider);
+            } catch (error: any) {
+                attempt++;
+                let isRateLimitError = false;
+
+                if (type === 'gemini') {
+                    try {
+                        const message = error.message || '';
+                        const jsonMatch = message.match(/{.*}/s);
+                        if (jsonMatch) {
+                            const errorJson = JSON.parse(jsonMatch[0]);
+                            if (errorJson?.error?.code === 429 || errorJson?.error?.status === 'RESOURCE_EXHAUSTED') {
+                                isRateLimitError = true;
+                            }
+                        } else if (message.includes('429') || message.includes('RESOURCE_EXHAUSTED')) {
+                            isRateLimitError = true;
+                        }
+                    } catch (e) {
+                        if (error.message?.includes('429') || error.message?.includes('RESOURCE_EXHAUSTED')) {
+                           isRateLimitError = true;
+                        }
+                    }
+                }
+                
+                if (isRateLimitError && attempt < maxRetries) {
+                    const jitter = Math.random() * 500;
+                    console.warn(`Rate limit exceeded on attempt ${attempt} with ${type}. Retrying in ${(delay + jitter) / 1000}s...`);
+                    await sleep(delay + jitter);
+                    delay *= 2; // Exponential backoff
+                } else {
+                    throw error;
+                }
+            }
+        }
+        throw new Error(`API call failed with ${type} after ${maxRetries} attempts.`);
+    };
+
     try {
-        return await apiCall(apiProvider);
+        return await executeWithRetries(apiProvider, apiProviderType);
     } catch (primaryError) {
         console.warn(`API call with ${apiProviderType} failed:`, primaryError);
         const fallback = getFallbackProvider(apiProviderType);
@@ -293,7 +341,7 @@ const App: React.FC = () => {
             setApiProvider(fallback.provider);
             setApiProviderType(fallback.type);
             try {
-                return await apiCall(fallback.provider);
+                return await executeWithRetries(fallback.provider, fallback.type);
             } catch (fallbackError) {
                 console.error(`Fallback API call with ${fallback.type} also failed:`, fallbackError);
                  throw new Error(`Primary API failed: ${(primaryError as Error).message}. Fallback API also failed: ${(fallbackError as Error).message}`);

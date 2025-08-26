@@ -81,11 +81,11 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
   const touchStartRef = useRef<number | null>(null);
   const touchMoveRef = useRef<number | null>(null);
 
-  const speak = useCallback((text: string) => {
+  const speak = useCallback((text: string, lang: 'de-DE' | 'ru-RU') => {
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'de-DE';
+      utterance.lang = lang;
       utterance.rate = 0.9;
       window.speechSynthesis.speak(utterance);
     }
@@ -163,7 +163,7 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
       playCorrectSound();
     }
     if (settings.autoSpeak) {
-      speak(quickReplyPhrase.german);
+      speak(quickReplyPhrase.german, 'de-DE');
     }
     
     onUpdateMastery('know', { autoAdvance: true });
