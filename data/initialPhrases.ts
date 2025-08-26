@@ -41,6 +41,22 @@ const wFragen = [
   { russian: "Сколько? (исчисл.)", german: "Wie viele?" }
 ];
 
+// Combine all initial phrases for easy lookup
+const allInitialGermanPhrases = new Set([
+  ...basicPhrases.map(p => p.german),
+  ...personalPronouns.map(p => p.german),
+  ...wFragen.map(p => p.german)
+]);
+
+/**
+ * Checks if a phrase is one of the initial, hardcoded phrases.
+ * @param phrase The phrase to check.
+ * @returns True if it's an initial phrase, false otherwise.
+ */
+export const isInitialPhrase = (phrase: Phrase): boolean => {
+  return allInitialGermanPhrases.has(phrase.german);
+};
+
 
 export const initialPhrases = [
   ...basicPhrases,
