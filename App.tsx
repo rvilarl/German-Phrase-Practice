@@ -856,7 +856,7 @@ const App: React.FC = () => {
     }, 250);
   }, [selectNextPracticePhrase]);
   
-  const handlePracticeUpdateMastery = (action: 'know' | 'forgot' | 'dont_know', options?: { autoAdvance?: boolean }) => {
+  const handlePracticeUpdateMastery = useCallback((action: 'know' | 'forgot' | 'dont_know', options?: { autoAdvance?: boolean }) => {
     if (!currentPracticePhrase || practiceIsExitingRef.current) return;
 
     handleLogMasteryButtonUsage(action);
@@ -891,10 +891,10 @@ const App: React.FC = () => {
           }
       }
     }
-  };
+  }, [currentPracticePhrase, handleLogMasteryButtonUsage, updateAndSavePhrases, settings.autoSpeak, settings.soundEffects]);
 
 
-  const handlePracticeSwipeRight = () => {
+  const handlePracticeSwipeRight = useCallback(() => {
     if (practiceIsExitingRef.current || cardHistory.length === 0) return;
     practiceIsExitingRef.current = true;
     setTimeout(() => {
@@ -906,8 +906,45 @@ const App: React.FC = () => {
       }
       practiceIsExitingRef.current = false;
     }, 250);
-  };
+  }, [allPhrases, cardHistory, changePracticePhrase]);
   // --- End Practice Page Logic ---
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't interfere with typing in inputs
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+        return;
+      }
+      
+      // Check if any modal is open by looking for a modal backdrop
+      const isModalOpen = !!document.querySelector('.fixed.inset-0.bg-black\\/60, .fixed.inset-0.bg-black\\/70');
+      if (isModalOpen) return;
+
+      if (view === 'practice' && currentPracticePhrase && !practiceIsExitingRef.current) {
+        if (e.key === 'ArrowRight') {
+          if (!isPracticeAnswerRevealed) {
+            handlePracticeUpdateMastery('know', { autoAdvance: true });
+          }
+          transitionToNext('right');
+        } else if (e.key === 'ArrowLeft') {
+          handlePracticeSwipeRight();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [
+    view, 
+    currentPracticePhrase, 
+    isPracticeAnswerRevealed, 
+    transitionToNext, 
+    handlePracticeSwipeRight,
+    handlePracticeUpdateMastery
+  ]);
 
 
   const getProviderDisplayName = () => {
@@ -940,7 +977,6 @@ const App: React.FC = () => {
              apiProviderAvailable={!!apiProvider}
              onUpdateMastery={handlePracticeUpdateMastery}
              onContinue={() => transitionToNext('right')}
-             onSwipeLeft={() => transitionToNext('right')}
              onSwipeRight={handlePracticeSwipeRight}
              onOpenChat={openChatForPhrase}
              onOpenDeepDive={handleOpenDeepDive}

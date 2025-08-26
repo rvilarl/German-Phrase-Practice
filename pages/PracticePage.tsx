@@ -33,7 +33,6 @@ interface PracticePageProps {
   apiProviderAvailable: boolean;
   onUpdateMastery: (action: 'know' | 'forgot' | 'dont_know', options?: { autoAdvance?: boolean }) => void;
   onContinue: () => void;
-  onSwipeLeft: () => void;
   onSwipeRight: () => void;
   onOpenChat: (phrase: Phrase) => void;
   onOpenDeepDive: (phrase: Phrase) => void;
@@ -61,7 +60,7 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
   const {
     currentPhrase, isAnswerRevealed, animationState, isExiting, unmasteredCount,
     fetchNewPhrases, isLoading, error, isGenerating, apiProviderAvailable,
-    onUpdateMastery, onContinue, onSwipeLeft, onSwipeRight,
+    onUpdateMastery, onContinue, onSwipeRight,
     onOpenChat, onOpenDeepDive, onOpenMovieExamples, onOpenWordAnalysis,
     onOpenSentenceChain, onOpenImprovePhrase, onOpenLearningAssistant,
     onOpenVoiceWorkspace, onDeletePhrase, onGoToList, onOpenDiscussTranslation,
@@ -177,12 +176,17 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
     }
   };
   
+  const handleSwipeLeft = () => {
+    if (isAnswerRevealed || isExiting) return;
+    handleMasteryButtonClick('know');
+  };
+  
   const handleTouchStart = (e: React.TouchEvent) => { touchMoveRef.current = null; touchStartRef.current = e.targetTouches[0].clientX; };
   const handleTouchMove = (e: React.TouchEvent) => { touchMoveRef.current = e.targetTouches[0].clientX; };
   const handleTouchEnd = () => {
     if (touchStartRef.current !== null && touchMoveRef.current !== null) {
       const deltaX = touchMoveRef.current - touchStartRef.current;
-      if (deltaX < -SWIPE_THRESHOLD) onSwipeLeft();
+      if (deltaX < -SWIPE_THRESHOLD) handleSwipeLeft();
       else if (deltaX > SWIPE_THRESHOLD) onSwipeRight();
     }
     touchStartRef.current = null; touchMoveRef.current = null;
