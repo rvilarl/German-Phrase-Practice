@@ -251,24 +251,23 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
             const phraseMap = new Map(currentPhrases.map(p => [p.id, p]));
             const idsToDelete = new Set<string>();
 
+// FIX: Refactored the duplicate cleaning logic to be more robust and type-safe.
             duplicateGroups.forEach(group => {
-                let bestPhrase: Phrase | null = null;
-                group.forEach(phraseId => {
-                    const phrase = phraseMap.get(phraseId);
-                    if (phrase) {
-                        // FIX: Refactored logic to help TypeScript compiler with type inference.
-                        if (bestPhrase) {
-                            if (phrase.knowCount > bestPhrase.knowCount) {
-                                idsToDelete.add(bestPhrase.id);
-                                bestPhrase = phrase;
-                            } else {
-                                idsToDelete.add(phrase.id);
-                            }
-                        } else {
-                            bestPhrase = phrase;
-                        }
-                    }
-                });
+                const phrasesInGroup = group
+                    .map(id => phraseMap.get(id))
+                    .filter((p): p is Phrase => !!p);
+
+                if (phrasesInGroup.length < 2) {
+                    return;
+                }
+
+                // Sort by knowCount descending to find the best one
+                phrasesInGroup.sort((a, b) => b.knowCount - a.knowCount);
+
+                // The first item is the one to keep. Mark all others for deletion.
+                for (let i = 1; i < phrasesInGroup.length; i++) {
+                    idsToDelete.add(phrasesInGroup[i].id);
+                }
             });
 
             return currentPhrases.filter(p => p && !idsToDelete.has(p.id));

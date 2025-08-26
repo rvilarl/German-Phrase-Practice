@@ -25,7 +25,7 @@ interface PhraseCardProps {
   onOpenLearningAssistant: (phrase: Phrase) => void;
   onOpenQuickReply: (phrase: Phrase) => void;
   isWordAnalysisLoading: boolean;
-  isQuickReplyReady: boolean;
+  isQuickReplyEligible: boolean;
 }
 
 const RussianPhraseDisplay: React.FC<{ text: string; as: 'h2' | 'div' }> = ({ text, as: Component }) => {
@@ -48,7 +48,7 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
   onOpenDeepDive, onOpenMovieExamples, onWordClick, onOpenSentenceChain,
   onOpenImprovePhrase, onOpenContextMenu, onOpenVoicePractice,
   onOpenLearningAssistant, onOpenQuickReply, isWordAnalysisLoading,
-  isQuickReplyReady
+  isQuickReplyEligible
 }) => {
 
   const longPressTimer = useRef<number | null>(null);
@@ -105,9 +105,7 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
 
   const handleQuickReplyClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (isQuickReplyReady) {
-      onOpenQuickReply(phrase);
-    }
+    onOpenQuickReply(phrase);
   };
 
 
@@ -164,7 +162,7 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
             className={`h-full absolute inset-0 [backface-visibility:hidden] bg-gradient-to-br from-slate-700/80 to-slate-800/80 backdrop-blur-sm border border-white/10 rounded-xl p-6 flex flex-col justify-between items-center text-center transition-colors duration-500 relative overflow-hidden`}
         >
             <div className="flex-grow flex flex-col items-center justify-center w-full">
-                {isQuickReplyReady ? (
+                {isQuickReplyEligible ? (
                     <button
                         onClick={handleQuickReplyClick}
                         className="group/quick-reply relative text-center p-4 -m-4 rounded-lg hover:bg-slate-600/50 transition-colors"

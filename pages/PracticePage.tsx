@@ -87,20 +87,16 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
     }
   }, []);
   
-  const isQuickReplyReady = useMemo(() => {
+  const isQuickReplyEligible = useMemo(() => {
     if (!currentPhrase) return false;
     const category = srsService.getPhraseCategory(currentPhrase);
-    
     switch (category) {
-        case 'w-frage':
-        case 'personal-pronoun':
-            return true; // These are hardcoded, always ready.
-        case 'short-phrase':
-            // This is the crucial check: only ready if data is in cache.
-            const cacheKey = `quick_reply_options_${currentPhrase.id}`;
-            return !!cacheService.getCache<string[]>(cacheKey);
-        default:
-            return false;
+      case 'w-frage':
+      case 'personal-pronoun':
+      case 'short-phrase':
+        return true;
+      default:
+        return false;
     }
   }, [currentPhrase]);
 
@@ -133,11 +129,13 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
             if (cachedDistractors) {
                 distractors = cachedDistractors;
             } else {
-                // This case should ideally not be hit if the UI is controlled by `isQuickReplyReady`
-                console.error("Attempted to open quick reply for a short-phrase without cached options.");
-                setQuickReplyError("Варианты ответа еще не загружены. Попробуйте через секунду.");
-                setIsQuickReplyLoading(false);
-                return;
+                const result = await onGenerateQuickReplyOptions(phraseToReply);
+                if (result.options && result.options.length > 0) {
+                    distractors = result.options;
+                    cacheService.setCache(cacheKey, distractors);
+                } else {
+                    throw new Error("Не удалось сгенерировать варианты ответа.");
+                }
             }
         } else {
              throw new Error("Неподходящая категория фразы для быстрого ответа.");
@@ -152,7 +150,7 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
         setQuickReplyError(error instanceof Error ? error.message : "Не удалось загрузить варианты.");
         setIsQuickReplyLoading(false);
     }
-  }, []);
+  }, [onGenerateQuickReplyOptions]);
   
   const handleQuickReplyCorrect = useCallback(() => {
     if (!quickReplyPhrase) return;
@@ -311,7 +309,7 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
                       onOpenLearningAssistant={onOpenLearningAssistant}
                       onOpenQuickReply={handleOpenQuickReply}
                       isWordAnalysisLoading={isWordAnalysisLoading}
-                      isQuickReplyReady={isQuickReplyReady}
+                      isQuickReplyEligible={isQuickReplyEligible}
                     />
                 </div>
             </div>
