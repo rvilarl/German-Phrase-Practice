@@ -66,8 +66,8 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
   isOpen, onClose, phrase, onEvaluate, onSuccess, onFailure, onNextPhrase, onGeneratePhraseBuilderOptions, onPracticeNext,
   settings, buttonUsage, onLogButtonUsage, habitTracker, onHabitTrackerChange, showToast, onOpenLearningAssistant
 }) => {
+  const [allWordOptions, setAllWordOptions] = useState<AvailableWord[]>([]);
   const [constructedWords, setConstructedWords] = useState<Word[]>([]);
-  const [availableWords, setAvailableWords] = useState<AvailableWord[]>([]);
   const [evaluation, setEvaluation] = useState<PhraseEvaluation | null>(null);
   const [isChecking, setIsChecking] = useState(false);
   const [isListening, setIsListening] = useState(false);
@@ -99,9 +99,12 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const constructedPhraseRef = useRef<HTMLDivElement>(null);
 
+  const constructedWordIds = useMemo(() => new Set(constructedWords.map(w => w.id)), [constructedWords]);
+  const availableWords = useMemo(() => allWordOptions.filter(w => !constructedWordIds.has(w.id)), [allWordOptions, constructedWordIds]);
+
   const resetState = useCallback(() => {
     setConstructedWords([]);
-    setAvailableWords([]);
+    setAllWordOptions([]);
     setEvaluation(null);
     setIsChecking(false);
     setIsListening(false);
@@ -134,7 +137,7 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
       const cachedOptions = cacheService.getCache<PhraseBuilderOptions>(cacheKey);
 
       if (cachedOptions) {
-          setAvailableWords(cachedOptions.words.map((w, i) => ({ text: w, id: `avail-${i}`, originalIndex: i })));
+          setAllWordOptions(cachedOptions.words.map((w, i) => ({ text: w, id: `avail-${i}`, originalIndex: i })));
           setIsLoadingOptions(false);
           return;
       }
@@ -142,7 +145,7 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
       try {
           const options = await onGeneratePhraseBuilderOptions(phrase);
           cacheService.setCache(cacheKey, options);
-          setAvailableWords(options.words.map((w, i) => ({ text: w, id: `avail-${i}`, originalIndex: i })));
+          setAllWordOptions(options.words.map((w, i) => ({ text: w, id: `avail-${i}`, originalIndex: i })));
       } catch (err) {
           let displayError = "Произошла непредвиденная ошибка.";
           console.error("Failed to load phrase builder options:", err);
@@ -209,7 +212,7 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
             interactionNode?.removeEventListener('touchstart', resetThinkTimer);
         };
     }
-  }, [isOpen, phrase, evaluation, constructedWords, availableWords, hasUserPausedInSession]);
+  }, [isOpen, phrase, evaluation, constructedWords, hasUserPausedInSession]);
 
   // Effect for inactivity and hinting
   useEffect(() => {
@@ -401,19 +404,15 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
   
   const handleDeselectWord = (word: Word) => handleUserInteraction(() => {
     setConstructedWords(prev => prev.filter(w => w.id !== word.id));
-    const newAvailableWord: AvailableWord = { ...word, originalIndex: availableWords.length + constructedWords.findIndex(w => w.id === word.id) };
-    setAvailableWords(prev => [...prev, newAvailableWord].sort((a,b) => a.originalIndex - b.originalIndex));
   });
 
   const handleReset = () => handleUserInteraction(() => {
-    setAvailableWords(prev => [...prev, ...constructedWords.map((w,i)=> ({...w, originalIndex: 1000+i}))].sort((a,b) => a.originalIndex - b.originalIndex));
     setConstructedWords([]);
   });
   
   const handleSelectWord = (word: AvailableWord) => handleUserInteraction(() => {
     if (!!evaluation) return;
     setConstructedWords(prev => [...prev, word]);
-    setAvailableWords(prev => prev.filter(w => w.id !== word.id));
   });
 
   const handleDragStart = (e: React.DragEvent<HTMLButtonElement>, word: Word, from: 'available' | 'constructed', index: number) => {
@@ -452,7 +451,6 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
     if (from === 'constructed') newConstructed.splice(index, 1);
     newConstructed.splice(dropIndex, 0, word);
     setConstructedWords(newConstructed);
-    if (from === 'available') setAvailableWords(prev => prev.filter(w => w.id !== word.id));
     setDraggedItem(null); setDropIndex(null); setGhostPosition(null);
   });
   
@@ -610,19 +608,26 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
                       ) : optionsError ? (
                         <div className="text-center text-red-400 p-4">{optionsError}</div>
                       ) : (
-                        availableWords.map((word, index) => (
+                        allWordOptions.map((word, index) => {
+                          const isUsed = constructedWordIds.has(word.id);
+                          return (
                             <button 
                               key={word.id}
-                              onClick={() => handleSelectWord(word)}
-                              draggable
-                              onDragStart={(e) => handleDragStart(e, word, 'available', index)}
+                              onClick={() => !isUsed && handleSelectWord(word)}
+                              draggable={!isUsed}
+                              onDragStart={(e) => !isUsed && handleDragStart(e, word, 'available', index)}
                               onDragEnd={handleDragEnd}
-                              disabled={!!evaluation} 
-                              className={`relative overflow-hidden px-3 py-1.5 bg-slate-600 text-slate-200 rounded-lg transition-all text-lg font-medium disabled:opacity-30 cursor-grab active:cursor-grabbing ${word.id === hintWordId ? 'word-hint-shine' : 'hover:bg-slate-500'}`}
+                              disabled={!!evaluation || isUsed} 
+                              className={`relative overflow-hidden px-3 py-1.5 bg-slate-600 text-slate-200 rounded-lg transition-all text-lg font-medium ${
+                                isUsed 
+                                ? 'invisible' 
+                                : `cursor-grab active:cursor-grabbing disabled:opacity-30 ${word.id === hintWordId ? 'word-hint-shine' : 'hover:bg-slate-500'}`
+                              }`}
                             >
                                 {word.text}
                             </button>
-                        ))
+                          );
+                        })
                       )}
                   </div>
               </div>
