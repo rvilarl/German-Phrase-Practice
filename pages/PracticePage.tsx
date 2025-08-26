@@ -7,6 +7,7 @@ import CheckIcon from '../components/icons/CheckIcon';
 import QuickReplyModal from '../components/QuickReplyModal';
 import * as srsService from '../services/srsService';
 import * as cacheService from '../services/cacheService';
+import { playCorrectSound } from '../services/soundService';
 
 
 const SWIPE_THRESHOLD = 50; // pixels
@@ -47,6 +48,8 @@ interface PracticePageProps {
   onOpenDiscussTranslation: (phrase: Phrase) => void;
   settings: { 
     dynamicButtonLayout: boolean;
+    soundEffects: boolean;
+    autoSpeak: boolean;
   };
   masteryButtonUsage: { know: number; forgot: number; dont_know: number };
   allPhrases: Phrase[];
@@ -153,10 +156,18 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
   
   const handleQuickReplyCorrect = useCallback(() => {
     if (!quickReplyPhrase) return;
+
+    if (settings.soundEffects) {
+      playCorrectSound();
+    }
+    if (settings.autoSpeak) {
+      speak(quickReplyPhrase.german);
+    }
+    
     onUpdateMastery('know', { autoAdvance: true });
     onContinue();
     setQuickReplyPhrase(null);
-  }, [quickReplyPhrase, onUpdateMastery, onContinue]);
+  }, [quickReplyPhrase, onUpdateMastery, onContinue, settings, speak]);
 
   const handleQuickReplyIncorrect = useCallback(() => {
     if (!quickReplyPhrase) return;
