@@ -57,6 +57,8 @@ interface PracticePageProps {
   onAnalyzeWord: (phrase: Phrase, word: string) => Promise<WordAnalysis | null>;
   onGenerateQuickReplyOptions: (phrase: Phrase) => Promise<{ options: string[] }>;
   isWordAnalysisLoading: boolean;
+  cardActionUsage: { [key: string]: number };
+  onLogCardActionUsage: (button: string) => void;
 }
 
 const PracticePage: React.FC<PracticePageProps> = (props) => {
@@ -68,7 +70,7 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
     onOpenSentenceChain, onOpenImprovePhrase, onOpenLearningAssistant,
     onOpenVoiceWorkspace, onDeletePhrase, onGoToList, onOpenDiscussTranslation,
     settings, masteryButtonUsage, allPhrases, onCreateCard, onAnalyzeWord,
-    onGenerateQuickReplyOptions, isWordAnalysisLoading
+    onGenerateQuickReplyOptions, isWordAnalysisLoading, cardActionUsage, onLogCardActionUsage
   } = props;
 
   const [contextMenuTarget, setContextMenuTarget] = useState<{ phrase: Phrase; word?: string } | null>(null);
@@ -325,6 +327,8 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
                       onOpenQuickReply={handleOpenQuickReply}
                       isWordAnalysisLoading={isWordAnalysisLoading}
                       isQuickReplyEligible={isQuickReplyEligible}
+                      cardActionUsage={cardActionUsage}
+                      onLogCardActionUsage={onLogCardActionUsage}
                     />
                 </div>
             </div>

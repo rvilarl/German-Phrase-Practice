@@ -37,6 +37,7 @@ const SETTINGS_STORAGE_KEY = 'germanAppSettings';
 const BUTTON_USAGE_STORAGE_KEY = 'germanAppButtonUsage';
 const MASTERY_BUTTON_USAGE_STORAGE_KEY = 'germanAppMasteryButtonUsage';
 const HABIT_TRACKER_STORAGE_KEY = 'germanAppHabitTracker';
+const CARD_ACTION_USAGE_STORAGE_KEY = 'germanAppCardActionUsage';
 
 type View = 'practice' | 'list';
 type AnimationDirection = 'left' | 'right';
@@ -66,6 +67,15 @@ const defaultHabitTracker = {
     quickBuilderNextCount: 0 
 };
 
+const defaultCardActionUsage = {
+    learningAssistant: 0,
+    sentenceChain: 0,
+    voicePractice: 0,
+    chat: 0,
+    deepDive: 0,
+    movieExamples: 0,
+};
+
 const App: React.FC = () => {
   const [allPhrases, setAllPhrases] = useState<Phrase[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -90,6 +100,7 @@ const App: React.FC = () => {
   const [buttonUsage, setButtonUsage] = useState({ close: 0, continue: 0, next: 0 });
   const [masteryButtonUsage, setMasteryButtonUsage] = useState({ know: 0, forgot: 0, dont_know: 0 });
   const [habitTracker, setHabitTracker] = useState(defaultHabitTracker);
+  const [cardActionUsage, setCardActionUsage] = useState(defaultCardActionUsage);
   
   const [toast, setToast] = useState<ToastState | null>(null);
 
@@ -206,6 +217,9 @@ const App: React.FC = () => {
 
             const storedMasteryUsage = localStorage.getItem(MASTERY_BUTTON_USAGE_STORAGE_KEY);
             if (storedMasteryUsage) setMasteryButtonUsage(JSON.parse(storedMasteryUsage));
+
+            const storedCardActionUsage = localStorage.getItem(CARD_ACTION_USAGE_STORAGE_KEY);
+            if(storedCardActionUsage) setCardActionUsage(prev => ({ ...defaultCardActionUsage, ...prev, ...JSON.parse(storedCardActionUsage) }));
 
             const storedHabitTracker = localStorage.getItem(HABIT_TRACKER_STORAGE_KEY);
             if (storedHabitTracker) {
@@ -345,6 +359,20 @@ const App: React.FC = () => {
         };
         newUsage[button] += INCREMENT;
         localStorage.setItem(MASTERY_BUTTON_USAGE_STORAGE_KEY, JSON.stringify(newUsage));
+        return newUsage;
+    });
+  }, []);
+
+  const handleLogCardActionUsage = useCallback((button: keyof typeof cardActionUsage) => {
+    const DECAY_FACTOR = 0.95;
+    const INCREMENT = 1;
+    setCardActionUsage(prev => {
+        const newUsage = { ...prev };
+        for (const key in newUsage) {
+            (newUsage as any)[key] *= DECAY_FACTOR;
+        }
+        newUsage[button] += INCREMENT;
+        localStorage.setItem(CARD_ACTION_USAGE_STORAGE_KEY, JSON.stringify(newUsage));
         return newUsage;
     });
   }, []);
@@ -1005,6 +1033,8 @@ const App: React.FC = () => {
              onAnalyzeWord={analyzeWord}
              onGenerateQuickReplyOptions={handleGenerateQuickReplyOptions}
              isWordAnalysisLoading={isWordAnalysisLoading}
+             cardActionUsage={cardActionUsage}
+             onLogCardActionUsage={handleLogCardActionUsage}
            />
         ) : (
           <PhraseListPage 

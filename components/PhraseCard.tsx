@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState, useMemo, useCallback, useEffect } from 'react';
 import type { Phrase } from '../types';
 import SoundIcon from './icons/SoundIcon';
 import ChatIcon from './icons/ChatIcon';
@@ -9,6 +9,10 @@ import SettingsIcon from './icons/SettingsIcon';
 import MicrophoneIcon from './icons/MicrophoneIcon';
 import BookOpenIcon from './icons/BookOpenIcon';
 import { getPhraseCategory } from '../services/srsService';
+import MoreHorizontalIcon from './icons/MoreHorizontalIcon';
+import CloseIcon from './icons/CloseIcon';
+import MoreActionsMenu from './MoreActionsMenu';
+
 
 interface PhraseCardProps {
   phrase: Phrase;
@@ -26,6 +30,8 @@ interface PhraseCardProps {
   onOpenQuickReply: (phrase: Phrase) => void;
   isWordAnalysisLoading: boolean;
   isQuickReplyEligible: boolean;
+  cardActionUsage: { [key: string]: number };
+  onLogCardActionUsage: (button: string) => void;
 }
 
 const RussianPhraseDisplay: React.FC<{ text: string; as: 'h2' | 'div' }> = ({ text, as: Component }) => {
@@ -48,30 +54,51 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
   onOpenDeepDive, onOpenMovieExamples, onWordClick, onOpenSentenceChain,
   onOpenImprovePhrase, onOpenContextMenu, onOpenVoicePractice,
   onOpenLearningAssistant, onOpenQuickReply, isWordAnalysisLoading,
-  isQuickReplyEligible
+  isQuickReplyEligible, cardActionUsage, onLogCardActionUsage,
 }) => {
 
   const longPressTimer = useRef<number | null>(null);
   const wordLongPressTimer = useRef<number | null>(null);
+  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
+  const buttonContainerRef = useRef<HTMLDivElement>(null);
+  
+  const createLoggedAction = useCallback((key: string, action: (p: Phrase) => void) => (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onLogCardActionUsage(key);
+    action(phrase);
+  }, [phrase, onLogCardActionUsage]);
+
+  const allButtons = useMemo(() => [
+    { key: 'learningAssistant', label: 'Изучать с AI', icon: <BookOpenIcon className="w-5 h-5" />, action: createLoggedAction('learningAssistant', onOpenLearningAssistant) },
+    { key: 'sentenceChain', label: 'Цепочка фраз', icon: <LinkIcon className="w-5 h-5" />, action: createLoggedAction('sentenceChain', onOpenSentenceChain) },
+    { key: 'voicePractice', label: 'Голосовая практика', icon: <MicrophoneIcon className="w-5 h-5" />, action: createLoggedAction('voicePractice', onOpenVoicePractice) },
+    { key: 'chat', label: 'Обсудить с AI', icon: <ChatIcon className="w-5 h-5" />, action: createLoggedAction('chat', onOpenChat) },
+    { key: 'deepDive', label: 'Глубокий анализ', icon: <AnalysisIcon className="w-5 h-5" />, action: createLoggedAction('deepDive', onOpenDeepDive) },
+    { key: 'movieExamples', label: 'Примеры из фильмов', icon: <FilmIcon className="w-5 h-5" />, action: createLoggedAction('movieExamples', onOpenMovieExamples) },
+  ], [phrase, createLoggedAction, onOpenLearningAssistant, onOpenSentenceChain, onOpenVoicePractice, onOpenChat, onOpenDeepDive, onOpenMovieExamples]);
+
+  const sortedButtons = useMemo(() => {
+      return [...allButtons].sort((a, b) => (cardActionUsage[b.key] || 0) - (cardActionUsage[a.key] || 0));
+  }, [cardActionUsage, allButtons]);
+
+  const visibleButtons = sortedButtons.slice(0, 3);
+  const hiddenButtons = sortedButtons.slice(3);
+
+  // Close menu on outside click
+  useEffect(() => {
+    if (!isMoreMenuOpen) return;
+    const handleClickOutside = (event: MouseEvent) => {
+      if (buttonContainerRef.current && !buttonContainerRef.current.contains(event.target as Node)) {
+        setIsMoreMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isMoreMenuOpen]);
 
   const handleSpeak = (e: React.MouseEvent) => {
     e.stopPropagation();
     onSpeak(phrase.german);
-  }
-
-  const handleOpenChat = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onOpenChat(phrase);
-  }
-  
-  const handleOpenDeepDive = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onOpenDeepDive(phrase);
-  }
-
-  const handleOpenMovieExamples = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onOpenMovieExamples(phrase);
   }
   
   const handleOpenImprovePhrase = (e: React.MouseEvent) => {
@@ -87,22 +114,7 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
       onWordClick(phrase, cleanedWord);
     }
   }
-
-  const handleOpenSentenceChain = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onOpenSentenceChain(phrase);
-  }
   
-  const handleOpenVoicePractice = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onOpenVoicePractice(phrase);
-  };
-  
-  const handleOpenLearningAssistant = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onOpenLearningAssistant(phrase);
-  };
-
   const handleQuickReplyClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     onOpenQuickReply(phrase);
@@ -141,6 +153,46 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
       if (wordLongPressTimer.current) {
           clearTimeout(wordLongPressTimer.current);
       }
+  };
+
+  const renderActionButtons = (theme: 'front' | 'back') => {
+    const themeClasses = theme === 'front' 
+      ? 'bg-slate-600/50 hover:bg-slate-600 text-slate-100'
+      : 'bg-black/20 hover:bg-black/30 text-white';
+
+    return (
+      <div ref={buttonContainerRef} className="relative w-full flex justify-center items-center flex-wrap gap-2">
+        {visibleButtons.map(button => (
+          <button
+            key={button.key}
+            onClick={button.action}
+            className={`p-3 rounded-full transition-colors ${themeClasses}`}
+            aria-label={button.label}
+          >
+            {button.icon}
+          </button>
+        ))}
+        {hiddenButtons.length > 0 && (
+          <>
+            <button
+              onClick={(e) => { e.stopPropagation(); setIsMoreMenuOpen(prev => !prev); }}
+              className={`p-3 rounded-full transition-colors ${themeClasses}`}
+              aria-label="Еще"
+              aria-expanded={isMoreMenuOpen}
+            >
+              {isMoreMenuOpen ? <CloseIcon className="w-5 h-5" /> : <MoreHorizontalIcon className="w-5 h-5" />}
+            </button>
+            {isMoreMenuOpen && (
+              <MoreActionsMenu 
+                buttons={hiddenButtons} 
+                onClose={() => setIsMoreMenuOpen(false)}
+                theme={theme}
+              />
+            )}
+          </>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -182,38 +234,7 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
                 )}
             </div>
             
-            <div className="w-full flex justify-center items-center flex-wrap gap-2">
-                <button
-                   onClick={handleOpenLearningAssistant}
-                   className="p-3 rounded-full bg-slate-600/50 hover:bg-slate-600 transition-colors text-slate-100"
-                   aria-label="Изучать с AI"
-               >
-                   <BookOpenIcon className="w-5 h-5" />
-               </button>
-                <button
-                    onClick={handleOpenSentenceChain}
-                    className="p-3 rounded-full bg-slate-600/50 hover:bg-slate-600 transition-colors text-slate-100"
-                    aria-label="Цепочка фраз"
-                >
-                    <LinkIcon className="w-5 h-5" />
-                </button>
-                 <button
-                    onClick={handleOpenVoicePractice}
-                    className="p-3 rounded-full bg-slate-600/50 hover:bg-slate-600 transition-colors text-slate-100"
-                    aria-label="Голосовая практика"
-                >
-                    <MicrophoneIcon className="w-5 h-5" />
-                </button>
-                 <button onClick={handleOpenChat} className="p-3 rounded-full bg-slate-600/50 hover:bg-slate-600 transition-colors text-slate-100" aria-label="Обсудить с AI">
-                    <ChatIcon className="w-5 h-5" />
-                </button>
-                <button onClick={handleOpenDeepDive} className="p-3 rounded-full bg-slate-600/50 hover:bg-slate-600 transition-colors text-slate-100" aria-label="Глубокий анализ">
-                    <AnalysisIcon className="w-5 h-5" />
-                </button>
-                <button onClick={handleOpenMovieExamples} className="p-3 rounded-full bg-slate-600/50 hover:bg-slate-600 transition-colors text-slate-100" aria-label="Примеры из фильмов">
-                    <FilmIcon className="w-5 h-5" />
-                </button>
-            </div>
+            {renderActionButtons('front')}
             <div className="flash-container"></div>
         </div>
 
@@ -247,36 +268,7 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
                 <button onClick={handleSpeak} className="p-3 rounded-full bg-black/20 hover:bg-black/30 transition-colors text-white" aria-label="Озвучить">
                     <SoundIcon className="w-5 h-5" />
                 </button>
-                <button
-                   onClick={handleOpenLearningAssistant}
-                   className="p-3 rounded-full bg-black/20 hover:bg-black/30 transition-colors text-white"
-                   aria-label="Изучать с AI"
-               >
-                   <BookOpenIcon className="w-5 h-5" />
-               </button>
-                <button
-                    onClick={handleOpenSentenceChain}
-                    className="p-3 rounded-full bg-black/20 hover:bg-black/30 transition-colors text-white"
-                    aria-label="Цепочка фраз"
-                >
-                    <LinkIcon className="w-5 h-5" />
-                </button>
-                 <button
-                    onClick={handleOpenVoicePractice}
-                    className="p-3 rounded-full bg-black/20 hover:bg-black/30 transition-colors text-white"
-                    aria-label="Голосовая практика"
-                >
-                    <MicrophoneIcon className="w-5 h-5" />
-                </button>
-                 <button onClick={handleOpenChat} className="p-3 rounded-full bg-black/20 hover:bg-black/30 transition-colors text-white" aria-label="Обсудить с AI">
-                    <ChatIcon className="w-5 h-5" />
-                </button>
-                <button onClick={handleOpenDeepDive} className="p-3 rounded-full bg-black/20 hover:bg-black/30 transition-colors text-white" aria-label="Глубокий анализ">
-                    <AnalysisIcon className="w-5 h-5" />
-                </button>
-                <button onClick={handleOpenMovieExamples} className="p-3 rounded-full bg-black/20 hover:bg-black/30 transition-colors text-white" aria-label="Примеры из фильмов">
-                    <FilmIcon className="w-5 h-5" />
-                </button>
+                {renderActionButtons('back')}
             </div>
             <div className="flash-container"></div>
         </div>
