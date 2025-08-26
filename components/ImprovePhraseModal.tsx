@@ -2,9 +2,9 @@ import React, { useState, useEffect, useCallback } from 'react';
 import type { Phrase } from '../types';
 import Spinner from './Spinner';
 import CloseIcon from './icons/CloseIcon';
-import WandIcon from './icons/WandIcon';
 import RefreshIcon from './icons/RefreshIcon';
 import CheckIcon from './icons/CheckIcon';
+import MessageQuestionIcon from './icons/MessageQuestionIcon';
 
 interface Suggestion {
   suggestedGerman: string;
@@ -17,9 +17,10 @@ interface ImprovePhraseModalProps {
   phrase: Phrase;
   onGenerateImprovement: (originalRussian: string, currentGerman: string) => Promise<Suggestion>;
   onPhraseImproved: (phraseId: string, newGerman: string) => void;
+  onOpenDiscussion: (phrase: Phrase) => void;
 }
 
-const ImprovePhraseModal: React.FC<ImprovePhraseModalProps> = ({ isOpen, onClose, phrase, onGenerateImprovement, onPhraseImproved }) => {
+const ImprovePhraseModal: React.FC<ImprovePhraseModalProps> = ({ isOpen, onClose, phrase, onGenerateImprovement, onPhraseImproved, onOpenDiscussion }) => {
   const [currentSuggestion, setCurrentSuggestion] = useState<Suggestion | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -68,12 +69,21 @@ const ImprovePhraseModal: React.FC<ImprovePhraseModalProps> = ({ isOpen, onClose
         <p className="text-sm text-slate-400 mb-1">{phrase.russian}</p>
         <p className="text-2xl font-bold text-slate-100">{currentGerman}</p>
       </div>
-      <button
-        onClick={() => handleGenerate(currentGerman)}
-        className="flex items-center justify-center w-full px-6 py-3 rounded-lg bg-purple-600 hover:bg-purple-700 transition-colors font-semibold text-white shadow-md"
-      >
-        Предложить корректный вариант
-      </button>
+      <div className="w-full flex flex-col space-y-3">
+          <button
+            onClick={() => handleGenerate(currentGerman)}
+            className="flex items-center justify-center w-full px-6 py-3 rounded-lg bg-purple-600 hover:bg-purple-700 transition-colors font-semibold text-white shadow-md"
+          >
+            Предложить корректный вариант
+          </button>
+           <button
+            onClick={() => onOpenDiscussion(phrase)}
+            className="flex items-center justify-center w-full px-6 py-2 rounded-lg bg-slate-600 hover:bg-slate-700 transition-colors font-semibold text-white text-sm"
+          >
+            <MessageQuestionIcon className="w-4 h-4 mr-2" />
+            Обсудить с AI
+          </button>
+      </div>
     </>
   );
 

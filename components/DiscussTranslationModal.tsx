@@ -15,6 +15,7 @@ interface DiscussTranslationModalProps {
     onDiscuss: (request: any) => Promise<TranslationChatResponse>;
     onAccept: (suggestion: { russian: string; german: string }) => void;
     onOpenWordAnalysis: (phrase: Phrase, word: string) => void;
+    initialMessage?: string;
 }
 
 const ChatMessageContent: React.FC<{ 
@@ -68,14 +69,16 @@ const ChatMessageContent: React.FC<{
     return text ? <p>{text}</p> : null;
 };
 
-const DiscussTranslationModal: React.FC<DiscussTranslationModalProps> = ({ isOpen, onClose, originalRussian, currentGerman, onDiscuss, onAccept, onOpenWordAnalysis }) => {
+const DiscussTranslationModal: React.FC<DiscussTranslationModalProps> = ({ isOpen, onClose, originalRussian, currentGerman, onDiscuss, onAccept, onOpenWordAnalysis, initialMessage }) => {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [input, setInput] = useState('');
     const [latestSuggestion, setLatestSuggestion] = useState<{ russian: string; german: string } | null>(null);
     const [isListening, setIsListening] = useState(false);
+    
     const recognitionRef = useRef<SpeechRecognition | null>(null);
     const chatEndRef = useRef<HTMLDivElement>(null);
+    const isInitialMessageSent = useRef(false);
 
     const basePhrase = {
         russian: originalRussian,
@@ -88,16 +91,18 @@ const DiscussTranslationModal: React.FC<DiscussTranslationModalProps> = ({ isOpe
         if (!messageText.trim() || isLoading) return;
 
         const userMessage: ChatMessage = { role: 'user', text: messageText };
-        setMessages(prev => [...prev, userMessage]);
         setInput('');
         setIsLoading(true);
         setLatestSuggestion(null);
+
+        const newMessages = [...messages, userMessage];
+        setMessages(newMessages);
 
         try {
             const response = await onDiscuss({
                 originalRussian,
                 currentGerman,
-                history: [...messages, userMessage],
+                history: newMessages,
                 userRequest: messageText,
             });
             setMessages(prev => [...prev, response]);
@@ -110,14 +115,40 @@ const DiscussTranslationModal: React.FC<DiscussTranslationModalProps> = ({ isOpe
             setIsLoading(false);
         }
     }, [isLoading, messages, originalRussian, currentGerman, onDiscuss]);
-
+    
     useEffect(() => {
         if (isOpen) {
+            if (initialMessage && !isInitialMessageSent.current) {
+                isInitialMessageSent.current = true;
+                
+                const userMessage: ChatMessage = { role: 'user', text: initialMessage };
+                setIsLoading(true);
+                setMessages([userMessage]);
+
+                onDiscuss({
+                    originalRussian,
+                    currentGerman,
+                    history: [userMessage],
+                    userRequest: initialMessage,
+                }).then(response => {
+                    setMessages(prev => [...prev, response]);
+                    if (response.suggestion) {
+                        setLatestSuggestion(response.suggestion);
+                    }
+                }).catch(error => {
+                    setMessages(prev => [...prev, { role: 'model', contentParts: [{ type: 'text', text: `Произошла ошибка: ${(error as Error).message}` }] }]);
+                }).finally(() => {
+                    setIsLoading(false);
+                });
+            }
+        } else {
+            // Reset state when modal closes
             setMessages([]);
             setLatestSuggestion(null);
             setInput('');
+            isInitialMessageSent.current = false;
         }
-    }, [isOpen]);
+    }, [isOpen, initialMessage, originalRussian, currentGerman, onDiscuss]);
     
     useEffect(() => {
         const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;

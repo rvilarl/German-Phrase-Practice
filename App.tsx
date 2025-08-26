@@ -151,6 +151,7 @@ const App: React.FC = () => {
   
   const [isDiscussModalOpen, setIsDiscussModalOpen] = useState(false);
   const [phraseToDiscuss, setPhraseToDiscuss] = useState<Phrase | null>(null);
+  const [discussInitialMessage, setDiscussInitialMessage] = useState<string | undefined>();
   
   const [isPronounsModalOpen, setIsPronounsModalOpen] = useState(false);
   const [isWFragenModalOpen, setIsWFragenModalOpen] = useState(false);
@@ -713,6 +714,13 @@ const App: React.FC = () => {
     setIsImproveModalOpen(true);
   };
 
+  const handleOpenDiscussionFromImprove = (phraseForDiscussion: Phrase) => {
+    setIsImproveModalOpen(false);
+    setPhraseToDiscuss(phraseForDiscussion);
+    setDiscussInitialMessage("Давай обсудим, можно ли эту фразу улучшить и правильно, если она звучит с точки зрения носителя языка");
+    setIsDiscussModalOpen(true);
+  };
+
   const handleGenerateImprovement = useCallback((originalRussian: string, currentGerman: string) => callApiWithFallback(provider => provider.improvePhrase(originalRussian, currentGerman)),[callApiWithFallback]);
   
   const handleTranslatePhrase = useCallback((russian: string) => callApiWithFallback(provider => provider.translatePhrase(russian)), [callApiWithFallback]);
@@ -773,6 +781,7 @@ const App: React.FC = () => {
       handlePhraseImproved(phraseToDiscuss.id, suggestion.german, suggestion.russian);
     }
     setIsDiscussModalOpen(false);
+    setDiscussInitialMessage(undefined);
   };
   
   const handleOpenLearningAssistant = (phrase: Phrase) => {
@@ -1106,6 +1115,7 @@ const App: React.FC = () => {
           phrase={phraseToImprove}
           onGenerateImprovement={handleGenerateImprovement}
           onPhraseImproved={handlePhraseImproved}
+          onOpenDiscussion={handleOpenDiscussionFromImprove}
        />}
         {phraseToEdit && apiProvider && <EditPhraseModal
             isOpen={isEditModalOpen}
@@ -1169,12 +1179,16 @@ const App: React.FC = () => {
        />}
        {phraseToDiscuss && apiProvider && <DiscussTranslationModal
             isOpen={isDiscussModalOpen}
-            onClose={() => setIsDiscussModalOpen(false)}
+            onClose={() => {
+                setIsDiscussModalOpen(false);
+                setDiscussInitialMessage(undefined);
+            }}
             originalRussian={phraseToDiscuss.russian}
             currentGerman={phraseToDiscuss.german}
             onDiscuss={handleDiscussTranslation}
             onAccept={handleDiscussionAccept}
             onOpenWordAnalysis={handleOpenWordAnalysis}
+            initialMessage={discussInitialMessage}
         />}
         <PronounsModal isOpen={isPronounsModalOpen} onClose={() => setIsPronounsModalOpen(false)} onOpenWordAnalysis={handleOpenWordAnalysis} />
         <WFragenModal isOpen={isWFragenModalOpen} onClose={() => setIsWFragenModalOpen(false)} onOpenWordAnalysis={handleOpenWordAnalysis} />

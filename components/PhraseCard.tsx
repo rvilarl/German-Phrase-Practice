@@ -5,7 +5,7 @@ import ChatIcon from './icons/ChatIcon';
 import AnalysisIcon from './icons/AnalysisIcon';
 import FilmIcon from './icons/FilmIcon';
 import LinkIcon from './icons/LinkIcon';
-import WandIcon from './icons/WandIcon';
+import SettingsIcon from './icons/SettingsIcon';
 import MicrophoneIcon from './icons/MicrophoneIcon';
 import BookOpenIcon from './icons/BookOpenIcon';
 import { getPhraseCategory } from '../services/srsService';
@@ -161,6 +161,13 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
         <div 
             className={`h-full absolute inset-0 [backface-visibility:hidden] bg-gradient-to-br from-slate-700/80 to-slate-800/80 backdrop-blur-sm border border-white/10 rounded-xl p-6 flex flex-col justify-between items-center text-center transition-colors duration-500 relative overflow-hidden`}
         >
+            <button
+                onClick={handleOpenImprovePhrase}
+                className="absolute top-3 right-3 p-2 rounded-full text-slate-300 hover:bg-slate-600/50 hover:text-white transition-colors z-10"
+                aria-label="Улучшить перевод"
+            >
+                <SettingsIcon className="w-5 h-5" />
+            </button>
             <div className="flex-grow flex flex-col items-center justify-center w-full">
                 {isQuickReplyEligible ? (
                     <button
@@ -206,9 +213,6 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
                 <button onClick={handleOpenMovieExamples} className="p-3 rounded-full bg-slate-600/50 hover:bg-slate-600 transition-colors text-slate-100" aria-label="Примеры из фильмов">
                     <FilmIcon className="w-5 h-5" />
                 </button>
-                 <button onClick={handleOpenImprovePhrase} className="p-3 rounded-full bg-slate-600/50 hover:bg-slate-600 transition-colors text-slate-100" aria-label="Улучшить перевод">
-                    <WandIcon className="w-5 h-5" />
-                </button>
             </div>
             <div className="flash-container"></div>
         </div>
@@ -216,6 +220,13 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
         {/* Back Side (German) */}
         <div className="h-full absolute inset-0 [transform:rotateY(180deg)] [backface-visibility:hidden] bg-gradient-to-br from-purple-600/90 to-blue-600/90 backdrop-blur-sm border border-white/10 rounded-xl p-6 flex flex-col justify-between items-center text-center transition-colors duration-500">
             <div className="flex-grow flex flex-col items-center justify-center w-full">
+                <button
+                    onClick={handleOpenImprovePhrase}
+                    className="absolute top-3 right-3 p-2 rounded-full text-slate-200 hover:bg-black/20 hover:text-white transition-colors z-10"
+                    aria-label="Улучшить перевод"
+                >
+                    <SettingsIcon className="w-5 h-5" />
+                </button>
                 <div className="text-2xl font-bold text-white flex flex-wrap justify-center items-center gap-x-1">
                     {phrase.german.split(' ').map((word, index) => (
                       <span 
@@ -265,9 +276,6 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
                 </button>
                 <button onClick={handleOpenMovieExamples} className="p-3 rounded-full bg-black/20 hover:bg-black/30 transition-colors text-white" aria-label="Примеры из фильмов">
                     <FilmIcon className="w-5 h-5" />
-                </button>
-                 <button onClick={handleOpenImprovePhrase} className="p-3 rounded-full bg-black/20 hover:bg-black/30 transition-colors text-white" aria-label="Улучшить перевод">
-                    <WandIcon className="w-5 h-5" />
                 </button>
             </div>
             <div className="flash-container"></div>
