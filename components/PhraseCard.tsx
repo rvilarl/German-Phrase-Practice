@@ -264,11 +264,15 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
                 </div>
             </div>
 
-            <div className="w-full flex justify-center items-center flex-wrap gap-2">
-                <button onClick={handleSpeak} className="p-3 rounded-full bg-black/20 hover:bg-black/30 transition-colors text-white" aria-label="Озвучить">
+            <div className="relative w-full">
+                {renderActionButtons('back')}
+                <button
+                    onClick={handleSpeak}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-full text-slate-200 hover:bg-black/20 hover:text-white transition-colors"
+                    aria-label="Озвучить"
+                >
                     <SoundIcon className="w-5 h-5" />
                 </button>
-                {renderActionButtons('back')}
             </div>
             <div className="flash-container"></div>
         </div>
