@@ -81,6 +81,7 @@ export interface ProactiveSuggestion {
 export interface ContentPart {
   type: 'text' | 'german';
   text: string;
+  translation?: string;
 }
 
 export interface CheatSheetOption {

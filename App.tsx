@@ -1041,6 +1041,11 @@ const App: React.FC = () => {
           onContinueChat={handleContinueChat}
           apiProviderType={apiProviderType}
           onOpenWordAnalysis={handleOpenWordAnalysis}
+          allPhrases={allPhrases}
+          onCreateCard={handleCreateCardFromWord}
+          onAnalyzeWord={analyzeWord}
+          onOpenVerbConjugation={handleOpenVerbConjugation}
+          onOpenNounDeclension={handleOpenNounDeclension}
       />}
       <SettingsModal isOpen={isSettingsModalOpen} onClose={() => setIsSettingsModalOpen(false)} settings={settings} onSettingsChange={handleSettingsChange} />
       {deepDivePhrase && <DeepDiveModal 

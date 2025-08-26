@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Phrase, ChatMessage, SpeechRecognition, SpeechRecognitionErrorEvent } from '../types';
+import { Phrase, ChatMessage, SpeechRecognition, SpeechRecognitionErrorEvent, WordAnalysis } from '../types';
 import { getCache, setCache } from '../services/cacheService';
 import { ApiProviderType } from '../services/apiProvider';
 import GeminiLogo from './icons/GeminiLogo';
@@ -10,6 +10,7 @@ import CloseIcon from './icons/CloseIcon';
 import SendIcon from './icons/SendIcon';
 import SoundIcon from './icons/SoundIcon';
 import MicrophoneIcon from './icons/MicrophoneIcon';
+import ChatContextMenu from './ChatContextMenu';
 
 interface ChatModalProps {
   isOpen: boolean;
@@ -19,6 +20,11 @@ interface ChatModalProps {
   onContinueChat: (phrase: Phrase, history: ChatMessage[], newMessage: string) => Promise<ChatMessage>;
   apiProviderType: ApiProviderType;
   onOpenWordAnalysis: (phrase: Phrase, word: string) => void;
+  allPhrases: Phrase[];
+  onCreateCard: (phraseData: { german: string; russian: string; }) => void;
+  onAnalyzeWord: (phrase: Phrase, word: string) => Promise<WordAnalysis | null>;
+  onOpenVerbConjugation: (infinitive: string) => void;
+  onOpenNounDeclension: (noun: string, article: string) => void;
 }
 
 const ChatMessageContent: React.FC<{
@@ -26,8 +32,29 @@ const ChatMessageContent: React.FC<{
     onSpeak: (text: string) => void;
     basePhrase?: Phrase;
     onOpenWordAnalysis?: (phrase: Phrase, word: string) => void;
-}> = ({ message, onSpeak, basePhrase, onOpenWordAnalysis }) => {
+    onOpenContextMenu: (target: { sentence: { german: string, russian: string }, word: string }) => void;
+}> = ({ message, onSpeak, basePhrase, onOpenWordAnalysis, onOpenContextMenu }) => {
     const { text, examples, suggestions, contentParts } = message;
+    const wordLongPressTimer = useRef<number | null>(null);
+
+    const handleWordPointerDown = (e: React.PointerEvent<HTMLSpanElement>, sentence: { german: string, russian: string }, word: string) => {
+        if (e.pointerType === 'mouse' && e.button !== 0) return;
+        e.stopPropagation();
+        const cleanedWord = word.replace(/[.,!?()"“”:;]/g, '');
+        if (!cleanedWord) return;
+
+        wordLongPressTimer.current = window.setTimeout(() => {
+            onOpenContextMenu({ sentence, word: cleanedWord });
+            wordLongPressTimer.current = null;
+        }, 500);
+    };
+
+    const clearWordLongPress = (e: React.PointerEvent<HTMLSpanElement>) => {
+        e.stopPropagation();
+        if (wordLongPressTimer.current) {
+            clearTimeout(wordLongPressTimer.current);
+        }
+    };
 
     const handleWordClick = (contextText: string, word: string) => {
         if (!onOpenWordAnalysis || !basePhrase) return;
@@ -35,15 +62,24 @@ const ChatMessageContent: React.FC<{
         onOpenWordAnalysis(proxyPhrase, word);
     };
 
-    const renderClickableGerman = (text: string) => {
-        if (!text) return null;
-        return text.split(' ').map((word, i, arr) => (
+    const renderClickableGerman = (sentence: { german: string, russian: string }) => {
+        if (!sentence.german) return null;
+        return sentence.german.split(' ').map((word, i, arr) => (
             <span
                 key={i}
                 onClick={(e) => {
                     e.stopPropagation();
                     const cleanedWord = word.replace(/[.,!?()"“”:;]/g, '');
-                    if (cleanedWord) handleWordClick(text, cleanedWord);
+                    if (cleanedWord) handleWordClick(sentence.german, cleanedWord);
+                }}
+                onPointerDown={(e) => handleWordPointerDown(e, sentence, word)}
+                onPointerUp={clearWordLongPress}
+                onPointerLeave={clearWordLongPress}
+                onContextMenu={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const cleanedWord = word.replace(/[.,!?()"“”:;]/g, '');
+                    if(cleanedWord) onOpenContextMenu({ sentence, word: cleanedWord });
                 }}
                 className="cursor-pointer hover:bg-white/20 px-1 py-0.5 rounded-md transition-colors"
             >
@@ -59,7 +95,7 @@ const ChatMessageContent: React.FC<{
                 {contentParts.map((part, index) =>
                     part.type === 'german' ? (
                         <span key={index} className="inline-flex items-center align-middle bg-slate-600/50 px-1.5 py-0.5 rounded-md mx-0.5">
-                            <span className="font-medium text-purple-300">{renderClickableGerman(part.text)}</span>
+                            <span className="font-medium text-purple-300">{renderClickableGerman({ german: part.text, russian: part.translation || '' })}</span>
                             <button
                                 onClick={() => onSpeak(part.text)}
                                 className="p-0.5 rounded-full hover:bg-white/20 flex-shrink-0 ml-1.5"
@@ -94,7 +130,7 @@ const ChatMessageContent: React.FC<{
                                     >
                                         <SoundIcon className="w-4 h-4 text-slate-300" />
                                     </button>
-                                    <p className="flex-1 text-slate-100 leading-relaxed">{renderClickableGerman(example.german)}</p>
+                                    <p className="flex-1 text-slate-100 leading-relaxed">{renderClickableGerman({ german: example.german, russian: example.russian })}</p>
                                 </div>
                                 <p className="pl-7 text-sm text-slate-400 italic">{example.russian}</p>
                             </div>
@@ -111,7 +147,7 @@ const ChatMessageContent: React.FC<{
                                     {suggestion.contentParts.map((part, partIndex) =>
                                         part.type === 'german' ? (
                                             <span key={partIndex} className="inline-flex items-center align-middle bg-slate-500/50 px-1.5 py-0.5 rounded-md mx-0.5">
-                                                <span className="font-medium text-purple-200">{renderClickableGerman(part.text)}</span>
+                                                <span className="font-medium text-purple-200">{renderClickableGerman({ german: part.text, russian: part.translation || '' })}</span>
                                                 <button
                                                     onClick={() => onSpeak(part.text)}
                                                     className="p-0.5 rounded-full hover:bg-white/20 flex-shrink-0 ml-1.5"
@@ -154,7 +190,7 @@ const ChatSkeleton: React.FC = () => (
 );
 
 
-const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, phrase, onGenerateInitialExamples, onContinueChat, apiProviderType, onOpenWordAnalysis }) => {
+const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, phrase, onGenerateInitialExamples, onContinueChat, apiProviderType, onOpenWordAnalysis, allPhrases, onCreateCard, onAnalyzeWord, onOpenVerbConjugation, onOpenNounDeclension }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [input, setInput] = useState('');
@@ -164,6 +200,8 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, phrase, onGenera
   const [isListening, setIsListening] = useState(false);
   const [speechSupported, setSpeechSupported] = useState(false);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+
+  const [contextMenuTarget, setContextMenuTarget] = useState<{ sentence: { german: string, russian: string }, word: string } | null>(null);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -346,7 +384,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, phrase, onGenera
             {messages.map((msg, index) => (
               <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[85%] px-4 py-3 rounded-2xl break-words ${msg.role === 'user' ? 'bg-purple-600 text-white rounded-br-lg' : 'bg-slate-700 text-slate-200 rounded-bl-lg'}`}>
-                   <ChatMessageContent message={msg} onSpeak={onSpeak} basePhrase={phrase} onOpenWordAnalysis={onOpenWordAnalysis} />
+                   <ChatMessageContent message={msg} onSpeak={onSpeak} basePhrase={phrase} onOpenWordAnalysis={onOpenWordAnalysis} onOpenContextMenu={setContextMenuTarget} />
                 </div>
               </div>
             ))}
@@ -415,6 +453,20 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, phrase, onGenera
           </form>
         </div>
       </div>
+      {contextMenuTarget && (
+        <ChatContextMenu
+            target={contextMenuTarget}
+            onClose={() => setContextMenuTarget(null)}
+            onAnalyzeWord={onAnalyzeWord}
+            onCreateCard={onCreateCard}
+            onGenerateMore={handleSendMessage}
+            onSpeak={onSpeak}
+            onOpenVerbConjugation={onOpenVerbConjugation}
+            onOpenNounDeclension={onOpenNounDeclension}
+            onOpenWordAnalysis={onOpenWordAnalysis}
+            allPhrases={allPhrases}
+        />
+      )}
     </div>
   );
 };
