@@ -1,5 +1,5 @@
 import React, { useCallback, useRef, useState, useEffect, useMemo } from 'react';
-import type { Phrase, WordAnalysis } from '../types';
+import type { Phrase, WordAnalysis, PhraseCategory } from '../types';
 import PhraseCard from '../components/PhraseCard';
 import Spinner from '../components/Spinner';
 import PracticePageContextMenu from '../components/PracticePageContextMenu';
@@ -10,6 +10,7 @@ import * as cacheService from '../services/cacheService';
 import { playCorrectSound } from '../services/soundService';
 import ArrowLeftIcon from '../components/icons/ArrowLeftIcon';
 import ArrowRightIcon from '../components/icons/ArrowRightIcon';
+import ChevronDownIcon from '../components/icons/ChevronDownIcon';
 
 
 const SWIPE_THRESHOLD = 50; // pixels
@@ -20,15 +21,29 @@ interface AnimationState {
   direction: AnimationDirection;
 }
 
+const categoryDisplay: Record<PhraseCategory, { name: string }> = {
+    general: { name: 'Общие' },
+    'w-fragen': { name: 'W-Fragen' },
+    pronouns: { name: 'Местоимения' },
+    numbers: { name: 'Цифры' },
+    time: { name: 'Время' },
+    money: { name: 'Деньги' },
+};
+
+const allCategories: PhraseCategory[] = ['general', 'w-fragen', 'pronouns', 'numbers', 'time', 'money'];
+
 const W_FRAGEN_POOL = ["Was", "Wer", "Wo", "Wann", "Wie", "Warum", "Woher", "Wohin", "Welcher", "Wie viel", "Wie viele"];
 const PRONOUN_POOL = ["ich", "du", "er", "sie", "es", "wir", "ihr", "Sie"];
 
 interface PracticePageProps {
   currentPhrase: Phrase | null;
   isAnswerRevealed: boolean;
+  onSetIsAnswerRevealed: React.Dispatch<React.SetStateAction<boolean>>;
+  isCardEvaluated: boolean;
   animationState: AnimationState;
   isExiting: boolean;
   unmasteredCount: number;
+  currentPoolCount: number;
   fetchNewPhrases: (count?: number) => Promise<void>;
   isLoading: boolean;
   error: string | null;
@@ -54,6 +69,7 @@ interface PracticePageProps {
     dynamicButtonLayout: boolean;
     soundEffects: boolean;
     autoSpeak: boolean;
+    enabledCategories: Record<PhraseCategory, boolean>;
   };
   masteryButtonUsage: { know: number; forgot: number; dont_know: number };
   allPhrases: Phrase[];
@@ -64,11 +80,72 @@ interface PracticePageProps {
   cardActionUsage: { [key: string]: number };
   onLogCardActionUsage: (button: string) => void;
   cardHistoryLength: number;
+  practiceCategoryFilter: 'all' | PhraseCategory;
+  setPracticeCategoryFilter: (filter: 'all' | PhraseCategory) => void;
 }
+
+const CategoryFilter: React.FC<{
+    currentFilter: 'all' | PhraseCategory;
+    onFilterChange: (filter: 'all' | PhraseCategory) => void;
+    enabledCategories: Record<PhraseCategory, boolean>;
+    currentPhraseCategory: PhraseCategory | null;
+}> = ({ currentFilter, onFilterChange, enabledCategories, currentPhraseCategory }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
+    const categoryName = currentFilter === 'all' 
+        ? 'Все категории' 
+        : categoryDisplay[currentFilter]?.name || 'Все категории';
+    
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setIsOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+    
+    const handleSelect = (filter: 'all' | PhraseCategory) => {
+        onFilterChange(filter);
+        setIsOpen(false);
+    };
+    
+    const visibleCategories = allCategories.filter(cat => enabledCategories[cat]);
+
+    return (
+        <div ref={dropdownRef} className="relative w-full max-w-sm mx-auto mb-4">
+            <button
+                onClick={() => setIsOpen(!isOpen)}
+                className="w-full flex items-center justify-center px-4 py-2 bg-transparent hover:bg-slate-700/80 rounded-lg text-slate-300 transition-colors"
+            >
+                <span className="font-semibold mr-2">
+                    {currentFilter === 'all' && currentPhraseCategory ? categoryDisplay[currentPhraseCategory].name : categoryName}
+                </span>
+                <ChevronDownIcon className={`w-5 h-5 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {isOpen && (
+                <div className="absolute top-full mt-2 w-full bg-slate-700 border border-slate-600 rounded-lg shadow-lg z-20 animate-fade-in p-1">
+                    <ul>
+                        <li>
+                            <button onClick={() => handleSelect('all')} className="w-full text-left px-3 py-2 text-slate-200 hover:bg-slate-600 rounded-md transition-colors">Все категории</button>
+                        </li>
+                        {visibleCategories.map(cat => (
+                            <li key={cat}>
+                                <button onClick={() => handleSelect(cat)} className="w-full text-left px-3 py-2 text-slate-200 hover:bg-slate-600 rounded-md transition-colors">{categoryDisplay[cat].name}</button>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
+        </div>
+    );
+};
+
 
 const PracticePage: React.FC<PracticePageProps> = (props) => {
   const {
-    currentPhrase, isAnswerRevealed, animationState, isExiting, unmasteredCount,
+    currentPhrase, isAnswerRevealed, onSetIsAnswerRevealed, isCardEvaluated, animationState, isExiting, unmasteredCount, currentPoolCount,
     fetchNewPhrases, isLoading, error, isGenerating, apiProviderAvailable,
     onUpdateMastery, onContinue, onSwipeRight,
     onOpenChat, onOpenDeepDive, onOpenMovieExamples, onOpenWordAnalysis,
@@ -77,7 +154,7 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
     onOpenVoiceWorkspace, onDeletePhrase, onGoToList, onOpenDiscussTranslation,
     settings, masteryButtonUsage, allPhrases, onCreateCard, onAnalyzeWord,
     onGenerateQuickReplyOptions, isWordAnalysisLoading, cardActionUsage, onLogCardActionUsage,
-    cardHistoryLength
+    cardHistoryLength, practiceCategoryFilter, setPracticeCategoryFilter
   } = props;
 
   const [contextMenuTarget, setContextMenuTarget] = useState<{ phrase: Phrase; word?: string } | null>(null);
@@ -100,15 +177,9 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
   
   const isQuickReplyEligible = useMemo(() => {
     if (!currentPhrase) return false;
-    const category = srsService.getPhraseCategory(currentPhrase);
-    switch (category) {
-      case 'w-frage':
-      case 'personal-pronoun':
-      case 'short-phrase':
-        return true;
-      default:
-        return false;
-    }
+    const { category, german } = currentPhrase;
+    const wordCount = german.split(' ').filter(Boolean).length;
+    return category !== 'general' || wordCount <= 2;
   }, [currentPhrase]);
 
 
@@ -119,21 +190,19 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
     setIsQuickReplyLoading(true);
 
     try {
-        const category = srsService.getPhraseCategory(phraseToReply);
+        const { category } = phraseToReply;
         const correctAnswer = phraseToReply.german.replace(/[?]/g, '');
         let distractors: string[] = [];
+        
+        const isFoundation = category === 'w-fragen' || category === 'pronouns';
 
-        if (category === 'w-frage') {
-            distractors = W_FRAGEN_POOL
+        if (isFoundation) {
+            const pool = category === 'w-fragen' ? W_FRAGEN_POOL : PRONOUN_POOL;
+             distractors = pool
                 .filter(p => p !== correctAnswer)
                 .sort(() => 0.5 - Math.random())
                 .slice(0, 3);
-        } else if (category === 'personal-pronoun') {
-            distractors = PRONOUN_POOL
-                .filter(p => p !== correctAnswer)
-                .sort(() => 0.5 - Math.random())
-                .slice(0, 3);
-        } else if (category === 'short-phrase') {
+        } else {
             const cacheKey = `quick_reply_options_${phraseToReply.id}`;
             const cachedDistractors = cacheService.getCache<string[]>(cacheKey);
 
@@ -148,8 +217,6 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
                     throw new Error("Не удалось сгенерировать варианты ответа.");
                 }
             }
-        } else {
-             throw new Error("Неподходящая категория фразы для быстрого ответа.");
         }
           
         const options = [correctAnswer, ...distractors].sort(() => 0.5 - Math.random());
@@ -197,8 +264,17 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
   };
   
   const handleSwipeLeft = () => {
-    if (isAnswerRevealed || isExiting) return;
-    handleMasteryButtonClick('know');
+    if (isExiting) return;
+
+    // If card is already evaluated (e.g., 'forgot' was pressed),
+    // a left swipe should just continue to the next card.
+    if (isCardEvaluated) {
+      onContinue();
+    } else {
+      // If not evaluated, a left swipe implies 'know' and then continue.
+      // This works whether the card is flipped or not.
+      handleMasteryButtonClick('know');
+    }
   };
   
   const handleTouchStart = (e: React.TouchEvent) => { touchMoveRef.current = null; touchStartRef.current = e.targetTouches[0].clientX; };
@@ -213,7 +289,7 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
   };
 
   const renderButtons = () => {
-     if (isAnswerRevealed) {
+     if (isCardEvaluated) {
         return (
             <div className="flex justify-center mt-8 h-12">
                 <button
@@ -230,75 +306,61 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
      if (!currentPhrase) {
        return <div className="mt-8 h-12" />;
      }
-
-     const phraseCategory = srsService.getPhraseCategory(currentPhrase);
-     const isExcludedCategory = phraseCategory === 'w-frage' || phraseCategory === 'personal-pronoun';
      
-     if (isExcludedCategory) {
+     const isFoundational = currentPhrase.category !== 'general';
+     
+     if (isFoundational) {
          return <div className="mt-8 h-12" />;
      }
      
      const hasBeenReviewed = currentPhrase.lastReviewedAt !== null;
      
-     // For regular phrases, show the full set
-     if (phraseCategory === 'regular' || phraseCategory === null) {
-         const allButtons = [
-            { key: 'dont_know' as const, label: 'Не знаю', className: 'bg-amber-500 hover:bg-amber-600', condition: !hasBeenReviewed },
-            { key: 'forgot' as const, label: 'Забыл', className: 'bg-red-500 hover:bg-red-600', condition: hasBeenReviewed },
-            { key: 'know' as const, label: 'Знаю', className: 'bg-green-500 hover:bg-green-600', condition: true },
-         ];
-         let buttonsToRender = allButtons.filter(btn => btn.condition);
-         if (settings.dynamicButtonLayout) {
-             buttonsToRender.sort((a, b) => (masteryButtonUsage[a.key] || 0) - (masteryButtonUsage[b.key] || 0));
-         }
+     const allButtons = [
+        { key: 'dont_know' as const, label: 'Не знаю', className: 'bg-amber-500 hover:bg-amber-600', condition: !hasBeenReviewed },
+        { key: 'forgot' as const, label: 'Забыл', className: 'bg-red-500 hover:bg-red-600', condition: hasBeenReviewed },
+        { key: 'know' as const, label: 'Знаю', className: 'bg-green-500 hover:bg-green-500', condition: true },
+     ];
+     let buttonsToRender = allButtons.filter(btn => btn.condition);
+     if (settings.dynamicButtonLayout) {
+         buttonsToRender.sort((a, b) => (masteryButtonUsage[a.key] || 0) - (masteryButtonUsage[b.key] || 0));
+     }
 
-         return (
-            <div className="flex justify-center space-x-2 sm:space-x-4 mt-8 h-12">
-                 {buttonsToRender.map(btn => (
-                    <button 
-                        key={btn.key} 
-                        onClick={() => handleMasteryButtonClick(btn.key)} 
-                        className={`px-4 sm:px-6 py-3 rounded-lg font-semibold text-white shadow-md transition-colors ${btn.className}`}
-                    >
-                        {btn.label}
-                    </button>
-                ))}
-            </div>
-         );
-     }
-     
-     // For short phrases, only show the "Forgot"/"Don't Know" button
-     if (phraseCategory === 'short-phrase') {
-         const buttonKey = hasBeenReviewed ? 'forgot' : 'dont_know';
-         const buttonLabel = hasBeenReviewed ? 'Забыл' : 'Не знаю';
-         const buttonClass = hasBeenReviewed ? 'bg-red-500 hover:bg-red-600' : 'bg-amber-500 hover:bg-amber-600';
-         
-         return (
-             <div className="flex justify-center mt-8 h-12">
-                 <button 
-                     key={buttonKey} 
-                     onClick={() => handleMasteryButtonClick(buttonKey)} 
-                     className={`px-4 sm:px-6 py-3 rounded-lg font-semibold text-white shadow-md transition-colors ${buttonClass}`}
-                 >
-                     {buttonLabel}
-                 </button>
-             </div>
-         );
-     }
-     
-     return <div className="mt-8 h-12" />;
+     return (
+        <div className="flex justify-center space-x-2 sm:space-x-4 mt-8 h-12">
+             {buttonsToRender.map(btn => (
+                <button 
+                    key={btn.key} 
+                    onClick={() => handleMasteryButtonClick(btn.key)} 
+                    className={`px-4 sm:px-6 py-3 rounded-lg font-semibold text-white shadow-md transition-colors ${btn.className}`}
+                >
+                    {btn.label}
+                </button>
+            ))}
+        </div>
+     );
   };
 
   const renderContent = () => {
     if (isLoading) return <div className="flex justify-center items-center h-64"><Spinner /></div>;
     if (error) return <div className="text-center bg-red-900/50 border border-red-700 text-red-300 p-4 rounded-lg max-w-md mx-auto"><p className="font-semibold">Произошла ошибка</p><p className="text-sm">{error}</p></div>;
     if (!currentPhrase) {
-      if (unmasteredCount === 0) {
+      if (unmasteredCount === 0 && practiceCategoryFilter === 'all') {
         return (
             <div className="text-center text-slate-400 p-4">
                 <h2 className="text-2xl font-bold text-white mb-4">Поздравляем!</h2>
-                <p>Вы выучили все доступные фразы. Сгенерировать новые?</p>
-                <button onClick={() => fetchNewPhrases()} disabled={isGenerating || !apiProviderAvailable} className="mt-6 px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-md text-white font-bold transition-colors disabled:opacity-50">{isGenerating ? 'Генерация...' : 'Сгенерировать фразы'}</button>
+                <p>Вы выучили все фразы в выбранных категориях.</p>
+                <button onClick={() => fetchNewPhrases()} disabled={isGenerating || !apiProviderAvailable} className="mt-6 px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-md text-white font-bold transition-colors disabled:opacity-50">{isGenerating ? 'Генерация...' : 'Сгенерировать новые'}</button>
+            </div>
+        );
+      }
+       if (currentPoolCount === 0) {
+        return (
+            <div className="text-center text-slate-400 p-4">
+                <h2 className="text-2xl font-bold text-white mb-4">Пусто</h2>
+                <p>Нет невыученных карточек в категории "{categoryDisplay[practiceCategoryFilter as PhraseCategory].name}".</p>
+                <button onClick={() => setPracticeCategoryFilter('all')} className="mt-6 px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-md text-white font-bold transition-colors">
+                    Практиковать все категории
+                </button>
             </div>
         );
       }
@@ -343,6 +405,7 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
                           phrase={currentPhrase} 
                           onSpeak={speak} 
                           isFlipped={isAnswerRevealed}
+                          onFlip={() => onSetIsAnswerRevealed(true)}
                           onOpenChat={onOpenChat} 
                           onOpenDeepDive={onOpenDeepDive}
                           onOpenMovieExamples={onOpenMovieExamples}
@@ -368,6 +431,12 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
 
   return (
     <>
+      <CategoryFilter
+        currentFilter={practiceCategoryFilter}
+        onFilterChange={setPracticeCategoryFilter}
+        enabledCategories={settings.enabledCategories}
+        currentPhraseCategory={currentPhrase?.category || null}
+      />
       {renderContent()}
       {contextMenuTarget && (
         <PracticePageContextMenu

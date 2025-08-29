@@ -23,6 +23,7 @@ const VerbConjugationModal: React.FC<VerbConjugationModalProps> = ({ isOpen, onC
         id: `proxy_verb_${infinitive}`,
         german: contextText,
         russian: `Спряжение: ${infinitive}`,
+        category: 'general',
         masteryLevel: 0, lastReviewedAt: null, nextReviewAt: Date.now(),
         knowCount: 0, knowStreak: 0, isMastered: false
     };

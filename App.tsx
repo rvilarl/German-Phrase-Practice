@@ -1,9 +1,13 @@
+
+
+
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Phrase, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, SentenceContinuation, PhraseBuilderOptions, PhraseEvaluation, ChatMessage } from './types';
+import { Phrase, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, SentenceContinuation, PhraseBuilderOptions, PhraseEvaluation, ChatMessage, PhraseCategory } from './types';
 import * as srsService from './services/srsService';
 import * as cacheService from './services/cacheService';
 import { getProviderPriorityList, getFallbackProvider, ApiProviderType } from './services/apiProvider';
 import { AiService } from './services/aiService';
+// FIX: Corrected typo in import alias from 'defaultPhrrases' to 'defaultPhrases'.
 import { initialPhrases as defaultPhrases } from './data/initialPhrases';
 import { playCorrectSound, playIncorrectSound } from './services/soundService';
 
@@ -29,7 +33,6 @@ import LearningAssistantModal from './components/LearningAssistantModal';
 import PronounsModal from './components/PronounsModal';
 import WFragenModal from './components/WFragenModal';
 import Toast from './components/Toast';
-import FeedbackMessage from './components/FeedbackMessage';
 
 
 const PHRASES_STORAGE_KEY = 'germanPhrases';
@@ -60,6 +63,14 @@ const defaultSettings = {
     autoCheckShortPhrases: true,
     learnNextPhraseHabit: true,
   },
+  enabledCategories: {
+    general: true,
+    'w-fragen': true,
+    pronouns: true,
+    numbers: true,
+    time: true,
+    money: true,
+  } as Record<PhraseCategory, boolean>,
 };
 
 const defaultHabitTracker = { 
@@ -70,7 +81,7 @@ const defaultHabitTracker = {
 const defaultCardActionUsage = {
     learningAssistant: 0,
     sentenceChain: 0,
-    voicePractice: 0,
+    phraseBuilder: 0,
     chat: 0,
     deepDive: 0,
     movieExamples: 0,
@@ -90,8 +101,10 @@ const App: React.FC = () => {
   // --- State Lifted from PracticePage ---
   const [currentPracticePhrase, setCurrentPracticePhrase] = useState<Phrase | null>(null);
   const [isPracticeAnswerRevealed, setIsPracticeAnswerRevealed] = useState(false);
+  const [practiceCardEvaluated, setPracticeCardEvaluated] = useState(false);
   const [practiceAnimationState, setPracticeAnimationState] = useState<AnimationState>({ key: '', direction: 'right' });
   const [cardHistory, setCardHistory] = useState<string[]>([]);
+  const [practiceCategoryFilter, setPracticeCategoryFilter] = useState<'all' | PhraseCategory>('all');
   const practiceIsExitingRef = useRef(false);
   // --- End State Lift ---
 
@@ -207,12 +220,12 @@ const App: React.FC = () => {
             const storedSettings = localStorage.getItem(SETTINGS_STORAGE_KEY);
             if (storedSettings) {
                 const parsedSettings = JSON.parse(storedSettings);
-                // Merge with defaults to ensure new settings are applied
                 setSettings(prev => ({
                     ...defaultSettings,
                     ...prev,
                     ...parsedSettings,
                     automation: { ...defaultSettings.automation, ...parsedSettings.automation },
+                    enabledCategories: { ...defaultSettings.enabledCategories, ...parsedSettings.enabledCategories },
                 }));
             }
             const storedUsage = localStorage.getItem(BUTTON_USAGE_STORAGE_KEY);
@@ -255,9 +268,11 @@ const App: React.FC = () => {
                                 nextReviewAt: p.nextReviewAt ?? Date.now(),
                                 isMastered: p.isMastered ?? false,
                             };
+                            const category = p.category || srsService.assignInitialCategory(phraseData);
                             return {
                                 ...phraseData,
-                                isMastered: p.isMastered ?? srsService.isPhraseMastered(phraseData),
+                                category,
+                                isMastered: p.isMastered ?? srsService.isPhraseMastered({ ...phraseData, category }),
                             };
                         });
                 }
@@ -440,7 +455,7 @@ const App: React.FC = () => {
         const phrasesToAdd: Phrase[] = newPhrases.map(p => ({
             ...p,
             id: Math.random().toString(36).substring(2, 9), masteryLevel: 0, lastReviewedAt: null, nextReviewAt: now,
-            knowCount: 0, knowStreak: 0, isMastered: false,
+            knowCount: 0, knowStreak: 0, isMastered: false, category: 'general',
         }));
         updateAndSavePhrases(prev => [...prev, ...phrasesToAdd]);
         
@@ -549,6 +564,7 @@ const App: React.FC = () => {
     setVerbConjugationData(null);
     setVerbConjugationError(null);
     const cacheKey = `verb_conjugation_${infinitive}`;
+    // FIX: Used `cacheKey` instead of `cachedData` which was not yet declared.
     const cachedData = cacheService.getCache<VerbConjugation>(cacheKey);
     if (cachedData) {
         setVerbConjugationData(cachedData);
@@ -574,6 +590,7 @@ const App: React.FC = () => {
     setNounDeclensionData(null);
     setNounDeclensionError(null);
     const cacheKey = `noun_declension_${article}_${noun}`;
+    // FIX: Used `cacheKey` instead of `cachedData` which was not yet declared.
     const cachedData = cacheService.getCache<NounDeclension>(cacheKey);
     if (cachedData) {
         setNounDeclensionData(cachedData);
@@ -648,9 +665,8 @@ const App: React.FC = () => {
             const nextPhrase = srsService.selectNextPhrase(unmastered, nextPhraseId);
             if (nextPhrase) {
                 if (phrasesToFetch.some(p => p.id === nextPhrase.id)) break;
-                const category = srsService.getPhraseCategory(nextPhrase);
-                if (category === 'short-phrase') {
-                    phrasesToFetch.push(nextPhrase);
+                if (nextPhrase.category === 'general' && nextPhrase.german.split(' ').length <= 2) {
+                     phrasesToFetch.push(nextPhrase);
                 }
                 nextPhraseId = nextPhrase.id;
             } else {
@@ -749,6 +765,7 @@ const App: React.FC = () => {
         knowCount: 0,
         knowStreak: 0,
         isMastered: false,
+        category: 'general',
     };
     updateAndSavePhrases(prev => [newPhrase, ...prev]);
     
@@ -776,6 +793,7 @@ const App: React.FC = () => {
         knowCount: 0,
         knowStreak: 0,
         isMastered: false,
+        category: 'general',
     };
     updateAndSavePhrases(prev => [newPhrase, ...prev]);
     
@@ -874,10 +892,18 @@ const App: React.FC = () => {
   }, [updatePhraseMasteryAndCache, currentPracticePhrase, settings.soundEffects]);
 
   // --- Practice Page Logic ---
-  const unmasteredPhrases = useMemo(() => allPhrases.filter(p => p && !p.isMastered), [allPhrases]);
+  const unmasteredPhrases = useMemo(() => allPhrases.filter(p => p && !p.isMastered && settings.enabledCategories[p.category]), [allPhrases, settings.enabledCategories]);
+
+  const practicePool = useMemo(() => {
+    if (practiceCategoryFilter === 'all') {
+      return unmasteredPhrases;
+    }
+    return unmasteredPhrases.filter(p => p.category === practiceCategoryFilter);
+  }, [unmasteredPhrases, practiceCategoryFilter]);
 
   const changePracticePhrase = useCallback((nextPhrase: Phrase | null, direction: AnimationDirection) => {
     setIsPracticeAnswerRevealed(false);
+    setPracticeCardEvaluated(false);
     if (!nextPhrase) {
         setCurrentPracticePhrase(null);
         return;
@@ -885,6 +911,23 @@ const App: React.FC = () => {
     setPracticeAnimationState({ key: nextPhrase.id, direction });
     setCurrentPracticePhrase(nextPhrase);
   }, []);
+  
+  const isInitialFilterChange = useRef(true);
+  useEffect(() => {
+    if (view !== 'practice' || isInitialFilterChange.current) {
+        isInitialFilterChange.current = false;
+        return;
+    }
+
+    // A change in the filter should immediately present a new card from that category.
+    const newPool = practiceCategoryFilter === 'all'
+        ? unmasteredPhrases
+        : unmasteredPhrases.filter(p => p.category === practiceCategoryFilter);
+    
+    const nextPhrase = srsService.selectNextPhrase(newPool, null); // Get a fresh card from the new pool
+    changePracticePhrase(nextPhrase, 'right');
+  }, [practiceCategoryFilter, unmasteredPhrases, changePracticePhrase, view]);
+
 
   const selectNextPracticePhrase = useCallback((addToHistory: boolean = true) => {
     if (currentPracticePhrase) {
@@ -899,17 +942,21 @@ const App: React.FC = () => {
       });
     }
 
-    const nextPhrase = srsService.selectNextPhrase(unmasteredPhrases, currentPracticePhrase?.id ?? null);
+    const nextPhrase = srsService.selectNextPhrase(practicePool, currentPracticePhrase?.id ?? null);
     changePracticePhrase(nextPhrase, 'right');
     
     const POOL_FETCH_THRESHOLD = 7;
     const ACTIVE_POOL_TARGET = 10;
     const PHRASES_TO_FETCH = 5;
-    if (unmasteredPhrases.length < POOL_FETCH_THRESHOLD && !isGenerating && allPhrases.length > 0) {
-        const needed = ACTIVE_POOL_TARGET - unmasteredPhrases.length;
+
+    // We only fetch 'general' phrases, so the check should be based on their count within the overall unmastered pool.
+    const unmasteredGeneralCount = unmasteredPhrases.filter(p => p.category === 'general').length;
+
+    if (unmasteredGeneralCount < POOL_FETCH_THRESHOLD && !isGenerating && allPhrases.length > 0) {
+        const needed = ACTIVE_POOL_TARGET - unmasteredGeneralCount;
         fetchNewPhrases(Math.max(needed, PHRASES_TO_FETCH));
     }
-  }, [unmasteredPhrases, currentPracticePhrase, fetchNewPhrases, isGenerating, allPhrases.length, changePracticePhrase]);
+  }, [practicePool, currentPracticePhrase, fetchNewPhrases, isGenerating, allPhrases.length, changePracticePhrase, unmasteredPhrases]);
 
   useEffect(() => {
     if (!isLoading && allPhrases.length > 0 && !currentPracticePhrase && view === 'practice') {
@@ -946,7 +993,6 @@ const App: React.FC = () => {
     handleLogMasteryButtonUsage(action);
     const originalPhrase = currentPracticePhrase;
 
-    const phraseToSpeak = originalPhrase.german;
     const updatedPhrase = srsService.updatePhraseMastery(originalPhrase, action);
     
     updateAndSavePhrases(prev => prev.map(p => p.id === updatedPhrase.id ? updatedPhrase : p));
@@ -961,21 +1007,16 @@ const App: React.FC = () => {
       setCurrentPracticePhrase(updatedPhrase);
     } else {
       setIsPracticeAnswerRevealed(true);
+      setPracticeCardEvaluated(true);
       setCurrentPracticePhrase(updatedPhrase); // Update the card state before showing it flipped
 
       if (action === 'know') {
           if (settings.soundEffects) playCorrectSound();
       } else {
           if (settings.soundEffects) playIncorrectSound();
-          if (settings.autoSpeak && 'speechSynthesis' in window) {
-              const utterance = new SpeechSynthesisUtterance(phraseToSpeak);
-              utterance.lang = 'de-DE';
-              utterance.rate = 0.9;
-              window.speechSynthesis.speak(utterance);
-          }
       }
     }
-  }, [currentPracticePhrase, handleLogMasteryButtonUsage, updateAndSavePhrases, settings.autoSpeak, settings.soundEffects]);
+  }, [currentPracticePhrase, handleLogMasteryButtonUsage, updateAndSavePhrases, settings.soundEffects, setPracticeCardEvaluated]);
 
 
   const handlePracticeSwipeRight = useCallback(() => {
@@ -993,6 +1034,17 @@ const App: React.FC = () => {
   }, [allPhrases, cardHistory, changePracticePhrase]);
   // --- End Practice Page Logic ---
 
+  // Speak the phrase when the card is flipped to the answer side.
+  useEffect(() => {
+    if (isPracticeAnswerRevealed && currentPracticePhrase && settings.autoSpeak && 'speechSynthesis' in window) {
+      const utterance = new SpeechSynthesisUtterance(currentPracticePhrase.german);
+      utterance.lang = 'de-DE';
+      utterance.rate = 0.9;
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(utterance);
+    }
+  }, [isPracticeAnswerRevealed, currentPracticePhrase, settings.autoSpeak]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Don't interfere with typing in inputs
@@ -1007,12 +1059,19 @@ const App: React.FC = () => {
 
       if (view === 'practice' && currentPracticePhrase && !practiceIsExitingRef.current) {
         if (e.key === 'ArrowRight') {
-          if (!isPracticeAnswerRevealed) {
+          if (practiceCardEvaluated) {
+            transitionToNext('right');
+          } else if (!isPracticeAnswerRevealed) {
             handlePracticeUpdateMastery('know', { autoAdvance: true });
+            transitionToNext('right');
           }
-          transitionToNext('right');
         } else if (e.key === 'ArrowLeft') {
           handlePracticeSwipeRight();
+        } else if (e.key === ' ') { // Space bar to flip
+          e.preventDefault();
+          if (!isPracticeAnswerRevealed) {
+            setIsPracticeAnswerRevealed(true);
+          }
         }
       }
     };
@@ -1024,7 +1083,8 @@ const App: React.FC = () => {
   }, [
     view, 
     currentPracticePhrase, 
-    isPracticeAnswerRevealed, 
+    isPracticeAnswerRevealed,
+    practiceCardEvaluated,
     transitionToNext, 
     handlePracticeSwipeRight,
     handlePracticeUpdateMastery
@@ -1040,7 +1100,7 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white font-sans p-4 flex flex-col items-center overflow-x-hidden">
+    <div className="min-h-screen bg-transparent text-white font-sans p-4 flex flex-col items-center overflow-x-hidden">
       <Header 
         view={view} 
         onSetView={setView} 
@@ -1051,9 +1111,12 @@ const App: React.FC = () => {
            <PracticePage
              currentPhrase={currentPracticePhrase}
              isAnswerRevealed={isPracticeAnswerRevealed}
+             onSetIsAnswerRevealed={setIsPracticeAnswerRevealed}
+             isCardEvaluated={practiceCardEvaluated}
              animationState={practiceAnimationState}
              isExiting={practiceIsExitingRef.current}
              unmasteredCount={unmasteredPhrases.length}
+             currentPoolCount={practicePool.length}
              fetchNewPhrases={fetchNewPhrases}
              isLoading={isLoading}
              error={error}
@@ -1085,6 +1148,8 @@ const App: React.FC = () => {
              cardActionUsage={cardActionUsage}
              onLogCardActionUsage={handleLogCardActionUsage}
              cardHistoryLength={cardHistory.length}
+             practiceCategoryFilter={practiceCategoryFilter}
+             setPracticeCategoryFilter={setPracticeCategoryFilter}
            />
         ) : (
           <PhraseListPage 

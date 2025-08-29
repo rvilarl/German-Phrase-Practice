@@ -37,11 +37,11 @@ const ChatContextMenu: React.FC<ChatContextMenuProps> = ({
   const [analysis, setAnalysis] = useState<WordAnalysis | null>(null);
   const [isAnalysisLoading, setIsAnalysisLoading] = useState(true);
 
-  const proxyPhrase = {
-    ...sentence,
+  const proxyPhrase: Phrase = {
     id: `proxy_context_${Date.now()}`,
     german: sentence.german,
     russian: sentence.russian,
+    category: 'general',
     masteryLevel: 0,
     lastReviewedAt: null,
     nextReviewAt: 0,

@@ -1,5 +1,4 @@
-import { Phrase } from '../types';
-import { isInitialPhrase } from '../data/initialPhrases';
+import { Phrase, PhraseCategory } from '../types';
 
 // Intervals in milliseconds
 // e.g., 1 hour, 8 hours, 1 day, 3 days, 1 week, 2 weeks
@@ -15,48 +14,38 @@ const SRS_INTERVALS = [
 export const MAX_MASTERY_LEVEL = SRS_INTERVALS.length;
 
 export const isPhraseMastered = (phrase: Phrase): boolean => {
-  // New rule: Initial phrases are mastered after being known once.
-  if (isInitialPhrase(phrase)) {
+  // New rule: Foundational categories are mastered after being known once.
+  const foundationalCategories: PhraseCategory[] = ['w-fragen', 'pronouns', 'numbers', 'time', 'money'];
+  if (foundationalCategories.includes(phrase.category)) {
     return phrase.knowCount >= 1;
   }
   
-  // Existing rule for generated phrases.
+  // Existing rule for generated/general phrases.
   // Mastered if known 3 times total OR 2 times in a row, or mastery level is max
   return phrase.masteryLevel >= MAX_MASTERY_LEVEL || phrase.knowCount >= 3 || phrase.knowStreak >= 2;
 };
 
-const russianPronouns = [
-    "я", "ты", "он", "она", "оно", "мы", "вы (неформ.)", "они", "вы (форм.)"
-];
+const wFragenList = ["was", "wer", "wo", "wann", "wie", "warum", "woher", "wohin", "welcher", "wie viel", "wie viele"];
+const pronounList = ["ich", "du", "er", "sie", "es", "wir", "ihr", "sie", "mich", "dich", "ihn", "mir", "dir", "ihm", "ihnen", "mein", "dein", "sein"];
+
+/**
+ * Assigns a category to a phrase that doesn't have one.
+ * Used for migrating phrases from older versions stored in localStorage.
+ */
+export const assignInitialCategory = (phrase: Omit<Phrase, 'category' | 'id'>): PhraseCategory => {
+    const german = phrase.german.toLowerCase().replace(/[?]/g, '').trim();
+    if (wFragenList.includes(german)) return 'w-fragen';
+    // Check against formal 'Sie' separately to avoid conflict with 'sie' (she/they)
+    if (phrase.german.trim() === 'Sie') return 'pronouns';
+    if (pronounList.includes(german)) return 'pronouns';
+    return 'general';
+};
 
 
-// Helper to categorize phrases
+// Helper to categorize phrases for UI or simple logic
 export const getPhraseCategory = (phrase: Phrase): string | null => {
     if (!phrase) return null;
-    const russian = phrase.russian.trim().toLowerCase();
-    const german = phrase.german.trim().toLowerCase();
-
-    // List of W-Fragen from initial data
-    const wFragenList = [
-        "was?", "wer?", "wo?", "wann?", "wie?", "warum?", "woher?", "wohin?",
-        "welcher?", "wie viel?", "wie viele?"
-    ];
-
-    if (wFragenList.includes(german)) {
-        return 'w-frage';
-    }
-
-    if (russianPronouns.includes(russian)) {
-        return 'personal-pronoun';
-    }
-
-    // New logic for short phrases
-    const wordCount = german.split(' ').filter(word => word.length > 0).length;
-    if (wordCount > 0 && wordCount <= 2) {
-        return 'short-phrase';
-    }
-    
-    return 'regular';
+    return phrase.category;
 };
 
 
@@ -66,73 +55,41 @@ export const selectNextPhrase = (phrases: Phrase[], currentPhraseId: string | nu
     return null;
   }
   
-  // Filter for phrases that are not null and not mastered
-  const unmasteredPhrases = phrases.filter(p => p && !p.isMastered);
-  if (unmasteredPhrases.length === 0) return null;
-  
-  // If there's only one unmastered phrase, return it.
-  if (unmasteredPhrases.length === 1) {
-    return unmasteredPhrases[0];
+  // If there's only one phrase in the pool, return it.
+  if (phrases.length === 1) {
+    return phrases[0];
   }
 
-  const poolWithoutCurrent = unmasteredPhrases.filter(p => p.id !== currentPhraseId);
+  const poolWithoutCurrent = phrases.filter(p => p.id !== currentPhraseId);
   if (poolWithoutCurrent.length === 0) {
-      // This happens if there's only one unmastered phrase left, and it's the current one.
-      // In this case, we can just return it again.
-      return unmasteredPhrases[0];
-  }
-  
-  // Split phrases into special (W-Fragen, pronouns) and regular pools
-  const specialPhrases = poolWithoutCurrent.filter(p => {
-    const category = getPhraseCategory(p);
-    return category === 'w-frage' || category === 'personal-pronoun';
-  });
-
-  const regularPhrases = poolWithoutCurrent.filter(p => {
-    const category = getPhraseCategory(p);
-    return category !== 'w-frage' && category !== 'personal-pronoun';
-  });
-
-  let chosenPool: Phrase[];
-  const random = Math.random();
-
-  // 70% chance for regular, 30% for special, with fallbacks if a pool is empty
-  if (random < 0.7) {
-    chosenPool = regularPhrases.length > 0 ? regularPhrases : specialPhrases;
-  } else {
-    chosenPool = specialPhrases.length > 0 ? specialPhrases : regularPhrases;
-  }
-  
-  // If for some reason both pools were empty but poolWithoutCurrent was not, fallback
-  if (chosenPool.length === 0) {
-      chosenPool = poolWithoutCurrent;
+      // This happens if there's only one phrase left, and it's the current one.
+      return phrases[0];
   }
 
-  // Now, apply priority logic within the chosen pool.
   const now = Date.now();
   
   // Priority 1: Phrases due for review (must have been reviewed before)
-  const dueForReview = chosenPool.filter(p => p.lastReviewedAt !== null && p.nextReviewAt <= now);
+  const dueForReview = poolWithoutCurrent.filter(p => p.lastReviewedAt !== null && p.nextReviewAt <= now);
   if (dueForReview.length > 0) {
     // Prioritize the one with the lowest mastery level
     return dueForReview.sort((a, b) => a.masteryLevel - b.masteryLevel)[0];
   }
 
   // Priority 2: Completely new phrases
-  const newPhrases = chosenPool.filter(p => p.lastReviewedAt === null);
+  const newPhrases = poolWithoutCurrent.filter(p => p.lastReviewedAt === null);
   if (newPhrases.length > 0) {
     // Pick a random new phrase to avoid always showing them in the same order
     return newPhrases[Math.floor(Math.random() * newPhrases.length)];
   }
 
   // Priority 3: If nothing is due and no new cards, pick the one scheduled soonest
-  const upcomingPhrases = chosenPool.filter(p => p.lastReviewedAt !== null);
+  const upcomingPhrases = poolWithoutCurrent.filter(p => p.lastReviewedAt !== null);
   if (upcomingPhrases.length > 0) {
     return upcomingPhrases.sort((a, b) => a.nextReviewAt - b.nextReviewAt)[0];
   }
 
   // Fallback: should not be reached if there are unmastered phrases, but as a safeguard.
-  return chosenPool.length > 0 ? chosenPool[Math.floor(Math.random() * chosenPool.length)] : null;
+  return poolWithoutCurrent.length > 0 ? poolWithoutCurrent[Math.floor(Math.random() * poolWithoutCurrent.length)] : null;
 };
 
 type UserAction = 'know' | 'forgot' | 'dont_know';

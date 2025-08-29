@@ -5,7 +5,7 @@ import AnalysisIcon from './icons/AnalysisIcon';
 import FilmIcon from './icons/FilmIcon';
 import LinkIcon from './icons/LinkIcon';
 import SettingsIcon from './icons/SettingsIcon';
-import MicrophoneIcon from './icons/MicrophoneIcon';
+import BlocksIcon from './icons/BlocksIcon';
 import BookOpenIcon from './icons/BookOpenIcon';
 import { getPhraseCategory } from '../services/srsService';
 import MoreHorizontalIcon from './icons/MoreHorizontalIcon';
@@ -19,6 +19,7 @@ interface PhraseCardProps {
   phrase: Phrase;
   onSpeak: (text: string, lang: 'de-DE' | 'ru-RU') => void;
   isFlipped: boolean;
+  onFlip: () => void;
   onOpenChat: (phrase: Phrase) => void;
   onOpenDeepDive: (phrase: Phrase) => void;
   onOpenMovieExamples: (phrase: Phrase) => void;
@@ -43,7 +44,7 @@ const RussianPhraseDisplay: React.FC<{ text: string; as: 'h2' | 'div' }> = ({ te
     return (
       <Component className="text-2xl font-semibold text-slate-100">
         {mainText}
-        <p className="text-sm text-slate-400 mt-1 font-normal">({noteText})</p>
+        <p className="text-sm text-slate-300 mt-1 font-normal">({noteText})</p>
       </Component>
     );
   }
@@ -51,7 +52,7 @@ const RussianPhraseDisplay: React.FC<{ text: string; as: 'h2' | 'div' }> = ({ te
 };
 
 const PhraseCard: React.FC<PhraseCardProps> = ({
-  phrase, onSpeak, isFlipped, onOpenChat,
+  phrase, onSpeak, isFlipped, onFlip, onOpenChat,
   onOpenDeepDive, onOpenMovieExamples, onWordClick, onOpenSentenceChain,
   onOpenImprovePhrase, onOpenContextMenu, onOpenVoicePractice,
   onOpenLearningAssistant, onOpenQuickReply, isWordAnalysisLoading,
@@ -64,11 +65,12 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
   const buttonContainerRef = useRef<HTMLDivElement>(null);
 
   const handleCardClick = useCallback(() => {
-    // Speak only the German phrase when the card is flipped.
     if (isFlipped) {
       onSpeak(phrase.german, 'de-DE');
+    } else {
+      onFlip();
     }
-  }, [isFlipped, phrase.german, onSpeak]);
+  }, [isFlipped, phrase.german, onSpeak, onFlip]);
   
   const createLoggedAction = useCallback((key: string, action: (p: Phrase) => void) => (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -79,7 +81,7 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
   const allButtons = useMemo(() => [
     { key: 'learningAssistant', label: 'Изучать с AI', icon: <BookOpenIcon className="w-5 h-5" />, action: createLoggedAction('learningAssistant', onOpenLearningAssistant) },
     { key: 'sentenceChain', label: 'Цепочка фраз', icon: <LinkIcon className="w-5 h-5" />, action: createLoggedAction('sentenceChain', onOpenSentenceChain) },
-    { key: 'voicePractice', label: 'Голосовая практика', icon: <MicrophoneIcon className="w-5 h-5" />, action: createLoggedAction('voicePractice', onOpenVoicePractice) },
+    { key: 'phraseBuilder', label: 'Конструктор фраз', icon: <BlocksIcon className="w-5 h-5" />, action: createLoggedAction('phraseBuilder', onOpenVoicePractice) },
     { key: 'chat', label: 'Обсудить с AI', icon: <ChatIcon className="w-5 h-5" />, action: createLoggedAction('chat', onOpenChat) },
     { key: 'deepDive', label: 'Глубокий анализ', icon: <AnalysisIcon className="w-5 h-5" />, action: createLoggedAction('deepDive', onOpenDeepDive) },
     { key: 'movieExamples', label: 'Примеры из фильмов', icon: <FilmIcon className="w-5 h-5" />, action: createLoggedAction('movieExamples', onOpenMovieExamples) },
@@ -160,7 +162,7 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
 
   const renderActionButtons = (theme: 'front' | 'back') => {
     const themeClasses = theme === 'front' 
-      ? 'bg-slate-700/50 hover:bg-slate-700 text-slate-200'
+      ? 'bg-black/20 hover:bg-black/30 text-slate-200'
       : 'bg-black/20 hover:bg-black/30 text-white';
 
     return (
@@ -215,11 +217,11 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
       >
         {/* Front Side (Russian) */}
         <div 
-            className={`h-full absolute inset-0 [backface-visibility:hidden] bg-slate-800 backdrop-blur-sm border border-slate-700 rounded-xl p-6 flex flex-col justify-between items-center text-center transition-colors duration-500 relative overflow-hidden`}
+            className={`h-full absolute inset-0 [backface-visibility:hidden] bg-slate-400/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 flex flex-col justify-between items-center text-center transition-colors duration-500 relative overflow-hidden`}
         >
             <button
                 onClick={handleOpenImprovePhrase}
-                className="absolute top-3 right-3 p-2 rounded-full text-slate-300 hover:bg-slate-600/50 hover:text-white transition-colors z-10"
+                className="absolute top-3 right-3 p-2 rounded-full text-slate-300 hover:bg-white/20 hover:text-white transition-colors z-10"
                 aria-label="Улучшить перевод"
             >
                 <SettingsIcon className="w-5 h-5" />
@@ -228,10 +230,10 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
                 {isQuickReplyEligible ? (
                     <button
                         onClick={handleQuickReplyClick}
-                        className="group/quick-reply relative text-center p-4 -m-4 rounded-lg hover:bg-slate-700/50 transition-colors"
+                        className="group/quick-reply relative text-center p-4 -m-4 rounded-lg hover:bg-white/10 transition-colors"
                     >
                         <RussianPhraseDisplay text={phrase.russian} as="div" />
-                        <span className="absolute top-1 right-1 w-2.5 h-2.5 border-2 border-slate-800 bg-red-500 rounded-full opacity-70 group-hover/quick-reply:opacity-100" />
+                        <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-purple-500 rounded-full" />
                     </button>
                     ) : (
                     <RussianPhraseDisplay text={phrase.russian} as="h2" />
@@ -248,7 +250,7 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
         </div>
 
         {/* Back Side (German) */}
-        <div className="h-full absolute inset-0 [transform:rotateY(180deg)] [backface-visibility:hidden] bg-gradient-to-br from-purple-600 to-blue-600 backdrop-blur-sm border border-purple-500/50 rounded-xl p-6 flex flex-col justify-between items-center text-center transition-colors duration-500">
+        <div className="h-full absolute inset-0 [transform:rotateY(180deg)] [backface-visibility:hidden] bg-gradient-to-br from-purple-500/20 to-blue-500/20 backdrop-blur-xl border border-white/20 rounded-xl p-6 flex flex-col justify-between items-center text-center transition-colors duration-500">
             <div className="flex-grow flex flex-col items-center justify-center w-full">
                 <button
                     onClick={handleOpenImprovePhrase}

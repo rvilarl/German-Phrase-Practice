@@ -15,7 +15,8 @@ const basicPhrases = [
   { russian: "Прошу прощения", german: "Entschuldigung" }
 ];
 
-const personalPronouns = [
+const pronouns = [
+  // Nominativ
   { russian: "я", german: "ich" },
   { russian: "ты", german: "du" },
   { russian: "он", german: "er" },
@@ -25,6 +26,21 @@ const personalPronouns = [
   { russian: "вы (неформ.)", german: "ihr" },
   { russian: "они", german: "sie" },
   { russian: "Вы (форм.)", german: "Sie" },
+  // Akkusativ
+  { russian: "меня (Akk)", german: "mich" },
+  { russian: "тебя (Akk)", german: "dich" },
+  { russian: "его (Akk)", german: "ihn" },
+  // Dativ
+  { russian: "мне (Dat)", german: "mir" },
+  { russian: "тебе (Dat)", german: "dir" },
+  { russian: "ему (Dat)", german: "ihm" },
+  { russian: "им (Dat)", german: "ihnen" },
+  { russian: "Вам (Dat)", german: "Ihnen" },
+  // Possessiv
+  { russian: "мой", german: "mein" },
+  { russian: "твой", german: "dein" },
+  { russian: "его (притяж.)", german: "sein" },
+  { russian: "её", german: "ihr" },
 ];
 
 const wFragen = [
@@ -41,27 +57,75 @@ const wFragen = [
   { russian: "Сколько? (исчисл.)", german: "Wie viele?" }
 ];
 
-// Combine all initial phrases for easy lookup
-const allInitialGermanPhrases = new Set([
-  ...basicPhrases.map(p => p.german),
-  ...personalPronouns.map(p => p.german),
-  ...wFragen.map(p => p.german)
-]);
+const numbers = [
+    { russian: "ноль", german: "null" },
+    { russian: "один", german: "eins" },
+    { russian: "два", german: "zwei" },
+    { russian: "три", german: "drei" },
+    { russian: "четыре", german: "vier" },
+    { russian: "пять", german: "fünf" },
+    { russian: "шесть", german: "sechs" },
+    { russian: "семь", german: "sieben" },
+    { russian: "восемь", german: "acht" },
+    { russian: "девять", german: "neun" },
+    { russian: "десять", german: "zehn" },
+    { russian: "одиннадцать", german: "elf" },
+    { russian: "двенадцать", german: "zwölf" },
+    { russian: "двадцать", german: "zwanzig" },
+    { russian: "сто", german: "hundert" },
+];
 
-/**
- * Checks if a phrase is one of the initial, hardcoded phrases.
- * @param phrase The phrase to check.
- * @returns True if it's an initial phrase, false otherwise.
- */
-export const isInitialPhrase = (phrase: Phrase): boolean => {
-  return allInitialGermanPhrases.has(phrase.german);
-};
+const timePhrases = [
+    // Days
+    { russian: "Понедельник", german: "Montag" },
+    { russian: "Вторник", german: "Dienstag" },
+    { russian: "Среда", german: "Mittwoch" },
+    { russian: "Четверг", german: "Donnerstag" },
+    { russian: "Пятница", german: "Freitag" },
+    { russian: "Суббота", german: "Samstag" },
+    { russian: "Воскресенье", german: "Sonntag" },
+    // Months
+    { russian: "Январь", german: "Januar" },
+    { russian: "Февраль", german: "Februar" },
+    { russian: "Март", german: "März" },
+    { russian: "Апрель", german: "April" },
+    { russian: "Май", german: "Mai" },
+    { russian: "Июнь", german: "Juni" },
+    { russian: "Июль", german: "Juli" },
+    { russian: "Август", german: "August" },
+    { russian: "Сентябрь", german: "September" },
+    { russian: "Октябрь", german: "Oktober" },
+    { russian: "Ноябрь", german: "November" },
+    { russian: "Декабрь", german: "Dezember" },
+    // Conversational Time
+    { russian: "Который час?", german: "Wie spät ist es?" },
+    { russian: "Сейчас час.", german: "Es ist ein Uhr." },
+    { russian: "Сейчас два часа.", german: "Es ist zwei Uhr." },
+    { russian: "Пол первого.", german: "Es ist halb eins." }, // 12:30
+    { russian: "Полтретьего.", german: "Es ist halb drei." }, // 2:30
+    { russian: "Четверть пятого.", german: "Es ist Viertel nach vier." }, // 4:15
+    { russian: "Без четверти шесть.", german: "Es ist Viertel vor sechs." }, // 5:45
+    { russian: "Десять минут седьмого.", german: "Es ist zehn nach sechs." }, // 6:10
+    { russian: "Без двадцати девять.", german: "Es ist zwanzig vor neun." }, // 8:40
+    { russian: "Пять минут после полудня.", german: "Es ist fünf nach zwölf." }, // 12:05
+];
 
+const moneyPhrases = [
+    { russian: "Сколько это стоит?", german: "Was kostet das?" },
+    { russian: "Это стоит 10 евро.", german: "Das kostet zehn Euro." },
+    { russian: "23,75 евро", german: "dreiundzwanzig Euro fünfundsiebzig" },
+    { russian: "12,50 долларов", german: "zwölf Dollar fünfzig" },
+    { russian: "У вас есть сдача с 50 евро?", german: "Haben Sie Wechselgeld für fünfzig Euro?" },
+    { russian: "Я хотел бы заплатить.", german: "Ich möchte bezahlen." }
+];
 
-export const initialPhrases = [
-  ...basicPhrases,
-  ...personalPronouns,
-  ...wFragen
+export const initialPhrases: Omit<Phrase, 'id'>[] = [
+  ...basicPhrases.map(p => ({ ...p, category: 'general' as const })),
+  ...pronouns.map(p => ({ ...p, category: 'pronouns' as const })),
+  ...wFragen.map(p => ({ ...p, category: 'w-fragen' as const })),
+  ...numbers.map(p => ({ ...p, category: 'numbers' as const })),
+  ...timePhrases.map(p => ({ ...p, category: 'time' as const })),
+  ...moneyPhrases.map(p => ({ ...p, category: 'money' as const })),
 ].map(p => ({
     ...p,
     masteryLevel: 0,

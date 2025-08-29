@@ -25,6 +25,7 @@ const NounDeclensionModal: React.FC<NounDeclensionModalProps> = ({ isOpen, onClo
         id: `proxy_noun_${noun}`,
         german: contextText,
         russian: `Склонение: ${noun}`,
+        category: 'general',
         masteryLevel: 0, lastReviewedAt: null, nextReviewAt: Date.now(),
         knowCount: 0, knowStreak: 0, isMastered: false
     };

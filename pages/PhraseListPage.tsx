@@ -282,7 +282,7 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
     return (
         <>
             <div className="w-full max-w-2xl mx-auto flex flex-col h-full">
-                <div className="flex-shrink-0 sticky top-20 z-20 bg-slate-900/95 backdrop-blur-sm px-2 py-3">
+                <div className="flex-shrink-0 sticky top-20 z-20 backdrop-blur-lg px-2 py-3">
                     <div className="relative group">
                         <input
                             ref={searchInputRef}
@@ -290,7 +290,7 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             placeholder={isListening ? "Слушаю..." : "Поиск по фразам..."}
-                            className="w-full bg-slate-800 border border-slate-700 rounded-full py-4 pl-5 pr-40 text-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
+                            className="w-full bg-slate-400/10 backdrop-blur-lg border border-white/20 rounded-full py-4 pl-5 pr-40 text-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
                         />
                         <div className="absolute inset-y-0 right-0 flex items-center pr-3 space-x-1 z-10">
                             {searchTerm && !isListening && (
@@ -358,7 +358,7 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
                                 if (item.type === 'header') {
                                     return (
                                         <li key={`header-${index}`}>
-                                            <h2 className="text-lg font-bold text-slate-300 my-4 px-2 sticky top-0 bg-slate-900/95 backdrop-blur-sm py-2 z-10 -mx-2">
+                                            <h2 className="text-lg font-bold text-slate-300 my-4 px-2 sticky top-[152px] bg-transparent backdrop-blur-lg py-2 z-10 -mx-2">
                                                 {item.title}
                                             </h2>
                                         </li>

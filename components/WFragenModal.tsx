@@ -29,6 +29,7 @@ const WFragenModal: React.FC<WFragenModalProps> = ({ isOpen, onClose, onOpenWord
         id: `proxy_wfrage_${word}`,
         german: contextText,
         russian: russianText,
+        category: 'w-fragen',
         masteryLevel: 0, lastReviewedAt: null, nextReviewAt: Date.now(),
         knowCount: 0, knowStreak: 0, isMastered: false
     };

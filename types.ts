@@ -1,7 +1,10 @@
+export type PhraseCategory = 'general' | 'w-fragen' | 'pronouns' | 'numbers' | 'time' | 'money';
+
 export interface Phrase {
   id: string;
   russian: string;
   german: string;
+  category: PhraseCategory;
   masteryLevel: number; // 0: new, higher is better
   lastReviewedAt: number | null; // timestamp
   nextReviewAt: number; // timestamp

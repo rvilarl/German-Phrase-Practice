@@ -27,6 +27,7 @@ const PronounsModal: React.FC<PronounsModalProps> = ({ isOpen, onClose, onOpenWo
         id: `proxy_pronoun_${word}`,
         german: contextText,
         russian: russianText,
+        category: 'pronouns',
         masteryLevel: 0, lastReviewedAt: null, nextReviewAt: Date.now(),
         knowCount: 0, knowStreak: 0, isMastered: false
     };
