@@ -5,6 +5,8 @@ export interface Phrase {
   russian: string;
   german: string;
   category: PhraseCategory;
+  transcription?: string;
+  context?: string;
   masteryLevel: number; // 0: new, higher is better
   lastReviewedAt: number | null; // timestamp
   nextReviewAt: number; // timestamp

@@ -1,13 +1,14 @@
 
 
 
+
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Phrase, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, SentenceContinuation, PhraseBuilderOptions, PhraseEvaluation, ChatMessage, PhraseCategory } from './types';
 import * as srsService from './services/srsService';
 import * as cacheService from './services/cacheService';
 import { getProviderPriorityList, getFallbackProvider, ApiProviderType } from './services/apiProvider';
 import { AiService } from './services/aiService';
-// FIX: Corrected typo in import alias from 'defaultPhrrases' to 'defaultPhrases'.
+// FIX: Corrected typo in import alias from 'defaultPhrases' to 'defaultPhrases'.
 import { initialPhrases as defaultPhrases } from './data/initialPhrases';
 import { playCorrectSound, playIncorrectSound } from './services/soundService';
 
@@ -261,6 +262,8 @@ const App: React.FC = () => {
                                 russian: p.russian!,
                                 german: p.german!,
                                 id: p.id ?? Math.random().toString(36).substring(2, 9),
+                                transcription: p.transcription,
+                                context: p.context,
                                 knowCount,
                                 knowStreak,
                                 masteryLevel,

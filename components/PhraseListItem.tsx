@@ -23,9 +23,10 @@ interface PhraseListItemProps {
     isHighlighted: boolean;
     onPreview: (phrase: Phrase) => void;
     onStartPractice: (phrase: Phrase) => void;
+    onCategoryClick: (category: PhraseCategory) => void;
 }
 
-const PhraseListItem: React.FC<PhraseListItemProps> = React.memo(({ phrase, onEdit, onDelete, isDuplicate, isHighlighted, onPreview, onStartPractice }) => {
+const PhraseListItem: React.FC<PhraseListItemProps> = React.memo(({ phrase, onEdit, onDelete, isDuplicate, isHighlighted, onPreview, onStartPractice, onCategoryClick }) => {
     
     const handleEditClick = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -59,9 +60,16 @@ const PhraseListItem: React.FC<PhraseListItemProps> = React.memo(({ phrase, onEd
             <div className="flex-grow">
                 <div className="flex items-center justify-between mb-1">
                     <p className="font-semibold text-slate-100">{phrase.russian}</p>
-                    <span className={`px-2 py-0.5 text-xs font-medium text-white rounded-full ${categoryInfo.color}`}>
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onCategoryClick(phrase.category);
+                        }}
+                        className={`px-2 py-0.5 text-xs font-medium text-white rounded-full ${categoryInfo.color} transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-white`}
+                        aria-label={`Фильтр по категории: ${categoryInfo.name}`}
+                    >
                         {categoryInfo.name}
-                    </span>
+                    </button>
                 </div>
                 <p className="text-sm text-slate-400">{phrase.german}</p>
                 <div className="mt-2">

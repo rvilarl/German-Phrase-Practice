@@ -238,6 +238,9 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
                     ) : (
                     <RussianPhraseDisplay text={phrase.russian} as="h2" />
                 )}
+                {phrase.context && (
+                  <p className="text-slate-300 mt-3 text-sm text-center font-normal italic max-w-xs">{phrase.context}</p>
+                )}
             </div>
             
             <div className="w-full">
@@ -273,6 +276,9 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
                       </span>
                     ))}
                 </div>
+                {phrase.transcription && (
+                  <p className="text-slate-200 mt-3 text-lg font-mono">{phrase.transcription}</p>
+                )}
             </div>
 
             <div className="relative w-full">

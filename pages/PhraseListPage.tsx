@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import type { Phrase, SpeechRecognition, SpeechRecognitionErrorEvent, SpeechRecognitionEvent } from '../types';
+import type { Phrase, SpeechRecognition, SpeechRecognitionErrorEvent, SpeechRecognitionEvent, PhraseCategory } from '../types';
 import PhraseListItem from '../components/PhraseListItem';
 import XCircleIcon from '../components/icons/XCircleIcon';
 import MicrophoneIcon from '../components/icons/MicrophoneIcon';
@@ -21,8 +21,20 @@ type ListItem =
     | { type: 'header'; title: string }
     | { type: 'phrase'; phrase: Phrase };
 
+const categoryDisplay: Record<PhraseCategory, { name: string }> = {
+    general: { name: 'Общие' },
+    'w-fragen': { name: 'W-Fragen' },
+    pronouns: { name: 'Местоимения' },
+    numbers: { name: 'Цифры' },
+    time: { name: 'Время' },
+    money: { name: 'Деньги' },
+};
+const allCategories: PhraseCategory[] = ['general', 'w-fragen', 'pronouns', 'numbers', 'time', 'money'];
+
+
 const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, onDeletePhrase, onFindDuplicates, updateAndSavePhrases, onStartPractice, highlightedPhraseId, onClearHighlight }) => {
     const [searchTerm, setSearchTerm] = useState('');
+    const [categoryFilter, setCategoryFilter] = useState<'all' | PhraseCategory>('all');
     const [isProcessingDuplicates, setIsProcessingDuplicates] = useState(false);
     const [duplicateGroups, setDuplicateGroups] = useState<string[][]>([]);
     const [previewPhrase, setPreviewPhrase] = useState<Phrase | null>(null);
@@ -127,8 +139,13 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
         const allDuplicateIds = new Set(duplicateGroups.flat());
         
         let baseList = phrases;
+
+        if (categoryFilter !== 'all') {
+            baseList = baseList.filter(p => p.category === categoryFilter);
+        }
+        
         if (allDuplicateIds.size > 0) {
-            baseList = phrases.filter(p => allDuplicateIds.has(p.id));
+            baseList = baseList.filter(p => allDuplicateIds.has(p.id));
         }
 
         const lowercasedTerm = searchTerm.toLowerCase().trim();
@@ -182,7 +199,7 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
             .sort((a, b) => b.score - a.score);
 
         return scoredPhrases.map(item => item.phrase);
-    }, [phrases, searchTerm, duplicateGroups, detectedSearchLang]);
+    }, [phrases, searchTerm, duplicateGroups, detectedSearchLang, categoryFilter]);
 
     const listItems = useMemo((): ListItem[] => {
         const inProgress: Phrase[] = [];
@@ -203,9 +220,9 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
             }
         };
         
+        createSection('Новые', newPhrases);
         createSection('В процессе', inProgress);
         createSection('Освоенные', mastered);
-        createSection('Новые', newPhrases);
         
         return items;
     }, [filteredPhrases]);
@@ -251,7 +268,6 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
             const phraseMap = new Map(currentPhrases.map(p => [p.id, p]));
             const idsToDelete = new Set<string>();
 
-// FIX: Refactored the duplicate cleaning logic to be more robust and type-safe.
             duplicateGroups.forEach(group => {
                 const phrasesInGroup = group
                     .map(id => phraseMap.get(id))
@@ -282,73 +298,97 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
     return (
         <>
             <div className="w-full max-w-2xl mx-auto flex flex-col h-full">
-                <div className="flex-shrink-0 sticky top-20 z-20 backdrop-blur-lg px-2 py-3">
-                    <div className="relative group">
-                        <input
-                            ref={searchInputRef}
-                            type="text"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            placeholder={isListening ? "Слушаю..." : "Поиск по фразам..."}
-                            className="w-full bg-slate-400/10 backdrop-blur-lg border border-white/20 rounded-full py-4 pl-5 pr-40 text-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
-                        />
-                        <div className="absolute inset-y-0 right-0 flex items-center pr-3 space-x-1 z-10">
-                            {searchTerm && !isListening && (
-                                <button onClick={handleClearSearch} className="p-1 text-slate-400 hover:text-white">
-                                    <XCircleIcon className="w-6 h-6" />
-                                </button>
-                            )}
-                            <div className="flex items-center bg-slate-700/50 rounded-full p-0.5">
-                                <button 
-                                    onClick={() => handleLangChange('ru')}
-                                    className={`px-2 py-0.5 text-xs font-bold rounded-full transition-colors ${recognitionLang === 'ru' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:bg-slate-600'}`}
-                                >
-                                    RU
-                                </button>
-                                <button 
-                                    onClick={() => handleLangChange('de')}
-                                    className={`px-2 py-0.5 text-xs font-bold rounded-full transition-colors ${recognitionLang === 'de' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:bg-slate-600'}`}
-                                >
-                                    DE
+                <div className="flex-shrink-0 sticky top-20 z-20 p-2">
+                    <div className="bg-slate-800/70 backdrop-blur-lg rounded-xl p-4 border border-slate-700">
+                        <div className="relative group">
+                            <input
+                                ref={searchInputRef}
+                                type="text"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                placeholder={isListening ? "Слушаю..." : "Поиск по фразам..."}
+                                className="w-full bg-slate-400/10 backdrop-blur-lg border border-white/20 rounded-full py-4 pl-5 pr-40 text-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
+                            />
+                            <div className="absolute inset-y-0 right-0 flex items-center pr-3 space-x-1 z-10">
+                                {searchTerm && !isListening && (
+                                    <button onClick={handleClearSearch} className="p-1 text-slate-400 hover:text-white">
+                                        <XCircleIcon className="w-6 h-6" />
+                                    </button>
+                                )}
+                                <div className="flex items-center bg-slate-700/50 rounded-full p-0.5">
+                                    <button 
+                                        onClick={() => handleLangChange('ru')}
+                                        className={`px-2 py-0.5 text-xs font-bold rounded-full transition-colors ${recognitionLang === 'ru' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:bg-slate-600'}`}
+                                    >
+                                        RU
+                                    </button>
+                                    <button 
+                                        onClick={() => handleLangChange('de')}
+                                        className={`px-2 py-0.5 text-xs font-bold rounded-full transition-colors ${recognitionLang === 'de' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:bg-slate-600'}`}
+                                    >
+                                        DE
+                                    </button>
+                                </div>
+                                <button onClick={handleMicClick} className="p-2 transition-colors">
+                                    <MicrophoneIcon className={`w-6 h-6 ${isListening ? 'mic-color-shift-animation' : 'text-slate-400 group-hover:text-white'}`} />
                                 </button>
                             </div>
-                            <button onClick={handleMicClick} className="p-2 transition-colors">
-                                <MicrophoneIcon className={`w-6 h-6 ${isListening ? 'mic-color-shift-animation' : 'text-slate-400 group-hover:text-white'}`} />
-                            </button>
                         </div>
-                    </div>
-                     <div className="flex justify-end items-center pt-2 min-h-[34px]">
-                        {duplicateGroups.length > 0 ? (
-                             <div className="flex space-x-2">
+                        <div className="mt-4">
+                            <div className="flex space-x-2 overflow-x-auto pb-2 hide-scrollbar">
                                 <button
-                                    onClick={() => setDuplicateGroups([])}
-                                    className="px-3 py-1.5 text-sm bg-slate-600 hover:bg-slate-700 text-white font-semibold rounded-md transition-colors"
+                                    onClick={() => setCategoryFilter('all')}
+                                    className={`flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${categoryFilter === 'all' ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
                                 >
-                                    Отмена
+                                    Все
                                 </button>
+                                {allCategories.map(cat => (
+                                    <button
+                                        key={cat}
+                                        onClick={() => setCategoryFilter(cat)}
+                                        className={`flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${categoryFilter === cat ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
+                                    >
+                                        {categoryDisplay[cat].name}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="flex justify-between items-center mt-3">
+                            <span className="text-sm text-slate-400 pl-2">
+                               {filteredPhrases.length} фраз
+                            </span>
+                            {duplicateGroups.length > 0 ? (
+                                 <div className="flex space-x-2">
+                                    <button
+                                        onClick={() => setDuplicateGroups([])}
+                                        className="px-3 py-1.5 text-sm bg-slate-600 hover:bg-slate-700 text-white font-semibold rounded-md transition-colors"
+                                    >
+                                        Отмена
+                                    </button>
+                                    <button
+                                        onClick={handleCleanDuplicates}
+                                        className="px-3 py-1.5 text-sm bg-green-600 hover:bg-green-700 text-white font-semibold rounded-md transition-colors"
+                                    >
+                                        Очистить дубликаты ({duplicateGroups.length})
+                                    </button>
+                                 </div>
+                            ) : (
                                 <button
-                                    onClick={handleCleanDuplicates}
-                                    className="px-3 py-1.5 text-sm bg-green-600 hover:bg-green-700 text-white font-semibold rounded-md transition-colors"
+                                    onClick={handleFindDuplicates}
+                                    disabled={isProcessingDuplicates}
+                                    className="relative text-sm text-slate-400 hover:text-slate-200 font-medium transition-colors disabled:opacity-50 h-[34px] flex items-center justify-center px-3"
                                 >
-                                    Очистить дубликаты ({duplicateGroups.length})
+                                    <span className={isProcessingDuplicates ? 'opacity-0' : 'opacity-100'}>
+                                        Найти дубликаты
+                                    </span>
+                                    {isProcessingDuplicates && (
+                                        <div className="absolute inset-0 flex items-center justify-center">
+                                            <Spinner />
+                                        </div>
+                                    )}
                                 </button>
-                             </div>
-                        ) : (
-                            <button
-                                onClick={handleFindDuplicates}
-                                disabled={isProcessingDuplicates}
-                                className="relative text-sm text-slate-400 hover:text-slate-200 font-medium transition-colors disabled:opacity-50 h-[34px] flex items-center justify-center px-3"
-                            >
-                                <span className={isProcessingDuplicates ? 'opacity-0' : 'opacity-100'}>
-                                    Найти дубликаты
-                                </span>
-                                {isProcessingDuplicates && (
-                                    <div className="absolute inset-0 flex items-center justify-center">
-                                        <Spinner />
-                                    </div>
-                                )}
-                            </button>
-                        )}
+                            )}
+                        </div>
                     </div>
                 </div>
                 <div className="flex-grow overflow-y-auto px-2 pb-6 hide-scrollbar">
@@ -358,7 +398,7 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
                                 if (item.type === 'header') {
                                     return (
                                         <li key={`header-${index}`}>
-                                            <h2 className="text-lg font-bold text-slate-300 my-4 px-2 sticky top-[152px] bg-transparent backdrop-blur-lg py-2 z-10 -mx-2">
+                                            <h2 className="text-lg font-bold text-slate-300 my-4 px-2 sticky top-[264px] bg-slate-900 py-2 z-10">
                                                 {item.title}
                                             </h2>
                                         </li>
@@ -374,6 +414,7 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
                                         isHighlighted={item.phrase.id === highlightedPhraseId}
                                         onPreview={setPreviewPhrase}
                                         onStartPractice={onStartPractice}
+                                        onCategoryClick={setCategoryFilter}
                                     />
                                 );
                             })}
