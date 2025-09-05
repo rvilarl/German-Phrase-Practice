@@ -1,9 +1,4 @@
 
-
-
-
-
-
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Phrase, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, SentenceContinuation, PhraseBuilderOptions, PhraseEvaluation, ChatMessage, PhraseCategory } from './types';
 import * as srsService from './services/srsService';
@@ -36,6 +31,9 @@ import LearningAssistantModal from './components/LearningAssistantModal';
 import PronounsModal from './components/PronounsModal';
 import WFragenModal from './components/WFragenModal';
 import Toast from './components/Toast';
+import BugIcon from './components/icons/BugIcon';
+import WandIcon from './components/icons/WandIcon';
+import MessageQuestionIcon from './components/icons/MessageQuestionIcon';
 
 
 const PHRASES_STORAGE_KEY = 'germanPhrases';
@@ -91,6 +89,78 @@ const defaultCardActionUsage = {
 
 // Helper function for retrying API calls with a delay
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+interface LeechModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  phrase: Phrase;
+  onImprove: (phrase: Phrase) => void;
+  onDiscuss: (phrase: Phrase) => void;
+}
+
+const LeechModal: React.FC<LeechModalProps> = ({ isOpen, onClose, phrase, onImprove, onDiscuss }) => {
+  if (!isOpen) return null;
+
+  const handleImprove = () => {
+    onClose();
+    onImprove(phrase);
+  };
+  
+  const handleDiscuss = () => {
+    onClose();
+    onDiscuss(phrase);
+  };
+
+  return (
+    <div 
+      className="fixed inset-0 bg-black/70 z-50 flex justify-center items-center backdrop-blur-sm p-4 animate-fade-in" 
+      onClick={onClose}
+    >
+      <div
+        className="bg-slate-800 rounded-lg shadow-2xl w-full max-w-sm m-4 p-6 text-center"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex justify-center mb-4">
+          <div className="w-12 h-12 rounded-full bg-amber-900/50 flex items-center justify-center">
+            <BugIcon className="w-6 h-6 text-amber-500" />
+          </div>
+        </div>
+        
+        <h2 className="text-xl font-bold text-slate-100">Сложная фраза</h2>
+        <p className="text-slate-400 mt-2 mb-4">Эта фраза дается вам с трудом. Возможно, она непонятна или ее можно улучшить.</p>
+        
+        <div className="bg-slate-700/50 p-4 rounded-md text-center mb-6">
+            <p className="text-slate-200 font-medium text-lg">"{phrase.russian}"</p>
+            <p className="text-slate-400 mt-1">"{phrase.german}"</p>
+        </div>
+
+        <div className="flex flex-col space-y-3">
+           <button 
+            onClick={handleImprove} 
+            className="w-full px-6 py-3 rounded-md bg-purple-600 hover:bg-purple-700 text-white font-semibold transition-colors flex items-center justify-center"
+          >
+            <WandIcon className="w-5 h-5 mr-2" />
+            <span>Улучшить фразу</span>
+          </button>
+           <button 
+            onClick={handleDiscuss} 
+            className="w-full px-6 py-3 rounded-md bg-slate-600 hover:bg-slate-700 text-white font-semibold transition-colors flex items-center justify-center"
+          >
+            <MessageQuestionIcon className="w-5 h-5 mr-2" />
+            <span>Обсудить с AI</span>
+          </button>
+          <button 
+            onClick={onClose} 
+            className="w-full px-6 py-2 rounded-md bg-transparent hover:bg-slate-700/50 text-slate-300 font-medium transition-colors"
+          >
+            Понятно, продолжить
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 
 const App: React.FC = () => {
   const [allPhrases, setAllPhrases] = useState<Phrase[]>([]);
@@ -185,6 +255,9 @@ const App: React.FC = () => {
   const [isPronounsModalOpen, setIsPronounsModalOpen] = useState(false);
   const [isWFragenModalOpen, setIsWFragenModalOpen] = useState(false);
   
+  const [isLeechModalOpen, setIsLeechModalOpen] = useState(false);
+  const [leechPhrase, setLeechPhrase] = useState<Phrase | null>(null);
+  
   const isPrefetchingRef = useRef(false);
   const isQuickReplyPrefetchingRef = useRef(false);
 
@@ -271,6 +344,7 @@ const App: React.FC = () => {
                                 lastReviewedAt: p.lastReviewedAt ?? null,
                                 nextReviewAt: p.nextReviewAt ?? Date.now(),
                                 isMastered: p.isMastered ?? false,
+                                lapses: p.lapses ?? 0,
                             };
                             const category = p.category || srsService.assignInitialCategory(phraseData);
                             return {
@@ -290,6 +364,7 @@ const App: React.FC = () => {
             loadedPhrases = defaultPhrases.map(p => ({
                 ...p,
                 id: Math.random().toString(36).substring(2, 9),
+                lapses: 0,
             }));
         }
         
@@ -459,7 +534,7 @@ const App: React.FC = () => {
         const phrasesToAdd: Phrase[] = newPhrases.map(p => ({
             ...p,
             id: Math.random().toString(36).substring(2, 9), masteryLevel: 0, lastReviewedAt: null, nextReviewAt: now,
-            knowCount: 0, knowStreak: 0, isMastered: false, category: 'general',
+            knowCount: 0, knowStreak: 0, isMastered: false, category: 'general', lapses: 0,
         }));
         updateAndSavePhrases(prev => [...prev, ...phrasesToAdd]);
         
@@ -770,6 +845,7 @@ const App: React.FC = () => {
         knowStreak: 0,
         isMastered: false,
         category: 'general',
+        lapses: 0,
     };
     updateAndSavePhrases(prev => [newPhrase, ...prev]);
     
@@ -798,6 +874,7 @@ const App: React.FC = () => {
         knowStreak: 0,
         isMastered: false,
         category: 'general',
+        lapses: 0,
     };
     updateAndSavePhrases(prev => [newPhrase, ...prev]);
     
@@ -997,8 +1074,24 @@ const App: React.FC = () => {
     handleLogMasteryButtonUsage(action);
     const originalPhrase = currentPracticePhrase;
 
-    const updatedPhrase = srsService.updatePhraseMastery(originalPhrase, action);
+    let updatedPhrase = srsService.updatePhraseMastery(originalPhrase, action);
     
+    // Leech detection logic
+    if (action === 'forgot' || action === 'dont_know') {
+      const wasLeech = srsService.isLeech(originalPhrase);
+      const isNowLeech = srsService.isLeech(updatedPhrase);
+      
+      if (!wasLeech && isNowLeech) {
+        // Suspend the card for 24 hours and show the modal
+        updatedPhrase.nextReviewAt = Date.now() + 24 * 60 * 60 * 1000;
+        updateAndSavePhrases(prev => prev.map(p => p.id === updatedPhrase.id ? updatedPhrase : p));
+        setLeechPhrase(updatedPhrase);
+        setIsLeechModalOpen(true);
+        // Exit early to not flip the card; the modal takes over the flow.
+        return;
+      }
+    }
+
     updateAndSavePhrases(prev => prev.map(p => p.id === updatedPhrase.id ? updatedPhrase : p));
     
     if (updatedPhrase.isMastered && !originalPhrase.isMastered) {
@@ -1286,6 +1379,16 @@ const App: React.FC = () => {
             onConfirm={handleConfirmDelete}
             phrase={phraseToDelete}
        />
+       {leechPhrase && <LeechModal 
+          isOpen={isLeechModalOpen}
+          onClose={() => {
+            setIsLeechModalOpen(false);
+            transitionToNext();
+          }}
+          phrase={leechPhrase}
+          onImprove={handleOpenImproveModal}
+          onDiscuss={handleOpenDiscussModal}
+        />}
        <VoiceWorkspaceModal
             isOpen={isVoiceWorkspaceModalOpen}
             onClose={() => setIsVoiceWorkspaceModalOpen(false)}

@@ -48,6 +48,8 @@ const ChatContextMenu: React.FC<ChatContextMenuProps> = ({
     knowCount: 0,
     knowStreak: 0,
     isMastered: false,
+// FIX: Added missing 'lapses' property to satisfy the Phrase type.
+    lapses: 0,
   };
 
   useEffect(() => {

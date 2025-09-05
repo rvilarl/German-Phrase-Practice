@@ -13,6 +13,7 @@ export interface Phrase {
   knowCount: number; // Total times 'know' was clicked
   knowStreak: number; // Consecutive times 'know' was clicked
   isMastered: boolean; // True if knowCount >= 3 or knowStreak >= 2
+  lapses: number; // Number of times the user has forgotten this card after the first success.
 }
 
 export interface MovieExample {

@@ -12,17 +12,17 @@ const SRS_INTERVALS = [
 ];
 
 export const MAX_MASTERY_LEVEL = SRS_INTERVALS.length;
+export const LEECH_THRESHOLD = 5;
 
 export const isPhraseMastered = (phrase: Phrase): boolean => {
-  // New rule: Foundational categories are mastered after being known once.
+  // Foundational categories are mastered after being known once.
   const foundationalCategories: PhraseCategory[] = ['w-fragen', 'pronouns', 'numbers', 'time', 'money'];
   if (foundationalCategories.includes(phrase.category)) {
     return phrase.knowCount >= 1;
   }
   
-  // Existing rule for generated/general phrases.
-  // Mastered if known 3 times total OR 2 times in a row, or mastery level is max
-  return phrase.masteryLevel >= MAX_MASTERY_LEVEL || phrase.knowCount >= 3 || phrase.knowStreak >= 2;
+  // New rule for general phrases: they are only mastered when they reach the max SRS level.
+  return phrase.masteryLevel >= MAX_MASTERY_LEVEL;
 };
 
 const wFragenList = ["was", "wer", "wo", "wann", "wie", "warum", "woher", "wohin", "welcher", "wie viel", "wie viele"];
@@ -94,25 +94,40 @@ export const selectNextPhrase = (phrases: Phrase[], currentPhraseId: string | nu
 
 type UserAction = 'know' | 'forgot' | 'dont_know';
 
+export const isLeech = (phrase: Phrase): boolean => {
+    return phrase.lapses >= LEECH_THRESHOLD;
+}
+
 export const updatePhraseMastery = (phrase: Phrase, action: UserAction): Phrase => {
   const now = Date.now();
   let newMasteryLevel = phrase.masteryLevel;
   let newKnowCount = phrase.knowCount;
   let newKnowStreak = phrase.knowStreak;
+  let newLapses = phrase.lapses || 0;
 
   switch (action) {
     case 'know':
       newMasteryLevel = Math.min(MAX_MASTERY_LEVEL, phrase.masteryLevel + 1);
       newKnowCount++;
       newKnowStreak++;
+      // A correct answer resets the lapse count.
+      newLapses = 0;
       break;
     case 'forgot':
       newMasteryLevel = Math.max(0, phrase.masteryLevel - 2);
       newKnowStreak = 0; // Reset streak
+      // Increment lapses only if the card was not new, which helps identify consistently forgotten cards.
+      if (phrase.masteryLevel > 0) {
+        newLapses++;
+      }
       break;
     case 'dont_know':
       newMasteryLevel = Math.max(0, phrase.masteryLevel - 1);
       newKnowStreak = 0; // Reset streak
+      // 'Don't know' on a new card shouldn't count as a lapse.
+      if (phrase.masteryLevel > 0) {
+        newLapses++;
+      }
       break;
   }
 
@@ -127,6 +142,7 @@ export const updatePhraseMastery = (phrase: Phrase, action: UserAction): Phrase 
     nextReviewAt: now + interval,
     knowCount: newKnowCount,
     knowStreak: newKnowStreak,
+    lapses: newLapses,
   };
 
   return {

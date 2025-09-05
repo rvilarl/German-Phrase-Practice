@@ -85,7 +85,9 @@ const DiscussTranslationModal: React.FC<DiscussTranslationModalProps> = ({ isOpe
         german: currentGerman,
         category: 'general' as const,
         masteryLevel: 0, lastReviewedAt: null, nextReviewAt: Date.now(),
-        knowCount: 0, knowStreak: 0, isMastered: false
+        knowCount: 0, knowStreak: 0, isMastered: false,
+// FIX: Added missing 'lapses' property to satisfy the Phrase type.
+        lapses: 0,
     };
 
     const handleSendMessage = useCallback(async (messageText: string) => {

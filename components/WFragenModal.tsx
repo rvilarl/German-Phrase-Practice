@@ -31,7 +31,9 @@ const WFragenModal: React.FC<WFragenModalProps> = ({ isOpen, onClose, onOpenWord
         russian: russianText,
         category: 'w-fragen',
         masteryLevel: 0, lastReviewedAt: null, nextReviewAt: Date.now(),
-        knowCount: 0, knowStreak: 0, isMastered: false
+        knowCount: 0, knowStreak: 0, isMastered: false,
+// FIX: Added missing 'lapses' property to satisfy the Phrase type.
+        lapses: 0,
     };
     onOpenWordAnalysis(proxyPhrase as Phrase, word);
   };
