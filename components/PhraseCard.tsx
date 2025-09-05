@@ -167,7 +167,7 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
       : 'bg-black/20 hover:bg-black/30 text-white';
 
     return (
-      <div ref={buttonContainerRef} className="relative w-full flex justify-center items-center flex-wrap gap-2">
+      <div ref={buttonContainerRef} className="relative w-full flex justify-center items-center flex-wrap gap-2 z-10">
         {visibleButtons.map(button => (
           <button
             key={button.key}
@@ -213,12 +213,12 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
         }}
     >
       <div 
-        className={`relative w-full h-full rounded-xl shadow-lg transition-transform duration-700 ease-in-out [transform-style:preserve-3d] ${isFlipped ? '[transform:rotateY(180deg)]' : ''}`}
+        className={`relative w-full h-full rounded-xl transition-transform duration-700 ease-in-out [transform-style:preserve-3d] ${isFlipped ? '[transform:rotateY(180deg)]' : ''}`}
         onClick={handleCardClick}
       >
         {/* Front Side (Russian) */}
         <div 
-            className={`h-full absolute inset-0 [backface-visibility:hidden] bg-slate-400/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 flex flex-col justify-between items-center text-center transition-colors duration-500 relative overflow-hidden`}
+            className={`card-face bg-slate-400/10 backdrop-blur-xl transition-colors duration-500`}
         >
             <button
                 onClick={handleOpenImprovePhrase}
@@ -254,7 +254,7 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
         </div>
 
         {/* Back Side (German) */}
-        <div className="h-full absolute inset-0 [transform:rotateY(180deg)] [backface-visibility:hidden] bg-gradient-to-br from-purple-500/20 to-blue-500/20 backdrop-blur-xl border border-white/20 rounded-xl p-6 flex flex-col justify-between items-center text-center transition-colors duration-500">
+        <div className="card-face [transform:rotateY(180deg)] bg-gradient-to-br from-purple-500/20 to-blue-500/20 backdrop-blur-xl transition-colors duration-500">
             <div className="flex-grow flex flex-col items-center justify-center w-full">
                 <button
                     onClick={handleOpenImprovePhrase}
