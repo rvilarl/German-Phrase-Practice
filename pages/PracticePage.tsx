@@ -66,7 +66,6 @@ interface PracticePageProps {
   onGoToList: (phrase: Phrase) => void;
   onOpenDiscussTranslation: (phrase: Phrase) => void;
   settings: { 
-    dynamicButtonLayout: boolean;
     soundEffects: boolean;
     autoSpeak: boolean;
     enabledCategories: Record<PhraseCategory, boolean>;
@@ -321,9 +320,6 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
         { key: 'know' as const, label: 'Знаю', className: 'bg-green-500 hover:bg-green-500', condition: true },
      ];
      let buttonsToRender = allButtons.filter(btn => btn.condition);
-     if (settings.dynamicButtonLayout) {
-         buttonsToRender.sort((a, b) => (masteryButtonUsage[a.key] || 0) - (masteryButtonUsage[b.key] || 0));
-     }
 
      return (
         <div className="flex justify-center space-x-2 sm:space-x-4 mt-8 h-12">

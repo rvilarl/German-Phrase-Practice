@@ -17,7 +17,6 @@ export const allCategories: PhraseCategory[] = ['general', 'w-fragen', 'pronouns
 interface Settings {
   autoSpeak: boolean;
   soundEffects: boolean;
-  dynamicButtonLayout: boolean;
   automation: {
     autoCheckShortPhrases: boolean;
     learnNextPhraseHabit: boolean;
@@ -97,24 +96,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                 className={`${settings.soundEffects ? 'bg-purple-600' : 'bg-slate-600'} relative inline-flex h-6 w-11 items-center rounded-full transition-colors`}
               >
                 <span className={`${settings.soundEffects ? 'translate-x-6' : 'translate-x-1'} inline-block h-4 w-4 transform rounded-full bg-white transition-transform`} />
-              </button>
-            </div>
-          </fieldset>
-           <fieldset className="space-y-4">
-            <legend className="text-sm font-semibold text-purple-300 mb-2">Практика</legend>
-            <div className="flex items-center justify-between">
-              <div>
-                <label htmlFor="dynamicButtonLayout" className="text-slate-200">Динамические кнопки</label>
-                <p className="text-xs text-slate-400">Кнопки "Знаю/Забыл" меняются местами.</p>
-              </div>
-              <button
-                id="dynamicButtonLayout"
-                role="switch"
-                aria-checked={settings.dynamicButtonLayout}
-                onClick={() => handleSettingChange('dynamicButtonLayout', !settings.dynamicButtonLayout)}
-                className={`${settings.dynamicButtonLayout ? 'bg-purple-600' : 'bg-slate-600'} relative inline-flex h-6 w-11 items-center rounded-full transition-colors`}
-              >
-                <span className={`${settings.dynamicButtonLayout ? 'translate-x-6' : 'translate-x-1'} inline-block h-4 w-4 transform rounded-full bg-white transition-transform`} />
               </button>
             </div>
           </fieldset>

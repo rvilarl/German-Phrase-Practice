@@ -87,12 +87,13 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
     { key: 'movieExamples', label: 'Примеры из фильмов', icon: <FilmIcon className="w-5 h-5" />, action: createLoggedAction('movieExamples', onOpenMovieExamples) },
   ], [phrase, createLoggedAction, onOpenLearningAssistant, onOpenSentenceChain, onOpenVoicePractice, onOpenChat, onOpenDeepDive, onOpenMovieExamples]);
 
-  const sortedButtons = useMemo(() => {
-      return [...allButtons].sort((a, b) => (cardActionUsage[b.key] || 0) - (cardActionUsage[a.key] || 0));
-  }, [cardActionUsage, allButtons]);
+  const actionButtons = useMemo(() => {
+      // The dynamic sorting based on usage has been removed to ensure a consistent UI.
+      return allButtons;
+  }, [allButtons]);
 
-  const visibleButtons = sortedButtons.slice(0, 3);
-  const hiddenButtons = sortedButtons.slice(3);
+  const visibleButtons = actionButtons.slice(0, 3);
+  const hiddenButtons = actionButtons.slice(3);
 
   // Close menu on outside click
   useEffect(() => {

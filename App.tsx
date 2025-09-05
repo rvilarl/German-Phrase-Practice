@@ -2,6 +2,8 @@
 
 
 
+
+
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Phrase, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, SentenceContinuation, PhraseBuilderOptions, PhraseEvaluation, ChatMessage, PhraseCategory } from './types';
 import * as srsService from './services/srsService';
@@ -59,7 +61,6 @@ interface ToastState {
 const defaultSettings = {
   autoSpeak: true,
   soundEffects: true,
-  dynamicButtonLayout: true,
   automation: {
     autoCheckShortPhrases: true,
     learnNextPhraseHabit: true,

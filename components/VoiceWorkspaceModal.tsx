@@ -22,8 +22,7 @@ interface VoiceWorkspaceModalProps {
   onNextPhrase: () => void;
   onPracticeNext: () => void;
   onGeneratePhraseBuilderOptions: (phrase: Phrase) => Promise<PhraseBuilderOptions>;
-  settings: { 
-    dynamicButtonLayout: boolean;
+  settings: {
     automation: {
         autoCheckShortPhrases: boolean;
         learnNextPhraseHabit: boolean;
@@ -495,13 +494,9 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
         label: 'Следующая фраза',
       },
     ];
-
-    if (settings.dynamicButtonLayout) {
-        return buttonData.sort((a, b) => (buttonUsage[a.key] || 0) - (buttonUsage[b.key] || 0));
-    }
-    // Default fixed order
-    return [buttonData[0], buttonData[1], buttonData[2]];
-  }, [settings.dynamicButtonLayout, buttonUsage, handleActionButtonClick, onClose, onNextPhrase, onPracticeNext]);
+    // Dynamic button layout has been removed for a consistent UI.
+    return buttonData;
+  }, [handleActionButtonClick, onClose, onNextPhrase, onPracticeNext]);
 
   const handleFailureAndReveal = useCallback(() => {
     if (!phrase) return;
