@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Phrase, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, SentenceContinuation, PhraseBuilderOptions, PhraseEvaluation, ChatMessage, PhraseCategory } from './types';
 import * as srsService from './services/srsService';
@@ -643,7 +644,6 @@ const App: React.FC = () => {
     setVerbConjugationData(null);
     setVerbConjugationError(null);
     const cacheKey = `verb_conjugation_${infinitive}`;
-    // FIX: Used `cacheKey` instead of `cachedData` which was not yet declared.
     const cachedData = cacheService.getCache<VerbConjugation>(cacheKey);
     if (cachedData) {
         setVerbConjugationData(cachedData);
@@ -669,7 +669,6 @@ const App: React.FC = () => {
     setNounDeclensionData(null);
     setNounDeclensionError(null);
     const cacheKey = `noun_declension_${article}_${noun}`;
-    // FIX: Used `cacheKey` instead of `cachedData` which was not yet declared.
     const cachedData = cacheService.getCache<NounDeclension>(cacheKey);
     if (cachedData) {
         setNounDeclensionData(cachedData);
@@ -1059,6 +1058,7 @@ const App: React.FC = () => {
 
   const transitionToNext = useCallback((direction: AnimationDirection = 'right') => {
     if (practiceIsExitingRef.current) return;
+
     practiceIsExitingRef.current = true;
     setTimeout(() => {
       if (direction === 'right') {
@@ -1068,7 +1068,7 @@ const App: React.FC = () => {
     }, 250);
   }, [selectNextPracticePhrase]);
   
-  const handlePracticeUpdateMastery = useCallback((action: 'know' | 'forgot' | 'dont_know', options?: { autoAdvance?: boolean }) => {
+  const handlePracticeUpdateMastery = useCallback((action: 'know' | 'forgot' | 'dont_know') => {
     if (!currentPracticePhrase || practiceIsExitingRef.current) return;
 
     handleLogMasteryButtonUsage(action);
@@ -1098,22 +1098,17 @@ const App: React.FC = () => {
       cacheService.clearCacheForPhrase(updatedPhrase.id);
     }
 
-    // Always show the flipped card if not auto-advancing, even for 'know'.
-    if (action === 'know' && options?.autoAdvance) {
-      if (settings.soundEffects) playCorrectSound();
-      setCurrentPracticePhrase(updatedPhrase);
-    } else {
-      setIsPracticeAnswerRevealed(true);
-      setPracticeCardEvaluated(true);
-      setCurrentPracticePhrase(updatedPhrase); // Update the card state before showing it flipped
+    // Always show the flipped card
+    setIsPracticeAnswerRevealed(true);
+    setPracticeCardEvaluated(true);
+    setCurrentPracticePhrase(updatedPhrase); // Update the card state before showing it flipped
 
-      if (action === 'know') {
-          if (settings.soundEffects) playCorrectSound();
-      } else {
-          if (settings.soundEffects) playIncorrectSound();
-      }
+    if (action === 'know') {
+        if (settings.soundEffects) playCorrectSound();
+    } else {
+        if (settings.soundEffects) playIncorrectSound();
     }
-  }, [currentPracticePhrase, handleLogMasteryButtonUsage, updateAndSavePhrases, settings.soundEffects, setPracticeCardEvaluated]);
+  }, [currentPracticePhrase, handleLogMasteryButtonUsage, updateAndSavePhrases, settings.soundEffects]);
 
 
   const handlePracticeSwipeRight = useCallback(() => {
@@ -1156,12 +1151,7 @@ const App: React.FC = () => {
 
       if (view === 'practice' && currentPracticePhrase && !practiceIsExitingRef.current) {
         if (e.key === 'ArrowRight') {
-          if (practiceCardEvaluated) {
             transitionToNext('right');
-          } else if (!isPracticeAnswerRevealed) {
-            handlePracticeUpdateMastery('know', { autoAdvance: true });
-            transitionToNext('right');
-          }
         } else if (e.key === 'ArrowLeft') {
           handlePracticeSwipeRight();
         } else if (e.key === ' ') { // Space bar to flip
@@ -1181,10 +1171,8 @@ const App: React.FC = () => {
     view, 
     currentPracticePhrase, 
     isPracticeAnswerRevealed,
-    practiceCardEvaluated,
     transitionToNext, 
     handlePracticeSwipeRight,
-    handlePracticeUpdateMastery
   ]);
 
 

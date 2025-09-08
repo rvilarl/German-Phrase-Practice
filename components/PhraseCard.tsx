@@ -34,6 +34,9 @@ interface PhraseCardProps {
   isQuickReplyEligible: boolean;
   cardActionUsage: { [key: string]: number };
   onLogCardActionUsage: (button: string) => void;
+  onKnow: () => void;
+  flash: 'green' | null;
+  onFlashEnd: () => void;
 }
 
 const RussianPhraseDisplay: React.FC<{ text: string; as: 'h2' | 'div' }> = ({ text, as: Component }) => {
@@ -57,12 +60,35 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
   onOpenImprovePhrase, onOpenContextMenu, onOpenVoicePractice,
   onOpenLearningAssistant, onOpenQuickReply, isWordAnalysisLoading,
   isQuickReplyEligible, cardActionUsage, onLogCardActionUsage,
+  onKnow, flash, onFlashEnd,
 }) => {
 
   const longPressTimer = useRef<number | null>(null);
   const wordLongPressTimer = useRef<number | null>(null);
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const buttonContainerRef = useRef<HTMLDivElement>(null);
+  const flashRef = useRef<HTMLDivElement>(null);
+  
+  useEffect(() => {
+      const flashElement = flashRef.current;
+      if (flash && flashElement) {
+          const animationClass = flash === 'green' ? 'flash-green-animation' : 'flash-red-animation';
+          
+          const handleAnimationEnd = () => {
+              if (flashElement.classList.contains(animationClass)) {
+                  flashElement.classList.remove(animationClass);
+              }
+              onFlashEnd();
+          };
+
+          flashElement.classList.add(animationClass);
+          flashElement.addEventListener('animationend', handleAnimationEnd, { once: true });
+
+          return () => {
+              flashElement.removeEventListener('animationend', handleAnimationEnd);
+          }
+      }
+  }, [flash, onFlashEnd]);
 
   const handleCardClick = useCallback(() => {
     if (isFlipped) {
@@ -244,13 +270,22 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
                 )}
             </div>
             
-            <div className="w-full">
-                {renderActionButtons('front')}
+            <div className="w-full z-10">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onKnow();
+                }}
+                disabled={isFlipped}
+                className="w-full max-w-[200px] mx-auto px-10 py-3 rounded-lg font-semibold text-white shadow-md transition-colors bg-green-600 hover:bg-green-700 disabled:opacity-0"
+              >
+                Знаю
+              </button>
             </div>
             <div className="absolute bottom-0 left-0 right-0 pb-1.5 px-2.5">
                 <ProgressBar current={phrase.masteryLevel} max={MAX_MASTERY_LEVEL} />
             </div>
-            <div className="flash-container"></div>
+            <div ref={flashRef} className="flash-container"></div>
         </div>
 
         {/* Back Side (German) */}

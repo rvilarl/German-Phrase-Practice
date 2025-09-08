@@ -1,3 +1,5 @@
+
+
 import React, { useCallback, useRef, useState, useEffect, useMemo } from 'react';
 import type { Phrase, WordAnalysis, PhraseCategory } from '../types';
 import PhraseCard from '../components/PhraseCard';
@@ -49,7 +51,7 @@ interface PracticePageProps {
   error: string | null;
   isGenerating: boolean;
   apiProviderAvailable: boolean;
-  onUpdateMastery: (action: 'know' | 'forgot' | 'dont_know', options?: { autoAdvance?: boolean }) => void;
+  onUpdateMastery: (action: 'know' | 'forgot' | 'dont_know') => void;
   onContinue: () => void;
   onSwipeRight: () => void;
   onOpenChat: (phrase: Phrase) => void;
@@ -161,6 +163,7 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
   const [quickReplyOptions, setQuickReplyOptions] = useState<string[]>([]);
   const [isQuickReplyLoading, setIsQuickReplyLoading] = useState(false);
   const [quickReplyError, setQuickReplyError] = useState<string | null>(null);
+  const [flashState, setFlashState] = useState<'green' | null>(null);
   const touchStartRef = useRef<number | null>(null);
   const touchMoveRef = useRef<number | null>(null);
 
@@ -239,7 +242,7 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
       speak(quickReplyPhrase.german, 'de-DE');
     }
     
-    onUpdateMastery('know', { autoAdvance: true });
+    onUpdateMastery('know');
     onContinue();
     setQuickReplyPhrase(null);
   }, [quickReplyPhrase, onUpdateMastery, onContinue, settings, speak]);
@@ -249,92 +252,29 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
     onUpdateMastery('forgot');
     setQuickReplyPhrase(null);
   }, [quickReplyPhrase, onUpdateMastery]);
-
-  const handleMasteryButtonClick = (action: 'know' | 'forgot' | 'dont_know') => {
-    if (isExiting) return;
-    
-    const shouldAutoAdvance = action === 'know';
-    onUpdateMastery(action, { autoAdvance: shouldAutoAdvance });
-
-    if (shouldAutoAdvance) {
-      // Don't wait for card to flip, immediately start transition to next card
-      onContinue();
-    }
-  };
-  
-  const handleSwipeLeft = () => {
-    if (isExiting) return;
-
-    // If card is already evaluated (e.g., 'forgot' was pressed),
-    // a left swipe should just continue to the next card.
-    if (isCardEvaluated) {
-      onContinue();
-    } else {
-      // If not evaluated, a left swipe implies 'know' and then continue.
-      // This works whether the card is flipped or not.
-      handleMasteryButtonClick('know');
-    }
-  };
   
   const handleTouchStart = (e: React.TouchEvent) => { touchMoveRef.current = null; touchStartRef.current = e.targetTouches[0].clientX; };
   const handleTouchMove = (e: React.TouchEvent) => { touchMoveRef.current = e.targetTouches[0].clientX; };
   const handleTouchEnd = () => {
     if (touchStartRef.current !== null && touchMoveRef.current !== null) {
       const deltaX = touchMoveRef.current - touchStartRef.current;
-      if (deltaX < -SWIPE_THRESHOLD) handleSwipeLeft();
+      if (deltaX < -SWIPE_THRESHOLD) onContinue();
       else if (deltaX > SWIPE_THRESHOLD) onSwipeRight();
     }
     touchStartRef.current = null; touchMoveRef.current = null;
   };
 
-  const renderButtons = () => {
-     if (isCardEvaluated) {
-        return (
-            <div className="flex justify-center mt-8 h-12">
-                <button
-                    onClick={onContinue}
-                    disabled={isExiting}
-                    className="px-10 py-3 rounded-lg font-semibold text-white shadow-md transition-all duration-300 bg-purple-600 hover:bg-purple-700"
-                >
-                    Продолжить
-                </button>
-            </div>
-        );
-     }
-     
-     if (!currentPhrase) {
-       return <div className="mt-8 h-12" />;
-     }
-     
-     const isFoundational = currentPhrase.category !== 'general';
-     
-     if (isFoundational) {
-         return <div className="mt-8 h-12" />;
-     }
-     
-     const hasBeenReviewed = currentPhrase.lastReviewedAt !== null;
-     
-     const allButtons = [
-        { key: 'dont_know' as const, label: 'Не знаю', className: 'bg-amber-500 hover:bg-amber-600', condition: !hasBeenReviewed },
-        { key: 'forgot' as const, label: 'Забыл', className: 'bg-red-500 hover:bg-red-600', condition: hasBeenReviewed },
-        { key: 'know' as const, label: 'Знаю', className: 'bg-green-500 hover:bg-green-500', condition: true },
-     ];
-     let buttonsToRender = allButtons.filter(btn => btn.condition);
-
-     return (
-        <div className="flex justify-center space-x-2 sm:space-x-4 mt-8 h-12">
-             {buttonsToRender.map(btn => (
-                <button 
-                    key={btn.key} 
-                    onClick={() => handleMasteryButtonClick(btn.key)} 
-                    className={`px-4 sm:px-6 py-3 rounded-lg font-semibold text-white shadow-md transition-colors ${btn.className}`}
-                >
-                    {btn.label}
-                </button>
-            ))}
-        </div>
-     );
-  };
+  const handleKnowClick = useCallback(() => {
+    if (isExiting || !currentPhrase) return;
+    
+    setFlashState('green');
+    onUpdateMastery('know');
+    
+    // Auto-advance after showing the answer
+    setTimeout(() => {
+      onContinue();
+    }, 1500);
+  }, [isExiting, currentPhrase, onUpdateMastery, onContinue]);
 
   const renderContent = () => {
     if (isLoading) return <div className="flex justify-center items-center h-64"><Spinner /></div>;
@@ -416,10 +356,25 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
                           isQuickReplyEligible={isQuickReplyEligible}
                           cardActionUsage={cardActionUsage}
                           onLogCardActionUsage={onLogCardActionUsage}
+                          onKnow={handleKnowClick}
+                          flash={flashState}
+                          onFlashEnd={() => setFlashState(null)}
                         />
                     </div>
                 </div>
-                {renderButtons()}
+
+                <div className="flex justify-center items-center mt-8 h-12">
+                    {/* This button appears ONLY when the card is manually flipped to check the answer */}
+                    {isAnswerRevealed && !isCardEvaluated && (
+                        <button
+                            onClick={onContinue}
+                            disabled={isExiting}
+                            className="px-10 py-3 rounded-lg font-semibold text-white shadow-md transition-all duration-300 bg-purple-600 hover:bg-purple-700 animate-fade-in"
+                        >
+                            Продолжить
+                        </button>
+                    )}
+                </div>
             </div>
         </div>
     );
