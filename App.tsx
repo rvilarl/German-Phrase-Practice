@@ -4,8 +4,7 @@ import * as srsService from './services/srsService';
 import * as cacheService from './services/cacheService';
 import { getProviderPriorityList, getFallbackProvider, ApiProviderType } from './services/apiProvider';
 import { AiService } from './services/aiService';
-// FIX: Corrected typo in import alias from 'defaultPhrases' to 'defaultPhrases'.
-import { initialPhrases as defaultPhrases } from './data/initialPhrases';
+import { initialPhrases as defaultPhrases, foundationalPhrases } from './data/initialPhrases';
 import { playCorrectSound, playIncorrectSound } from './services/soundService';
 
 import Header from './components/Header';
@@ -328,9 +327,6 @@ const App: React.FC = () => {
                     loadedPhrases = parsedData
                         .filter((p): p is Partial<Phrase> => p && typeof p === 'object' && 'german' in p && 'russian' in p)
                         .map(p => {
-                            // FIX: Restructure phrase data to satisfy the type for `assignInitialCategory`.
-                            // `phraseBase` has all properties of a Phrase except `id` and `category`,
-                            // which is what `assignInitialCategory` expects.
                             const phraseBase = {
                                 russian: p.russian!,
                                 german: p.german!,
@@ -342,7 +338,7 @@ const App: React.FC = () => {
                                 lastReviewedAt: p.lastReviewedAt ?? null,
                                 nextReviewAt: p.nextReviewAt ?? Date.now(),
                                 lapses: p.lapses ?? 0,
-                                isMastered: false, // Dummy value, will be immediately overwritten
+                                isMastered: false,
                             };
                             
                             const category = p.category || srsService.assignInitialCategory(phraseBase);
@@ -354,9 +350,6 @@ const App: React.FC = () => {
                                 isNew: p.isNew,
                             };
                         
-                            // Always recalculate 'isMastered' using the current SRS logic.
-                            // This serves as a data migration for users with old data structures,
-                            // ensuring phrases are not incorrectly marked as mastered.
                             return {
                                 ...fullPhraseObject,
                                 isMastered: srsService.isPhraseMastered(fullPhraseObject),
@@ -373,9 +366,35 @@ const App: React.FC = () => {
             loadedPhrases = defaultPhrases.map(p => ({
                 ...p,
                 id: Math.random().toString(36).substring(2, 9),
-                lapses: 0,
             }));
+        } else {
+            // Check for and add any missing foundational phrases for existing users.
+            const foundationalCategories: PhraseCategory[] = ['w-fragen', 'pronouns', 'numbers', 'time', 'money'];
+            
+            const existingGermanFoundational = new Set(
+                loadedPhrases
+                    .filter(p => foundationalCategories.includes(p.category))
+                    .map(p => p.german.trim().toLowerCase())
+            );
+
+            const missingFoundational = foundationalPhrases.filter(
+                p => !existingGermanFoundational.has(p.german.trim().toLowerCase())
+            );
+
+            if (missingFoundational.length > 0) {
+                console.log(`Adding ${missingFoundational.length} missing foundational phrases.`);
+                const phrasesToAdd: Phrase[] = missingFoundational.map(p => ({
+                    ...p,
+                    id: Math.random().toString(36).substring(2, 9),
+                }));
+                // Prepend new phrases so they appear first in the "new" section of the list
+                loadedPhrases = [...phrasesToAdd, ...loadedPhrases];
+            }
         }
+        
+        // Persist any changes made during initialization (e.g., adding missing phrases)
+        // This ensures the check only runs once if phrases were missing.
+        localStorage.setItem(PHRASES_STORAGE_KEY, JSON.stringify(loadedPhrases));
         
         setAllPhrases(loadedPhrases);
         setIsLoading(false);
@@ -652,7 +671,6 @@ const App: React.FC = () => {
     setVerbConjugationData(null);
     setVerbConjugationError(null);
     const cacheKey = `verb_conjugation_${infinitive}`;
-    // FIX: Using cachedData variable before declaration. Changed to use cacheKey.
     const cachedData = cacheService.getCache<VerbConjugation>(cacheKey);
     if (cachedData) {
         setVerbConjugationData(cachedData);
@@ -678,7 +696,6 @@ const App: React.FC = () => {
     setNounDeclensionData(null);
     setNounDeclensionError(null);
     const cacheKey = `noun_declension_${article}_${noun}`;
-    // FIX: Using cachedData variable before declaration. Changed to use cacheKey.
     const cachedData = cacheService.getCache<NounDeclension>(cacheKey);
     if (cachedData) {
         setNounDeclensionData(cachedData);
