@@ -104,17 +104,18 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({ isOpen, onClose, on
     };
     
     recognition.onresult = (event) => {
-      let interimTranscript = '';
-      let finalTranscript = ''; // Re-calculate from scratch to prevent duplicates
-      for (let i = 0; i < event.results.length; ++i) { // Always loop from 0
-        if (event.results[i].isFinal) {
-          finalTranscript += event.results[i][0].transcript + ' ';
-        } else {
-          interimTranscript += event.results[i][0].transcript;
+        let interimTranscript = '';
+        // Start from resultIndex to only process new results.
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+            if (event.results[i].isFinal) {
+                // Append only new final results to our ref.
+                finalTranscriptRef.current += event.results[i][0].transcript + ' ';
+            } else {
+                interimTranscript += event.results[i][0].transcript;
+            }
         }
-      }
-      finalTranscriptRef.current = finalTranscript; // Store the full final transcript
-      setTranscript(finalTranscript + interimTranscript); // Update UI
+        // Update the UI with the full final transcript plus the latest interim part.
+        setTranscript(finalTranscriptRef.current + interimTranscript);
     };
 
     recognitionRef.current = recognition;
@@ -208,7 +209,7 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({ isOpen, onClose, on
                             <span>Обработать</span>
                          </button>
                     </div>
-                    <TranscriptDisplay transcript={transcript} status={status} />
+                    <TranscriptDisplay transcript={finalTranscriptRef.current.trim()} status={status} />
                 </div>
             )
         case 'processing':
