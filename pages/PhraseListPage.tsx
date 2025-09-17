@@ -398,7 +398,7 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
                                 if (item.type === 'header') {
                                     return (
                                         <li key={`header-${index}`}>
-                                            <h2 className="text-lg font-bold text-slate-300 my-4 px-2 sticky top-[264px] bg-slate-900 py-2 z-10">
+                                            <h2 className="text-lg font-bold text-slate-300 my-4 px-2 sticky top-[264px]  backdrop-blur-sm py-2 z-10">
                                                 {item.title}
                                             </h2>
                                         </li>
