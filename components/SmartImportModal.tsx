@@ -66,7 +66,7 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({ isOpen, onClose, on
   const handleProcessTranscript = useCallback(async () => {
     setStatus('processing');
     try {
-        const finalTranscript = transcript.trim();
+        const finalTranscript = finalTranscriptRef.current.trim();
         if (!finalTranscript) {
             onClose(); // Nothing to process, just close
             return;
@@ -79,7 +79,7 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({ isOpen, onClose, on
         console.error("Failed to generate cards:", e);
         onClose();
     }
-  }, [lang, onGenerateCards, onClose, transcript]);
+  }, [lang, onGenerateCards, onClose]);
   
   useEffect(() => {
     const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -104,19 +104,18 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({ isOpen, onClose, on
     };
     
     recognition.onresult = (event) => {
-        let final_transcript = '';
-        let interim_transcript = '';
+        const finalPart = Array.from(event.results)
+            .filter(result => result.isFinal)
+            .map(result => result[0].transcript)
+            .join('');
 
-        for (let i = 0; i < event.results.length; ++i) {
-            if (event.results[i].isFinal) {
-                final_transcript += event.results[i][0].transcript + ' ';
-            } else {
-                interim_transcript += event.results[i][0].transcript;
-            }
-        }
-        
-        finalTranscriptRef.current = final_transcript.trim();
-        setTranscript(final_transcript + interim_transcript);
+        const interimPart = Array.from(event.results)
+            .filter(result => !result.isFinal)
+            .map(result => result[0].transcript)
+            .join('');
+
+        finalTranscriptRef.current = finalPart.trim();
+        setTranscript((finalPart + interimPart).trim());
     };
 
     recognitionRef.current = recognition;
@@ -206,7 +205,7 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({ isOpen, onClose, on
                             <RefreshIcon className="w-5 h-5" />
                             <span>Начать заново</span>
                         </button>
-                         <button onClick={handleProcessTranscript} disabled={!transcript.trim()} className="px-8 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg text-white font-bold flex items-center space-x-2 transition-colors disabled:opacity-50">
+                         <button onClick={handleProcessTranscript} disabled={!finalTranscriptRef.current.trim()} className="px-8 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg text-white font-bold flex items-center space-x-2 transition-colors disabled:opacity-50">
                             <span>Обработать</span>
                          </button>
                     </div>
