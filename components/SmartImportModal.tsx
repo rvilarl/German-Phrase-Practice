@@ -104,18 +104,19 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({ isOpen, onClose, on
     };
     
     recognition.onresult = (event) => {
-        let interimTranscript = '';
-        // Start from resultIndex to only process new results.
-        for (let i = event.resultIndex; i < event.results.length; ++i) {
+        let final_transcript = '';
+        let interim_transcript = '';
+
+        for (let i = 0; i < event.results.length; ++i) {
             if (event.results[i].isFinal) {
-                // Append only new final results to our ref.
-                finalTranscriptRef.current += event.results[i][0].transcript + ' ';
+                final_transcript += event.results[i][0].transcript + ' ';
             } else {
-                interimTranscript += event.results[i][0].transcript;
+                interim_transcript += event.results[i][0].transcript;
             }
         }
-        // Update the UI with the full final transcript plus the latest interim part.
-        setTranscript(finalTranscriptRef.current + interimTranscript);
+        
+        finalTranscriptRef.current = final_transcript.trim();
+        setTranscript(final_transcript + interim_transcript);
     };
 
     recognitionRef.current = recognition;
