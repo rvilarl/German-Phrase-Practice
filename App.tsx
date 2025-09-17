@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Phrase, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, SentenceContinuation, PhraseBuilderOptions, PhraseEvaluation, ChatMessage, PhraseCategory } from './types';
+import { Phrase, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, SentenceContinuation, PhraseBuilderOptions, PhraseEvaluation, ChatMessage, PhraseCategory, ProposedCard } from './types';
 import * as srsService from './services/srsService';
 import * as cacheService from './services/cacheService';
 import { getProviderPriorityList, getFallbackProvider, ApiProviderType } from './services/apiProvider';
@@ -21,6 +20,7 @@ import VerbConjugationModal from './components/VerbConjugationModal';
 import NounDeclensionModal from './components/NounDeclensionModal';
 import SentenceChainModal from './components/SentenceChainModal';
 import AddPhraseModal from './components/AddPhraseModal';
+import SmartImportModal from './components/SmartImportModal';
 import ImprovePhraseModal from './components/ImprovePhraseModal';
 import EditPhraseModal from './components/EditPhraseModal';
 import ConfirmDeleteModal from './components/ConfirmDeleteModal';
@@ -226,6 +226,8 @@ const App: React.FC = () => {
   const [isAddPhraseModalOpen, setIsAddPhraseModalOpen] = useState(false);
   const [addPhraseConfig, setAddPhraseConfig] = useState({ language: 'ru' as 'ru' | 'de', autoSubmit: true });
 
+  const [isSmartImportModalOpen, setIsSmartImportModalOpen] = useState(false);
+
   const [isImproveModalOpen, setIsImproveModalOpen] = useState(false);
   const [phraseToImprove, setPhraseToImprove] = useState<Phrase | null>(null);
 
@@ -349,6 +351,7 @@ const App: React.FC = () => {
                                 ...phraseBase,
                                 id: p.id ?? Math.random().toString(36).substring(2, 9),
                                 category,
+                                isNew: p.isNew,
                             };
                         
                             // Always recalculate 'isMastered' using the current SRS logic.
@@ -832,6 +835,11 @@ const App: React.FC = () => {
   const handleGuideToTranslation = useCallback((phrase: Phrase, history: ChatMessage[], userAnswer: string) => callApiWithFallback(provider => provider.guideToTranslation(phrase, history, userAnswer)),[callApiWithFallback]);
   const handleGenerateSinglePhrase = useCallback((russianPhrase: string) => callApiWithFallback(provider => provider.generateSinglePhrase(russianPhrase)),[callApiWithFallback]);
   const handleTranslateGermanToRussian = useCallback((germanPhrase: string) => callApiWithFallback(provider => provider.translateGermanToRussian(germanPhrase)), [callApiWithFallback]);
+  const handleGenerateCardsFromTranscript = useCallback(
+    (transcript: string, sourceLang: 'ru' | 'de') =>
+        callApiWithFallback(provider => provider.generateCardsFromTranscript(transcript, sourceLang)),
+    [callApiWithFallback]
+  );
 
 
   const handleOpenAddPhraseModal = (options: { language: 'ru' | 'de'; autoSubmit: boolean }) => {
@@ -852,6 +860,7 @@ const App: React.FC = () => {
         isMastered: false,
         category: 'general',
         lapses: 0,
+        isNew: true,
     };
     updateAndSavePhrases(prev => [newPhrase, ...prev]);
     
@@ -862,6 +871,47 @@ const App: React.FC = () => {
     setView('practice');
   };
   
+  const handleCreateCardsFromTranscript = (proposedCards: ProposedCard[]) => {
+    const existingGermanPhrases = new Set(allPhrases.map(p => p.german.trim().toLowerCase()));
+    let addedCount = 0;
+    
+    const newPhrases: Phrase[] = proposedCards
+        .filter(p => {
+            const isDuplicate = existingGermanPhrases.has(p.german.trim().toLowerCase());
+            return !isDuplicate;
+        })
+        .map(p => {
+            addedCount++;
+            return {
+                ...p,
+                id: Math.random().toString(36).substring(2, 9),
+                masteryLevel: 0,
+                lastReviewedAt: null,
+                nextReviewAt: Date.now(),
+                knowCount: 0,
+                knowStreak: 0,
+                isMastered: false,
+                category: 'general',
+                lapses: 0,
+                isNew: true, // Mark as new
+            };
+        });
+
+    if (newPhrases.length > 0) {
+        updateAndSavePhrases(prev => [...newPhrases, ...prev]);
+    }
+    
+    const skippedCount = proposedCards.length - addedCount;
+    let toastMessage = `✓ ${addedCount} ${addedCount === 1 ? 'карточка добавлена' : (addedCount > 1 && addedCount < 5 ? 'карточки добавлены' : 'карточек добавлено')}.`;
+    if (skippedCount > 0) {
+        toastMessage += ` ${skippedCount} уже существовали и были пропущены.`;
+    }
+    showToast({ message: toastMessage });
+    
+    setView('list');
+    setHighlightedPhraseId(newPhrases[0]?.id || null);
+  };
+
   const handleCreateCardFromWord = useCallback((phraseData: { german: string; russian: string; }) => {
     // Check for duplicates before creating
     const alreadyExists = allPhrases.some(p => p.german.trim().toLowerCase() === phraseData.german.trim().toLowerCase());
@@ -881,6 +931,7 @@ const App: React.FC = () => {
         isMastered: false,
         category: 'general',
         lapses: 0,
+        isNew: true,
     };
     updateAndSavePhrases(prev => [newPhrase, ...prev]);
     
@@ -977,6 +1028,23 @@ const App: React.FC = () => {
       setCurrentPracticePhrase(updatedPhrase);
     }
   }, [updatePhraseMasteryAndCache, currentPracticePhrase, settings.soundEffects]);
+
+  const handleMarkPhraseAsSeen = useCallback((phraseId: string) => {
+    updateAndSavePhrases(prev => {
+        const phraseExists = prev.some(p => p.id === phraseId && p.isNew);
+        if (!phraseExists) return prev; // Avoid unnecessary updates
+        
+        return prev.map(p => {
+            if (p.id === phraseId && p.isNew) {
+                // Creates a new object without the isNew property
+                const { isNew, ...rest } = p;
+                return rest;
+            }
+            return p;
+        });
+    });
+  }, [updateAndSavePhrases]);
+
 
   // --- Practice Page Logic ---
   const unmasteredPhrases = useMemo(() => allPhrases.filter(p => p && !p.isMastered && settings.enabledCategories[p.category]), [allPhrases, settings.enabledCategories]);
@@ -1264,6 +1332,7 @@ const App: React.FC = () => {
              cardHistoryLength={cardHistory.length}
              practiceCategoryFilter={practiceCategoryFilter}
              setPracticeCategoryFilter={setPracticeCategoryFilter}
+             onMarkPhraseAsSeen={handleMarkPhraseAsSeen}
            />
         ) : (
           <PhraseListPage 
@@ -1282,6 +1351,7 @@ const App: React.FC = () => {
       {view === 'practice' && !isLoading && (
         <ExpandingFab 
           onAddPhrase={handleOpenAddPhraseModal}
+          onSmartImport={() => setIsSmartImportModalOpen(true)}
           disabled={!apiProvider}
         />
       )}
@@ -1372,6 +1442,12 @@ const App: React.FC = () => {
           onPhraseCreated={handlePhraseCreated}
           language={addPhraseConfig.language}
           autoSubmit={addPhraseConfig.autoSubmit}
+      />}
+      {apiProvider && <SmartImportModal 
+          isOpen={isSmartImportModalOpen}
+          onClose={() => setIsSmartImportModalOpen(false)}
+          onGenerateCards={handleGenerateCardsFromTranscript}
+          onCardsCreated={handleCreateCardsFromTranscript}
       />}
        {phraseToImprove && <ImprovePhraseModal
           isOpen={isImproveModalOpen}

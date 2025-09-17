@@ -14,7 +14,13 @@ export interface Phrase {
   knowStreak: number; // Consecutive times 'know' was clicked
   isMastered: boolean; // True if knowCount >= 3 or knowStreak >= 2
   lapses: number; // Number of times the user has forgotten this card after the first success.
+  isNew?: boolean;
 }
+
+export type ProposedCard = {
+  russian: string;
+  german: string;
+};
 
 export interface MovieExample {
   title: string;

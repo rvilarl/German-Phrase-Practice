@@ -23,4 +23,5 @@ export interface AiService {
   generateQuickReplyOptions(phrase: Phrase): Promise<{ options: string[] }>;
   healthCheck(): Promise<boolean>;
   getProviderName(): string;
+  generateCardsFromTranscript(transcript: string, sourceLang: 'ru' | 'de'): Promise<{ russian: string; german: string; }[]>;
 }

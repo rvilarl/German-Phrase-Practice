@@ -1,5 +1,3 @@
-
-
 import type { Phrase, ChatMessage, DeepDiveAnalysis, ContentPart, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, SentenceContinuation, TranslationChatRequest, TranslationChatResponse, PhraseBuilderOptions, PhraseEvaluation } from '../types';
 import { AiService } from './aiService';
 import { getDeepseekApiKey } from './env';
@@ -130,6 +128,12 @@ const translateGermanToRussian: AiService['translateGermanToRussian'] = async (g
     ];
     const result = await callDeepSeekApi(messages, schema);
     return { russian: result.russian };
+};
+
+const generateCardsFromTranscript: AiService['generateCardsFromTranscript'] = async (transcript, sourceLang) => {
+    console.warn("generateCardsFromTranscript is not implemented for DeepSeek yet.");
+    // This is a complex prompt, returning empty to avoid errors.
+    return Promise.resolve([]);
 };
 
 
@@ -723,6 +727,7 @@ export const deepseekService: AiService = {
     generateSinglePhrase,
     translatePhrase,
     translateGermanToRussian,
+    generateCardsFromTranscript,
     improvePhrase,
     generateInitialExamples,
     continueChat,

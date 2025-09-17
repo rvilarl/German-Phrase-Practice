@@ -1,6 +1,3 @@
-
-
-
 import { GoogleGenAI, Type } from "@google/genai";
 import type { Phrase, ChatMessage, ExamplePair, ProactiveSuggestion, ContentPart, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, SentenceContinuation, TranslationChatRequest, TranslationChatResponse, PhraseBuilderOptions, PhraseEvaluation } from '../types';
 import { AiService } from './aiService';
@@ -183,6 +180,73 @@ const translateGermanToRussian: AiService['translateGermanToRussian'] = async (g
         return { russian: parsedResult.russian };
     } catch (error) {
         console.error("Error translating German phrase with Gemini:", error);
+        throw new Error(`Failed to call the Gemini API: ${(error as any)?.message || 'Unknown error'}`);
+    }
+};
+
+const cardsFromTranscriptSchema = {
+    type: Type.ARRAY,
+    items: {
+      type: Type.OBJECT,
+      properties: {
+        german: {
+          type: Type.STRING,
+          description: 'The phrase in German.',
+        },
+        russian: {
+          type: Type.STRING,
+          description: 'The phrase in Russian.',
+        },
+      },
+      required: ["german", "russian"],
+    },
+};
+
+const generateCardsFromTranscript: AiService['generateCardsFromTranscript'] = async (transcript, sourceLang) => {
+    const api = initializeApi();
+    if (!api) throw new Error("Gemini API key not configured.");
+    
+    const targetLang = sourceLang === 'ru' ? 'German' : 'Russian';
+
+    const prompt = `You are an expert linguist and a methodologist for creating language learning materials. Your task is to analyze a provided text transcript of spoken language and break it down into high-quality, logically complete flashcards for Spaced Repetition System (SRS) learning.
+
+Analyze the following text, which is a transcript of ${sourceLang === 'ru' ? 'Russian' : 'German'} speech:
+"""
+${transcript}
+"""
+
+Instructions:
+1.  **Analyze Context:** First, understand the context: is it a monologue, a dialogue, or chaotic speech from multiple participants? The text might contain broken phrases, filler words ('umm', 'well'), repetitions, or interruptions. Your job is to extract coherent and logical phrases suitable for learning.
+2.  **Decomposition Rules:**
+    *   Break down long, complex sentences into shorter, self-sufficient semantic blocks. Each block should be a useful phrase to learn.
+    *   For example, if you see the sentence: "I'll go home because I have a very bad headache and I also need to make dinner", you should split it into cards like: "I'll go home", "because I have a very bad headache", "I need to make dinner".
+    *   Clean up filler words and repetitions to make the phrases natural and useful.
+3.  **Translation and Formatting:**
+    *   For each extracted phrase, generate an accurate and natural translation into ${targetLang}.
+    *   Return the result ONLY as a JSON array of objects. Each object must have two keys: 'russian' and 'german'.
+
+Example Output Format:
+[
+  { "russian": "я пойду домой", "german": "ich gehe nach Hause" },
+  { "russian": "потому что у меня сильно болит голова", "german": "weil ich starke Kopfschmerzen habe" }
+]`;
+
+    try {
+        const response = await api.models.generateContent({
+            model: model,
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: cardsFromTranscriptSchema,
+                temperature: 0.6,
+            },
+        });
+        
+        const jsonText = response.text.trim();
+        return JSON.parse(jsonText);
+
+    } catch (error) {
+        console.error("Error generating cards from transcript with Gemini:", error);
         throw new Error(`Failed to call the Gemini API: ${(error as any)?.message || 'Unknown error'}`);
     }
 };
@@ -1243,4 +1307,5 @@ export const geminiService: AiService = {
     generateQuickReplyOptions,
     healthCheck,
     getProviderName: () => "Google Gemini",
+    generateCardsFromTranscript,
 };

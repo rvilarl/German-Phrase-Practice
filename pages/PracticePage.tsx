@@ -81,6 +81,7 @@ interface PracticePageProps {
   cardHistoryLength: number;
   practiceCategoryFilter: 'all' | PhraseCategory;
   setPracticeCategoryFilter: (filter: 'all' | PhraseCategory) => void;
+  onMarkPhraseAsSeen: (phraseId: string) => void;
 }
 
 const CategoryFilter: React.FC<{
@@ -153,7 +154,7 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
     onOpenVoiceWorkspace, onDeletePhrase, onGoToList, onOpenDiscussTranslation,
     settings, masteryButtonUsage, allPhrases, onCreateCard, onAnalyzeWord,
     onGenerateQuickReplyOptions, isWordAnalysisLoading, cardActionUsage, onLogCardActionUsage,
-    cardHistoryLength, practiceCategoryFilter, setPracticeCategoryFilter
+    cardHistoryLength, practiceCategoryFilter, setPracticeCategoryFilter, onMarkPhraseAsSeen
   } = props;
 
   const [contextMenuTarget, setContextMenuTarget] = useState<{ phrase: Phrase; word?: string } | null>(null);
@@ -164,6 +165,12 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
   const [flashState, setFlashState] = useState<'green' | null>(null);
   const touchStartRef = useRef<number | null>(null);
   const touchMoveRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (currentPhrase && currentPhrase.isNew) {
+      onMarkPhraseAsSeen(currentPhrase.id);
+    }
+  }, [currentPhrase, onMarkPhraseAsSeen]);
 
   const speak = useCallback((text: string, lang: 'de-DE' | 'ru-RU') => {
     if ('speechSynthesis' in window) {

@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import PlusIcon from './icons/PlusIcon';
 import CardsIcon from './icons/CardsIcon';
+import SmartToyIcon from './icons/SmartToyIcon';
 
 interface ExpandingFabProps {
   onAddPhrase: (options: { language: 'ru' | 'de'; autoSubmit: boolean }) => void;
+  onSmartImport: () => void;
   disabled: boolean;
 }
 
-const ExpandingFab: React.FC<ExpandingFabProps> = ({ onAddPhrase, disabled }) => {
+const ExpandingFab: React.FC<ExpandingFabProps> = ({ onAddPhrase, onSmartImport, disabled }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isLangOpen, setIsLangOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -33,6 +35,13 @@ const ExpandingFab: React.FC<ExpandingFabProps> = ({ onAddPhrase, disabled }) =>
       autoSubmit: language === 'ru',
     });
     // Reset state after click
+    setIsLangOpen(false);
+    setIsOpen(false);
+  };
+
+  const handleSmartImportClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onSmartImport();
     setIsLangOpen(false);
     setIsOpen(false);
   };
@@ -71,6 +80,13 @@ const ExpandingFab: React.FC<ExpandingFabProps> = ({ onAddPhrase, disabled }) =>
 
         {/* Main Options */}
         <div className={`transition-all duration-200 ease-out flex flex-col items-center gap-y-3 ${isOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
+             <button
+              onClick={handleSmartImportClick}
+              className="bg-purple-600 text-white rounded-full p-3 shadow-md hover:bg-purple-500 transition-colors"
+              aria-label="Умный импорт из речи"
+            >
+              <SmartToyIcon className="w-6 h-6" />
+            </button>
              <button
               onClick={toggleLangOpen}
               className="bg-purple-600 text-white rounded-full p-3 shadow-md hover:bg-purple-500 transition-colors"
