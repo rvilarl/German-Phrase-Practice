@@ -1,3 +1,4 @@
+
 import React, { useRef, useState, useMemo, useCallback, useEffect } from 'react';
 import type { Phrase } from '../types';
 import ChatIcon from './icons/ChatIcon';
@@ -34,7 +35,6 @@ interface PhraseCardProps {
   isQuickReplyEligible: boolean;
   cardActionUsage: { [key: string]: number };
   onLogCardActionUsage: (button: string) => void;
-  onKnow: () => void;
   flash: 'green' | null;
   onFlashEnd: () => void;
 }
@@ -60,13 +60,17 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
   onOpenImprovePhrase, onOpenContextMenu, onOpenVoicePractice,
   onOpenLearningAssistant, onOpenQuickReply, isWordAnalysisLoading,
   isQuickReplyEligible, cardActionUsage, onLogCardActionUsage,
-  onKnow, flash, onFlashEnd,
+  flash, onFlashEnd,
 }) => {
 
   const longPressTimer = useRef<number | null>(null);
   const wordLongPressTimer = useRef<number | null>(null);
-  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
-  const buttonContainerRef = useRef<HTMLDivElement>(null);
+  
+  const [isMoreMenuOpenFront, setIsMoreMenuOpenFront] = useState(false);
+  const [isMoreMenuOpenBack, setIsMoreMenuOpenBack] = useState(false);
+  const buttonContainerRefFront = useRef<HTMLDivElement>(null);
+  const buttonContainerRefBack = useRef<HTMLDivElement>(null);
+  
   const flashRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
@@ -114,24 +118,33 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
   ], [phrase, createLoggedAction, onOpenLearningAssistant, onOpenSentenceChain, onOpenVoicePractice, onOpenChat, onOpenDeepDive, onOpenMovieExamples]);
 
   const actionButtons = useMemo(() => {
-      // The dynamic sorting based on usage has been removed to ensure a consistent UI.
       return allButtons;
   }, [allButtons]);
 
   const visibleButtons = actionButtons.slice(0, 3);
   const hiddenButtons = actionButtons.slice(3);
 
-  // Close menu on outside click
   useEffect(() => {
-    if (!isMoreMenuOpen) return;
+    if (!isMoreMenuOpenFront) return;
     const handleClickOutside = (event: MouseEvent) => {
-      if (buttonContainerRef.current && !buttonContainerRef.current.contains(event.target as Node)) {
-        setIsMoreMenuOpen(false);
+      if (buttonContainerRefFront.current && !buttonContainerRefFront.current.contains(event.target as Node)) {
+        setIsMoreMenuOpenFront(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isMoreMenuOpen]);
+  }, [isMoreMenuOpenFront]);
+  
+  useEffect(() => {
+    if (!isMoreMenuOpenBack) return;
+    const handleClickOutside = (event: MouseEvent) => {
+      if (buttonContainerRefBack.current && !buttonContainerRefBack.current.contains(event.target as Node)) {
+        setIsMoreMenuOpenBack(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isMoreMenuOpenBack]);
   
   const handleOpenImprovePhrase = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -188,12 +201,16 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
   };
 
   const renderActionButtons = (theme: 'front' | 'back') => {
+    const isMenuOpen = theme === 'front' ? isMoreMenuOpenFront : isMoreMenuOpenBack;
+    const setIsMenuOpen = theme === 'front' ? setIsMoreMenuOpenFront : setIsMoreMenuOpenBack;
+    const ref = theme === 'front' ? buttonContainerRefFront : buttonContainerRefBack;
+
     const themeClasses = theme === 'front' 
       ? 'bg-black/20 hover:bg-black/30 text-slate-200'
       : 'bg-black/20 hover:bg-black/30 text-white';
 
     return (
-      <div ref={buttonContainerRef} className="relative w-full flex justify-center items-center flex-wrap gap-2 z-10">
+      <div ref={ref} className="relative w-full flex justify-center items-center flex-wrap gap-2 z-10">
         {visibleButtons.map(button => (
           <button
             key={button.key}
@@ -207,17 +224,17 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
         {hiddenButtons.length > 0 && (
           <>
             <button
-              onClick={(e) => { e.stopPropagation(); setIsMoreMenuOpen(prev => !prev); }}
+              onClick={(e) => { e.stopPropagation(); setIsMenuOpen(prev => !prev); }}
               className={`p-3 rounded-full transition-colors ${themeClasses}`}
               aria-label="Еще"
-              aria-expanded={isMoreMenuOpen}
+              aria-expanded={isMenuOpen}
             >
-              {isMoreMenuOpen ? <CloseIcon className="w-5 h-5" /> : <MoreHorizontalIcon className="w-5 h-5" />}
+              {isMenuOpen ? <CloseIcon className="w-5 h-5" /> : <MoreHorizontalIcon className="w-5 h-5" />}
             </button>
-            {isMoreMenuOpen && (
+            {isMenuOpen && (
               <MoreActionsMenu 
                 buttons={hiddenButtons} 
-                onClose={() => setIsMoreMenuOpen(false)}
+                onClose={() => setIsMenuOpen(false)}
                 theme={theme}
               />
             )}
@@ -269,19 +286,11 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
                   <p className="text-slate-300 mt-3 text-sm text-center font-normal italic max-w-xs">{phrase.context}</p>
                 )}
             </div>
-            
-            <div className="w-full z-10">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onKnow();
-                }}
-                disabled={isFlipped}
-                className="w-full max-w-[200px] mx-auto px-10 py-3 rounded-lg font-semibold text-white shadow-md transition-colors bg-green-600 hover:bg-green-700 disabled:opacity-0"
-              >
-                Знаю
-              </button>
+
+            <div className="relative w-full">
+                {renderActionButtons('front')}
             </div>
+            
             <div className="absolute bottom-0 left-0 right-0 pb-1.5 px-2.5">
                 <ProgressBar current={phrase.masteryLevel} max={MAX_MASTERY_LEVEL} />
             </div>

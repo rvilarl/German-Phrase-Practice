@@ -1,5 +1,3 @@
-
-
 import React, { useCallback, useRef, useState, useEffect, useMemo } from 'react';
 import type { Phrase, WordAnalysis, PhraseCategory } from '../types';
 import PhraseCard from '../components/PhraseCard';
@@ -356,7 +354,6 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
                           isQuickReplyEligible={isQuickReplyEligible}
                           cardActionUsage={cardActionUsage}
                           onLogCardActionUsage={onLogCardActionUsage}
-                          onKnow={handleKnowClick}
                           flash={flashState}
                           onFlashEnd={() => setFlashState(null)}
                         />
@@ -364,6 +361,15 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
                 </div>
 
                 <div className="flex justify-center items-center mt-8 h-12">
+                    {!isAnswerRevealed && currentPhrase && (
+                        <button
+                            onClick={handleKnowClick}
+                            disabled={isExiting}
+                            className="w-full max-w-[200px] mx-auto px-10 py-3 rounded-lg font-semibold text-white shadow-md transition-colors bg-green-600 hover:bg-green-700 animate-fade-in"
+                        >
+                            Знаю
+                        </button>
+                    )}
                     {/* This button appears ONLY when the card is manually flipped to check the answer */}
                     {isAnswerRevealed && !isCardEvaluated && (
                         <button
