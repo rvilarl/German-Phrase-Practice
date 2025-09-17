@@ -2,6 +2,8 @@
 
 
 
+
+
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Phrase, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, SentenceContinuation, PhraseBuilderOptions, PhraseEvaluation, ChatMessage, PhraseCategory } from './types';
 import * as srsService from './services/srsService';
@@ -95,29 +97,27 @@ const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 interface LeechModalProps {
   isOpen: boolean;
-  onClose: () => void;
   phrase: Phrase;
   onImprove: (phrase: Phrase) => void;
   onDiscuss: (phrase: Phrase) => void;
+  onContinue: (phrase: Phrase) => void;
+  onReset: (phrase: Phrase) => void;
+  onPostpone: (phrase: Phrase) => void;
 }
 
-const LeechModal: React.FC<LeechModalProps> = ({ isOpen, onClose, phrase, onImprove, onDiscuss }) => {
+const LeechModal: React.FC<LeechModalProps> = ({ isOpen, phrase, onImprove, onDiscuss, onContinue, onReset, onPostpone }) => {
   if (!isOpen) return null;
 
-  const handleImprove = () => {
-    onClose();
-    onImprove(phrase);
-  };
-  
-  const handleDiscuss = () => {
-    onClose();
-    onDiscuss(phrase);
-  };
+  const handleImprove = () => onImprove(phrase);
+  const handleDiscuss = () => onDiscuss(phrase);
+  const handleContinue = () => onContinue(phrase);
+  const handleReset = () => onReset(phrase);
+  const handlePostpone = () => onPostpone(phrase);
 
   return (
     <div 
       className="fixed inset-0 bg-black/70 z-50 flex justify-center items-center backdrop-blur-sm p-4 animate-fade-in" 
-      onClick={onClose}
+      onClick={handlePostpone} // Default action on backdrop click is to postpone
     >
       <div
         className="bg-slate-800 rounded-lg shadow-2xl w-full max-w-sm m-4 p-6 text-center"
@@ -130,7 +130,7 @@ const LeechModal: React.FC<LeechModalProps> = ({ isOpen, onClose, phrase, onImpr
         </div>
         
         <h2 className="text-xl font-bold text-slate-100">Сложная фраза</h2>
-        <p className="text-slate-400 mt-2 mb-4">Эта фраза дается вам с трудом. Возможно, она непонятна или ее можно улучшить.</p>
+        <p className="text-slate-400 mt-2 mb-4">Эта фраза дается вам с трудом. Что с ней сделать?</p>
         
         <div className="bg-slate-700/50 p-4 rounded-md text-center mb-6">
             <p className="text-slate-200 font-medium text-lg">"{phrase.russian}"</p>
@@ -152,12 +152,11 @@ const LeechModal: React.FC<LeechModalProps> = ({ isOpen, onClose, phrase, onImpr
             <MessageQuestionIcon className="w-5 h-5 mr-2" />
             <span>Обсудить с AI</span>
           </button>
-          <button 
-            onClick={onClose} 
-            className="w-full px-6 py-2 rounded-md bg-transparent hover:bg-slate-700/50 text-slate-300 font-medium transition-colors"
-          >
-            Понятно, продолжить
-          </button>
+          <div className="pt-3 mt-3 border-t border-slate-700 space-y-3">
+            <button onClick={handleContinue} className="w-full px-6 py-2 rounded-md bg-transparent hover:bg-slate-700/50 text-slate-300 font-medium transition-colors">Повторить через 10 мин</button>
+            <button onClick={handleReset} className="w-full px-6 py-2 rounded-md bg-transparent hover:bg-slate-700/50 text-slate-300 font-medium transition-colors">Сбросить прогресс</button>
+            <button onClick={handlePostpone} className="w-full px-6 py-2 rounded-md bg-transparent hover:bg-slate-700/50 text-slate-300 font-medium transition-colors">Отложить на завтра</button>
+          </div>
         </div>
       </div>
     </div>
@@ -1014,44 +1013,38 @@ const App: React.FC = () => {
   }, [practiceCategoryFilter, view]);
 
 
-  const selectNextPracticePhrase = useCallback((addToHistory: boolean = true) => {
+  const selectNextPracticePhrase = useCallback(() => {
     if (currentPracticePhrase) {
-      if (addToHistory) {
         setCardHistory(prev => [...prev, currentPracticePhrase.id]);
-      }
-      // Clear the learning assistant cache for the card that is going away
-      setLearningAssistantCache(prev => {
-        const newCache = { ...prev };
-        delete newCache[currentPracticePhrase.id];
-        return newCache;
-      });
+        setLearningAssistantCache(prev => {
+            const newCache = { ...prev };
+            delete newCache[currentPracticePhrase.id];
+            return newCache;
+        });
     }
 
     const nextPhrase = srsService.selectNextPhrase(practicePool, currentPracticePhrase?.id ?? null);
-    changePracticePhrase(nextPhrase, 'right');
     
-    const POOL_FETCH_THRESHOLD = 7;
-    const ACTIVE_POOL_TARGET = 10;
-    const PHRASES_TO_FETCH = 5;
-
-    // We only fetch 'general' phrases, so the check should be based on their count within the overall unmastered pool.
-    const unmasteredGeneralCount = unmasteredPhrases.filter(p => p.category === 'general').length;
-
-    if (unmasteredGeneralCount < POOL_FETCH_THRESHOLD && !isGenerating && allPhrases.length > 0) {
-        const needed = ACTIVE_POOL_TARGET - unmasteredGeneralCount;
-        fetchNewPhrases(Math.max(needed, PHRASES_TO_FETCH));
+    if (nextPhrase) {
+        changePracticePhrase(nextPhrase, 'right');
+    } else {
+        // No due or new cards. This is our trigger to generate more.
+        changePracticePhrase(null, 'right'); // Clear view to show loading/empty state
+        if (!isGenerating && apiProvider) {
+            fetchNewPhrases(10);
+        }
     }
-  }, [practicePool, currentPracticePhrase, fetchNewPhrases, isGenerating, allPhrases.length, changePracticePhrase, unmasteredPhrases]);
+  }, [practicePool, currentPracticePhrase, fetchNewPhrases, isGenerating, changePracticePhrase, apiProvider]);
 
   useEffect(() => {
     if (!isLoading && allPhrases.length > 0 && !currentPracticePhrase && view === 'practice') {
-      selectNextPracticePhrase(false);
+      selectNextPracticePhrase();
     }
   }, [isLoading, allPhrases, currentPracticePhrase, selectNextPracticePhrase, view]);
   
   useEffect(() => {
     if (currentPracticePhrase && !allPhrases.some(p => p && p.id === currentPracticePhrase.id)) {
-      selectNextPracticePhrase(false);
+      selectNextPracticePhrase();
     }
   }, [allPhrases, currentPracticePhrase, selectNextPracticePhrase]);
 
@@ -1087,8 +1080,8 @@ const App: React.FC = () => {
       const isNowLeech = srsService.isLeech(updatedPhrase);
       
       if (!wasLeech && isNowLeech) {
-        // Suspend the card for 24 hours and show the modal
-        updatedPhrase.nextReviewAt = Date.now() + 24 * 60 * 60 * 1000;
+        // Just save the updated phrase with its new lapse count and open the modal.
+        // The modal will decide the next review time.
         updateAndSavePhrases(prev => prev.map(p => p.id === updatedPhrase.id ? updatedPhrase : p));
         setLeechPhrase(updatedPhrase);
         setIsLeechModalOpen(true);
@@ -1114,6 +1107,33 @@ const App: React.FC = () => {
         if (settings.soundEffects) playIncorrectSound();
     }
   }, [currentPracticePhrase, handleLogMasteryButtonUsage, updateAndSavePhrases, settings.soundEffects]);
+
+  const handleLeechAction = useCallback((phrase: Phrase, action: 'continue' | 'reset' | 'postpone') => {
+    let updatedPhrase = { ...phrase };
+    const now = Date.now();
+
+    if (action === 'continue') {
+        updatedPhrase.nextReviewAt = now + 10 * 60 * 1000; // 10 minutes
+    } else if (action === 'reset') {
+        updatedPhrase = {
+            ...phrase,
+            masteryLevel: 0,
+            lastReviewedAt: null,
+            nextReviewAt: now,
+            knowCount: 0,
+            knowStreak: 0,
+            lapses: 0, // Reset lapses so it's not a leech anymore
+            isMastered: false,
+        };
+    } else { // postpone
+        updatedPhrase.nextReviewAt = now + 24 * 60 * 60 * 1000; // 24 hours
+    }
+
+    updateAndSavePhrases(prev => prev.map(p => (p.id === updatedPhrase.id ? updatedPhrase : p)));
+    setIsLeechModalOpen(false);
+    setLeechPhrase(null);
+    transitionToNext();
+  }, [updateAndSavePhrases, transitionToNext]);
 
 
   const handlePracticeSwipeRight = useCallback(() => {
@@ -1374,13 +1394,18 @@ const App: React.FC = () => {
        />
        {leechPhrase && <LeechModal 
           isOpen={isLeechModalOpen}
-          onClose={() => {
-            setIsLeechModalOpen(false);
-            transitionToNext();
-          }}
           phrase={leechPhrase}
-          onImprove={handleOpenImproveModal}
-          onDiscuss={handleOpenDiscussModal}
+          onImprove={(phrase) => {
+            handleLeechAction(phrase, 'postpone');
+            handleOpenImproveModal(phrase);
+          }}
+          onDiscuss={(phrase) => {
+            handleLeechAction(phrase, 'postpone');
+            handleOpenDiscussModal(phrase);
+          }}
+          onContinue={(phrase) => handleLeechAction(phrase, 'continue')}
+          onReset={(phrase) => handleLeechAction(phrase, 'reset')}
+          onPostpone={(phrase) => handleLeechAction(phrase, 'postpone')}
         />}
        <VoiceWorkspaceModal
             isOpen={isVoiceWorkspaceModalOpen}

@@ -15,13 +15,13 @@ export const MAX_MASTERY_LEVEL = SRS_INTERVALS.length;
 export const LEECH_THRESHOLD = 5;
 
 export const isPhraseMastered = (phrase: Phrase): boolean => {
-  // Foundational categories are mastered after being known once.
+  // Foundational categories are mastered after a streak of 10.
   const foundationalCategories: PhraseCategory[] = ['w-fragen', 'pronouns', 'numbers', 'time', 'money'];
   if (foundationalCategories.includes(phrase.category)) {
-    return phrase.knowCount >= 1;
+    return phrase.knowStreak >= 10;
   }
   
-  // New rule for general phrases: they are only mastered when they reach the max SRS level.
+  // General phrases are only mastered when they reach the max SRS level.
   return phrase.masteryLevel >= MAX_MASTERY_LEVEL;
 };
 
@@ -55,15 +55,25 @@ export const selectNextPhrase = (phrases: Phrase[], currentPhraseId: string | nu
     return null;
   }
   
-  // If there's only one phrase in the pool, return it.
-  if (phrases.length === 1) {
+  // If there's only one phrase in the pool, return it if it's not the current one.
+  if (phrases.length === 1 && phrases[0].id !== currentPhraseId) {
     return phrases[0];
+  }
+  if (phrases.length === 1 && phrases[0].id === currentPhraseId) {
+    // Only one card left, and it's the one we're on. See if it's due.
+    const now = Date.now();
+    if (phrases[0].lastReviewedAt !== null && phrases[0].nextReviewAt <= now) {
+      return phrases[0];
+    }
+     if (phrases[0].lastReviewedAt === null) {
+      return phrases[0];
+    }
+    return null;
   }
 
   const poolWithoutCurrent = phrases.filter(p => p.id !== currentPhraseId);
   if (poolWithoutCurrent.length === 0) {
-      // This happens if there's only one phrase left, and it's the current one.
-      return phrases[0];
+      return null;
   }
 
   const now = Date.now();
@@ -82,14 +92,9 @@ export const selectNextPhrase = (phrases: Phrase[], currentPhraseId: string | nu
     return newPhrases[Math.floor(Math.random() * newPhrases.length)];
   }
 
-  // Priority 3: If nothing is due and no new cards, pick the one scheduled soonest
-  const upcomingPhrases = poolWithoutCurrent.filter(p => p.lastReviewedAt !== null);
-  if (upcomingPhrases.length > 0) {
-    return upcomingPhrases.sort((a, b) => a.nextReviewAt - b.nextReviewAt)[0];
-  }
-
-  // Fallback: should not be reached if there are unmastered phrases, but as a safeguard.
-  return poolWithoutCurrent.length > 0 ? poolWithoutCurrent[Math.floor(Math.random() * poolWithoutCurrent.length)] : null;
+  // If no cards are due and there are no new cards, return null.
+  // The UI layer will be responsible for fetching new cards if needed.
+  return null;
 };
 
 type UserAction = 'know' | 'forgot' | 'dont_know';
@@ -110,8 +115,11 @@ export const updatePhraseMastery = (phrase: Phrase, action: UserAction): Phrase 
       newMasteryLevel = Math.min(MAX_MASTERY_LEVEL, phrase.masteryLevel + 1);
       newKnowCount++;
       newKnowStreak++;
-      // A correct answer resets the lapse count.
-      newLapses = 0;
+      // A correct answer resets the lapse count for non-foundational cards.
+      const foundationalCategories: PhraseCategory[] = ['w-fragen', 'pronouns', 'numbers', 'time', 'money'];
+      if (!foundationalCategories.includes(phrase.category)) {
+        newLapses = 0;
+      }
       break;
     case 'forgot':
       newMasteryLevel = Math.max(0, phrase.masteryLevel - 2);
