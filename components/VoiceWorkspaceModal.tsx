@@ -347,7 +347,7 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
     if (SpeechRecognitionAPI) {
       const recognition = new SpeechRecognitionAPI();
       recognition.lang = 'de-DE';
-      recognition.continuous = true;
+      recognition.continuous = false; // Changed to false for better reliability
       recognition.interimResults = true;
       
       recognition.onstart = () => setIsListening(true);
@@ -367,16 +367,14 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
       };
       
       recognition.onresult = (event) => {
-        let finalTranscript = '';
-        for (let i = event.resultIndex; i < event.results.length; ++i) {
-            if (event.results[i].isFinal) {
-                finalTranscript += event.results[i][0].transcript;
+        // With continuous=false, we only process the final result of an utterance.
+        const result = event.results[event.results.length - 1];
+        if (result.isFinal) {
+            const finalTranscript = result[0].transcript;
+            if (finalTranscript.trim()) {
+                const newWords = finalTranscript.trim().split(' ').map((text, index) => ({ text, id: `spoken-${Date.now()}-${index}` }));
+                setConstructedWords(prev => [...prev, ...newWords]);
             }
-        }
-
-        if (finalTranscript.trim()) {
-            const newWords = finalTranscript.trim().split(' ').map((text, index) => ({ text, id: `spoken-${Date.now()}-${index}` }));
-            setConstructedWords(prev => [...prev, ...newWords]);
         }
       };
       recognitionRef.current = recognition;
