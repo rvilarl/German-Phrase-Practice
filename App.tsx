@@ -1,9 +1,4 @@
 
-
-
-
-
-
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Phrase, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, SentenceContinuation, PhraseBuilderOptions, PhraseEvaluation, ChatMessage, PhraseCategory } from './types';
 import * as srsService from './services/srsService';
@@ -331,28 +326,37 @@ const App: React.FC = () => {
                     loadedPhrases = parsedData
                         .filter((p): p is Partial<Phrase> => p && typeof p === 'object' && 'german' in p && 'russian' in p)
                         .map(p => {
-                            const knowCount = p.knowCount ?? 0;
-                            const knowStreak = p.knowStreak ?? 0;
-                            const masteryLevel = p.masteryLevel ?? 0;
-                            const phraseData = {
+                            // FIX: Restructure phrase data to satisfy the type for `assignInitialCategory`.
+                            // `phraseBase` has all properties of a Phrase except `id` and `category`,
+                            // which is what `assignInitialCategory` expects.
+                            const phraseBase = {
                                 russian: p.russian!,
                                 german: p.german!,
-                                id: p.id ?? Math.random().toString(36).substring(2, 9),
                                 transcription: p.transcription,
                                 context: p.context,
-                                knowCount,
-                                knowStreak,
-                                masteryLevel,
+                                knowCount: p.knowCount ?? 0,
+                                knowStreak: p.knowStreak ?? 0,
+                                masteryLevel: p.masteryLevel ?? 0,
                                 lastReviewedAt: p.lastReviewedAt ?? null,
                                 nextReviewAt: p.nextReviewAt ?? Date.now(),
-                                isMastered: p.isMastered ?? false,
                                 lapses: p.lapses ?? 0,
+                                isMastered: false, // Dummy value, will be immediately overwritten
                             };
-                            const category = p.category || srsService.assignInitialCategory(phraseData);
-                            return {
-                                ...phraseData,
+                            
+                            const category = p.category || srsService.assignInitialCategory(phraseBase);
+                        
+                            const fullPhraseObject = {
+                                ...phraseBase,
+                                id: p.id ?? Math.random().toString(36).substring(2, 9),
                                 category,
-                                isMastered: p.isMastered ?? srsService.isPhraseMastered({ ...phraseData, category }),
+                            };
+                        
+                            // Always recalculate 'isMastered' using the current SRS logic.
+                            // This serves as a data migration for users with old data structures,
+                            // ensuring phrases are not incorrectly marked as mastered.
+                            return {
+                                ...fullPhraseObject,
+                                isMastered: srsService.isPhraseMastered(fullPhraseObject),
                             };
                         });
                 }
