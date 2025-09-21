@@ -5,6 +5,7 @@ import MicrophoneIcon from './icons/MicrophoneIcon';
 import CheckIcon from './icons/CheckIcon';
 import Spinner from './Spinner';
 import RefreshIcon from './icons/RefreshIcon';
+import ClipboardIcon from './icons/ClipboardIcon';
 
 type Status = 'idle' | 'recording' | 'stopped' | 'processing' | 'preview';
 type Language = 'ru' | 'de';
@@ -29,6 +30,7 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({ isOpen, onClose, on
   const [transcript, setTranscript] = useState('');
   const [proposedCards, setProposedCards] = useState<ProposedCard[]>([]);
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
+  const [canPaste, setCanPaste] = useState(false);
   
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const finalTranscriptRef = useRef('');
@@ -49,7 +51,7 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({ isOpen, onClose, on
         reset();
     }
   }, [isOpen, reset]);
-  
+
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -62,6 +64,35 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({ isOpen, onClose, on
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [isOpen, onClose]);
+
+  // Check for clipboard API availability
+  useEffect(() => {
+    if (isOpen) {
+        // Use `?.` for robustness, though `navigator.permissions` is widely supported.
+        if (navigator.clipboard && navigator.permissions) {
+            navigator.permissions.query({ name: 'clipboard-read' as PermissionName }).then(permissionStatus => {
+                if (permissionStatus.state !== 'denied') {
+                    setCanPaste(true);
+                } else {
+                    setCanPaste(false);
+                }
+                permissionStatus.onchange = () => {
+                    setCanPaste(permissionStatus.state !== 'denied');
+                };
+            }).catch(error => {
+                console.warn('Could not query clipboard permission, showing paste button as a fallback.', error);
+                // The error might be due to the permissions policy, but we still show the button
+                // so the user can try and trigger the browser's native flow.
+                setCanPaste(true);
+            });
+        } else if (navigator.clipboard) {
+            // Fallback for browsers without navigator.permissions (e.g., older Safari)
+            setCanPaste(true);
+        } else {
+            setCanPaste(false);
+        }
+    }
+  }, [isOpen]);
 
   const handleProcessTranscript = useCallback(async () => {
     setStatus('processing');
@@ -123,6 +154,21 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({ isOpen, onClose, on
     return () => recognition.abort();
   }, [lang]);
 
+  const handlePasteFromClipboard = async () => {
+    if (!navigator.clipboard) return;
+    try {
+        const text = await navigator.clipboard.readText();
+        if (text.trim()) {
+            finalTranscriptRef.current = text.trim();
+            setTranscript(text.trim());
+            setStatus('stopped');
+        }
+    } catch (err) {
+        console.error('Failed to paste from clipboard:', err);
+        alert('Не удалось вставить текст из буфера обмена. Возможно, вы не предоставили разрешение.');
+    }
+  };
+
 
   const handleStartRecording = () => {
     if (recognitionRef.current) {
@@ -182,6 +228,12 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({ isOpen, onClose, on
                         <MicrophoneIcon className="w-10 h-10 text-white" />
                     </button>
                     <TranscriptDisplay transcript={transcript} status={status} />
+                    {canPaste && (
+                        <button onClick={handlePasteFromClipboard} className="mt-4 px-4 py-2 bg-slate-600/50 hover:bg-slate-600/80 rounded-lg text-slate-300 text-sm font-medium flex items-center gap-x-2 transition-colors">
+                            <ClipboardIcon className="w-4 h-4" />
+                            <span>Вставить из буфера обмена</span>
+                        </button>
+                    )}
                 </div>
             );
         case 'recording':
@@ -210,6 +262,12 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({ isOpen, onClose, on
                          </button>
                     </div>
                     <TranscriptDisplay transcript={finalTranscriptRef.current.trim()} status={status} />
+                    {canPaste && (
+                        <button onClick={handlePasteFromClipboard} className="mt-4 px-4 py-2 bg-slate-600/50 hover:bg-slate-600/80 rounded-lg text-slate-300 text-sm font-medium flex items-center gap-x-2 transition-colors">
+                            <ClipboardIcon className="w-4 h-4" />
+                            <span>Вставить другой текст</span>
+                        </button>
+                    )}
                 </div>
             )
         case 'processing':
