@@ -20,6 +20,7 @@ interface LearningAssistantModalProps {
   cache: { [phraseId: string]: ChatMessage[] };
   setCache: React.Dispatch<React.SetStateAction<{ [phraseId: string]: ChatMessage[] }>>;
   onOpenWordAnalysis: (phrase: Phrase, word: string) => void;
+  onOpenAdjectiveDeclension: (adjective: string) => void;
 }
 
 const ChatMessageContent: React.FC<{ 
@@ -79,7 +80,7 @@ const ChatMessageContent: React.FC<{
     return message.text ? <p>{message.text}</p> : null;
 };
 
-const LearningAssistantModal: React.FC<LearningAssistantModalProps> = ({ isOpen, onClose, phrase, onGuide, onSuccess, onOpenVerbConjugation, onOpenNounDeclension, onOpenPronounsModal, onOpenWFragenModal, cache, setCache, onOpenWordAnalysis }) => {
+const LearningAssistantModal: React.FC<LearningAssistantModalProps> = ({ isOpen, onClose, phrase, onGuide, onSuccess, onOpenVerbConjugation, onOpenNounDeclension, onOpenPronounsModal, onOpenWFragenModal, cache, setCache, onOpenWordAnalysis, onOpenAdjectiveDeclension }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [input, setInput] = useState('');
@@ -331,74 +332,73 @@ const LearningAssistantModal: React.FC<LearningAssistantModalProps> = ({ isOpen,
                 {wordOptions.map((word, index) => (
                   <button
                     key={index}
-                    onClick={() => handleSendMessage(word)}
-                    className={`px-4 py-2 rounded-lg transition-colors text-slate-100 font-medium animate-fade-in ${word === 'Не знаю' ? 'bg-yellow-600/80 hover:bg-yellow-600' : 'bg-slate-600/80 hover:bg-slate-600'}`}
+                    onClick={() => handleSuggestionClick(word)}
+                    disabled={isLoading || isSuccess}
+                    className="px-4 py-2 bg-slate-700/80 hover:bg-slate-600/80 text-slate-200 text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
                   >
                     {word}
                   </button>
                 ))}
-                {cheatSheetOptions.map((option, index) => (
-                  <button
-                    key={`cheat-${index}`}
-                    onClick={() => handleCheatSheetClick(option)}
-                    className="px-4 py-2 bg-sky-600/80 hover:bg-sky-600 rounded-lg transition-colors text-slate-100 font-medium animate-fade-in flex items-center gap-x-2"
-                  >
-                    <BookOpenIcon className="w-4 h-4" />
-                    <span>{option.label}</span>
-                  </button>
-                ))}
               </div>
-            </div>
-          )}
-          {!isSuccess && promptSuggestions.length > 0 && !showOptions && (
-            <div className="flex space-x-2 overflow-x-auto pb-3 mb-2 -mx-4 px-4 hide-scrollbar">
-                {promptSuggestions.map(prompt => (
-                    <button 
-                        key={prompt} 
-                        onClick={() => handleSuggestionClick(prompt)} 
-                        disabled={isLoading} 
-                        className="text-nowrap px-4 py-2 bg-slate-700/80 hover:bg-slate-600/80 text-slate-300 text-sm font-medium rounded-full transition-all duration-300 disabled:opacity-50"
+              {cheatSheetOptions.length > 0 && (
+                <div className="flex flex-wrap justify-center gap-2 mt-3 pt-3 border-t border-slate-700/50">
+                  {cheatSheetOptions.map((option, index) => (
+                    <button
+                      key={index}
+                      onClick={() => handleCheatSheetClick(option)}
+                      disabled={isLoading || isSuccess}
+                      className="px-3 py-1.5 bg-slate-600/50 hover:bg-slate-600/70 text-slate-300 text-xs font-medium rounded-full transition-colors disabled:opacity-50 flex items-center"
                     >
-                        {prompt}
+                      <BookOpenIcon className="w-3.5 h-3.5 mr-1.5" />
+                      {option.label}
                     </button>
-                ))}
+                  ))}
+                </div>
+              )}
             </div>
           )}
           <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(input); }} className="flex items-end space-x-2">
-            <div className="relative flex-grow">
-               <textarea
-                ref={textareaRef}
-                value={input}
-                onChange={e => setInput(e.target.value)}
-                onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        handleSendMessage(input);
-                    }
-                }}
-                placeholder={isListening ? "Слушаю..." : "Ваш ответ..."}
-                className="w-full bg-slate-700 rounded-lg p-3 pr-24 text-slate-200 resize-none max-h-32 min-h-12 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                rows={1}
-                disabled={isLoading || isSuccess}
-              />
-               <div className="absolute inset-y-0 right-0 flex items-center pr-2">
-                  <div className="flex items-center bg-slate-600/50 rounded-full p-0.5">
-                      <button 
-                          type="button"
-                          onClick={() => handleLangChange('ru')}
-                          className={`px-2 py-0.5 text-xs font-bold rounded-full transition-colors ${recognitionLang === 'ru' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:bg-slate-500'}`}
-                      >RU</button>
-                      <button 
-                          type="button"
-                          onClick={() => handleLangChange('de')}
-                          className={`px-2 py-0.5 text-xs font-bold rounded-full transition-colors ${recognitionLang === 'de' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:bg-slate-500'}`}
-                      >DE</button>
-                  </div>
-                  <button type="button" onClick={handleMicClick} className="p-2 transition-colors ml-1">
-                      <MicrophoneIcon className={`w-5 h-5 ${isListening ? 'mic-color-shift-animation' : 'text-slate-400 hover:text-white'}`} />
-                  </button>
-              </div>
+            <div className="flex-grow relative">
+                <textarea
+                    ref={textareaRef}
+                    value={input}
+                    onChange={e => setInput(e.target.value)}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            handleSendMessage(input);
+                        }
+                    }}
+                    placeholder={isListening ? "Слушаю..." : "Ваш ответ..."}
+                    className="w-full bg-slate-700 rounded-lg p-3 pr-20 text-slate-200 resize-none max-h-32 min-h-12 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    rows={1}
+                    disabled={isLoading || isSuccess}
+                />
+                 <div className="absolute top-1/2 right-2 -translate-y-1/2 flex items-center bg-slate-700 p-0.5 rounded-full">
+                    <button 
+                        type="button"
+                        onClick={() => handleLangChange('ru')}
+                        className={`px-2 py-0.5 text-xs font-bold rounded-full transition-colors ${recognitionLang === 'ru' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:bg-slate-600'}`}
+                        disabled={isListening}
+                    >RU</button>
+                     <button 
+                        type="button"
+                        onClick={() => handleLangChange('de')}
+                        className={`px-2 py-0.5 text-xs font-bold rounded-full transition-colors ${recognitionLang === 'de' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:bg-slate-600'}`}
+                        disabled={isListening}
+                    >DE</button>
+                </div>
             </div>
+
+            <button
+              type="button"
+              onClick={handleMicClick}
+              disabled={isLoading || isSuccess}
+              aria-label={isListening ? 'Stop listening' : 'Start listening'}
+              className={`p-3 rounded-lg transition-colors flex-shrink-0 ${isListening ? 'bg-red-600 hover:bg-red-700 animate-pulse' : 'bg-slate-600 hover:bg-slate-500'} disabled:bg-slate-600 disabled:cursor-not-allowed`}
+            >
+              <MicrophoneIcon className="w-6 h-6 text-white" />
+            </button>
             <button type="submit" disabled={!input.trim() || isLoading || isSuccess} className="p-3 bg-purple-600 rounded-lg hover:bg-purple-700 disabled:bg-slate-600 disabled:cursor-not-allowed transition-colors flex-shrink-0">
               <SendIcon className="w-6 h-6 text-white"/>
             </button>

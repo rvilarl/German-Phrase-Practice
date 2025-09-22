@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Phrase, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, SentenceContinuation, PhraseBuilderOptions, PhraseEvaluation, ChatMessage, PhraseCategory, ProposedCard } from './types';
+import { Phrase, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, AdjectiveDeclension, SentenceContinuation, PhraseBuilderOptions, PhraseEvaluation, ChatMessage, PhraseCategory, ProposedCard } from './types';
 import * as srsService from './services/srsService';
 import * as cacheService from './services/cacheService';
 import { getProviderPriorityList, getFallbackProvider, ApiProviderType } from './services/apiProvider';
@@ -17,6 +17,7 @@ import MovieExamplesModal from './components/MovieExamplesModal';
 import WordAnalysisModal from './components/WordAnalysisModal';
 import VerbConjugationModal from './components/VerbConjugationModal';
 import NounDeclensionModal from './components/NounDeclensionModal';
+import AdjectiveDeclensionModal from './components/AdjectiveDeclensionModal';
 import SentenceChainModal from './components/SentenceChainModal';
 import AddPhraseModal from './components/AddPhraseModal';
 import SmartImportModal from './components/SmartImportModal';
@@ -218,6 +219,12 @@ const App: React.FC = () => {
   const [isNounDeclensionLoading, setIsNounDeclensionLoading] = useState<boolean>(false);
   const [nounDeclensionError, setNounDeclensionError] = useState<string | null>(null);
   const [declensionNoun, setDeclensionNoun] = useState<{ noun: string; article: string } | null>(null);
+
+  const [isAdjectiveDeclensionModalOpen, setIsAdjectiveDeclensionModalOpen] = useState(false);
+  const [adjectiveDeclensionData, setAdjectiveDeclensionData] = useState<AdjectiveDeclension | null>(null);
+  const [isAdjectiveDeclensionLoading, setIsAdjectiveDeclensionLoading] = useState<boolean>(false);
+  const [adjectiveDeclensionError, setAdjectiveDeclensionError] = useState<string | null>(null);
+  const [declensionAdjective, setDeclensionAdjective] = useState<string>('');
 
   const [isSentenceChainModalOpen, setIsSentenceChainModalOpen] = useState(false);
   const [sentenceChainPhrase, setSentenceChainPhrase] = useState<Phrase | null>(null);
@@ -710,6 +717,31 @@ const App: React.FC = () => {
         setNounDeclensionError(err instanceof Error ? err.message : 'Unknown error during declension generation.');
     } finally {
         setIsNounDeclensionLoading(false);
+    }
+  }, [apiProvider, callApiWithFallback]);
+  
+  const handleOpenAdjectiveDeclension = useCallback(async (adjective: string) => {
+    if (!apiProvider) return;
+    setDeclensionAdjective(adjective);
+    setIsAdjectiveDeclensionModalOpen(true);
+    setIsAdjectiveDeclensionLoading(true);
+    setAdjectiveDeclensionData(null);
+    setAdjectiveDeclensionError(null);
+    const cacheKey = `adj_declension_${adjective}`;
+    const cachedData = cacheService.getCache<AdjectiveDeclension>(cacheKey);
+    if (cachedData) {
+        setAdjectiveDeclensionData(cachedData);
+        setIsAdjectiveDeclensionLoading(false);
+        return;
+    }
+    try {
+        const data = await callApiWithFallback(provider => provider.declineAdjective(adjective));
+        setAdjectiveDeclensionData(data);
+        cacheService.setCache(cacheKey, data);
+    } catch (err) {
+        setAdjectiveDeclensionError(err instanceof Error ? err.message : 'Unknown error during adjective declension generation.');
+    } finally {
+        setIsAdjectiveDeclensionLoading(false);
     }
   }, [apiProvider, callApiWithFallback]);
 
@@ -1330,6 +1362,7 @@ const App: React.FC = () => {
              onOpenWordAnalysis={handleOpenWordAnalysis}
              onOpenVerbConjugation={handleOpenVerbConjugation}
              onOpenNounDeclension={handleOpenNounDeclension}
+             onOpenAdjectiveDeclension={handleOpenAdjectiveDeclension}
              onOpenSentenceChain={handleOpenSentenceChain}
              onOpenImprovePhrase={handleOpenImproveModal}
              onOpenLearningAssistant={handleOpenLearningAssistant}
@@ -1392,6 +1425,8 @@ const App: React.FC = () => {
           onAnalyzeWord={analyzeWord}
           onOpenVerbConjugation={handleOpenVerbConjugation}
           onOpenNounDeclension={handleOpenNounDeclension}
+          onOpenAdjectiveDeclension={handleOpenAdjectiveDeclension}
+          onTranslateGermanToRussian={handleTranslateGermanToRussian}
       />}
       <SettingsModal isOpen={isSettingsModalOpen} onClose={() => setIsSettingsModalOpen(false)} settings={settings} onSettingsChange={handleSettingsChange} />
       {deepDivePhrase && <DeepDiveModal 
@@ -1429,6 +1464,7 @@ const App: React.FC = () => {
         error={wordAnalysisError}
         onOpenVerbConjugation={handleOpenVerbConjugation}
         onOpenNounDeclension={handleOpenNounDeclension}
+        onOpenAdjectiveDeclension={handleOpenAdjectiveDeclension}
         onOpenWordAnalysis={handleOpenWordAnalysis}
         allPhrases={allPhrases}
         onCreateCard={handleCreateCardFromWord}
@@ -1449,6 +1485,15 @@ const App: React.FC = () => {
         data={nounDeclensionData}
         isLoading={isNounDeclensionLoading}
         error={nounDeclensionError}
+        onOpenWordAnalysis={handleOpenWordAnalysis}
+       />}
+       {declensionAdjective && <AdjectiveDeclensionModal
+        isOpen={isAdjectiveDeclensionModalOpen}
+        onClose={() => setIsAdjectiveDeclensionModalOpen(false)}
+        adjective={declensionAdjective}
+        data={adjectiveDeclensionData}
+        isLoading={isAdjectiveDeclensionLoading}
+        error={adjectiveDeclensionError}
         onOpenWordAnalysis={handleOpenWordAnalysis}
        />}
        {apiProvider && <AddPhraseModal 

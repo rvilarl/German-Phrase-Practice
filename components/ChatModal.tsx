@@ -25,6 +25,8 @@ interface ChatModalProps {
   onAnalyzeWord: (phrase: Phrase, word: string) => Promise<WordAnalysis | null>;
   onOpenVerbConjugation: (infinitive: string) => void;
   onOpenNounDeclension: (noun: string, article: string) => void;
+  onOpenAdjectiveDeclension: (adjective: string) => void;
+  onTranslateGermanToRussian: (germanPhrase: string) => Promise<{ russian: string }>;
 }
 
 const ChatMessageContent: React.FC<{
@@ -190,7 +192,7 @@ const ChatSkeleton: React.FC = () => (
 );
 
 
-const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, phrase, onGenerateInitialExamples, onContinueChat, apiProviderType, onOpenWordAnalysis, allPhrases, onCreateCard, onAnalyzeWord, onOpenVerbConjugation, onOpenNounDeclension }) => {
+const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, phrase, onGenerateInitialExamples, onContinueChat, apiProviderType, onOpenWordAnalysis, allPhrases, onCreateCard, onAnalyzeWord, onOpenVerbConjugation, onOpenNounDeclension, onOpenAdjectiveDeclension, onTranslateGermanToRussian }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [input, setInput] = useState('');
@@ -463,8 +465,10 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, phrase, onGenera
             onSpeak={onSpeak}
             onOpenVerbConjugation={onOpenVerbConjugation}
             onOpenNounDeclension={onOpenNounDeclension}
+            onOpenAdjectiveDeclension={onOpenAdjectiveDeclension}
             onOpenWordAnalysis={onOpenWordAnalysis}
             allPhrases={allPhrases}
+            onTranslateGermanToRussian={onTranslateGermanToRussian}
         />
       )}
     </div>

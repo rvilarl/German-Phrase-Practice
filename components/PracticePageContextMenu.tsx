@@ -19,6 +19,7 @@ interface PracticePageContextMenuProps {
   onOpenWordAnalysis: (phrase: Phrase, word: string) => void;
   onOpenVerbConjugation: (infinitive: string) => void;
   onOpenNounDeclension: (noun: string, article: string) => void;
+  onOpenAdjectiveDeclension: (adjective: string) => void;
 }
 
 const PracticePageContextMenu: React.FC<PracticePageContextMenuProps> = ({
@@ -32,6 +33,7 @@ const PracticePageContextMenu: React.FC<PracticePageContextMenuProps> = ({
   onOpenWordAnalysis,
   onOpenVerbConjugation,
   onOpenNounDeclension,
+  onOpenAdjectiveDeclension,
 }) => {
   const { phrase, word } = target;
   const [analysis, setAnalysis] = useState<WordAnalysis | null>(null);
@@ -66,7 +68,7 @@ const PracticePageContextMenu: React.FC<PracticePageContextMenuProps> = ({
     if (!analysis) return null;
     if (analysis.verbDetails?.infinitive) return analysis.verbDetails.infinitive;
     if (analysis.nounDetails?.article) return `${analysis.nounDetails.article} ${analysis.word}`;
-    return analysis.word;
+    return analysis.baseForm || analysis.word;
   }, [analysis]);
 
   const handleCreateCard = useCallback(async () => {
@@ -87,6 +89,7 @@ const PracticePageContextMenu: React.FC<PracticePageContextMenuProps> = ({
       { label: 'Создать карточку', icon: <PlusIcon className="w-5 h-5 mr-3 text-slate-300" />, action: () => handleAction(handleCreateCard), condition: !!analysis, loading: isCreatingCard },
       { label: 'Спряжение глагола', icon: <TableIcon className="w-5 h-5 mr-3 text-slate-300" />, action: () => handleAction(() => onOpenVerbConjugation(analysis!.verbDetails!.infinitive)), condition: !!analysis?.verbDetails },
       { label: 'Склонение существительного', icon: <TableIcon className="w-5 h-5 mr-3 text-slate-300" />, action: () => handleAction(() => onOpenNounDeclension(analysis!.word, analysis!.nounDetails!.article)), condition: !!analysis?.nounDetails },
+      { label: 'Склонение прилагательного', icon: <TableIcon className="w-5 h-5 mr-3 text-slate-300" />, action: () => handleAction(() => onOpenAdjectiveDeclension(analysis!.baseForm || analysis!.word)), condition: analysis?.partOfSpeech === 'Прилагательное' },
     ] : [];
 
     const phraseSpecificItems = [

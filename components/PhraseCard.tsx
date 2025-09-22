@@ -118,8 +118,19 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
   ], [phrase, createLoggedAction, onOpenLearningAssistant, onOpenSentenceChain, onOpenVoicePractice, onOpenChat, onOpenDeepDive, onOpenMovieExamples]);
 
   const actionButtons = useMemo(() => {
-      return allButtons;
-  }, [allButtons]);
+    // Create a copy to avoid mutating the original allButtons array
+    const sortedButtons = [...allButtons];
+    
+    // Sort the buttons based on usage count in descending order.
+    // The `keyof typeof` ensures type safety between the button key and the usage stats object.
+    sortedButtons.sort((a, b) => {
+      const usageA = cardActionUsage[a.key as keyof typeof cardActionUsage] || 0;
+      const usageB = cardActionUsage[b.key as keyof typeof cardActionUsage] || 0;
+      return usageB - usageA;
+    });
+    
+    return sortedButtons;
+  }, [allButtons, cardActionUsage]);
 
   const visibleButtons = actionButtons.slice(0, 3);
   const hiddenButtons = actionButtons.slice(3);

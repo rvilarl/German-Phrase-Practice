@@ -3,7 +3,8 @@ import React from 'react';
 interface ButtonDef {
   key: string;
   label: string;
-  icon: JSX.Element;
+  // FIX: Changed JSX.Element to React.ReactElement to resolve JSX namespace issue.
+  icon: React.ReactElement;
   action: (e: React.MouseEvent) => void;
 }
 

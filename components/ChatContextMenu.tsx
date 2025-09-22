@@ -7,6 +7,7 @@ import PlusIcon from './icons/PlusIcon';
 import WandIcon from './icons/WandIcon';
 import SoundIcon from './icons/SoundIcon';
 import TableIcon from './icons/TableIcon';
+import LanguagesIcon from './icons/LanguagesIcon';
 
 interface ChatContextMenuProps {
   target: { sentence: { german: string; russian: string }; word: string };
@@ -17,8 +18,10 @@ interface ChatContextMenuProps {
   onSpeak: (text: string) => void;
   onOpenVerbConjugation: (infinitive: string) => void;
   onOpenNounDeclension: (noun: string, article: string) => void;
+  onOpenAdjectiveDeclension: (adjective: string) => void;
   onOpenWordAnalysis: (phrase: Phrase, word: string) => void;
   allPhrases: Phrase[];
+  onTranslateGermanToRussian: (germanPhrase: string) => Promise<{ russian: string }>;
 }
 
 const ChatContextMenu: React.FC<ChatContextMenuProps> = ({
@@ -30,12 +33,16 @@ const ChatContextMenu: React.FC<ChatContextMenuProps> = ({
   onSpeak,
   onOpenVerbConjugation,
   onOpenNounDeclension,
+  onOpenAdjectiveDeclension,
   onOpenWordAnalysis,
   allPhrases,
+  onTranslateGermanToRussian,
 }) => {
   const { sentence, word } = target;
   const [analysis, setAnalysis] = useState<WordAnalysis | null>(null);
   const [isAnalysisLoading, setIsAnalysisLoading] = useState(true);
+  const [translation, setTranslation] = useState<string | null>(sentence.russian);
+  const [isTranslating, setIsTranslating] = useState(false);
 
   const proxyPhrase: Phrase = {
     id: `proxy_context_${Date.now()}`,
@@ -67,11 +74,25 @@ const ChatContextMenu: React.FC<ChatContextMenuProps> = ({
     };
   }, [word, sentence.german, onAnalyzeWord]);
 
+  const handleTranslate = useCallback(async () => {
+    if (isTranslating) return;
+    setIsTranslating(true);
+    try {
+      const result = await onTranslateGermanToRussian(sentence.german);
+      setTranslation(result.russian);
+    } catch (error) {
+      console.error("Translation failed", error);
+      setTranslation("Ошибка перевода");
+    } finally {
+      setIsTranslating(false);
+    }
+  }, [sentence.german, onTranslateGermanToRussian, isTranslating]);
+
   const getCanonicalWordGerman = useCallback(() => {
     if (!analysis) return word;
     if (analysis.verbDetails?.infinitive) return analysis.verbDetails.infinitive;
     if (analysis.nounDetails?.article) return `${analysis.nounDetails.article} ${analysis.word}`;
-    return analysis.word;
+    return analysis.baseForm || analysis.word;
   }, [analysis, word]);
 
   const phraseCardExists =
@@ -96,19 +117,18 @@ const ChatContextMenu: React.FC<ChatContextMenuProps> = ({
     onClose();
   };
 
-  const instantMenuItems = [
-    { label: 'Создать карточку для фразы', icon: <CardPlusIcon />, action: () => onCreateCard({ german: sentence.german, russian: sentence.russian }), condition: !!sentence.russian && !phraseCardExists },
-    { label: 'Сгенерировать еще такие фразы', icon: <WandIcon />, action: () => onGenerateMore(`Сгенерируй еще несколько примеров, похожих на "${sentence.german}"`), condition: true },
-    { label: 'Озвучить фразу', icon: <SoundIcon />, action: () => onSpeak(sentence.german), condition: true },
-    { label: 'Озвучить слово', icon: <SoundIcon />, action: () => onSpeak(word), condition: true },
-  ];
-  
-  const deferredMenuItems = analysis ? [
-    { label: 'Сведения о слове', icon: <InfoIcon />, action: () => onOpenWordAnalysis(proxyPhrase, word), condition: true },
+  const menuItems = [
+    { label: 'Сведения о слове', icon: <InfoIcon />, action: () => onOpenWordAnalysis(proxyPhrase, word), condition: !!analysis },
     { label: 'Создать карточку для слова', icon: <PlusIcon />, action: () => { if (analysis) onCreateCard({ german: getCanonicalWordGerman(), russian: analysis.translation }); }, condition: !wordCardExists && !!analysis },
     { label: 'Спряжение глагола', icon: <TableIcon />, action: () => { if (analysis?.verbDetails?.infinitive) onOpenVerbConjugation(analysis.verbDetails.infinitive); }, condition: !!analysis?.verbDetails },
     { label: 'Склонение существительного', icon: <TableIcon />, action: () => { if (analysis?.nounDetails) onOpenNounDeclension(analysis.word, analysis.nounDetails.article); }, condition: !!analysis?.nounDetails },
-  ] : [];
+    { label: 'Склонение прилагательного', icon: <TableIcon />, action: () => { if (analysis) onOpenAdjectiveDeclension(analysis.baseForm || analysis.word); }, condition: analysis?.partOfSpeech === 'Прилагательное' },
+  ];
+
+  const phraseMenuItems = [
+    { label: 'Создать карточку для фразы', icon: <CardPlusIcon />, action: () => onCreateCard({ german: sentence.german, russian: translation || sentence.russian }), condition: !!translation && !phraseCardExists },
+    { label: 'Сгенерировать еще такие фразы', icon: <WandIcon />, action: () => onGenerateMore(`Сгенерируй еще несколько примеров, похожих на "${sentence.german}"`), condition: true },
+  ];
 
 
   return (
@@ -118,37 +138,45 @@ const ChatContextMenu: React.FC<ChatContextMenuProps> = ({
         className="fixed z-[90] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-slate-800/90 backdrop-blur-md border border-slate-700 rounded-xl shadow-2xl animate-fade-in-center text-white w-80 overflow-hidden"
         onClick={e => e.stopPropagation()}
       >
-        <div className="px-4 py-3 border-b border-slate-700">
-            <p className="text-lg font-bold text-purple-300 break-words">{word}</p>
+        <div className="px-4 py-3">
+            <div className="flex items-center justify-between">
+                <p className="text-base font-medium text-slate-200 break-words flex-grow">{sentence.german}</p>
+                <button onClick={(e) => { e.stopPropagation(); onSpeak(sentence.german); }} className="p-1 rounded-full hover:bg-white/10 ml-2 flex-shrink-0">
+                    <SoundIcon className="w-4 h-4 text-slate-300" />
+                </button>
+            </div>
+            {translation ? (
+                <p className="text-sm text-slate-300 italic mt-1">«{translation}»</p>
+            ) : (
+                <button onClick={(e) => { e.stopPropagation(); handleTranslate(); }} disabled={isTranslating} className="w-full mt-2 flex items-center justify-center px-3 py-1.5 text-left text-sm bg-slate-600/70 hover:bg-slate-600 transition-colors rounded-md disabled:opacity-50">
+                    {isTranslating ? <Spinner className="w-4 h-4 mr-2" /> : <LanguagesIcon className="w-4 h-4 mr-2" />}
+                    <span>Перевести</span>
+                </button>
+            )}
+        </div>
+
+        <div className="px-4 py-3 border-t border-slate-700">
+            <div className="flex items-center justify-between">
+                <p className="text-lg font-bold text-purple-300 break-words flex-grow">{word}</p>
+                <button onClick={(e) => { e.stopPropagation(); onSpeak(word); }} className="p-1 rounded-full hover:bg-white/10 ml-2 flex-shrink-0">
+                    <SoundIcon className="w-4 h-4 text-slate-300" />
+                </button>
+            </div>
             {isAnalysisLoading ? (
                  <div className="h-4 w-2/3 bg-slate-700 rounded animate-pulse mt-1"></div>
             ) : analysis ? (
                 <p className="text-sm text-slate-400 capitalize">{analysis.translation}</p>
             ) : null}
         </div>
-        <div className="p-2">
-            {instantMenuItems
-                .filter((item) => item.condition)
-                .map((item) => (
-                  <button
-                    key={item.label}
-                    onClick={(e) => handleAction(e, item.action)}
-                    className="w-full flex items-center px-4 py-3 text-left hover:bg-slate-700/60 transition-colors text-[15px] text-slate-200 rounded-lg"
-                  >
-                    <div className="w-5 h-5 mr-4 text-slate-400 flex-shrink-0">{item.icon}</div>
-                    <span className="truncate">{item.label}</span>
-                  </button>
-            ))}
-
-            {(instantMenuItems.filter(i => i.condition).length > 0) && <hr className="border-slate-700 mx-2 my-1" />}
-            
-            {isAnalysisLoading ? (
+        
+        <div className="p-2 border-t border-slate-700">
+             {isAnalysisLoading ? (
                 <div className="flex items-center px-4 py-3 text-[15px] text-slate-400">
                     <Spinner className="w-5 h-5 mr-4" />
                     <span>Анализ...</span>
                 </div>
             ) : (
-                deferredMenuItems
+                menuItems
                     .filter((item) => item.condition)
                     .map((item) => (
                       <button
@@ -161,6 +189,21 @@ const ChatContextMenu: React.FC<ChatContextMenuProps> = ({
                       </button>
                     ))
             )}
+            
+            {(menuItems.filter(i => i.condition && !isAnalysisLoading).length > 0) && <hr className="border-slate-700 mx-2 my-1" />}
+
+            {phraseMenuItems
+                .filter((item) => item.condition)
+                .map((item) => (
+                  <button
+                    key={item.label}
+                    onClick={(e) => handleAction(e, item.action)}
+                    className="w-full flex items-center px-4 py-3 text-left hover:bg-slate-700/60 transition-colors text-[15px] text-slate-200 rounded-lg"
+                  >
+                    <div className="w-5 h-5 mr-4 text-slate-400 flex-shrink-0">{item.icon}</div>
+                    <span className="truncate">{item.label}</span>
+                  </button>
+            ))}
         </div>
       </div>
     </>

@@ -33,6 +33,7 @@ export interface WordAnalysis {
   word: string;
   partOfSpeech: string;
   translation: string;
+  baseForm?: string; // Base form for adjectives
   nounDetails?: {
     article: string;
     plural: string;
@@ -73,6 +74,28 @@ export interface NounDeclension {
     genitiv: string;
   };
 }
+
+export interface AdjectiveDeclensionTable {
+    masculine: { nominativ: string; akkusativ: string; dativ: string; genitiv: string; };
+    feminine: { nominativ: string; akkusativ: string; dativ: string; genitiv: string; };
+    neuter: { nominativ: string; akkusativ: string; dativ: string; genitiv: string; };
+    plural: { nominativ: string; akkusativ: string; dativ: string; genitiv: string; };
+}
+
+export interface AdjectiveComparison {
+    positive: string;
+    comparative: string;
+    superlative: string;
+}
+
+export interface AdjectiveDeclension {
+    adjective: string;
+    comparison: AdjectiveComparison;
+    weak: AdjectiveDeclensionTable;
+    mixed: AdjectiveDeclensionTable;
+    strong: AdjectiveDeclensionTable;
+}
+
 
 export interface SentenceContinuation {
   german: string;

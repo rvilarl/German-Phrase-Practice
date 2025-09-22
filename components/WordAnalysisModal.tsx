@@ -16,6 +16,7 @@ interface WordAnalysisModalProps {
   error: string | null;
   onOpenVerbConjugation: (infinitive: string) => void;
   onOpenNounDeclension: (noun: string, article: string) => void;
+  onOpenAdjectiveDeclension: (adjective: string) => void;
   onOpenWordAnalysis: (phrase: Phrase, word: string) => void;
   allPhrases: Phrase[];
   onCreateCard: (phraseData: { german: string; russian: string; }) => void;
@@ -23,8 +24,8 @@ interface WordAnalysisModalProps {
 
 const WordAnalysisModal: React.FC<WordAnalysisModalProps> = ({ 
   isOpen, onClose, word, phrase, analysis, isLoading, error, 
-  onOpenVerbConjugation, onOpenNounDeclension, onOpenWordAnalysis, 
-  allPhrases, onCreateCard 
+  onOpenVerbConjugation, onOpenNounDeclension, onOpenAdjectiveDeclension,
+  onOpenWordAnalysis, allPhrases, onCreateCard 
 }) => {
   const [isCardCreated, setIsCardCreated] = useState(false);
 
@@ -42,7 +43,7 @@ const WordAnalysisModal: React.FC<WordAnalysisModalProps> = ({
     if (analysis.nounDetails?.article) {
         return `${analysis.nounDetails.article} ${analysis.word}`;
     }
-    return analysis.word;
+    return analysis.baseForm || analysis.word;
   }, [analysis]);
   
   const cardExists = useMemo(() => {
@@ -99,6 +100,8 @@ const WordAnalysisModal: React.FC<WordAnalysisModalProps> = ({
       return <div className="flex justify-center items-center h-full"><p className="text-slate-400">Нет данных для анализа.</p></div>;
     }
 
+    const isAdjective = analysis.partOfSpeech === 'Прилагательное';
+
     return (
       <div className="space-y-6">
         {/* Main Info */}
@@ -115,9 +118,12 @@ const WordAnalysisModal: React.FC<WordAnalysisModalProps> = ({
         </div>
 
         {/* Details */}
-        {(analysis.nounDetails || analysis.verbDetails) && (
+        {(analysis.nounDetails || analysis.verbDetails || analysis.baseForm) && (
             <div className="bg-slate-700/50 p-4 rounded-lg space-y-3">
                 <h4 className="font-semibold text-slate-300 border-b border-slate-600 pb-2 mb-3">Грамматическая справка</h4>
+                 {analysis.baseForm && (
+                  <div className="flex justify-between items-center"><span className="text-slate-400">Начальная форма:</span> <strong className="text-slate-100">{analysis.baseForm}</strong></div>
+                )}
                 {analysis.nounDetails && (
                     <>
                         <div className="flex justify-between items-center"><span className="text-slate-400">Артикль:</span> <strong className="text-slate-100 font-mono bg-slate-600 px-2 py-0.5 rounded">{analysis.nounDetails.article}</strong></div>
@@ -171,6 +177,14 @@ const WordAnalysisModal: React.FC<WordAnalysisModalProps> = ({
                     className="w-full text-center px-4 py-3 rounded-lg bg-purple-600/80 hover:bg-purple-600 transition-colors font-semibold text-white shadow-md"
                 >
                     Склонение существительного
+                </button>
+            )}
+            {isAdjective && (
+                <button
+                    onClick={() => onOpenAdjectiveDeclension(analysis.baseForm || analysis.word)}
+                    className="w-full text-center px-4 py-3 rounded-lg bg-purple-600/80 hover:bg-purple-600 transition-colors font-semibold text-white shadow-md"
+                >
+                    Склонение и сравнение
                 </button>
             )}
         </div>

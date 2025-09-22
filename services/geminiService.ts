@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import type { Phrase, ChatMessage, ExamplePair, ProactiveSuggestion, ContentPart, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, SentenceContinuation, TranslationChatRequest, TranslationChatResponse, PhraseBuilderOptions, PhraseEvaluation } from '../types';
+import type { Phrase, ChatMessage, ExamplePair, ProactiveSuggestion, ContentPart, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, AdjectiveDeclension, SentenceContinuation, TranslationChatRequest, TranslationChatResponse, PhraseBuilderOptions, PhraseEvaluation } from '../types';
 import { AiService } from './aiService';
 import { getGeminiApiKey } from './env';
 
@@ -819,8 +819,9 @@ const wordAnalysisSchema = {
     type: Type.OBJECT,
     properties: {
         word: { type: Type.STRING },
-        partOfSpeech: { type: Type.STRING, description: 'The part of speech (e.g., "Существительное", "Глагол").' },
+        partOfSpeech: { type: Type.STRING, description: 'The part of speech (e.g., "Существительное", "Глагол", "Прилагательное").' },
         translation: { type: Type.STRING, description: 'The Russian translation of the word.' },
+        baseForm: { type: Type.STRING, description: 'The base form, especially for adjectives (e.g., "gut" for "guten").' },
         nounDetails: {
             type: Type.OBJECT,
             properties: {
@@ -851,10 +852,11 @@ const analyzeWordInPhrase: AiService['analyzeWordInPhrase'] = async (phrase, wor
 1.  **word**: анализируемое слово.
 2.  **partOfSpeech**: часть речи на русском (например, "Существительное", "Глагол", "Прилагательное").
 3.  **translation**: перевод слова на русский.
-4.  **nounDetails**: если слово — существительное, укажи его артикль ('article') и форму множественного числа ('plural'). Если нет, пропусти это поле.
-5.  **verbDetails**: если слово — глагол, укажи его инфинитив ('infinitive'), время ('tense') и лицо/число ('person'). Если нет, пропусти это поле.
-6.  **exampleSentence**: новое предложение-пример на немецком, использующее это слово.
-7.  **exampleSentenceTranslation**: перевод предложения-примера на русский.`;
+4.  **baseForm**: если слово — прилагательное, укажи его базовую (словарную) форму. Например, для "guten" это будет "gut".
+5.  **nounDetails**: если слово — существительное, укажи его артикль ('article') и форму множественного числа ('plural'). Если нет, пропусти это поле.
+6.  **verbDetails**: если слово — глагол, укажи его инфинитив ('infinitive'), время ('tense') и лицо/число ('person'). Если нет, пропусти это поле.
+7.  **exampleSentence**: новое предложение-пример на немецком, использующее это слово.
+8.  **exampleSentenceTranslation**: перевод предложения-примера на русский.`;
 
     try {
         const response = await api.models.generateContent({
@@ -974,6 +976,80 @@ const declineNoun: AiService['declineNoun'] = async (noun, article) => {
 
     } catch (error) {
         console.error("Error declining noun with Gemini:", error);
+        const errorMessage = (error as any)?.message || 'Unknown error';
+        throw new Error(`Failed to call the Gemini API: ${errorMessage}`);
+    }
+};
+
+const caseSchema = {
+    type: Type.OBJECT,
+    properties: {
+        nominativ: { type: Type.STRING },
+        akkusativ: { type: Type.STRING },
+        dativ: { type: Type.STRING },
+        genitiv: { type: Type.STRING },
+    },
+    required: ["nominativ", "akkusativ", "dativ", "genitiv"],
+};
+
+const adjectiveDeclensionTableSchema = {
+    type: Type.OBJECT,
+    properties: {
+        masculine: caseSchema,
+        feminine: caseSchema,
+        neuter: caseSchema,
+        plural: caseSchema,
+    },
+    required: ["masculine", "feminine", "neuter", "plural"],
+};
+
+const adjectiveDeclensionSchema = {
+    type: Type.OBJECT,
+    properties: {
+        adjective: { type: Type.STRING },
+        comparison: {
+            type: Type.OBJECT,
+            properties: {
+                positive: { type: Type.STRING },
+                comparative: { type: Type.STRING },
+                superlative: { type: Type.STRING },
+            },
+            required: ["positive", "comparative", "superlative"],
+        },
+        weak: adjectiveDeclensionTableSchema,
+        mixed: adjectiveDeclensionTableSchema,
+        strong: adjectiveDeclensionTableSchema,
+    },
+    required: ["adjective", "comparison", "weak", "mixed", "strong"],
+};
+
+const declineAdjective: AiService['declineAdjective'] = async (adjective) => {
+    const api = initializeApi();
+    if (!api) throw new Error("Gemini API key not configured.");
+
+    const prompt = `Ты — эксперт по грамматике немецкого языка. Предоставь полную информацию о прилагательном "${adjective}".
+1.  **Comparison**: Укажи три степени сравнения: положительную (positive), сравнительную (comparative) и превосходную (superlative).
+2.  **Declension**: Предоставь три полные таблицы склонения (слабое - weak, смешанное - mixed, сильное - strong).
+    - Каждая таблица должна включать все падежи (nominativ, akkusativ, dativ, genitiv) для всех родов (masculine, feminine, neuter) и множественного числа (plural).
+    - ВАЖНО: В каждой форме прилагательного выдели окончание с помощью Markdown bold, например: "schön**en**".
+Верни результат в виде единого JSON-объекта.`;
+
+    try {
+        const response = await api.models.generateContent({
+            model: model,
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: adjectiveDeclensionSchema,
+                temperature: 0.2,
+            },
+        });
+        
+        const jsonText = response.text.trim();
+        return JSON.parse(jsonText) as AdjectiveDeclension;
+
+    } catch (error) {
+        console.error("Error declining adjective with Gemini:", error);
         const errorMessage = (error as any)?.message || 'Unknown error';
         throw new Error(`Failed to call the Gemini API: ${errorMessage}`);
     }
@@ -1299,6 +1375,7 @@ export const geminiService: AiService = {
     analyzeWordInPhrase,
     conjugateVerb,
     declineNoun,
+    declineAdjective,
     generateSentenceContinuations,
     findDuplicatePhrases,
     generatePhraseBuilderOptions,
