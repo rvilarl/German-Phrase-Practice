@@ -1,3 +1,4 @@
+
 import React, { useCallback, useRef, useState, useEffect, useMemo } from 'react';
 import type { Phrase, WordAnalysis, PhraseCategory } from '../types';
 import PhraseCard from '../components/PhraseCard';
@@ -32,8 +33,13 @@ const categoryDisplay: Record<PhraseCategory, { name: string }> = {
 
 const allCategories: PhraseCategory[] = ['general', 'w-fragen', 'pronouns', 'numbers', 'time', 'money'];
 
-const W_FRAGEN_POOL = ["Was", "Wer", "Wo", "Wann", "Wie", "Warum", "Woher", "Wohin", "Welcher", "Wie viel", "Wie viele"];
-const PRONOUN_POOL = ["ich", "du", "er", "sie", "es", "wir", "ihr", "Sie"];
+// Pools for local quick reply generation
+const W_FRAGEN_POOL = ["Was?", "Wer?", "Wo?", "Wann?", "Wie?", "Warum?", "Woher?", "Wohin?", "Welcher?", "Wie viel?", "Wie viele?"];
+const PRONOUN_POOL = ["ich", "du", "er", "sie", "es", "wir", "ihr", "Sie", "mich", "dich", "ihn", "mir", "dir", "ihm", "ihnen", "mein", "dein", "sein"];
+const NUMBERS_POOL = ["null", "eins", "zwei", "drei", "vier", "fünf", "sechs", "sieben", "acht", "neun", "zehn", "elf", "zwölf", "zwanzig", "hundert"];
+const TIME_POOL = ["Montag", "Dienstag", "Januar", "Februar", "Wie spät ist es?", "Es ist ein Uhr.", "Es ist zwei Uhr.", "Es ist halb eins.", "Es ist halb drei.", "Es ist Viertel nach vier.", "Es ist Viertel vor sechs."];
+const MONEY_POOL = ["Was kostet das?", "Das kostet zehn Euro.", "dreiundzwanzig Euro fünfundsiebzig", "zwölf Dollar fünfzig", "Haben Sie Wechselgeld für fünfzig Euro?", "Ich möchte bezahlen."];
+
 
 interface PracticePageProps {
   currentPhrase: Phrase | null;
@@ -187,6 +193,7 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
     if (!currentPhrase) return false;
     const { category, german } = currentPhrase;
     const wordCount = german.split(' ').filter(Boolean).length;
+    // Any foundational category is eligible, plus short general phrases.
     return category !== 'general' || wordCount <= 2;
   }, [currentPhrase]);
 
@@ -202,15 +209,39 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
         const correctAnswer = phraseToReply.german.replace(/[?]/g, '');
         let distractors: string[] = [];
         
-        const isFoundation = category === 'w-fragen' || category === 'pronouns';
+        const localGenerationCategories: PhraseCategory[] = ['w-fragen', 'pronouns', 'numbers', 'time', 'money'];
 
-        if (isFoundation) {
-            const pool = category === 'w-fragen' ? W_FRAGEN_POOL : PRONOUN_POOL;
+        if (localGenerationCategories.includes(category)) {
+            // INSTANT LOCAL GENERATION
+            setIsQuickReplyLoading(false); 
+            let pool: string[] = [];
+            switch(category) {
+                case 'w-fragen': pool = W_FRAGEN_POOL.map(p => p.replace(/[?]/g, '')); break;
+                case 'pronouns': pool = PRONOUN_POOL; break;
+                case 'numbers': pool = NUMBERS_POOL; break;
+                case 'time': pool = TIME_POOL; break;
+                case 'money': pool = MONEY_POOL; break;
+            }
+            
              distractors = pool
-                .filter(p => p !== correctAnswer)
+                .filter(p => p.toLowerCase() !== correctAnswer.toLowerCase())
                 .sort(() => 0.5 - Math.random())
                 .slice(0, 3);
-        } else {
+            
+            if (distractors.length < 3) {
+                const genericDistractors = ["Hallo", "Danke", "Bitte", "Ja", "Nein", "Gut"];
+                const needed = 3 - distractors.length;
+                distractors.push(
+                    ...genericDistractors
+                        .filter(d => d.toLowerCase() !== correctAnswer.toLowerCase() && !distractors.includes(d))
+                        .slice(0, needed)
+                );
+            }
+
+            const options = [correctAnswer, ...distractors].sort(() => 0.5 - Math.random());
+            setQuickReplyOptions(options);
+
+        } else { // 'general' category - use AI
             const cacheKey = `quick_reply_options_${phraseToReply.id}`;
             const cachedDistractors = cacheService.getCache<string[]>(cacheKey);
 
@@ -225,12 +256,10 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
                     throw new Error("Не удалось сгенерировать варианты ответа.");
                 }
             }
+            const options = [correctAnswer, ...distractors].sort(() => 0.5 - Math.random());
+            setQuickReplyOptions(options);
+            setIsQuickReplyLoading(false);
         }
-          
-        const options = [correctAnswer, ...distractors].sort(() => 0.5 - Math.random());
-        setQuickReplyOptions(options);
-        setIsQuickReplyLoading(false);
-
     } catch (error) {
         console.error("Failed to prepare quick reply options:", error);
         setQuickReplyError(error instanceof Error ? error.message : "Не удалось загрузить варианты.");

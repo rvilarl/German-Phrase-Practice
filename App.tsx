@@ -795,41 +795,46 @@ const App: React.FC = () => {
     isQuickReplyPrefetchingRef.current = true;
 
     try {
-        const PREFETCH_COUNT = 3;
+        const PREFETCH_COUNT = 5; // Increased prefetch count
         let nextPhraseId = startingPhraseId;
         const phrasesToFetch: Phrase[] = [];
-        const unmastered = allPhrases.filter(p => p && !p.isMastered);
+        const unmastered = allPhrases.filter(p => p && !p.isMastered && settings.enabledCategories[p.category]);
 
         for (let i = 0; i < PREFETCH_COUNT; i++) {
             const nextPhrase = srsService.selectNextPhrase(unmastered, nextPhraseId);
             if (nextPhrase) {
                 if (phrasesToFetch.some(p => p.id === nextPhrase.id)) break;
-                if (nextPhrase.category === 'general' && nextPhrase.german.split(' ').length <= 2) {
-                     phrasesToFetch.push(nextPhrase);
+
+                // Only prefetch for 'general' phrases, as others are generated locally and instantly.
+                if (nextPhrase.category === 'general') {
+                    phrasesToFetch.push(nextPhrase);
                 }
+                
                 nextPhraseId = nextPhrase.id;
             } else {
                 break;
             }
         }
         
-        await Promise.all(phrasesToFetch.map(async (phrase) => {
-            const cacheKey = `quick_reply_options_${phrase.id}`;
-            if (!cacheService.getCache<string[]>(cacheKey)) {
-                try {
-                    const result = await callApiWithFallback(provider => provider.generateQuickReplyOptions(phrase));
-                    if (result.options && result.options.length > 0) {
-                        cacheService.setCache(cacheKey, result.options);
+        if (phrasesToFetch.length > 0) {
+            await Promise.all(phrasesToFetch.map(async (phrase) => {
+                const cacheKey = `quick_reply_options_${phrase.id}`;
+                if (!cacheService.getCache<string[]>(cacheKey)) {
+                    try {
+                        const result = await callApiWithFallback(provider => provider.generateQuickReplyOptions(phrase));
+                        if (result.options && result.options.length > 0) {
+                            cacheService.setCache(cacheKey, result.options);
+                        }
+                    } catch (err) {
+                        console.warn(`Background prefetch for quick reply options failed for phrase ${phrase.id}:`, err);
                     }
-                } catch (err) {
-                    console.warn(`Background prefetch for quick reply options failed for phrase ${phrase.id}:`, err);
                 }
-            }
-        }));
+            }));
+        }
     } finally {
         isQuickReplyPrefetchingRef.current = false;
     }
-  }, [allPhrases, callApiWithFallback, apiProvider]);
+  }, [allPhrases, callApiWithFallback, apiProvider, settings.enabledCategories]);
   
   // New proactive pre-fetching effect for both phrase builder and quick replies
   useEffect(() => {
