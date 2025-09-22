@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Phrase, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, AdjectiveDeclension, SentenceContinuation, PhraseBuilderOptions, PhraseEvaluation, ChatMessage, PhraseCategory, ProposedCard } from './types';
 import * as srsService from './services/srsService';
@@ -175,6 +176,7 @@ const App: React.FC = () => {
   const [cardHistory, setCardHistory] = useState<string[]>([]);
   const [practiceCategoryFilter, setPracticeCategoryFilter] = useState<'all' | PhraseCategory>('all');
   const practiceIsExitingRef = useRef(false);
+  const specificPhraseRequestedRef = useRef(false);
   // --- End State Lift ---
 
   const [isChatModalOpen, setIsChatModalOpen] = useState(false);
@@ -1040,6 +1042,7 @@ const App: React.FC = () => {
   }, [phraseToDelete, updateAndSavePhrases, currentPracticePhrase]);
 
   const handleStartPracticeWithPhrase = (phraseToPractice: Phrase) => {
+    specificPhraseRequestedRef.current = true;
     setCurrentPracticePhrase(phraseToPractice);
     setIsPracticeAnswerRevealed(false);
     setCardHistory([]);
@@ -1118,6 +1121,10 @@ const App: React.FC = () => {
   
   const isInitialFilterChange = useRef(true);
   useEffect(() => {
+    if (specificPhraseRequestedRef.current) {
+        return;
+    }
+
     if (view !== 'practice' || isInitialFilterChange.current) {
         isInitialFilterChange.current = false;
         return;
@@ -1158,6 +1165,10 @@ const App: React.FC = () => {
   }, [practicePool, currentPracticePhrase, fetchNewPhrases, isGenerating, changePracticePhrase, apiProvider]);
 
   useEffect(() => {
+    if (specificPhraseRequestedRef.current) {
+        specificPhraseRequestedRef.current = false;
+        return;
+    }
     if (!isLoading && allPhrases.length > 0 && !currentPracticePhrase && view === 'practice') {
       selectNextPracticePhrase();
     }
@@ -1593,6 +1604,7 @@ const App: React.FC = () => {
             cache={learningAssistantCache}
             setCache={setLearningAssistantCache}
             onOpenWordAnalysis={handleOpenWordAnalysis}
+            onOpenAdjectiveDeclension={handleOpenAdjectiveDeclension}
        />}
        {phraseToDiscuss && apiProvider && <DiscussTranslationModal
             isOpen={isDiscussModalOpen}
