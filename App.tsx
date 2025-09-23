@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Phrase, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, AdjectiveDeclension, SentenceContinuation, PhraseBuilderOptions, PhraseEvaluation, ChatMessage, PhraseCategory, ProposedCard } from './types';
+import { Phrase, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, AdjectiveDeclension, SentenceContinuation, PhraseBuilderOptions, PhraseEvaluation, ChatMessage, PhraseCategory, ProposedCard, BookRecord } from './types';
 import * as srsService from './services/srsService';
 import * as cacheService from './services/cacheService';
 import { getProviderPriorityList, getFallbackProvider, ApiProviderType } from './services/apiProvider';
@@ -11,6 +11,8 @@ import { playCorrectSound, playIncorrectSound } from './services/soundService';
 import Header from './components/Header';
 import PracticePage from './pages/PracticePage';
 import PhraseListPage from './pages/PhraseListPage';
+import LibraryPage from './pages/LibraryPage';
+import ReaderPage from './pages/ReaderPage';
 import ChatModal from './components/ChatModal';
 import SettingsModal from './components/SettingsModal';
 import DeepDiveModal from './components/DeepDiveModal';
@@ -44,7 +46,7 @@ const MASTERY_BUTTON_USAGE_STORAGE_KEY = 'germanAppMasteryButtonUsage';
 const HABIT_TRACKER_STORAGE_KEY = 'germanAppHabitTracker';
 const CARD_ACTION_USAGE_STORAGE_KEY = 'germanAppCardActionUsage';
 
-type View = 'practice' | 'list';
+type View = 'practice' | 'list' | 'library' | 'reader';
 type AnimationDirection = 'left' | 'right';
 interface AnimationState {
   key: string;
@@ -167,6 +169,7 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<View>('practice');
   const [highlightedPhraseId, setHighlightedPhraseId] = useState<string | null>(null);
+  const [activeBookId, setActiveBookId] = useState<number | null>(null);
   
   // --- State Lifted from PracticePage ---
   const [currentPracticePhrase, setCurrentPracticePhrase] = useState<Phrase | null>(null);
@@ -1345,17 +1348,17 @@ const App: React.FC = () => {
       if (name.toLowerCase().includes('deepseek')) return 'DeepSeek';
       return name;
   }
+  
+  const handleOpenLibrary = () => setView('library');
+  const handleOpenBook = (bookId: number) => {
+    setActiveBookId(bookId);
+    setView('reader');
+  };
 
-  return (
-    <div className="min-h-screen bg-transparent text-white font-sans p-4 flex flex-col items-center overflow-x-hidden">
-      <Header 
-        view={view} 
-        onSetView={setView} 
-        onOpenSettings={() => setIsSettingsModalOpen(true)} 
-      />
-      <main className={`w-full flex-grow flex flex-col items-center pt-20 ${view === 'practice' ? 'justify-center' : ''}`}>
-        {view === 'practice' ? (
-           <PracticePage
+  const renderCurrentView = () => {
+    switch (view) {
+        case 'practice':
+            return <PracticePage
              currentPhrase={currentPracticePhrase}
              isAnswerRevealed={isPracticeAnswerRevealed}
              onSetIsAnswerRevealed={setIsPracticeAnswerRevealed}
@@ -1399,25 +1402,56 @@ const App: React.FC = () => {
              practiceCategoryFilter={practiceCategoryFilter}
              setPracticeCategoryFilter={setPracticeCategoryFilter}
              onMarkPhraseAsSeen={handleMarkPhraseAsSeen}
-           />
-        ) : (
-          <PhraseListPage 
-            phrases={allPhrases}
-            onEditPhrase={handleOpenEditModal}
-            onDeletePhrase={handleDeletePhrase}
-            onFindDuplicates={handleFindDuplicates}
-            updateAndSavePhrases={updateAndSavePhrases}
-            onStartPractice={handleStartPracticeWithPhrase}
-            highlightedPhraseId={highlightedPhraseId}
-            onClearHighlight={() => setHighlightedPhraseId(null)}
-          />
-        )}
+           />;
+        case 'list':
+            return <PhraseListPage 
+                phrases={allPhrases}
+                onEditPhrase={handleOpenEditModal}
+                onDeletePhrase={handleDeletePhrase}
+                onFindDuplicates={handleFindDuplicates}
+                updateAndSavePhrases={updateAndSavePhrases}
+                onStartPractice={handleStartPracticeWithPhrase}
+                highlightedPhraseId={highlightedPhraseId}
+                onClearHighlight={() => setHighlightedPhraseId(null)}
+            />;
+        case 'library':
+            return <LibraryPage onOpenBook={handleOpenBook} />;
+        case 'reader':
+            return activeBookId ? (
+                <ReaderPage
+                    bookId={activeBookId}
+                    onClose={() => setView('library')}
+                    onCreateCard={handleCreateCardFromWord}
+                    onTranslateGermanToRussian={handleTranslateGermanToRussian}
+                    onAnalyzeWord={analyzeWord}
+                    onOpenWordAnalysis={handleOpenWordAnalysis}
+                    onOpenVerbConjugation={handleOpenVerbConjugation}
+                    onOpenNounDeclension={handleOpenNounDeclension}
+                    onOpenAdjectiveDeclension={handleOpenAdjectiveDeclension}
+                />
+            ) : null;
+        default:
+            return null;
+    }
+  }
+
+
+  return (
+    <div className="min-h-screen bg-transparent text-white font-sans p-4 flex flex-col items-center overflow-x-hidden">
+      <Header 
+        view={view} 
+        onSetView={setView} 
+        onOpenSettings={() => setIsSettingsModalOpen(true)} 
+      />
+      <main className={`w-full flex-grow flex flex-col items-center pt-20 ${view === 'practice' ? 'justify-center' : ''}`}>
+        {renderCurrentView()}
       </main>
       
       {view === 'practice' && !isLoading && (
         <ExpandingFab 
           onAddPhrase={handleOpenAddPhraseModal}
           onSmartImport={() => setIsSmartImportModalOpen(true)}
+          onOpenLibrary={handleOpenLibrary}
           disabled={!apiProvider}
         />
       )}

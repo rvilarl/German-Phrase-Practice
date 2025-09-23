@@ -239,3 +239,19 @@ export interface PhraseEvaluation {
   feedback: string;
   correctedPhrase?: string;
 }
+
+// EPUB Reader types
+export interface Book {
+  id?: number; // Optional because it's auto-incrementing
+  title: string;
+  author: string;
+  coverBlob: Blob;
+  epubData: ArrayBuffer;
+  lastLocation: string | null;
+  bookmarks: { cfi: string; label: string }[];
+}
+
+export interface BookRecord extends Book {
+  id: number;
+  coverUrl: string; // Blob URL created on retrieval
+}

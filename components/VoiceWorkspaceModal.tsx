@@ -427,11 +427,10 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
     if (ghostPosition) setGhostPosition({ x: e.clientX, y: e.clientY });
     const dropZone = constructedPhraseRef.current;
     if (!dropZone) return;
-    // FIX: Add explicit type cast to resolve TypeScript error.
-    const children = Array.from(dropZone.children).filter(child => (child as Element).hasAttribute('data-word-id'));
+    const children = Array.from(dropZone.children).filter(child => (child as Element).hasAttribute('data-word-id')) as HTMLElement[];
     let newIndex = children.length;
     for (let i = 0; i < children.length; i++) {
-        const child = children[i] as HTMLElement;
+        const child = children[i];
         const rect = child.getBoundingClientRect();
         if (e.clientX < rect.left + rect.width / 2) {
             newIndex = i;
