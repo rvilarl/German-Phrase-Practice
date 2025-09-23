@@ -248,7 +248,6 @@ export interface Book {
   coverBlob: Blob;
   epubData: ArrayBuffer;
   lastLocation: string | null;
-  bookmarks: { cfi: string; label: string }[];
 }
 
 export interface BookRecord extends Book {

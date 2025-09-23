@@ -89,7 +89,6 @@ const LibraryPage: React.FC<LibraryPageProps> = ({ onOpenBook }) => {
                 coverBlob,
                 epubData: arrayBuffer,
                 lastLocation: null,
-                bookmarks: []
             };
 
             await dbService.addBook(newBook);

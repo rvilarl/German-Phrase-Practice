@@ -1421,13 +1421,6 @@ const App: React.FC = () => {
                 <ReaderPage
                     bookId={activeBookId}
                     onClose={() => setView('library')}
-                    onCreateCard={handleCreateCardFromWord}
-                    onTranslateGermanToRussian={handleTranslateGermanToRussian}
-                    onAnalyzeWord={analyzeWord}
-                    onOpenWordAnalysis={handleOpenWordAnalysis}
-                    onOpenVerbConjugation={handleOpenVerbConjugation}
-                    onOpenNounDeclension={handleOpenNounDeclension}
-                    onOpenAdjectiveDeclension={handleOpenAdjectiveDeclension}
                 />
             ) : null;
         default:

@@ -55,21 +55,3 @@ export const updateBookLocation = async (id: number, lastLocation: string): Prom
         await db.put(STORE_NAME, { ...book, lastLocation });
     }
 };
-
-export const addBookmark = async (id: number, cfi: string, label: string): Promise<void> => {
-    const db = await initDB();
-    const book = await db.get(STORE_NAME, id);
-    if (book) {
-        const newBookmarks = [...(book.bookmarks || []), { cfi, label }];
-        await db.put(STORE_NAME, { ...book, bookmarks: newBookmarks });
-    }
-};
-
-export const deleteBookmark = async (id: number, cfi: string): Promise<void> => {
-    const db = await initDB();
-    const book = await db.get(STORE_NAME, id);
-    if (book && book.bookmarks) {
-        const newBookmarks = book.bookmarks.filter(b => b.cfi !== cfi);
-        await db.put(STORE_NAME, { ...book, bookmarks: newBookmarks });
-    }
-};
