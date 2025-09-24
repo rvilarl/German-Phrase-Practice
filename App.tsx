@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Phrase, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, AdjectiveDeclension, SentenceContinuation, PhraseBuilderOptions, PhraseEvaluation, ChatMessage, PhraseCategory, ProposedCard, BookRecord } from './types';
 import * as srsService from './services/srsService';
@@ -1456,6 +1457,7 @@ const App: React.FC = () => {
                 onStartPractice={handleStartPracticeWithPhrase}
                 highlightedPhraseId={highlightedPhraseId}
                 onClearHighlight={() => setHighlightedPhraseId(null)}
+                onOpenSmartImport={() => setIsSmartImportModalOpen(true)}
             />;
         case 'library':
             return <LibraryPage onOpenBook={handleOpenBook} />;

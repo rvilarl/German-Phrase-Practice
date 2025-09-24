@@ -5,6 +5,7 @@ import XCircleIcon from '../components/icons/XCircleIcon';
 import MicrophoneIcon from '../components/icons/MicrophoneIcon';
 import Spinner from '../components/Spinner';
 import PhrasePreviewModal from '../components/PhrasePreviewModal';
+import SmartToyIcon from '../components/icons/SmartToyIcon';
 
 interface PhraseListPageProps {
     phrases: Phrase[];
@@ -15,6 +16,7 @@ interface PhraseListPageProps {
     onStartPractice: (phrase: Phrase) => void;
     highlightedPhraseId: string | null;
     onClearHighlight: () => void;
+    onOpenSmartImport: () => void;
 }
 
 type ListItem = 
@@ -32,7 +34,7 @@ const categoryDisplay: Record<PhraseCategory, { name: string }> = {
 const allCategories: PhraseCategory[] = ['general', 'w-fragen', 'pronouns', 'numbers', 'time', 'money'];
 
 
-const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, onDeletePhrase, onFindDuplicates, updateAndSavePhrases, onStartPractice, highlightedPhraseId, onClearHighlight }) => {
+const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, onDeletePhrase, onFindDuplicates, updateAndSavePhrases, onStartPractice, highlightedPhraseId, onClearHighlight, onOpenSmartImport }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [categoryFilter, setCategoryFilter] = useState<'all' | PhraseCategory>('all');
     const [isProcessingDuplicates, setIsProcessingDuplicates] = useState(false);
@@ -357,37 +359,47 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
                             <span className="text-sm text-slate-400 pl-2">
                                {filteredPhrases.length} фраз
                             </span>
-                            {duplicateGroups.length > 0 ? (
-                                 <div className="flex space-x-2">
+                             <div className="flex items-center space-x-2">
+                                {duplicateGroups.length > 0 ? (
+                                    <div className="flex items-center space-x-2">
+                                        <button
+                                            onClick={() => setDuplicateGroups([])}
+                                            className="px-3 py-1.5 text-sm bg-slate-600 hover:bg-slate-700 text-white font-semibold rounded-md transition-colors"
+                                        >
+                                            Отмена
+                                        </button>
+                                        <button
+                                            onClick={handleCleanDuplicates}
+                                            className="px-3 py-1.5 text-sm bg-green-600 hover:bg-green-700 text-white font-semibold rounded-md transition-colors"
+                                        >
+                                            Очистить дубликаты ({duplicateGroups.length})
+                                        </button>
+                                    </div>
+                                ) : (
                                     <button
-                                        onClick={() => setDuplicateGroups([])}
-                                        className="px-3 py-1.5 text-sm bg-slate-600 hover:bg-slate-700 text-white font-semibold rounded-md transition-colors"
+                                        onClick={handleFindDuplicates}
+                                        disabled={isProcessingDuplicates}
+                                        className="relative text-sm text-slate-400 hover:text-slate-200 font-medium transition-colors disabled:opacity-50 h-[34px] flex items-center justify-center px-3"
                                     >
-                                        Отмена
+                                        <span className={isProcessingDuplicates ? 'opacity-0' : 'opacity-100'}>
+                                            Найти дубликаты
+                                        </span>
+                                        {isProcessingDuplicates && (
+                                            <div className="absolute inset-0 flex items-center justify-center">
+                                                <Spinner />
+                                            </div>
+                                        )}
                                     </button>
-                                    <button
-                                        onClick={handleCleanDuplicates}
-                                        className="px-3 py-1.5 text-sm bg-green-600 hover:bg-green-700 text-white font-semibold rounded-md transition-colors"
-                                    >
-                                        Очистить дубликаты ({duplicateGroups.length})
-                                    </button>
-                                 </div>
-                            ) : (
+                                )}
                                 <button
-                                    onClick={handleFindDuplicates}
-                                    disabled={isProcessingDuplicates}
-                                    className="relative text-sm text-slate-400 hover:text-slate-200 font-medium transition-colors disabled:opacity-50 h-[34px] flex items-center justify-center px-3"
+                                    onClick={onOpenSmartImport}
+                                    className="flex-shrink-0 flex items-center justify-center space-x-2 sm:px-3 px-0 text-sm bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-md transition-colors h-[34px] w-[34px] sm:w-auto"
+                                    aria-label="AI ассистент по созданию карточек"
                                 >
-                                    <span className={isProcessingDuplicates ? 'opacity-0' : 'opacity-100'}>
-                                        Найти дубликаты
-                                    </span>
-                                    {isProcessingDuplicates && (
-                                        <div className="absolute inset-0 flex items-center justify-center">
-                                            <Spinner />
-                                        </div>
-                                    )}
+                                    <SmartToyIcon className="w-5 h-5" />
+                                    <span className="hidden sm:inline">Ассистент</span>
                                 </button>
-                            )}
+                            </div>
                         </div>
                     </div>
                 </div>
