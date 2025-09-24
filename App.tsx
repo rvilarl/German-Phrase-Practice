@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Phrase, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, AdjectiveDeclension, SentenceContinuation, PhraseBuilderOptions, PhraseEvaluation, ChatMessage, PhraseCategory, ProposedCard, BookRecord } from './types';
 import * as srsService from './services/srsService';
@@ -899,6 +900,10 @@ const App: React.FC = () => {
         callApiWithFallback(provider => provider.generateCardsFromTranscript(transcript, sourceLang)),
     [callApiWithFallback]
   );
+  const handleGenerateTopicCards = useCallback(
+    (topic: string) => callApiWithFallback(provider => provider.generateTopicCards(topic)),
+    [callApiWithFallback]
+  );
 
 
   const handleOpenAddPhraseModal = (options: { language: 'ru' | 'de'; autoSubmit: boolean }) => {
@@ -996,6 +1001,44 @@ const App: React.FC = () => {
     
     showToast({ message: `Карточка для "${phraseData.german}" создана` });
   }, [allPhrases, updateAndSavePhrases, showToast]);
+
+  const handleCreateCardFromSelection = useCallback(async (germanText: string): Promise<boolean> => {
+      if (!apiProvider) {
+          showToast({ message: "AI provider not available." });
+          return false;
+      }
+      const alreadyExists = allPhrases.some(p => p.german.trim().toLowerCase() === germanText.trim().toLowerCase());
+      if (alreadyExists) {
+          showToast({ message: `Карточка "${germanText}" уже существует.` });
+          return false;
+      }
+  
+      try {
+          const { russian } = await callApiWithFallback(provider => provider.translateGermanToRussian(germanText));
+          
+          const newPhrase: Phrase = {
+              german: germanText,
+              russian: russian,
+              id: Math.random().toString(36).substring(2, 9),
+              masteryLevel: 0,
+              lastReviewedAt: null,
+              nextReviewAt: Date.now(),
+              knowCount: 0,
+              knowStreak: 0,
+              isMastered: false,
+              category: 'general',
+              lapses: 0,
+              isNew: true,
+          };
+          updateAndSavePhrases(prev => [newPhrase, ...prev]);
+          showToast({ message: `Карточка для "${germanText}" создана` });
+          return true;
+      } catch (error) {
+          console.error("Failed to create card from selection:", error);
+          showToast({ message: "Не удалось создать карточку." });
+          return false;
+      }
+  }, [allPhrases, updateAndSavePhrases, showToast, callApiWithFallback, apiProvider]);
 
 
   const handleOpenImproveModal = (phrase: Phrase) => {
@@ -1421,6 +1464,8 @@ const App: React.FC = () => {
                 <ReaderPage
                     bookId={activeBookId}
                     onClose={() => setView('library')}
+                    onOpenWordAnalysis={handleOpenWordAnalysis}
+                    onCreateCardFromSelection={handleCreateCardFromSelection}
                 />
             ) : null;
         default:
@@ -1552,6 +1597,7 @@ const App: React.FC = () => {
           isOpen={isSmartImportModalOpen}
           onClose={() => setIsSmartImportModalOpen(false)}
           onGenerateCards={handleGenerateCardsFromTranscript}
+          onGenerateTopicCards={handleGenerateTopicCards}
           onCardsCreated={handleCreateCardsFromTranscript}
       />}
        {phraseToImprove && <ImprovePhraseModal

@@ -251,6 +251,51 @@ Example Output Format:
     }
 };
 
+const generateTopicCards: AiService['generateTopicCards'] = async (topic) => {
+    const api = initializeApi();
+    if (!api) throw new Error("Gemini API key not configured.");
+
+    const prompt = `Ты — AI-ассистент для изучения немецкого языка. Пользователь хочет получить набор карточек на определенную тему.
+Тема запроса: "${topic}"
+
+Твоя задача:
+1.  Проанализируй запрос пользователя.
+2.  Сгенерируй список полезных немецких слов и фраз с русским переводом по этой теме. Список должен быть достаточно полным для изучения, но не избыточным (обычно 10-20 карточек).
+3.  Верни результат ТОЛЬКО как JSON-массив объектов. Каждый объект должен иметь два ключа: 'russian' и 'german'.
+
+Пример для темы "цвета":
+[
+  { "russian": "красный", "german": "rot" },
+  { "russian": "синий", "german": "blau" },
+  { "russian": "зеленый", "german": "grün" }
+]`;
+
+    try {
+        const response = await api.models.generateContent({
+            model: model,
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: phraseSchema,
+                temperature: 0.6,
+            },
+        });
+        
+        const jsonText = response.text.trim();
+        const parsedCards = JSON.parse(jsonText);
+
+        if (!Array.isArray(parsedCards)) {
+            throw new Error("API did not return an array of cards.");
+        }
+        
+        return parsedCards;
+
+    } catch (error) {
+        console.error("Error generating topic cards with Gemini:", error);
+        throw new Error(`Failed to call the Gemini API: ${(error as any)?.message || 'Unknown error'}`);
+    }
+};
+
 
 const improvePhraseSchema = {
     type: Type.OBJECT,
@@ -1385,4 +1430,5 @@ export const geminiService: AiService = {
     healthCheck,
     getProviderName: () => "Google Gemini",
     generateCardsFromTranscript,
+    generateTopicCards,
 };

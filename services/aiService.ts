@@ -25,4 +25,5 @@ export interface AiService {
   healthCheck(): Promise<boolean>;
   getProviderName(): string;
   generateCardsFromTranscript(transcript: string, sourceLang: 'ru' | 'de'): Promise<{ russian: string; german: string; }[]>;
+  generateTopicCards(topic: string): Promise<{ russian: string; german: string; }[]>;
 }
