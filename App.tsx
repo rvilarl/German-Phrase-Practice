@@ -1,8 +1,9 @@
 
 
 
+
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Phrase, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, AdjectiveDeclension, SentenceContinuation, PhraseBuilderOptions, PhraseEvaluation, ChatMessage, PhraseCategory, ProposedCard, BookRecord } from './types';
+import { Phrase, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, AdjectiveDeclension, SentenceContinuation, PhraseBuilderOptions, PhraseEvaluation, ChatMessage, PhraseCategory, ProposedCard, BookRecord, Category } from './types';
 import * as srsService from './services/srsService';
 import * as cacheService from './services/cacheService';
 import { getProviderPriorityList, getFallbackProvider, ApiProviderType } from './services/apiProvider';
@@ -43,6 +44,7 @@ import MessageQuestionIcon from './components/icons/MessageQuestionIcon';
 
 const PHRASES_STORAGE_KEY = 'germanPhrases';
 const SETTINGS_STORAGE_KEY = 'germanAppSettings';
+const CATEGORIES_STORAGE_KEY = 'germanAppCategories';
 const BUTTON_USAGE_STORAGE_KEY = 'germanAppButtonUsage';
 const MASTERY_BUTTON_USAGE_STORAGE_KEY = 'germanAppMasteryButtonUsage';
 const HABIT_TRACKER_STORAGE_KEY = 'germanAppHabitTracker';
@@ -61,6 +63,15 @@ interface ToastState {
   type: ToastType;
 }
 
+const defaultCategories: Category[] = [
+    { id: 'general', name: 'Общие', color: 'bg-slate-500', isFoundational: false },
+    { id: 'w-fragen', name: 'W-Fragen', color: 'bg-blue-500', isFoundational: true },
+    { id: 'pronouns', name: 'Местоимения', color: 'bg-purple-500', isFoundational: true },
+    { id: 'numbers', name: 'Цифры', color: 'bg-green-500', isFoundational: true },
+    { id: 'time', name: 'Время', color: 'bg-amber-500', isFoundational: true },
+    { id: 'money', name: 'Деньги', color: 'bg-emerald-500', isFoundational: true },
+];
+
 const defaultSettings = {
   autoSpeak: true,
   soundEffects: true,
@@ -68,14 +79,10 @@ const defaultSettings = {
     autoCheckShortPhrases: true,
     learnNextPhraseHabit: true,
   },
-  enabledCategories: {
-    general: true,
-    'w-fragen': true,
-    pronouns: true,
-    numbers: true,
-    time: true,
-    money: true,
-  } as Record<PhraseCategory, boolean>,
+  enabledCategories: defaultCategories.reduce((acc, cat) => {
+    acc[cat.id] = true;
+    return acc;
+  }, {} as Record<PhraseCategory, boolean>),
 };
 
 const defaultHabitTracker = { 
@@ -166,6 +173,7 @@ const LeechModal: React.FC<LeechModalProps> = ({ isOpen, phrase, onImprove, onDi
 
 const App: React.FC = () => {
   const [allPhrases, setAllPhrases] = useState<Phrase[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -303,16 +311,41 @@ const App: React.FC = () => {
             setError("AI features are temporarily unavailable. All configured providers failed health checks.");
         }
 
+        let loadedCategories: Category[] = [];
+        try {
+            const storedCategories = localStorage.getItem(CATEGORIES_STORAGE_KEY);
+            if (storedCategories) {
+                loadedCategories = JSON.parse(storedCategories);
+            }
+        } catch (e) {
+            console.error("Failed to load/parse categories, clearing invalid data.", e);
+            localStorage.removeItem(CATEGORIES_STORAGE_KEY);
+        }
+
+        if (loadedCategories.length === 0) {
+            loadedCategories = defaultCategories;
+            localStorage.setItem(CATEGORIES_STORAGE_KEY, JSON.stringify(loadedCategories));
+        }
+        setCategories(loadedCategories);
+
+
         try {
             const storedSettings = localStorage.getItem(SETTINGS_STORAGE_KEY);
             if (storedSettings) {
                 const parsedSettings = JSON.parse(storedSettings);
+                 // Ensure enabledCategories is in sync with loadedCategories
+                const enabledCategories = { ...defaultSettings.enabledCategories, ...parsedSettings.enabledCategories };
+                for (const category of loadedCategories) {
+                    if (!(category.id in enabledCategories)) {
+                        enabledCategories[category.id] = true;
+                    }
+                }
                 setSettings(prev => ({
                     ...defaultSettings,
                     ...prev,
                     ...parsedSettings,
                     automation: { ...defaultSettings.automation, ...parsedSettings.automation },
-                    enabledCategories: { ...defaultSettings.enabledCategories, ...parsedSettings.enabledCategories },
+                    enabledCategories,
                 }));
             }
             const storedUsage = localStorage.getItem(BUTTON_USAGE_STORAGE_KEY);
@@ -366,7 +399,7 @@ const App: React.FC = () => {
                         
                             return {
                                 ...fullPhraseObject,
-                                isMastered: srsService.isPhraseMastered(fullPhraseObject),
+                                isMastered: srsService.isPhraseMastered(fullPhraseObject, loadedCategories),
                             };
                         });
                 }
@@ -383,11 +416,11 @@ const App: React.FC = () => {
             }));
         } else {
             // Check for and add any missing foundational phrases for existing users.
-            const foundationalCategories: PhraseCategory[] = ['w-fragen', 'pronouns', 'numbers', 'time', 'money'];
+            const foundationalCategoriesIds = loadedCategories.filter(c => c.isFoundational).map(c => c.id);
             
             const existingGermanFoundational = new Set(
                 loadedPhrases
-                    .filter(p => foundationalCategories.includes(p.category))
+                    .filter(p => foundationalCategoriesIds.includes(p.category))
                     .map(p => p.german.trim().toLowerCase())
             );
 
@@ -865,7 +898,7 @@ const App: React.FC = () => {
   }, [callApiWithFallback]);
   
   const updatePhraseMasteryAndCache = useCallback((phrase: Phrase, action: 'know' | 'forgot' | 'dont_know') => {
-    const updatedPhrase = srsService.updatePhraseMastery(phrase, action);
+    const updatedPhrase = srsService.updatePhraseMastery(phrase, action, categories);
     updateAndSavePhrases(prev =>
         prev.map(p => (p.id === phrase.id ? updatedPhrase : p))
     );
@@ -875,7 +908,7 @@ const App: React.FC = () => {
     }
     
     return updatedPhrase;
-  }, [updateAndSavePhrases]);
+  }, [updateAndSavePhrases, categories]);
 
 
   const handlePhraseActionSuccess = useCallback((phrase: Phrase) => {
@@ -1256,7 +1289,7 @@ const App: React.FC = () => {
     handleLogMasteryButtonUsage(action);
     const originalPhrase = currentPracticePhrase;
 
-    let updatedPhrase = srsService.updatePhraseMastery(originalPhrase, action);
+    let updatedPhrase = srsService.updatePhraseMastery(originalPhrase, action, categories);
     
     // Leech detection logic
     if (action === 'forgot' || action === 'dont_know') {
@@ -1290,7 +1323,7 @@ const App: React.FC = () => {
     } else {
         if (settings.soundEffects) playIncorrectSound();
     }
-  }, [currentPracticePhrase, handleLogMasteryButtonUsage, updateAndSavePhrases, settings.soundEffects]);
+  }, [currentPracticePhrase, handleLogMasteryButtonUsage, updateAndSavePhrases, settings.soundEffects, categories]);
 
   const handleLeechAction = useCallback((phrase: Phrase, action: 'continue' | 'reset' | 'postpone') => {
     let updatedPhrase = { ...phrase };
@@ -1446,6 +1479,7 @@ const App: React.FC = () => {
              practiceCategoryFilter={practiceCategoryFilter}
              setPracticeCategoryFilter={setPracticeCategoryFilter}
              onMarkPhraseAsSeen={handleMarkPhraseAsSeen}
+             categories={categories}
            />;
         case 'list':
             return <PhraseListPage 
@@ -1458,6 +1492,7 @@ const App: React.FC = () => {
                 highlightedPhraseId={highlightedPhraseId}
                 onClearHighlight={() => setHighlightedPhraseId(null)}
                 onOpenSmartImport={() => setIsSmartImportModalOpen(true)}
+                categories={categories}
             />;
         case 'library':
             return <LibraryPage onOpenBook={handleOpenBook} />;
@@ -1518,7 +1553,13 @@ const App: React.FC = () => {
           onOpenAdjectiveDeclension={handleOpenAdjectiveDeclension}
           onTranslateGermanToRussian={handleTranslateGermanToRussian}
       />}
-      <SettingsModal isOpen={isSettingsModalOpen} onClose={() => setIsSettingsModalOpen(false)} settings={settings} onSettingsChange={handleSettingsChange} />
+      <SettingsModal 
+        isOpen={isSettingsModalOpen} 
+        onClose={() => setIsSettingsModalOpen(false)} 
+        settings={settings} 
+        onSettingsChange={handleSettingsChange} 
+        categories={categories}
+      />
       {deepDivePhrase && <DeepDiveModal 
         isOpen={isDeepDiveModalOpen} 
         onClose={() => setIsDeepDiveModalOpen(false)} 

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import type { Phrase, SpeechRecognition, SpeechRecognitionErrorEvent, SpeechRecognitionEvent, PhraseCategory } from '../types';
+import type { Phrase, SpeechRecognition, SpeechRecognitionErrorEvent, SpeechRecognitionEvent, PhraseCategory, Category } from '../types';
 import PhraseListItem from '../components/PhraseListItem';
 import XCircleIcon from '../components/icons/XCircleIcon';
 import MicrophoneIcon from '../components/icons/MicrophoneIcon';
@@ -17,24 +17,15 @@ interface PhraseListPageProps {
     highlightedPhraseId: string | null;
     onClearHighlight: () => void;
     onOpenSmartImport: () => void;
+    categories: Category[];
 }
 
 type ListItem = 
     | { type: 'header'; title: string }
     | { type: 'phrase'; phrase: Phrase };
 
-const categoryDisplay: Record<PhraseCategory, { name: string }> = {
-    general: { name: 'Общие' },
-    'w-fragen': { name: 'W-Fragen' },
-    pronouns: { name: 'Местоимения' },
-    numbers: { name: 'Цифры' },
-    time: { name: 'Время' },
-    money: { name: 'Деньги' },
-};
-const allCategories: PhraseCategory[] = ['general', 'w-fragen', 'pronouns', 'numbers', 'time', 'money'];
 
-
-const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, onDeletePhrase, onFindDuplicates, updateAndSavePhrases, onStartPractice, highlightedPhraseId, onClearHighlight, onOpenSmartImport }) => {
+const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, onDeletePhrase, onFindDuplicates, updateAndSavePhrases, onStartPractice, highlightedPhraseId, onClearHighlight, onOpenSmartImport, categories }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [categoryFilter, setCategoryFilter] = useState<'all' | PhraseCategory>('all');
     const [isProcessingDuplicates, setIsProcessingDuplicates] = useState(false);
@@ -344,13 +335,13 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
                                 >
                                     Все
                                 </button>
-                                {allCategories.map(cat => (
+                                {categories.map(cat => (
                                     <button
-                                        key={cat}
-                                        onClick={() => setCategoryFilter(cat)}
-                                        className={`flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${categoryFilter === cat ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
+                                        key={cat.id}
+                                        onClick={() => setCategoryFilter(cat.id)}
+                                        className={`flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${categoryFilter === cat.id ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
                                     >
-                                        {categoryDisplay[cat].name}
+                                        {cat.name}
                                     </button>
                                 ))}
                             </div>
@@ -416,6 +407,7 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
                                         </li>
                                     );
                                 }
+                                const category = categories.find(c => c.id === item.phrase.category);
                                 return (
                                     <PhraseListItem
                                         key={item.phrase.id}
@@ -426,6 +418,7 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
                                         isHighlighted={item.phrase.id === highlightedPhraseId}
                                         onPreview={setPreviewPhrase}
                                         onStartPractice={onStartPractice}
+                                        categoryInfo={category}
                                         onCategoryClick={setCategoryFilter}
                                     />
                                 );

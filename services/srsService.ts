@@ -1,4 +1,4 @@
-import { Phrase, PhraseCategory } from '../types';
+import { Phrase, PhraseCategory, Category } from '../types';
 
 // Intervals in milliseconds
 // e.g., 1 hour, 8 hours, 1 day, 3 days, 1 week, 2 weeks
@@ -14,10 +14,10 @@ const SRS_INTERVALS = [
 export const MAX_MASTERY_LEVEL = SRS_INTERVALS.length;
 export const LEECH_THRESHOLD = 5;
 
-export const isPhraseMastered = (phrase: Phrase): boolean => {
+export const isPhraseMastered = (phrase: Phrase, categories: Category[]): boolean => {
+  const category = categories.find(c => c.id === phrase.category);
   // Foundational categories are mastered after a streak of 10.
-  const foundationalCategories: PhraseCategory[] = ['w-fragen', 'pronouns', 'numbers', 'time', 'money'];
-  if (foundationalCategories.includes(phrase.category)) {
+  if (category?.isFoundational) {
     return phrase.knowStreak >= 10;
   }
   
@@ -103,7 +103,7 @@ export const isLeech = (phrase: Phrase): boolean => {
     return phrase.lapses >= LEECH_THRESHOLD;
 }
 
-export const updatePhraseMastery = (phrase: Phrase, action: UserAction): Phrase => {
+export const updatePhraseMastery = (phrase: Phrase, action: UserAction, categories: Category[]): Phrase => {
   const now = Date.now();
   let newMasteryLevel = phrase.masteryLevel;
   let newKnowCount = phrase.knowCount;
@@ -116,8 +116,8 @@ export const updatePhraseMastery = (phrase: Phrase, action: UserAction): Phrase 
       newKnowCount++;
       newKnowStreak++;
       // A correct answer resets the lapse count for non-foundational cards.
-      const foundationalCategories: PhraseCategory[] = ['w-fragen', 'pronouns', 'numbers', 'time', 'money'];
-      if (!foundationalCategories.includes(phrase.category)) {
+      const category = categories.find(c => c.id === phrase.category);
+      if (!category?.isFoundational) {
         newLapses = 0;
       }
       break;
@@ -155,6 +155,6 @@ export const updatePhraseMastery = (phrase: Phrase, action: UserAction): Phrase 
 
   return {
       ...updatedPhrasePartial,
-      isMastered: isPhraseMastered(updatedPhrasePartial)
+      isMastered: isPhraseMastered(updatedPhrasePartial, categories)
   };
 };

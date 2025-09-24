@@ -1,18 +1,6 @@
 import React from 'react';
 import CloseIcon from './icons/CloseIcon';
-import { PhraseCategory } from '../types';
-
-export const categoryDisplay: Record<PhraseCategory, { name: string }> = {
-    general: { name: 'Общие' },
-    'w-fragen': { name: 'W-Fragen' },
-    pronouns: { name: 'Местоимения' },
-    numbers: { name: 'Цифры' },
-    time: { name: 'Время' },
-    money: { name: 'Деньги' },
-};
-
-export const allCategories: PhraseCategory[] = ['general', 'w-fragen', 'pronouns', 'numbers', 'time', 'money'];
-
+import { Category, PhraseCategory } from '../types';
 
 interface Settings {
   autoSpeak: boolean;
@@ -29,9 +17,10 @@ interface SettingsModalProps {
   onClose: () => void;
   settings: Settings;
   onSettingsChange: (newSettings: Partial<Settings>) => void;
+  categories: Category[];
 }
 
-const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings, onSettingsChange }) => {
+const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings, onSettingsChange, categories }) => {
   if (!isOpen) return null;
 
   const handleSettingChange = (setting: keyof Omit<Settings, 'automation' | 'enabledCategories'>, value: boolean) => {
@@ -101,17 +90,17 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
           </fieldset>
           <fieldset className="space-y-4">
             <legend className="text-sm font-semibold text-purple-300 mb-2">Категории для практики</legend>
-            {allCategories.map(category => (
-                 <div className="flex items-center justify-between" key={category}>
-                    <label htmlFor={category} className="text-slate-200">{categoryDisplay[category].name}</label>
+            {categories.map(category => (
+                 <div className="flex items-center justify-between" key={category.id}>
+                    <label htmlFor={category.id} className="text-slate-200">{category.name}</label>
                     <button
-                        id={category}
+                        id={category.id}
                         role="switch"
-                        aria-checked={settings.enabledCategories[category]}
-                        onClick={() => handleCategoryChange(category, !settings.enabledCategories[category])}
-                        className={`${settings.enabledCategories[category] ? 'bg-purple-600' : 'bg-slate-600'} relative inline-flex h-6 w-11 items-center rounded-full transition-colors`}
+                        aria-checked={settings.enabledCategories[category.id] ?? true}
+                        onClick={() => handleCategoryChange(category.id, !(settings.enabledCategories[category.id] ?? true))}
+                        className={`${(settings.enabledCategories[category.id] ?? true) ? 'bg-purple-600' : 'bg-slate-600'} relative inline-flex h-6 w-11 items-center rounded-full transition-colors`}
                     >
-                        <span className={`${settings.enabledCategories[category] ? 'translate-x-6' : 'translate-x-1'} inline-block h-4 w-4 transform rounded-full bg-white transition-transform`} />
+                        <span className={`${(settings.enabledCategories[category.id] ?? true) ? 'translate-x-6' : 'translate-x-1'} inline-block h-4 w-4 transform rounded-full bg-white transition-transform`} />
                     </button>
                 </div>
             ))}

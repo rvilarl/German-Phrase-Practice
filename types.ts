@@ -1,4 +1,11 @@
-export type PhraseCategory = 'general' | 'w-fragen' | 'pronouns' | 'numbers' | 'time' | 'money';
+export type PhraseCategory = string;
+
+export interface Category {
+  id: string;
+  name: string;
+  color: string;
+  isFoundational: boolean;
+}
 
 export interface Phrase {
   id: string;

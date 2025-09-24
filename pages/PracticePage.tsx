@@ -1,6 +1,7 @@
 
+
 import React, { useCallback, useRef, useState, useEffect, useMemo } from 'react';
-import type { Phrase, WordAnalysis, PhraseCategory } from '../types';
+import type { Phrase, WordAnalysis, PhraseCategory, Category } from '../types';
 import PhraseCard from '../components/PhraseCard';
 import Spinner from '../components/Spinner';
 import PracticePageContextMenu from '../components/PracticePageContextMenu';
@@ -21,17 +22,6 @@ interface AnimationState {
   key: string;
   direction: AnimationDirection;
 }
-
-const categoryDisplay: Record<PhraseCategory, { name: string }> = {
-    general: { name: 'Общие' },
-    'w-fragen': { name: 'W-Fragen' },
-    pronouns: { name: 'Местоимения' },
-    numbers: { name: 'Цифры' },
-    time: { name: 'Время' },
-    money: { name: 'Деньги' },
-};
-
-const allCategories: PhraseCategory[] = ['general', 'w-fragen', 'pronouns', 'numbers', 'time', 'money'];
 
 // Pools for local quick reply generation
 const W_FRAGEN_POOL = ["Was?", "Wer?", "Wo?", "Wann?", "Wie?", "Warum?", "Woher?", "Wohin?", "Welcher?", "Wie viel?", "Wie viele?"];
@@ -89,6 +79,7 @@ interface PracticePageProps {
   practiceCategoryFilter: 'all' | PhraseCategory;
   setPracticeCategoryFilter: (filter: 'all' | PhraseCategory) => void;
   onMarkPhraseAsSeen: (phraseId: string) => void;
+  categories: Category[];
 }
 
 const CategoryFilter: React.FC<{
@@ -96,12 +87,15 @@ const CategoryFilter: React.FC<{
     onFilterChange: (filter: 'all' | PhraseCategory) => void;
     enabledCategories: Record<PhraseCategory, boolean>;
     currentPhraseCategory: PhraseCategory | null;
-}> = ({ currentFilter, onFilterChange, enabledCategories, currentPhraseCategory }) => {
+    categories: Category[];
+}> = ({ currentFilter, onFilterChange, enabledCategories, currentPhraseCategory, categories }) => {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const getCategoryNameById = (id: string) => categories.find(c => c.id === id)?.name || id;
+
     const categoryName = currentFilter === 'all' 
         ? 'Все категории' 
-        : categoryDisplay[currentFilter]?.name || 'Все категории';
+        : getCategoryNameById(currentFilter);
     
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -118,7 +112,7 @@ const CategoryFilter: React.FC<{
         setIsOpen(false);
     };
     
-    const visibleCategories = allCategories.filter(cat => enabledCategories[cat]);
+    const visibleCategories = categories.filter(cat => enabledCategories[cat.id]);
 
     return (
         <div ref={dropdownRef} className="relative w-full max-w-sm mx-auto mb-4">
@@ -127,7 +121,7 @@ const CategoryFilter: React.FC<{
                 className="w-full flex items-center justify-center px-4 py-2 bg-transparent hover:bg-slate-700/80 rounded-lg text-slate-300 transition-colors"
             >
                 <span className="font-semibold mr-2">
-                    {currentFilter === 'all' && currentPhraseCategory ? categoryDisplay[currentPhraseCategory].name : categoryName}
+                    {currentFilter === 'all' && currentPhraseCategory ? getCategoryNameById(currentPhraseCategory) : categoryName}
                 </span>
                 <ChevronDownIcon className={`w-5 h-5 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
             </button>
@@ -138,8 +132,8 @@ const CategoryFilter: React.FC<{
                             <button onClick={() => handleSelect('all')} className="w-full text-left px-3 py-2 text-slate-200 hover:bg-slate-600 rounded-md transition-colors">Все категории</button>
                         </li>
                         {visibleCategories.map(cat => (
-                            <li key={cat}>
-                                <button onClick={() => handleSelect(cat)} className="w-full text-left px-3 py-2 text-slate-200 hover:bg-slate-600 rounded-md transition-colors">{categoryDisplay[cat].name}</button>
+                            <li key={cat.id}>
+                                <button onClick={() => handleSelect(cat.id)} className="w-full text-left px-3 py-2 text-slate-200 hover:bg-slate-600 rounded-md transition-colors">{cat.name}</button>
                             </li>
                         ))}
                     </ul>
@@ -161,7 +155,8 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
     onOpenVoiceWorkspace, onDeletePhrase, onGoToList, onOpenDiscussTranslation,
     settings, masteryButtonUsage, allPhrases, onCreateCard, onAnalyzeWord,
     onGenerateQuickReplyOptions, isWordAnalysisLoading, cardActionUsage, onLogCardActionUsage,
-    cardHistoryLength, practiceCategoryFilter, setPracticeCategoryFilter, onMarkPhraseAsSeen
+    cardHistoryLength, practiceCategoryFilter, setPracticeCategoryFilter, onMarkPhraseAsSeen,
+    categories
   } = props;
 
   const [contextMenuTarget, setContextMenuTarget] = useState<{ phrase: Phrase; word?: string } | null>(null);
@@ -209,9 +204,10 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
         const correctAnswer = phraseToReply.german.replace(/[?]/g, '');
         let distractors: string[] = [];
         
-        const localGenerationCategories: PhraseCategory[] = ['w-fragen', 'pronouns', 'numbers', 'time', 'money'];
+        const categoryDetails = categories.find(c => c.id === category);
+        const isFoundational = categoryDetails?.isFoundational;
 
-        if (localGenerationCategories.includes(category)) {
+        if (isFoundational) {
             // INSTANT LOCAL GENERATION
             setIsQuickReplyLoading(false); 
             let pool: string[] = [];
@@ -265,7 +261,7 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
         setQuickReplyError(error instanceof Error ? error.message : "Не удалось загрузить варианты.");
         setIsQuickReplyLoading(false);
     }
-  }, [onGenerateQuickReplyOptions]);
+  }, [onGenerateQuickReplyOptions, categories]);
   
   const handleQuickReplyCorrect = useCallback(() => {
     if (!quickReplyPhrase) return;
@@ -325,10 +321,11 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
         );
       }
        if (currentPoolCount === 0) {
+        const categoryName = categories.find(c => c.id === practiceCategoryFilter)?.name || 'этой';
         return (
             <div className="text-center text-slate-400 p-4">
                 <h2 className="text-2xl font-bold text-white mb-4">Пусто</h2>
-                <p>Нет невыученных карточек в категории "{categoryDisplay[practiceCategoryFilter as PhraseCategory].name}".</p>
+                <p>Нет невыученных карточек в категории "{categoryName}".</p>
                 <button onClick={() => setPracticeCategoryFilter('all')} className="mt-6 px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-md text-white font-bold transition-colors">
                     Практиковать все категории
                 </button>
@@ -430,6 +427,7 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
         onFilterChange={setPracticeCategoryFilter}
         enabledCategories={settings.enabledCategories}
         currentPhraseCategory={currentPhrase?.category || null}
+        categories={categories}
       />
       {renderContent()}
       {contextMenuTarget && (

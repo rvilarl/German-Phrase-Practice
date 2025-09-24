@@ -1,19 +1,10 @@
 import React from 'react';
-import type { Phrase, PhraseCategory } from '../types';
+import type { Phrase, PhraseCategory, Category } from '../types';
 import ProgressBar from './ProgressBar';
 import PencilIcon from './icons/PencilIcon';
 import TrashIcon from './icons/TrashIcon';
 import * as srsService from '../services/srsService';
 import GraduationCapIcon from './icons/GraduationCapIcon';
-
-const categoryDisplay: Record<PhraseCategory, { name: string; color: string; }> = {
-    general: { name: 'Общие', color: 'bg-slate-500' },
-    'w-fragen': { name: 'W-Fragen', color: 'bg-blue-500' },
-    pronouns: { name: 'Местоимения', color: 'bg-purple-500' },
-    numbers: { name: 'Цифры', color: 'bg-green-500' },
-    time: { name: 'Время', color: 'bg-amber-500' },
-    money: { name: 'Деньги', color: 'bg-emerald-500' },
-};
 
 interface PhraseListItemProps {
     phrase: Phrase;
@@ -24,9 +15,10 @@ interface PhraseListItemProps {
     onPreview: (phrase: Phrase) => void;
     onStartPractice: (phrase: Phrase) => void;
     onCategoryClick: (category: PhraseCategory) => void;
+    categoryInfo?: Category;
 }
 
-const PhraseListItem: React.FC<PhraseListItemProps> = React.memo(({ phrase, onEdit, onDelete, isDuplicate, isHighlighted, onPreview, onStartPractice, onCategoryClick }) => {
+const PhraseListItem: React.FC<PhraseListItemProps> = React.memo(({ phrase, onEdit, onDelete, isDuplicate, isHighlighted, onPreview, onStartPractice, onCategoryClick, categoryInfo }) => {
     
     const handleEditClick = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -49,7 +41,7 @@ const PhraseListItem: React.FC<PhraseListItemProps> = React.memo(({ phrase, onEd
         return '';
     }
 
-    const categoryInfo = categoryDisplay[phrase.category] || categoryDisplay.general;
+    const info = categoryInfo || { id: 'general', name: 'Общие', color: 'bg-slate-500', isFoundational: false };
 
     return (
         <li 
@@ -70,10 +62,10 @@ const PhraseListItem: React.FC<PhraseListItemProps> = React.memo(({ phrase, onEd
                             e.stopPropagation();
                             onCategoryClick(phrase.category);
                         }}
-                        className={`px-2 py-0.5 text-xs font-medium text-white rounded-full ${categoryInfo.color} transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-white`}
-                        aria-label={`Фильтр по категории: ${categoryInfo.name}`}
+                        className={`px-2 py-0.5 text-xs font-medium text-white rounded-full ${info.color} transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-white`}
+                        aria-label={`Фильтр по категории: ${info.name}`}
                     >
-                        {categoryInfo.name}
+                        {info.name}
                     </button>
                 </div>
                 <p className="text-sm text-slate-400">{phrase.german}</p>
