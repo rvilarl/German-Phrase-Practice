@@ -75,6 +75,7 @@ const evaluateSpokenPhraseAttempt: AiService['evaluateSpokenPhraseAttempt'] = no
 const generateQuickReplyOptions: AiService['generateQuickReplyOptions'] = notImplemented;
 const generateCardsFromTranscript: AiService['generateCardsFromTranscript'] = notImplemented;
 const generateTopicCards: AiService['generateTopicCards'] = notImplemented;
+const classifyTopic: AiService['classifyTopic'] = notImplemented;
 
 const healthCheck: AiService['healthCheck'] = async () => {
     const apiKey = getDeepseekApiKey();
@@ -125,4 +126,5 @@ export const deepseekService: AiService = {
     getProviderName: () => "DeepSeek",
     generateCardsFromTranscript,
     generateTopicCards,
+    classifyTopic,
 };

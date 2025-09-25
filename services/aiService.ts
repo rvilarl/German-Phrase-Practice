@@ -25,5 +25,6 @@ export interface AiService {
   healthCheck(): Promise<boolean>;
   getProviderName(): string;
   generateCardsFromTranscript(transcript: string, sourceLang: 'ru' | 'de'): Promise<{ russian: string; german: string; }[]>;
-  generateTopicCards(topic: string, refinement?: string): Promise<{ russian: string; german: string; }[]>;
+  generateTopicCards(topic: string, refinement?: string, existingPhrases?: string[]): Promise<{ russian: string; german: string; }[]>;
+  classifyTopic(topic: string): Promise<{ isCategory: boolean; categoryName: string; }>;
 }

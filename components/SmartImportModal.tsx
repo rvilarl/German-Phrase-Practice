@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { SpeechRecognition, SpeechRecognitionErrorEvent, ProposedCard, Phrase } from '../types';
+import { SpeechRecognition, SpeechRecognitionErrorEvent, ProposedCard, Phrase, Category } from '../types';
 import CloseIcon from './icons/CloseIcon';
 import MicrophoneIcon from './icons/MicrophoneIcon';
 import CheckIcon from './icons/CheckIcon';
@@ -8,8 +8,9 @@ import RefreshIcon from './icons/RefreshIcon';
 import ClipboardIcon from './icons/ClipboardIcon';
 import SmartToyIcon from './icons/SmartToyIcon';
 import SendIcon from './icons/SendIcon';
+import * as fuzzyService from '../services/fuzzyService';
 
-type Mode = 'assistant' | 'speech';
+type View = 'assistant' | 'speech' | 'classifying' | 'suggestion' | 'processing' | 'preview';
 type SpeechStatus = 'idle' | 'recording' | 'stopped';
 type Language = 'ru' | 'de';
 
@@ -17,42 +18,58 @@ interface SmartImportModalProps {
   isOpen: boolean;
   onClose: () => void;
   onGenerateCards: (transcript: string, lang: Language) => Promise<ProposedCard[]>;
-  onGenerateTopicCards: (topic: string, existingPhrases?: string[]) => Promise<ProposedCard[]>;
-  onCardsCreated: (cards: ProposedCard[]) => void;
+  onGenerateTopicCards: (topic: string, refinement?: string, existingPhrases?: string[]) => Promise<ProposedCard[]>;
+  onCardsCreated: (cards: ProposedCard[], options?: { categoryId?: string; createCategoryName?: string }) => void;
+  onClassifyTopic: (topic: string) => Promise<{ isCategory: boolean; categoryName: string }>;
   initialTopic?: string;
   allPhrases: Phrase[];
+  categories: Category[];
 }
 
-const SmartImportModal: React.FC<SmartImportModalProps> = ({ isOpen, onClose, onGenerateCards, onGenerateTopicCards, onCardsCreated, initialTopic, allPhrases }) => {
-  const [mode, setMode] = useState<Mode>('assistant');
+const SmartImportModal: React.FC<SmartImportModalProps> = ({ 
+    isOpen, onClose, onGenerateCards, onGenerateTopicCards, onCardsCreated, onClassifyTopic, 
+    initialTopic, allPhrases, categories 
+}) => {
+  const [view, setView] = useState<View>('assistant');
   const [speechStatus, setSpeechStatus] = useState<SpeechStatus>('idle');
   const [lang, setLang] = useState<Language>('de');
   
   const [transcript, setTranscript] = useState('');
   const [assistantInput, setAssistantInput] = useState('');
 
-  const [isProcessing, setIsProcessing] = useState(false);
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [isListening, setIsListening] = useState(false);
 
   const [proposedCards, setProposedCards] = useState<ProposedCard[]>([]);
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
   const [canPaste, setCanPaste] = useState(false);
+  const [categorySuggestion, setCategorySuggestion] = useState<{ name: string; existingCategory?: Category } | null>(null);
+  const [generationOptions, setGenerationOptions] = useState<{ categoryId?: string; createCategoryName?: string } | undefined>();
   
+  const [currentTopic, setCurrentTopic] = useState('');
+  const [showRefineInput, setShowRefineInput] = useState(false);
+  const [refineText, setRefineText] = useState('');
+  const [isRefining, setIsRefining] = useState(false);
+
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const assistantRecognitionRef = useRef<SpeechRecognition | null>(null);
   const finalTranscriptRef = useRef('');
   
   const reset = useCallback(() => {
-    setMode('assistant');
+    setView('assistant');
     setSpeechStatus('idle');
     setTranscript('');
     finalTranscriptRef.current = '';
     setAssistantInput('');
-    setIsProcessing(false);
     setIsPreviewing(false);
     setProposedCards([]);
     setSelectedIndices(new Set());
+    setCategorySuggestion(null);
+    setGenerationOptions(undefined);
+    setCurrentTopic('');
+    setShowRefineInput(false);
+    setRefineText('');
+    setIsRefining(false);
     if (recognitionRef.current) {
         recognitionRef.current.abort();
     }
@@ -65,7 +82,7 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({ isOpen, onClose, on
     if (isOpen) {
       reset();
       if (initialTopic) {
-        setMode('assistant');
+        setView('assistant');
         setAssistantInput(initialTopic);
       }
     }
@@ -99,50 +116,63 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({ isOpen, onClose, on
     }
   }, [isOpen]);
 
-  const handleProcessTranscript = useCallback(async () => {
-    setIsProcessing(true);
+  const generateAndPreview = useCallback(async (options: { categoryId?: string; createCategoryName?: string }) => {
+    setView('processing');
+    setGenerationOptions(options);
     try {
-        const finalTranscript = finalTranscriptRef.current.trim();
-        if (!finalTranscript) {
-            onClose(); return;
+        let cards: ProposedCard[] = [];
+        if (options.createCategoryName || options.categoryId) {
+            const topic = categorySuggestion?.name || assistantInput;
+            setCurrentTopic(topic);
+            let existingPhrases: string[] = [];
+            if(options.categoryId) {
+                existingPhrases = allPhrases
+                    .filter(p => p.category === options.categoryId)
+                    .map(p => p.german);
+            }
+            cards = await onGenerateTopicCards(topic, undefined, existingPhrases);
+        } else {
+            setCurrentTopic(''); // Clear topic for speech import
+            const finalTranscript = finalTranscriptRef.current.trim();
+            if (finalTranscript) {
+                cards = await onGenerateCards(finalTranscript, lang);
+            }
         }
-        const cards = await onGenerateCards(finalTranscript, lang);
         setProposedCards(cards);
         setSelectedIndices(new Set(cards.map((_, i) => i)));
-        setIsPreviewing(true);
+        setView('preview');
     } catch (e) {
         console.error("Failed to generate cards:", e);
         onClose();
-    } finally {
-        setIsProcessing(false);
     }
-  }, [lang, onGenerateCards, onClose]);
+  }, [allPhrases, onGenerateTopicCards, onGenerateCards, lang, assistantInput, categorySuggestion, onClose]);
 
   const handleProcessAssistantRequest = useCallback(async () => {
     if (!assistantInput.trim()) return;
-    setIsProcessing(true);
+    setView('classifying');
     try {
-        const existingGermanPhrases = allPhrases.map(p => p.german);
-        const cards = await onGenerateTopicCards(assistantInput, existingGermanPhrases);
-        setProposedCards(cards);
-        setSelectedIndices(new Set(cards.map((_, i) => i)));
-        setIsPreviewing(true);
+        const result = await onClassifyTopic(assistantInput);
+        if (result.isCategory) {
+            const existingCategory = categories.find(c => fuzzyService.isSimilar(c.name, [result.categoryName], 0.9));
+            setCategorySuggestion({ name: result.categoryName, existingCategory });
+            setView('suggestion');
+        } else {
+            await generateAndPreview({ categoryId: 'general' });
+        }
     } catch (e) {
-        console.error("Failed to generate cards from topic:", e);
-        onClose();
-    } finally {
-        setIsProcessing(false);
+        console.error("Failed to classify topic:", e);
+        await generateAndPreview({ categoryId: 'general' });
     }
-  }, [assistantInput, onGenerateTopicCards, allPhrases, onClose]);
+  }, [assistantInput, onClassifyTopic, categories, generateAndPreview]);
 
   useEffect(() => {
-    if (isOpen && initialTopic && assistantInput === initialTopic && !isProcessing) {
+    if (isOpen && initialTopic && assistantInput === initialTopic && view === 'assistant') {
         const timer = setTimeout(() => {
             handleProcessAssistantRequest();
         }, 100);
         return () => clearTimeout(timer);
     }
-  }, [isOpen, initialTopic, assistantInput, isProcessing, handleProcessAssistantRequest]);
+  }, [isOpen, initialTopic, assistantInput, view, handleProcessAssistantRequest]);
   
   // Speech recognition for speech import mode
   useEffect(() => {
@@ -245,6 +275,26 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({ isOpen, onClose, on
         assistantRecognitionRef.current.start();
     }
   };
+  
+  const handleRefine = async () => {
+    if (!refineText.trim() || !currentTopic || isRefining) return;
+    setIsRefining(true);
+    try {
+      const existingPhrases = allPhrases
+        .filter(p => p.category === generationOptions?.categoryId)
+        .map(p => p.german);
+      const cards = await onGenerateTopicCards(currentTopic, refineText, existingPhrases);
+      setProposedCards(cards);
+      setSelectedIndices(new Set(cards.map((_, i) => i)));
+      setRefineText('');
+      setShowRefineInput(false);
+    } catch (e) {
+      console.error("Failed to refine cards:", e);
+    } finally {
+      setIsRefining(false);
+    }
+  };
+
 
   const toggleSelection = (index: number) => {
     const newSelection = new Set(selectedIndices);
@@ -262,7 +312,7 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({ isOpen, onClose, on
 
   const handleAddSelected = () => {
     const selected = proposedCards.filter((_, i) => selectedIndices.has(i));
-    onCardsCreated(selected);
+    onCardsCreated(selected, generationOptions);
     onClose();
   };
 
@@ -298,7 +348,7 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({ isOpen, onClose, on
                     <MicrophoneIcon className="w-10 h-10 text-white" />
                 </button>
                 {isStopped && (
-                    <button onClick={handleProcessTranscript} className="p-3 rounded-full bg-green-600 hover:bg-green-700 transition-colors text-white" aria-label="Обработать">
+                    <button onClick={() => generateAndPreview({})} className="p-3 rounded-full bg-green-600 hover:bg-green-700 transition-colors text-white" aria-label="Обработать">
                         <CheckIcon className="w-6 h-6" />
                     </button>
                 )}
@@ -318,7 +368,7 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({ isOpen, onClose, on
                 value={assistantInput}
                 onChange={e => setAssistantInput(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') handleProcessAssistantRequest(); }}
-                placeholder="Например, 'В аэропорту' или 'Заказ в ресторане'"
+                placeholder="Например, 'В аэропорту' или 'Пальцы рук'"
                 className="w-full bg-slate-700 border border-slate-600 rounded-full py-3 pl-5 pr-24 text-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
             />
             <div className="absolute inset-y-0 right-0 flex items-center pr-2">
@@ -333,13 +383,43 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({ isOpen, onClose, on
     </div>
   );
   
+  const renderSuggestionContent = () => {
+    if (!categorySuggestion) return null;
+    const { name, existingCategory } = categorySuggestion;
+
+    return (
+        <div className="flex flex-col items-center justify-center h-full text-center">
+            <SmartToyIcon className="w-12 h-12 text-purple-400 mb-4" />
+            {existingCategory ? (
+                <>
+                    <h2 className="text-xl font-bold text-slate-100">Дополнить категорию?</h2>
+                    <p className="text-slate-400 mt-2 mb-6 max-w-sm">У вас уже есть категория "{existingCategory.name}". Хотите добавить новые карточки по теме "{name}" в нее?</p>
+                    <div className="flex flex-col sm:flex-row gap-3">
+                        <button onClick={() => generateAndPreview({ categoryId: existingCategory.id })} className="px-5 py-2.5 rounded-lg bg-purple-600 hover:bg-purple-700 transition-colors text-white font-semibold">Да, добавить в "{existingCategory.name}"</button>
+                        <button onClick={() => generateAndPreview({ categoryId: 'general' })} className="px-5 py-2.5 rounded-lg bg-slate-600 hover:bg-slate-700 transition-colors text-white font-semibold">Нет, добавить в "Общие"</button>
+                    </div>
+                </>
+            ) : (
+                <>
+                    <h2 className="text-xl font-bold text-slate-100">Создать новую категорию?</h2>
+                    <p className="text-slate-400 mt-2 mb-6 max-w-sm">Похоже, ваша тема "{name}" идеально подходит для отдельной категории. Как поступим?</p>
+                    <div className="flex flex-col sm:flex-row gap-3">
+                        <button onClick={() => generateAndPreview({ createCategoryName: name })} className="px-5 py-2.5 rounded-lg bg-purple-600 hover:bg-purple-700 transition-colors text-white font-semibold">Создать категорию "{name}"</button>
+                        <button onClick={() => generateAndPreview({ categoryId: 'general' })} className="px-5 py-2.5 rounded-lg bg-slate-600 hover:bg-slate-700 transition-colors text-white font-semibold">Просто добавить в "Общие"</button>
+                    </div>
+                </>
+            )}
+        </div>
+    );
+  };
+  
   const renderPreviewContent = () => (
     <div className="flex flex-col h-full">
         <header className="flex-shrink-0 flex items-center justify-between pb-4">
             <h2 className="text-xl font-bold text-slate-100">Предложенные карточки</h2>
-            <button onClick={() => setIsPreviewing(false)} className="px-4 py-2 text-sm rounded-md bg-slate-600 hover:bg-slate-700 transition-colors text-white">Назад</button>
+            <button onClick={() => setView('assistant')} className="px-4 py-2 text-sm rounded-md bg-slate-600 hover:bg-slate-700 transition-colors text-white">Назад</button>
         </header>
-        <div className="flex-grow overflow-y-auto hide-scrollbar -mx-6 px-6">
+        <div className="flex-grow overflow-y-auto hide-scrollbar -mx-6 px-6 min-h-0">
             <ul className="space-y-2">
                 {proposedCards.map((card, index) => (
                     <li key={index} onClick={() => toggleSelection(index)} className={`p-3 rounded-lg flex items-start space-x-3 cursor-pointer transition-colors ${selectedIndices.has(index) ? 'bg-slate-700' : 'bg-slate-700/50 hover:bg-slate-700/80'}`}>
@@ -354,16 +434,59 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({ isOpen, onClose, on
                 ))}
             </ul>
         </div>
-        <footer className="flex-shrink-0 pt-4 flex items-center justify-between">
-            <button onClick={toggleSelectAll} className="px-4 py-2 text-sm rounded-md text-slate-300 hover:bg-slate-700 transition-colors">
-                {selectedIndices.size === proposedCards.length ? 'Снять все' : 'Выбрать все'}
-            </button>
-            <button onClick={handleAddSelected} disabled={selectedIndices.size === 0} className="px-6 py-3 rounded-md bg-purple-600 hover:bg-purple-700 text-white font-semibold transition-colors disabled:opacity-50">
-                Добавить ({selectedIndices.size})
-            </button>
+        <footer className="flex-shrink-0 pt-4 border-t border-slate-700 space-y-3">
+            {showRefineInput && (
+                <div className="flex items-center space-x-2">
+                    <input
+                        type="text"
+                        value={refineText}
+                        onChange={e => setRefineText(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter' && !isRefining) handleRefine(); }}
+                        placeholder="Уточнение, например: только глаголы"
+                        className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        autoFocus
+                    />
+                    <button onClick={handleRefine} disabled={!refineText.trim() || isRefining} className="p-2 rounded-md bg-purple-600 hover:bg-purple-700 text-white font-semibold transition-colors disabled:opacity-50 flex-shrink-0 w-10 h-10 flex items-center justify-center">
+                        {isRefining ? <Spinner className="w-5 h-5" /> : <RefreshIcon className="w-5 h-5" />}
+                    </button>
+                </div>
+            )}
+            <div className="flex items-center justify-between">
+                <button onClick={toggleSelectAll} className="px-4 py-2 text-sm rounded-md text-slate-300 hover:bg-slate-700 transition-colors">
+                    {selectedIndices.size === proposedCards.length ? 'Снять все' : 'Выбрать все'}
+                </button>
+                <div className="flex items-center space-x-2">
+                    {currentTopic && (
+                        <button onClick={() => setShowRefineInput(prev => !prev)} className="px-4 py-2 rounded-md bg-slate-600 hover:bg-slate-700 text-white font-semibold transition-colors">
+                            Уточнить
+                        </button>
+                    )}
+                    <button onClick={handleAddSelected} disabled={selectedIndices.size === 0} className="px-6 py-2 rounded-md bg-purple-600 hover:bg-purple-700 text-white font-semibold transition-colors disabled:opacity-50">
+                        Добавить ({selectedIndices.size})
+                    </button>
+                </div>
+            </div>
         </footer>
     </div>
   );
+
+  const renderCurrentView = () => {
+    switch (view) {
+        case 'assistant': return renderAssistantContent();
+        case 'speech': return renderSpeechContent();
+        case 'classifying':
+        case 'processing':
+            return (
+                <div className="flex flex-col items-center justify-center h-full">
+                    <Spinner />
+                    <p className="mt-4 text-slate-300">{view === 'classifying' ? 'Анализируем тему...' : 'AI генерирует карточки...'}</p>
+                </div>
+            );
+        case 'suggestion': return renderSuggestionContent();
+        case 'preview': return renderPreviewContent();
+        default: return null;
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -372,30 +495,22 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({ isOpen, onClose, on
         <div className="relative w-full max-w-2xl min-h-[34rem] h-[80vh] max-h-[600px] bg-slate-800/80 backdrop-blur-xl border border-slate-700 rounded-xl shadow-2xl flex flex-col p-6" onClick={e => e.stopPropagation()}>
             <CloseIcon className="w-6 h-6 text-slate-400 absolute top-4 right-4 cursor-pointer hover:text-white" onClick={onClose} />
             
-            {isProcessing ? (
-                <div className="flex flex-col items-center justify-center h-full">
-                    <Spinner />
-                    <p className="mt-4 text-slate-300">AI генерирует карточки...</p>
+            {(view === 'assistant' || view === 'speech') && (
+                 <div className="flex-shrink-0 flex items-center justify-center space-x-2 bg-slate-900/50 rounded-full p-1 self-center mb-6">
+                    <button onClick={() => setView('assistant')} className={`px-4 py-2 text-sm font-bold rounded-full transition-colors flex items-center space-x-2 ${view === 'assistant' ? 'bg-purple-600 text-white' : 'text-slate-300'}`}>
+                        <SmartToyIcon className="w-5 h-5" />
+                        <span>Ассистент</span>
+                    </button>
+                    <button onClick={() => setView('speech')} className={`px-4 py-2 text-sm font-bold rounded-full transition-colors flex items-center space-x-2 ${view === 'speech' ? 'bg-purple-600 text-white' : 'text-slate-300'}`}>
+                       <MicrophoneIcon className="w-5 h-5" />
+                       <span>Из речи</span>
+                    </button>
                 </div>
-            ) : isPreviewing ? (
-                renderPreviewContent()
-            ) : (
-                <>
-                    <div className="flex-shrink-0 flex items-center justify-center space-x-2 bg-slate-900/50 rounded-full p-1 self-center mb-6">
-                        <button onClick={() => setMode('assistant')} className={`px-4 py-2 text-sm font-bold rounded-full transition-colors flex items-center space-x-2 ${mode === 'assistant' ? 'bg-purple-600 text-white' : 'text-slate-300'}`}>
-                            <SmartToyIcon className="w-5 h-5" />
-                            <span>Ассистент</span>
-                        </button>
-                        <button onClick={() => setMode('speech')} className={`px-4 py-2 text-sm font-bold rounded-full transition-colors flex items-center space-x-2 ${mode === 'speech' ? 'bg-purple-600 text-white' : 'text-slate-300'}`}>
-                           <MicrophoneIcon className="w-5 h-5" />
-                           <span>Из речи</span>
-                        </button>
-                    </div>
-                    <div className="flex-grow">
-                        {mode === 'assistant' ? renderAssistantContent() : renderSpeechContent()}
-                    </div>
-                </>
             )}
+            
+            <div className="flex-grow min-h-0">
+                {renderCurrentView()}
+            </div>
         </div>
     </div>
   );

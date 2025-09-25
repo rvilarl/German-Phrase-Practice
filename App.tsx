@@ -962,7 +962,11 @@ const App: React.FC = () => {
     [callApiWithFallback]
   );
   const handleGenerateTopicCards = useCallback(
-    (topic: string, refinement?: string) => callApiWithFallback(provider => provider.generateTopicCards(topic, refinement)),
+    (topic: string, refinement?: string, existingPhrases?: string[]) => callApiWithFallback(provider => provider.generateTopicCards(topic, refinement, existingPhrases)),
+    [callApiWithFallback]
+  );
+   const handleClassifyTopic = useCallback(
+    (topic: string) => callApiWithFallback(provider => provider.classifyTopic(topic)),
     [callApiWithFallback]
   );
 
@@ -998,29 +1002,52 @@ const App: React.FC = () => {
     }
   };
   
-  const handleCreateCardsFromTranscript = (proposedCards: ProposedCard[]) => {
+  const handleCreateProposedCards = useCallback(async (proposedCards: ProposedCard[], options?: { categoryId?: string; createCategoryName?: string }) => {
+    let finalCategoryId = options?.categoryId;
+
+    if (options?.createCategoryName && !finalCategoryId) {
+        const trimmedName = options.createCategoryName.trim();
+        const existingCategory = categories.find(c => c.name.trim().toLowerCase() === trimmedName.toLowerCase());
+
+        if (existingCategory) {
+            finalCategoryId = existingCategory.id;
+        } else {
+            // Logic to create a new category
+            const colors = [ 'bg-red-500', 'bg-orange-500', 'bg-amber-500', 'bg-yellow-500', 'bg-lime-500', 'bg-green-500', 'bg-emerald-500', 'bg-teal-500', 'bg-cyan-500', 'bg-sky-500', 'bg-blue-500', 'bg-indigo-500', 'bg-violet-500', 'bg-fuchsia-500', 'bg-pink-500', 'bg-rose-500' ];
+            const randomColor = colors[Math.floor(Math.random() * colors.length)];
+            const capitalizedName = trimmedName.charAt(0).toUpperCase() + trimmedName.slice(1);
+            
+            const newCategory: Category = {
+                id: capitalizedName.toLowerCase().replace(/\s+/g, '-') + '-' + Date.now().toString(36),
+                name: capitalizedName,
+                color: randomColor,
+                isFoundational: false,
+            };
+            
+            updateAndSaveCategories(prev => [...prev, newCategory]);
+            handleSettingsChange({
+                enabledCategories: { ...settings.enabledCategories, [newCategory.id]: true }
+            });
+            finalCategoryId = newCategory.id;
+        }
+    }
+    
+    const targetCategoryId = finalCategoryId || categoryToView?.id || 'general';
+
     const existingGermanPhrases = new Set(allPhrases.map(p => p.german.trim().toLowerCase()));
     let addedCount = 0;
     
     const newPhrases: Phrase[] = proposedCards
-        .filter(p => {
-            const isDuplicate = existingGermanPhrases.has(p.german.trim().toLowerCase());
-            return !isDuplicate;
-        })
+        .filter(p => !existingGermanPhrases.has(p.german.trim().toLowerCase()))
         .map(p => {
             addedCount++;
             return {
                 ...p,
                 id: Math.random().toString(36).substring(2, 9),
-                masteryLevel: 0,
-                lastReviewedAt: null,
-                nextReviewAt: Date.now(),
-                knowCount: 0,
-                knowStreak: 0,
-                isMastered: false,
-                category: categoryToView?.id || 'general',
-                lapses: 0,
-                isNew: true, // Mark as new
+                masteryLevel: 0, lastReviewedAt: null, nextReviewAt: Date.now(),
+                knowCount: 0, knowStreak: 0, isMastered: false,
+                category: targetCategoryId,
+                lapses: 0, isNew: true,
             };
         });
 
@@ -1035,13 +1062,13 @@ const App: React.FC = () => {
     }
     showToast({ message: toastMessage });
     
-    if (categoryToView) {
-        // Stay in category view
-    } else {
+    if (categoryToView) { /* stay in view */ } 
+    else {
         setView('list');
         setHighlightedPhraseId(newPhrases[0]?.id || null);
     }
-  };
+  }, [allPhrases, categories, categoryToView, settings.enabledCategories, handleSettingsChange, showToast, updateAndSaveCategories, updateAndSavePhrases]);
+
 
   const handleCreateCardFromWord = useCallback((phraseData: { german: string; russian: string; }) => {
     // Check for duplicates before creating
@@ -1847,9 +1874,11 @@ const App: React.FC = () => {
           }}
           onGenerateCards={handleGenerateCardsFromTranscript}
           onGenerateTopicCards={handleGenerateTopicCards}
-          onCardsCreated={handleCreateCardsFromTranscript}
+          onCardsCreated={handleCreateProposedCards}
+          onClassifyTopic={handleClassifyTopic}
           initialTopic={smartImportInitialTopic}
           allPhrases={allPhrases}
+          categories={categories}
       />}
        {phraseToImprove && <ImprovePhraseModal
           isOpen={isImproveModalOpen}

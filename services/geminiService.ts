@@ -251,7 +251,7 @@ Example Output Format:
     }
 };
 
-const generateTopicCards: AiService['generateTopicCards'] = async (topic, refinement) => {
+const generateTopicCards: AiService['generateTopicCards'] = async (topic, refinement, existingPhrases) => {
     const api = initializeApi();
     if (!api) throw new Error("Gemini API key not configured.");
 
@@ -259,9 +259,12 @@ const generateTopicCards: AiService['generateTopicCards'] = async (topic, refine
         ? `\n\nПользователь был не удовлетворен предыдущими результатами и дал следующее уточнение: "${refinement}". Пожалуйста, сгенерируй новый список, строго следуя этому уточнению.`
         : '';
 
+    const existingPhrasesPrompt = existingPhrases && existingPhrases.length > 0
+        ? `\n\nВажно: В категории уже есть следующие фразы: "${existingPhrases.join('; ')}". Не повторяй их. Придумай новые, уникальные и полезные слова/фразы по этой теме.`
+        : '';
+
     const prompt = `Ты — AI-ассистент для изучения немецкого языка. Пользователь хочет получить набор карточек на определенную тему.
-Тема запроса: "${topic}"
-${refinementPrompt}
+Тема запроса: "${topic}"${refinementPrompt}${existingPhrasesPrompt}
 
 Твоя задача:
 1.  Проанализируй запрос пользователя.
@@ -290,6 +293,45 @@ ${refinementPrompt}
 
     } catch (error) {
         console.error("Error generating topic cards with Gemini:", error);
+        throw new Error(`Failed to call the Gemini API: ${(error as any)?.message || 'Unknown error'}`);
+    }
+};
+
+const topicClassificationSchema = {
+    type: Type.OBJECT,
+    properties: {
+        isCategory: {
+            type: Type.BOOLEAN,
+            description: "True if the topic is a closed, well-defined set of concepts suitable for a dedicated category (e.g., 'Days of the week', 'Colors', 'Family members'). False otherwise (e.g., 'How to apologize')."
+        },
+        categoryName: {
+            type: Type.STRING,
+            description: "A short, suitable name for the category if isCategory is true. Should be in Russian. E.g., 'Дни недели', 'Цвета'. Empty string if isCategory is false."
+        }
+    },
+    required: ["isCategory", "categoryName"]
+};
+
+const classifyTopic: AiService['classifyTopic'] = async (topic) => {
+    const api = initializeApi();
+    if (!api) throw new Error("Gemini API key not configured.");
+
+    const prompt = `Пользователь ввел тему для изучения: "${topic}". Является ли эта тема замкнутым, четко определенным набором понятий (например, дни недели, месяцы, цвета, члены семьи, города страны, пальцы рук)? Ответь 'да' или 'нет' и предложи короткое, подходящее название для категории на русском языке.`;
+
+    try {
+        const response = await api.models.generateContent({
+            model: model,
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: topicClassificationSchema,
+                temperature: 0.3,
+            },
+        });
+        const jsonText = response.text.trim();
+        return JSON.parse(jsonText);
+    } catch (error) {
+        console.error("Error classifying topic with Gemini:", error);
         throw new Error(`Failed to call the Gemini API: ${(error as any)?.message || 'Unknown error'}`);
     }
 };
@@ -1429,4 +1471,5 @@ export const geminiService: AiService = {
     getProviderName: () => "Google Gemini",
     generateCardsFromTranscript,
     generateTopicCards,
+    classifyTopic,
 };
