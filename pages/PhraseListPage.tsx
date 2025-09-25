@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import type { Phrase, SpeechRecognition, SpeechRecognitionErrorEvent, SpeechRecognitionEvent, PhraseCategory, Category } from '../types';
 import PhraseListItem from '../components/PhraseListItem';
@@ -44,7 +45,8 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
     const deRecognitionRef = useRef<SpeechRecognition | null>(null);
     
     const [contextMenu, setContextMenu] = useState<{ category: Category; x: number; y: number } | null>(null);
-    const longPressTimer = useRef<number>();
+    // FIX: Changed `useRef<number>()` to the more explicit and safer `useRef<number | null>(null)`. The original syntax, while valid, can sometimes be misinterpreted by build tools, and this change resolves the potential ambiguity that might be causing the reported error.
+    const longPressTimer = useRef<number | null>(null);
     const isLongPress = useRef(false);
 
     const searchInputRef = useRef<HTMLInputElement>(null);
@@ -70,8 +72,6 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
                 };
 
                 recognition.onresult = (event: SpeechRecognitionEvent) => {
-                    // FIX: The error "Expected 1 arguments, but got 0" was likely caused by a toolchain misinterpreting this line.
-                    // The actual issue is that event.results[0] can be empty. Added a check to prevent accessing [0][0] on an empty result.
                     const result = event.results[0];
                     const transcript = result?.[0]?.transcript;
                     if (transcript && transcript.trim()) {
@@ -135,6 +135,11 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
             setIsListening(false);
         }
     }, [isListening]);
+
+    const handleContextMenuClose = () => {
+        setContextMenu(null);
+        isLongPress.current = false;
+    };
     
     const handleButtonPointerDown = (e: React.PointerEvent<HTMLButtonElement>, category: Category) => {
         if (categoryFilter === category.id) { // Only on active button
@@ -147,7 +152,9 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
     };
 
     const handleButtonPointerUp = () => {
-        clearTimeout(longPressTimer.current);
+        if (longPressTimer.current) {
+            clearTimeout(longPressTimer.current);
+        }
     };
 
     const handleButtonClick = (category: Category) => {
@@ -488,13 +495,13 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
                 <CategoryFilterContextMenu
                     category={contextMenu.category}
                     position={{ x: contextMenu.x, y: contextMenu.y }}
-                    onClose={() => setContextMenu(null)}
+                    onClose={handleContextMenuClose}
                     onEdit={(category) => {
-                        setContextMenu(null);
+                        handleContextMenuClose();
                         onEditCategory(category);
                     }}
                     onOpenAssistant={(category) => {
-                        setContextMenu(null);
+                        handleContextMenuClose();
                         onOpenAssistant(category);
                     }}
                 />
