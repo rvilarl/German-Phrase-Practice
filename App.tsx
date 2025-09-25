@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { Phrase, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, AdjectiveDeclension, SentenceContinuation, PhraseBuilderOptions, PhraseEvaluation, ChatMessage, PhraseCategory, ProposedCard, BookRecord, Category } from './types';
 import * as srsService from './services/srsService';
 import * as cacheService from './services/cacheService';
-import * as fuzzyService from './services/fuzzyService';
 import { getProviderPriorityList, getFallbackProvider, ApiProviderType } from './services/apiProvider';
 import { AiService } from './services/aiService';
 import { initialPhrases as defaultPhrases, foundationalPhrases } from './data/initialPhrases';
@@ -44,6 +43,7 @@ import ConfirmDeleteCategoryModal from './components/ConfirmDeleteCategoryModal'
 import ConfirmCategoryFillModal from './components/ConfirmCategoryFillModal';
 import AutoFillLoadingModal from './components/AutoFillLoadingModal';
 import AutoFillPreviewModal from './components/AutoFillPreviewModal';
+import MoveOrSkipModal from './components/MoveOrSkipModal';
 
 
 const PHRASES_STORAGE_KEY = 'germanPhrases';
@@ -295,6 +295,14 @@ const App: React.FC = () => {
   const [isAutoFillPreviewOpen, setIsAutoFillPreviewOpen] = useState(false);
   const [proposedCardsForFill, setProposedCardsForFill] = useState<ProposedCard[]>([]);
   const [isRefining, setIsRefining] = useState(false);
+  
+  // New state for duplicate review flow
+  const [isMoveOrSkipModalOpen, setIsMoveOrSkipModalOpen] = useState(false);
+  const [duplicatesReviewData, setDuplicatesReviewData] = useState<{
+    duplicates: { existingPhrase: Phrase; proposedCard: ProposedCard }[];
+    newCards: ProposedCard[];
+    targetCategory: Category;
+  } | null>(null);
 
   
   const isPrefetchingRef = useRef(false);
@@ -1004,6 +1012,7 @@ const App: React.FC = () => {
   
   const handleCreateProposedCards = useCallback(async (proposedCards: ProposedCard[], options?: { categoryId?: string; createCategoryName?: string }) => {
     let finalCategoryId = options?.categoryId;
+    let newCategory: Category | null = null;
 
     if (options?.createCategoryName && !finalCategoryId) {
         const trimmedName = options.createCategoryName.trim();
@@ -1012,19 +1021,18 @@ const App: React.FC = () => {
         if (existingCategory) {
             finalCategoryId = existingCategory.id;
         } else {
-            // Logic to create a new category
             const colors = [ 'bg-red-500', 'bg-orange-500', 'bg-amber-500', 'bg-yellow-500', 'bg-lime-500', 'bg-green-500', 'bg-emerald-500', 'bg-teal-500', 'bg-cyan-500', 'bg-sky-500', 'bg-blue-500', 'bg-indigo-500', 'bg-violet-500', 'bg-fuchsia-500', 'bg-pink-500', 'bg-rose-500' ];
             const randomColor = colors[Math.floor(Math.random() * colors.length)];
             const capitalizedName = trimmedName.charAt(0).toUpperCase() + trimmedName.slice(1);
             
-            const newCategory: Category = {
+            newCategory = {
                 id: capitalizedName.toLowerCase().replace(/\s+/g, '-') + '-' + Date.now().toString(36),
                 name: capitalizedName,
                 color: randomColor,
                 isFoundational: false,
             };
             
-            updateAndSaveCategories(prev => [...prev, newCategory]);
+            updateAndSaveCategories(prev => [...prev, newCategory!]);
             handleSettingsChange({
                 enabledCategories: { ...settings.enabledCategories, [newCategory.id]: true }
             });
@@ -1033,27 +1041,44 @@ const App: React.FC = () => {
     }
     
     const targetCategoryId = finalCategoryId || categoryToView?.id || 'general';
+    const targetCategory = newCategory || categories.find(c => c.id === targetCategoryId);
 
-    const existingGermanPhrases = new Set(allPhrases.map(p => p.german.trim().toLowerCase()));
-    let addedCount = 0;
-    
-    const newPhrases: Phrase[] = proposedCards
-        .filter(p => !existingGermanPhrases.has(p.german.trim().toLowerCase()))
-        .map(p => {
-            addedCount++;
-            return {
-                ...p,
-                id: Math.random().toString(36).substring(2, 9),
-                masteryLevel: 0, lastReviewedAt: null, nextReviewAt: Date.now(),
-                knowCount: 0, knowStreak: 0, isMastered: false,
-                category: targetCategoryId,
-                lapses: 0, isNew: true,
-            };
-        });
-
-    if (newPhrases.length > 0) {
-        updateAndSavePhrases(prev => [...newPhrases, ...prev]);
+    if (!targetCategory) {
+        console.error("Target category could not be determined.");
+        return;
     }
+
+    const duplicatesFound: { existingPhrase: Phrase, proposedCard: ProposedCard }[] = [];
+    const newCards: ProposedCard[] = [];
+    const normalizedExistingPhrases = new Map<string, Phrase>();
+    allPhrases.forEach(p => {
+        normalizedExistingPhrases.set(p.german.trim().toLowerCase(), p);
+    });
+    
+    proposedCards.forEach(proposed => {
+        const normalizedProposed = proposed.german.trim().toLowerCase();
+        const existingPhrase = normalizedExistingPhrases.get(normalizedProposed);
+        
+        if (existingPhrase && existingPhrase.category !== targetCategory.id) {
+            duplicatesFound.push({ existingPhrase, proposedCard: proposed });
+        } else if (!existingPhrase) {
+            newCards.push(proposed);
+        }
+    });
+    
+    if (duplicatesFound.length > 0) {
+        setDuplicatesReviewData({
+            duplicates: duplicatesFound,
+            newCards: newCards,
+            targetCategory: targetCategory,
+        });
+        setIsMoveOrSkipModalOpen(true);
+        setIsSmartImportModalOpen(false); 
+        setSmartImportInitialTopic(undefined);
+        return;
+    }
+    
+    const addedCount = addCardsToCategory(newCards, targetCategory);
     
     const skippedCount = proposedCards.length - addedCount;
     let toastMessage = `✓ ${addedCount} ${addedCount === 1 ? 'карточка добавлена' : (addedCount > 1 && addedCount < 5 ? 'карточки добавлены' : 'карточек добавлено')}.`;
@@ -1065,7 +1090,9 @@ const App: React.FC = () => {
     if (categoryToView) { /* stay in view */ } 
     else {
         setView('list');
-        setHighlightedPhraseId(newPhrases[0]?.id || null);
+        // This is tricky because addCardsToCategory doesn't return the new phrases, just the count.
+        // For simplicity, we'll just switch to the list view without highlighting.
+        setHighlightedPhraseId(null);
     }
   }, [allPhrases, categories, categoryToView, settings.enabledCategories, handleSettingsChange, showToast, updateAndSaveCategories, updateAndSavePhrases]);
 
@@ -1372,35 +1399,84 @@ const App: React.FC = () => {
     }
   };
 
-  const handleConfirmAutoFill = (selectedCards: ProposedCard[]) => {
+  const addCardsToCategory = useCallback((cards: ProposedCard[], targetCategory: Category): number => {
+    const phrasesToAdd = cards.map(p => ({
+        ...p,
+        id: Math.random().toString(36).substring(2, 9),
+        masteryLevel: 0, lastReviewedAt: null, nextReviewAt: Date.now(),
+        knowCount: 0, knowStreak: 0, isMastered: false,
+        category: targetCategory.id, lapses: 0, isNew: true,
+    }));
+    if (phrasesToAdd.length > 0) {
+        updateAndSavePhrases(prev => [...phrasesToAdd, ...prev]);
+    }
+    return phrasesToAdd.length;
+  }, [updateAndSavePhrases]);
+
+
+  const handleConfirmAutoFill = useCallback((selectedCards: ProposedCard[]) => {
       if (!autoFillingCategory) return;
 
-      const existingGermanPhrases = allPhrases.map(p => p.german);
-      let addedCount = 0;
-      
-      const newPhrases: Phrase[] = selectedCards
-          .filter(p => !fuzzyService.isSimilar(p.german, existingGermanPhrases))
-          .map(p => {
-              addedCount++;
-              return {
-                  ...p,
-                  id: Math.random().toString(36).substring(2, 9),
-                  masteryLevel: 0, lastReviewedAt: null, nextReviewAt: Date.now(),
-                  knowCount: 0, knowStreak: 0, isMastered: false,
-                  category: autoFillingCategory.id, lapses: 0, isNew: true,
-              };
+      const duplicatesFound: { existingPhrase: Phrase, proposedCard: ProposedCard }[] = [];
+      const newCards: ProposedCard[] = [];
+
+      const normalizedExistingPhrases = new Map<string, Phrase>();
+      allPhrases.forEach(p => {
+          normalizedExistingPhrases.set(p.german.trim().toLowerCase(), p);
+      });
+
+      selectedCards.forEach(proposed => {
+          const normalizedProposed = proposed.german.trim().toLowerCase();
+          const existingPhrase = normalizedExistingPhrases.get(normalizedProposed);
+          
+          if (existingPhrase && existingPhrase.category !== autoFillingCategory.id) {
+              duplicatesFound.push({ existingPhrase, proposedCard: proposed });
+          } else if (!existingPhrase) {
+              newCards.push(proposed);
+          }
+      });
+
+      if (duplicatesFound.length > 0) {
+          setDuplicatesReviewData({
+              duplicates: duplicatesFound,
+              newCards: newCards,
+              targetCategory: autoFillingCategory,
           });
-
-      if (newPhrases.length > 0) {
-          updateAndSavePhrases(prev => [...newPhrases, ...prev]);
+          setIsMoveOrSkipModalOpen(true);
+          setIsAutoFillPreviewOpen(false);
+          setAutoFillingCategory(null);
+      } else {
+          const addedCount = addCardsToCategory(newCards, autoFillingCategory);
+          showToast({ message: `✓ ${addedCount} карточек добавлено в категорию "${autoFillingCategory.name}".` });
+          setIsAutoFillPreviewOpen(false);
+          setCategoryToView(autoFillingCategory);
+          setAutoFillingCategory(null);
       }
-      
-      showToast({ message: `✓ ${addedCount} карточек добавлено в категорию "${autoFillingCategory.name}".` });
-
-      setIsAutoFillPreviewOpen(false);
-      setCategoryToView(autoFillingCategory);
-      setAutoFillingCategory(null);
+  }, [autoFillingCategory, allPhrases, addCardsToCategory, showToast]);
+  
+  const handleMoveReviewedDuplicates = (phraseIdsToMove: string[], newCards: ProposedCard[], targetCategory: Category) => {
+    updateAndSavePhrases(prev => 
+        prev.map(p => 
+            phraseIdsToMove.includes(p.id) ? { ...p, category: targetCategory.id } : p
+        )
+    );
+    const addedCount = addCardsToCategory(newCards, targetCategory);
+    showToast({ message: `✓ ${phraseIdsToMove.length} карточек перемещено и ${addedCount} добавлено в "${targetCategory.name}".` });
+    
+    setIsMoveOrSkipModalOpen(false);
+    setDuplicatesReviewData(null);
+    setCategoryToView(targetCategory);
   };
+    
+  const handleAddOnlyNewFromReview = (newCards: ProposedCard[], targetCategory: Category) => {
+      const addedCount = addCardsToCategory(newCards, targetCategory);
+      showToast({ message: `✓ ${addedCount} карточек добавлено в "${targetCategory.name}". Дубликаты пропущены.` });
+
+      setIsMoveOrSkipModalOpen(false);
+      setDuplicatesReviewData(null);
+      setCategoryToView(targetCategory);
+  };
+
 
 
   // --- Practice Page Logic ---
@@ -2043,6 +2119,14 @@ const App: React.FC = () => {
             onConfirm={handleConfirmAutoFill}
             onRefine={handleRefineAutoFill}
             isLoading={isRefining}
+        />
+        <MoveOrSkipModal
+            isOpen={isMoveOrSkipModalOpen}
+            onClose={() => setIsMoveOrSkipModalOpen(false)}
+            reviewData={duplicatesReviewData}
+            categories={categories}
+            onMove={handleMoveReviewedDuplicates}
+            onAddOnlyNew={handleAddOnlyNewFromReview}
         />
     </div>
   );
