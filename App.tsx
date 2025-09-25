@@ -1525,6 +1525,13 @@ const App: React.FC = () => {
   // --- Practice Page Logic ---
   const unmasteredPhrases = useMemo(() => allPhrases.filter(p => p && !p.isMastered && settings.enabledCategories[p.category]), [allPhrases, settings.enabledCategories]);
 
+  const unmasteredCountsByCategory = useMemo(() => {
+    return unmasteredPhrases.reduce((acc, phrase) => {
+        acc[phrase.category] = (acc[phrase.category] || 0) + 1;
+        return acc;
+    }, {} as Record<string, number>);
+  }, [unmasteredPhrases]);
+
   const practicePool = useMemo(() => {
     if (practiceCategoryFilter === 'all') {
       return unmasteredPhrases;
@@ -1830,6 +1837,8 @@ const App: React.FC = () => {
              onMarkPhraseAsSeen={handleMarkPhraseAsSeen}
              categories={categories}
              onAddCategory={handleAddCategoryFromPractice}
+             onOpenCategoryManager={() => setIsCategoryManagerModalOpen(true)}
+             unmasteredCountsByCategory={unmasteredCountsByCategory}
            />;
         case 'list':
             return <PhraseListPage 

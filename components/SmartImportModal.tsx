@@ -157,20 +157,18 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
   const handleProcessAssistantRequest = useCallback(async () => {
     if (!assistantInput.trim()) return;
     setView('classifying');
-    try {
-        const result = await onClassifyTopic(assistantInput);
-        if (result.isCategory) {
-            const existingCategory = categories.find(c => fuzzyService.isSimilar(c.name, [result.categoryName], 0.75));
-            setCategorySuggestion({ name: result.categoryName, existingCategory });
-            setView('suggestion');
-        } else {
-            await generateAndPreview({ categoryId: 'general' });
-        }
-    } catch (e) {
-        console.error("Failed to classify topic:", e);
-        await generateAndPreview({ categoryId: 'general' });
-    }
-  }, [assistantInput, onClassifyTopic, categories, generateAndPreview]);
+    
+    // Per user request, always prompt for category creation.
+    // We skip the onClassifyTopic API call and use user input directly.
+    const proposedCategoryName = assistantInput.trim();
+    
+    // Find if a similar category already exists.
+    const existingCategory = categories.find(c => fuzzyService.isSimilar(c.name, [proposedCategoryName], 0.75));
+    
+    // Set the suggestion and switch to the suggestion view.
+    setCategorySuggestion({ name: proposedCategoryName, existingCategory });
+    setView('suggestion');
+  }, [assistantInput, categories]);
 
   useEffect(() => {
     if (isOpen && initialTopic && assistantInput === initialTopic && view === 'assistant') {

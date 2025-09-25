@@ -1,6 +1,7 @@
 
 
 
+
 import React, { useCallback, useRef, useState, useEffect, useMemo } from 'react';
 import type { Phrase, WordAnalysis, PhraseCategory, Category } from '../types';
 import PhraseCard from '../components/PhraseCard';
@@ -15,6 +16,7 @@ import ArrowLeftIcon from '../components/icons/ArrowLeftIcon';
 import ArrowRightIcon from '../components/icons/ArrowRightIcon';
 import ChevronDownIcon from '../components/icons/ChevronDownIcon';
 import PlusIcon from '../components/icons/PlusIcon';
+import SettingsIcon from '../components/icons/SettingsIcon';
 
 
 const SWIPE_THRESHOLD = 50; // pixels
@@ -83,6 +85,8 @@ interface PracticePageProps {
   onMarkPhraseAsSeen: (phraseId: string) => void;
   categories: Category[];
   onAddCategory: () => void;
+  onOpenCategoryManager: () => void;
+  unmasteredCountsByCategory: Record<string, number>;
 }
 
 const CategoryFilter: React.FC<{
@@ -92,7 +96,10 @@ const CategoryFilter: React.FC<{
     currentPhraseCategory: PhraseCategory | null;
     categories: Category[];
     onAddCategory: () => void;
-}> = ({ currentFilter, onFilterChange, enabledCategories, currentPhraseCategory, categories, onAddCategory }) => {
+    onManageCategories: () => void;
+    counts: Record<string, number>;
+    totalUnmastered: number;
+}> = ({ currentFilter, onFilterChange, enabledCategories, currentPhraseCategory, categories, onAddCategory, onManageCategories, counts, totalUnmastered }) => {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
     const getCategoryNameById = (id: string) => categories.find(c => c.id === id)?.name || id;
@@ -120,6 +127,11 @@ const CategoryFilter: React.FC<{
         onAddCategory();
         setIsOpen(false);
     };
+
+    const handleManageCategories = () => {
+        onManageCategories();
+        setIsOpen(false);
+    };
     
     const visibleCategories = categories.filter(cat => enabledCategories[cat.id]);
 
@@ -138,18 +150,28 @@ const CategoryFilter: React.FC<{
                 <div className="absolute top-full mt-2 w-full bg-slate-700 border border-slate-600 rounded-lg shadow-lg z-20 animate-fade-in flex flex-col">
                     <ul className="p-1 max-h-60 overflow-y-auto hide-scrollbar">
                         <li>
-                            <button onClick={() => handleSelect('all')} className="w-full text-left px-3 py-2 text-slate-200 hover:bg-slate-600 rounded-md transition-colors">Все категории</button>
+                            <button onClick={() => handleSelect('all')} className="w-full text-left px-3 py-2 text-slate-200 hover:bg-slate-600 rounded-md transition-colors flex justify-between items-center">
+                                <span>Все категории</span>
+                                <span className="text-xs font-semibold text-slate-400 bg-slate-800/50 px-1.5 py-0.5 rounded-full">{totalUnmastered}</span>
+                            </button>
                         </li>
                         {visibleCategories.map(cat => (
                             <li key={cat.id}>
-                                <button onClick={() => handleSelect(cat.id)} className="w-full text-left px-3 py-2 text-slate-200 hover:bg-slate-600 rounded-md transition-colors">{cat.name}</button>
+                                <button onClick={() => handleSelect(cat.id)} className="w-full text-left px-3 py-2 text-slate-200 hover:bg-slate-600 rounded-md transition-colors flex justify-between items-center">
+                                    <span className="truncate pr-2">{cat.name}</span>
+                                    <span className="text-xs font-semibold text-slate-400 bg-slate-800/50 px-1.5 py-0.5 rounded-full flex-shrink-0">{counts[cat.id] || 0}</span>
+                                </button>
                             </li>
                         ))}
                     </ul>
-                    <div className="p-1 border-t border-slate-600 flex-shrink-0">
-                        <button onClick={handleAddCategory} className="w-full flex items-center justify-center gap-2 px-3 py-2 text-slate-300 hover:bg-slate-600 rounded-md transition-colors text-sm font-semibold">
+                    <div className="p-1 border-t border-slate-600 flex-shrink-0 grid grid-cols-2 gap-1">
+                         <button onClick={handleAddCategory} className="flex items-center justify-center gap-2 px-2 py-2 text-slate-300 hover:bg-slate-600 rounded-md transition-colors text-sm font-semibold">
                             <PlusIcon className="w-4 h-4" />
-                            <span>Добавить категорию</span>
+                            <span>Добавить</span>
+                        </button>
+                        <button onClick={handleManageCategories} className="flex items-center justify-center gap-2 px-2 py-2 text-slate-300 hover:bg-slate-600 rounded-md transition-colors text-sm font-semibold">
+                            <SettingsIcon className="w-4 h-4" />
+                            <span>Управлять</span>
                         </button>
                     </div>
                 </div>
@@ -171,7 +193,7 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
     settings, masteryButtonUsage, allPhrases, onCreateCard, onAnalyzeWord,
     onGenerateQuickReplyOptions, isWordAnalysisLoading, cardActionUsage, onLogCardActionUsage,
     cardHistoryLength, practiceCategoryFilter, setPracticeCategoryFilter, onMarkPhraseAsSeen,
-    categories, onAddCategory
+    categories, onAddCategory, onOpenCategoryManager, unmasteredCountsByCategory
   } = props;
 
   const [contextMenuTarget, setContextMenuTarget] = useState<{ phrase: Phrase; word?: string } | null>(null);
@@ -444,6 +466,9 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
         currentPhraseCategory={currentPhrase?.category || null}
         categories={categories}
         onAddCategory={onAddCategory}
+        onManageCategories={onOpenCategoryManager}
+        counts={unmasteredCountsByCategory}
+        totalUnmastered={unmasteredCount}
       />
       {renderContent()}
       {contextMenuTarget && (
