@@ -5,6 +5,7 @@ import CheckIcon from './icons/CheckIcon';
 import Spinner from './Spinner';
 import SmartToyIcon from './icons/SmartToyIcon';
 import RefreshIcon from './icons/RefreshIcon';
+import WandIcon from './icons/WandIcon';
 
 interface AutoFillPreviewModalProps {
   isOpen: boolean;
@@ -67,11 +68,13 @@ const AutoFillPreviewModal: React.FC<AutoFillPreviewModalProps> = ({
     <div className="fixed inset-0 bg-black/70 z-[80] flex justify-center items-center backdrop-blur-sm p-4 animate-fade-in" onClick={onClose}>
       <div className="bg-slate-800 rounded-lg shadow-2xl w-full max-w-lg m-4 flex flex-col h-[90vh]" onClick={e => e.stopPropagation()}>
         <header className="flex items-center justify-between p-4 border-b border-slate-700 flex-shrink-0">
-          <div className="flex items-center space-x-3">
-            <SmartToyIcon className="w-6 h-6 text-purple-400" />
-            <h2 className="text-lg font-bold text-slate-100">Предложения для "{categoryName}"</h2>
+          <div className="flex items-center space-x-3 overflow-hidden">
+            <SmartToyIcon className="w-6 h-6 text-purple-400 flex-shrink-0" />
+            <h2 className="text-lg font-bold text-slate-100 truncate" title={`Предложения для "${categoryName}"`}>
+                Предложения для "{categoryName}"
+            </h2>
           </div>
-          <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-700">
+          <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-700 ml-2">
             <CloseIcon className="w-6 h-6 text-slate-400" />
           </button>
         </header>
@@ -124,15 +127,18 @@ const AutoFillPreviewModal: React.FC<AutoFillPreviewModalProps> = ({
                 </div>
             )}
             <div className="flex items-center justify-between">
-                <button onClick={toggleSelectAll} className="px-4 py-2 text-sm rounded-md text-slate-300 hover:bg-slate-700 transition-colors">
+                <button onClick={toggleSelectAll} className="px-2 sm:px-4 py-2 text-sm rounded-md text-slate-300 hover:bg-slate-700 transition-colors">
                     {selectedIndices.size === proposedCards.length ? 'Снять все' : 'Выбрать все'}
                 </button>
                 <div className="flex items-center space-x-2">
-                    <button onClick={() => setShowRefineInput(prev => !prev)} className="px-4 py-2 rounded-md bg-slate-600 hover:bg-slate-700 text-white font-semibold transition-colors">
-                        Уточнить
+                    <button onClick={() => setShowRefineInput(prev => !prev)} className="px-3 sm:px-4 py-2 rounded-md bg-slate-600 hover:bg-slate-700 text-white font-semibold transition-colors flex items-center">
+                        <WandIcon className="w-5 h-5 sm:mr-2" />
+                        <span className="hidden sm:inline">Уточнить</span>
                     </button>
                     <button onClick={handleConfirm} disabled={selectedIndices.size === 0 || isLoading} className="px-4 py-2 rounded-md bg-purple-600 hover:bg-purple-700 text-white font-semibold transition-colors disabled:opacity-50">
-                        Добавить ({selectedIndices.size})
+                        <span className="sm:hidden">+</span>
+                        <span className="hidden sm:inline">Добавить</span>
+                        <span> ({selectedIndices.size})</span>
                     </button>
                 </div>
             </div>

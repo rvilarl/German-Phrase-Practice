@@ -9,6 +9,8 @@ import ClipboardIcon from './icons/ClipboardIcon';
 import SmartToyIcon from './icons/SmartToyIcon';
 import SendIcon from './icons/SendIcon';
 import * as fuzzyService from '../services/fuzzyService';
+import ArrowLeftIcon from './icons/ArrowLeftIcon';
+import WandIcon from './icons/WandIcon';
 
 type View = 'assistant' | 'speech' | 'classifying' | 'suggestion' | 'processing' | 'preview';
 type SpeechStatus = 'idle' | 'recording' | 'stopped';
@@ -415,9 +417,15 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
   
   const renderPreviewContent = () => (
     <div className="flex flex-col h-full">
-        <header className="flex-shrink-0 flex items-center justify-between pb-4">
+        <header className="flex-shrink-0 flex items-center justify-center relative pb-4">
+             <button
+                onClick={() => setView('assistant')}
+                className="absolute left-0 p-2 -ml-2 rounded-full hover:bg-slate-700/80 transition-colors text-slate-300 hover:text-white"
+                aria-label="Назад"
+            >
+                <ArrowLeftIcon className="w-6 h-6"/>
+            </button>
             <h2 className="text-xl font-bold text-slate-100">Предложенные карточки</h2>
-            <button onClick={() => setView('assistant')} className="px-4 py-2 text-sm rounded-md bg-slate-600 hover:bg-slate-700 transition-colors text-white">Назад</button>
         </header>
         <div className="flex-grow overflow-y-auto hide-scrollbar -mx-6 px-6 min-h-0">
             <ul className="space-y-2">
@@ -452,17 +460,20 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
                 </div>
             )}
             <div className="flex items-center justify-between">
-                <button onClick={toggleSelectAll} className="px-4 py-2 text-sm rounded-md text-slate-300 hover:bg-slate-700 transition-colors">
+                <button onClick={toggleSelectAll} className="px-2 sm:px-4 py-2 text-sm rounded-md text-slate-300 hover:bg-slate-700 transition-colors">
                     {selectedIndices.size === proposedCards.length ? 'Снять все' : 'Выбрать все'}
                 </button>
                 <div className="flex items-center space-x-2">
                     {currentTopic && (
-                        <button onClick={() => setShowRefineInput(prev => !prev)} className="px-4 py-2 rounded-md bg-slate-600 hover:bg-slate-700 text-white font-semibold transition-colors">
-                            Уточнить
+                        <button onClick={() => setShowRefineInput(prev => !prev)} className="px-3 sm:px-4 py-2 rounded-md bg-slate-600 hover:bg-slate-700 text-white font-semibold transition-colors flex items-center">
+                             <WandIcon className="w-5 h-5 sm:mr-2" />
+                             <span className="hidden sm:inline">Уточнить</span>
                         </button>
                     )}
-                    <button onClick={handleAddSelected} disabled={selectedIndices.size === 0} className="px-6 py-2 rounded-md bg-purple-600 hover:bg-purple-700 text-white font-semibold transition-colors disabled:opacity-50">
-                        Добавить ({selectedIndices.size})
+                    <button onClick={handleAddSelected} disabled={selectedIndices.size === 0} className="px-4 sm:px-6 py-2 rounded-md bg-purple-600 hover:bg-purple-700 text-white font-semibold transition-colors disabled:opacity-50">
+                        <span className="sm:hidden">+</span>
+                        <span className="hidden sm:inline">Добавить</span>
+                        <span> ({selectedIndices.size})</span>
                     </button>
                 </div>
             </div>
