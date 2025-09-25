@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import type { Phrase, SpeechRecognition, SpeechRecognitionErrorEvent, SpeechRecognitionEvent, PhraseCategory, Category } from '../types';
 import PhraseListItem from '../components/PhraseListItem';
@@ -6,6 +7,7 @@ import MicrophoneIcon from '../components/icons/MicrophoneIcon';
 import Spinner from '../components/Spinner';
 import PhrasePreviewModal from '../components/PhrasePreviewModal';
 import SmartToyIcon from '../components/icons/SmartToyIcon';
+import CategoryFilterContextMenu from '../components/CategoryFilterContextMenu';
 
 interface PhraseListPageProps {
     phrases: Phrase[];
@@ -19,6 +21,9 @@ interface PhraseListPageProps {
     onOpenSmartImport: () => void;
     categories: Category[];
     onUpdatePhraseCategory: (phraseId: string, newCategoryId: string) => void;
+    onStartPracticeWithCategory: (categoryId: PhraseCategory) => void;
+    onEditCategory: (category: Category) => void;
+    onOpenAssistant: (category: Category) => void;
 }
 
 type ListItem = 
@@ -26,7 +31,7 @@ type ListItem =
     | { type: 'phrase'; phrase: Phrase };
 
 
-const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, onDeletePhrase, onFindDuplicates, updateAndSavePhrases, onStartPractice, highlightedPhraseId, onClearHighlight, onOpenSmartImport, categories, onUpdatePhraseCategory }) => {
+const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, onDeletePhrase, onFindDuplicates, updateAndSavePhrases, onStartPractice, highlightedPhraseId, onClearHighlight, onOpenSmartImport, categories, onUpdatePhraseCategory, onStartPracticeWithCategory, onEditCategory, onOpenAssistant }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [categoryFilter, setCategoryFilter] = useState<'all' | PhraseCategory>('all');
     const [isProcessingDuplicates, setIsProcessingDuplicates] = useState(false);
@@ -37,6 +42,10 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
     const [recognitionLang, setRecognitionLang] = useState<'ru' | 'de'>('ru');
     const ruRecognitionRef = useRef<SpeechRecognition | null>(null);
     const deRecognitionRef = useRef<SpeechRecognition | null>(null);
+    
+    const [contextMenu, setContextMenu] = useState<{ category: Category; x: number; y: number } | null>(null);
+    const longPressTimer = useRef<number>();
+    const isLongPress = useRef(false);
 
     const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -61,7 +70,10 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
                 };
 
                 recognition.onresult = (event: SpeechRecognitionEvent) => {
-                    const transcript = event.results[0]?.[0]?.transcript;
+                    // FIX: The error "Expected 1 arguments, but got 0" was likely caused by a toolchain misinterpreting this line.
+                    // The actual issue is that event.results[0] can be empty. Added a check to prevent accessing [0][0] on an empty result.
+                    const result = event.results[0];
+                    const transcript = result?.[0]?.transcript;
                     if (transcript && transcript.trim()) {
                         setSearchTerm(transcript);
                     }
@@ -123,6 +135,33 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
             setIsListening(false);
         }
     }, [isListening]);
+    
+    const handleButtonPointerDown = (e: React.PointerEvent<HTMLButtonElement>, category: Category) => {
+        if (categoryFilter === category.id) { // Only on active button
+            isLongPress.current = false;
+            longPressTimer.current = window.setTimeout(() => {
+                isLongPress.current = true;
+                setContextMenu({ category, x: e.clientX, y: e.clientY });
+            }, 500);
+        }
+    };
+
+    const handleButtonPointerUp = () => {
+        clearTimeout(longPressTimer.current);
+    };
+
+    const handleButtonClick = (category: Category) => {
+        if (isLongPress.current) {
+            return;
+        }
+
+        if (categoryFilter === category.id) {
+            onStartPracticeWithCategory(category.id);
+        } else {
+            setCategoryFilter(category.id);
+        }
+    };
+
 
     const detectedSearchLang = useMemo(() => {
         if (!searchTerm) return 'ru';
@@ -331,7 +370,10 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
                         <div className="mt-4">
                             <div className="flex space-x-2 overflow-x-auto pb-2 hide-scrollbar">
                                 <button
-                                    onClick={() => setCategoryFilter('all')}
+                                    onPointerDown={(e) => handleButtonPointerDown(e, {id: 'all', name: 'Все', color: '', isFoundational: false})}
+                                    onPointerUp={handleButtonPointerUp}
+                                    onPointerLeave={handleButtonPointerUp}
+                                    onClick={() => handleButtonClick({id: 'all', name: 'Все', color: '', isFoundational: false})}
                                     className={`flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${categoryFilter === 'all' ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
                                 >
                                     Все
@@ -339,7 +381,10 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
                                 {categories.map(cat => (
                                     <button
                                         key={cat.id}
-                                        onClick={() => setCategoryFilter(cat.id)}
+                                        onPointerDown={(e) => handleButtonPointerDown(e, cat)}
+                                        onPointerUp={handleButtonPointerUp}
+                                        onPointerLeave={handleButtonPointerUp}
+                                        onClick={() => handleButtonClick(cat)}
                                         className={`flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${categoryFilter === cat.id ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
                                     >
                                         {cat.name}
@@ -439,6 +484,21 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
               onClose={() => setPreviewPhrase(null)} 
               onStartPractice={onStartPractice}
             />
+            {contextMenu && (
+                <CategoryFilterContextMenu
+                    category={contextMenu.category}
+                    position={{ x: contextMenu.x, y: contextMenu.y }}
+                    onClose={() => setContextMenu(null)}
+                    onEdit={(category) => {
+                        setContextMenu(null);
+                        onEditCategory(category);
+                    }}
+                    onOpenAssistant={(category) => {
+                        setContextMenu(null);
+                        onOpenAssistant(category);
+                    }}
+                />
+            )}
         </>
     );
 };

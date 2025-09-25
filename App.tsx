@@ -1251,6 +1251,11 @@ const App: React.FC = () => {
     setView('practice');
   };
 
+  const handleStartPracticeWithCategory = (categoryId: PhraseCategory) => {
+    setPracticeCategoryFilter(categoryId);
+    setView('practice');
+  };
+
   const handleGoToListFromPractice = (phrase: Phrase) => {
     setView('list');
     setHighlightedPhraseId(phrase.id);
@@ -1824,6 +1829,9 @@ const App: React.FC = () => {
                 onOpenSmartImport={() => setIsSmartImportModalOpen(true)}
                 categories={categories}
                 onUpdatePhraseCategory={handleUpdatePhraseCategory}
+                onStartPracticeWithCategory={handleStartPracticeWithCategory}
+                onEditCategory={handleOpenCategoryFormForEdit}
+                onOpenAssistant={handleOpenCategoryAssistant}
             />;
         case 'library':
             return <LibraryPage onOpenBook={handleOpenBook} />;
