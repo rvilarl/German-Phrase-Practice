@@ -160,7 +160,7 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
     try {
         const result = await onClassifyTopic(assistantInput);
         if (result.isCategory) {
-            const existingCategory = categories.find(c => fuzzyService.isSimilar(c.name, [result.categoryName], 0.9));
+            const existingCategory = categories.find(c => fuzzyService.isSimilar(c.name, [result.categoryName], 0.75));
             setCategorySuggestion({ name: result.categoryName, existingCategory });
             setView('suggestion');
         } else {
