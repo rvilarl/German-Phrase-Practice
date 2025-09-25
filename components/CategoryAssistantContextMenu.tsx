@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import type { Phrase, WordAnalysis } from '../types';
+// FIX: Added missing import for the Spinner component.
 import Spinner from './Spinner';
 import InfoIcon from './icons/InfoIcon';
 import CardPlusIcon from './icons/CardPlusIcon';

@@ -1,11 +1,12 @@
 
 
+
+
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import type { Phrase, SpeechRecognition, SpeechRecognitionErrorEvent, SpeechRecognitionEvent, PhraseCategory, Category } from '../types';
 import PhraseListItem from '../components/PhraseListItem';
 import XCircleIcon from '../components/icons/XCircleIcon';
 import MicrophoneIcon from '../components/icons/MicrophoneIcon';
-import Spinner from '../components/Spinner';
 import PhrasePreviewModal from '../components/PhrasePreviewModal';
 import SmartToyIcon from '../components/icons/SmartToyIcon';
 import CategoryFilterContextMenu from '../components/CategoryFilterContextMenu';
@@ -463,15 +464,12 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
                                     <button
                                         onClick={handleFindDuplicates}
                                         disabled={isProcessingDuplicates}
-                                        className="relative text-sm text-slate-400 hover:text-slate-200 font-medium transition-colors disabled:opacity-50 h-[34px] flex items-center justify-center px-3"
+                                        className="relative text-sm text-slate-400 hover:text-slate-200 font-medium transition-colors disabled:opacity-50 h-[34px] flex items-center justify-center px-3 min-w-[150px]"
                                     >
-                                        <span className={isProcessingDuplicates ? 'opacity-0' : 'opacity-100'}>
-                                            Найти дубликаты
-                                        </span>
-                                        {isProcessingDuplicates && (
-                                            <div className="absolute inset-0 flex items-center justify-center">
-                                                <Spinner />
-                                            </div>
+                                        {isProcessingDuplicates ? (
+                                            <span className="animate-pulse">Поиск...</span>
+                                        ) : (
+                                            <span>Найти дубликаты</span>
                                         )}
                                     </button>
                                 )}

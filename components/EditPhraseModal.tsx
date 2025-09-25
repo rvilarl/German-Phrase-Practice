@@ -3,7 +3,6 @@ import type { Phrase, SpeechRecognition, SpeechRecognitionErrorEvent, Translatio
 import CloseIcon from './icons/CloseIcon';
 import MicrophoneIcon from './icons/MicrophoneIcon';
 import XCircleIcon from './icons/XCircleIcon';
-import Spinner from './Spinner';
 import DiscussTranslationModal from './DiscussTranslationModal';
 import AudioPlayer from './AudioPlayer';
 
@@ -161,7 +160,13 @@ const EditPhraseModal: React.FC<EditPhraseModalProps> = ({ isOpen, onClose, phra
                                     className="w-full bg-slate-900 border border-slate-700 rounded-md p-3 pr-20 text-slate-300 cursor-not-allowed"
                                 />
                                  <div className="absolute inset-y-0 right-0 flex items-center pr-2">
-                                    {isLoading ? <Spinner /> : german ? <AudioPlayer textToSpeak={german} /> : null}
+                                    {isLoading ? (
+                                        <div className="flex space-x-1 items-center justify-center p-2 text-purple-400">
+                                            <div className="w-2 h-2 bg-current rounded-full animate-pulse"></div>
+                                            <div className="w-2 h-2 bg-current rounded-full animate-pulse" style={{ animationDelay: '0.1s' }}></div>
+                                            <div className="w-2 h-2 bg-current rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+                                        </div>
+                                    ) : german ? <AudioPlayer textToSpeak={german} /> : null}
                                 </div>
                             </div>
                         </div>

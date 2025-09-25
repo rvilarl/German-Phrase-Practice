@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import type { Phrase } from '../types';
-import Spinner from './Spinner';
 import CloseIcon from './icons/CloseIcon';
 import RefreshIcon from './icons/RefreshIcon';
 import CheckIcon from './icons/CheckIcon';
@@ -19,6 +18,20 @@ interface ImprovePhraseModalProps {
   onPhraseImproved: (phraseId: string, newGerman: string) => void;
   onOpenDiscussion: (phrase: Phrase) => void;
 }
+
+const ImprovePhraseSkeleton: React.FC = () => (
+    <div className="w-full flex flex-col items-center justify-center space-y-5 animate-pulse">
+        <div className="w-full text-center space-y-2">
+            <div className="h-4 bg-slate-600 rounded w-1/2 mx-auto"></div>
+            <div className="h-8 bg-slate-600 rounded w-3/4 mx-auto"></div>
+        </div>
+        <div className="w-full flex flex-col space-y-3">
+            <div className="h-12 bg-purple-600/50 rounded-lg"></div>
+            <div className="h-10 bg-slate-600/50 rounded-lg"></div>
+        </div>
+    </div>
+);
+
 
 const ImprovePhraseModal: React.FC<ImprovePhraseModalProps> = ({ isOpen, onClose, phrase, onGenerateImprovement, onPhraseImproved, onOpenDiscussion }) => {
   const [currentSuggestion, setCurrentSuggestion] = useState<Suggestion | null>(null);
@@ -136,10 +149,7 @@ const ImprovePhraseModal: React.FC<ImprovePhraseModalProps> = ({ isOpen, onClose
         </button>
 
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center h-full">
-            <Spinner className="h-10 w-10 text-purple-400" />
-            <p className="mt-4 text-slate-400">Анализируем фразу...</p>
-          </div>
+          <ImprovePhraseSkeleton />
         ) : currentSuggestion ? (
           renderSuggestionState()
         ) : (

@@ -1,6 +1,5 @@
 import React from 'react';
 import type { Phrase, AdjectiveDeclension, AdjectiveDeclensionTable } from '../types';
-import Spinner from './Spinner';
 import CloseIcon from './icons/CloseIcon';
 import TableIcon from './icons/TableIcon';
 import AudioPlayer from './AudioPlayer';
@@ -14,6 +13,45 @@ interface AdjectiveDeclensionModalProps {
   error: string | null;
   onOpenWordAnalysis: (phrase: Phrase, word: string) => void;
 }
+
+const AdjectiveDeclensionSkeleton: React.FC = () => (
+    <div className="space-y-8 animate-pulse">
+        {/* Comparison */}
+        <section>
+            <div className="h-6 w-1/2 bg-slate-700 rounded mb-3"></div>
+            <div className="bg-slate-700/50 p-4 rounded-lg grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="h-14 bg-slate-600 rounded"></div>
+                <div className="h-14 bg-slate-600 rounded"></div>
+                <div className="h-14 bg-slate-600 rounded"></div>
+            </div>
+        </section>
+        {/* Table */}
+        <section>
+            <div className="h-6 w-2/3 bg-slate-700 rounded mb-3"></div>
+            <div className="bg-slate-700/50 p-4 rounded-lg">
+                <div className="w-full min-w-[600px] space-y-1">
+                    <div className="flex items-center p-2">
+                        <div className="h-5 bg-slate-600 rounded w-1/5"></div>
+                        <div className="h-5 bg-slate-600 rounded w-1/5 ml-2"></div>
+                        <div className="h-5 bg-slate-600 rounded w-1/5 ml-2"></div>
+                        <div className="h-5 bg-slate-600 rounded w-1/5 ml-2"></div>
+                        <div className="h-5 bg-slate-600 rounded w-1/5 ml-2"></div>
+                    </div>
+                    {[...Array(4)].map((_, i) => (
+                        <div key={i} className="flex items-center p-2 border-t border-slate-700">
+                            <div className="h-6 bg-slate-600 rounded w-1/5"></div>
+                            <div className="h-6 bg-slate-600 rounded w-1/5 ml-2"></div>
+                            <div className="h-6 bg-slate-600 rounded w-1/5 ml-2"></div>
+                            <div className="h-6 bg-slate-600 rounded w-1/5 ml-2"></div>
+                            <div className="h-6 bg-slate-600 rounded w-1/5 ml-2"></div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </section>
+    </div>
+);
+
 
 const AdjectiveDeclensionModal: React.FC<AdjectiveDeclensionModalProps> = ({ isOpen, onClose, adjective, data, isLoading, error, onOpenWordAnalysis }) => {
   if (!isOpen) return null;
@@ -92,7 +130,7 @@ const AdjectiveDeclensionModal: React.FC<AdjectiveDeclensionModalProps> = ({ isO
   
   const renderContent = () => {
     if (isLoading) {
-      return <div className="flex flex-col justify-center items-center h-full"><Spinner className="h-10 w-10 text-purple-400" /><p className="mt-4 text-slate-400">Загружаем данные...</p></div>;
+      return <AdjectiveDeclensionSkeleton />;
     }
     if (error) {
       return <div className="flex justify-center items-center h-full"><div className="text-center bg-red-900/50 border border-red-700 text-red-300 p-4 rounded-lg"><p className="font-semibold">Ошибка</p><p className="text-sm">{error}</p></div></div>;

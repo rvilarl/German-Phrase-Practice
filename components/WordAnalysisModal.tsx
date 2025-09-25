@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import type { Phrase, WordAnalysis } from '../types';
-import Spinner from './Spinner';
 import CloseIcon from './icons/CloseIcon';
 import BookOpenIcon from './icons/BookOpenIcon';
 import AudioPlayer from './AudioPlayer';
@@ -21,6 +20,27 @@ interface WordAnalysisModalProps {
   allPhrases: Phrase[];
   onCreateCard: (phraseData: { german: string; russian: string; }) => void;
 }
+
+const WordAnalysisSkeleton: React.FC = () => (
+    <div className="space-y-6 animate-pulse">
+        <div className="text-center space-y-2">
+            <div className="h-8 w-1/2 bg-slate-700 rounded mx-auto"></div>
+            <div className="h-5 w-1/3 bg-slate-700 rounded mx-auto"></div>
+        </div>
+        <div className="bg-slate-700/50 p-4 rounded-lg h-12"></div>
+        <div className="bg-slate-700/50 p-4 rounded-lg space-y-3">
+            <div className="h-5 w-1/4 bg-slate-600 rounded"></div>
+            <div className="h-4 w-full bg-slate-600 rounded"></div>
+            <div className="h-4 w-full bg-slate-600 rounded"></div>
+        </div>
+        <div className="bg-slate-700/50 p-4 rounded-lg space-y-2">
+            <div className="h-5 w-1/3 bg-slate-600 rounded"></div>
+            <div className="h-5 w-full bg-slate-600 rounded"></div>
+            <div className="h-4 w-full bg-slate-600 rounded mt-1"></div>
+        </div>
+    </div>
+);
+
 
 const WordAnalysisModal: React.FC<WordAnalysisModalProps> = ({ 
   isOpen, onClose, word, phrase, analysis, isLoading, error, 
@@ -91,7 +111,7 @@ const WordAnalysisModal: React.FC<WordAnalysisModalProps> = ({
 
   const renderContent = () => {
     if (isLoading) {
-      return <div className="flex flex-col justify-center items-center h-full"><Spinner className="h-10 w-10 text-purple-400" /><p className="mt-4 text-slate-400">Анализируем слово...</p></div>;
+      return <WordAnalysisSkeleton />;
     }
     if (error) {
       return <div className="flex justify-center items-center h-full"><div className="text-center bg-red-900/50 border border-red-700 text-red-300 p-4 rounded-lg"><p className="font-semibold">Ошибка анализа</p><p className="text-sm">{error}</p></div></div>;

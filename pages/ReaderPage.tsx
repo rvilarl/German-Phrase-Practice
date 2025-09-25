@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import ePub, { Rendition } from 'epubjs';
 import { Book } from '../types';
 import * as dbService from '../services/dbService';
-import Spinner from '../components/Spinner';
 import CloseIcon from '../components/icons/CloseIcon';
 import ArrowLeftIcon from '../components/icons/ArrowLeftIcon';
 import ArrowRightIcon from '../components/icons/ArrowRightIcon';
@@ -13,6 +12,23 @@ interface ReaderPageProps {
     bookId: number;
     onClose: () => void;
 }
+
+const ReaderPageSkeleton: React.FC = () => (
+    <div className="w-full h-full p-8 sm:p-12 md:p-16 animate-pulse">
+        <div className="space-y-4 max-w-prose mx-auto">
+            <div className="h-5 bg-slate-700 rounded w-3/4"></div>
+            <div className="h-4 bg-slate-700 rounded w-full"></div>
+            <div className="h-4 bg-slate-700 rounded w-full"></div>
+            <div className="h-4 bg-slate-700 rounded w-5/6"></div>
+            <div className="h-4 bg-slate-700 rounded w-full"></div>
+            <div className="h-4 bg-slate-700 rounded w-1/2 mt-4"></div>
+             <div className="h-4 bg-slate-700 rounded w-full pt-8"></div>
+            <div className="h-4 bg-slate-700 rounded w-full"></div>
+            <div className="h-4 bg-slate-700 rounded w-2/3"></div>
+        </div>
+    </div>
+);
+
 
 const ReaderPage: React.FC<ReaderPageProps> = ({ bookId, onClose }) => {
     const [rendition, setRendition] = useState<Rendition | null>(null);
@@ -216,8 +232,7 @@ const ReaderPage: React.FC<ReaderPageProps> = ({ bookId, onClose }) => {
         <div className="w-full h-[540px] flex flex-col items-center justify-center relative bg-slate-900">
             {isLoading && (
                 <div className="absolute inset-0 flex flex-col justify-center items-center bg-slate-900 z-20">
-                    <Spinner />
-                    <p className="mt-4 text-slate-400">Загружаем книгу...</p>
+                    <ReaderPageSkeleton />
                 </div>
             )}
 

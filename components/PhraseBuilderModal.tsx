@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import type { Phrase, PhraseEvaluation, PhraseBuilderOptions } from '../types';
 import CloseIcon from './icons/CloseIcon';
 import BlocksIcon from './icons/BlocksIcon';
-import Spinner from './Spinner';
 import CheckIcon from './icons/CheckIcon';
 import XCircleIcon from './icons/XCircleIcon';
 import AudioPlayer from './AudioPlayer';
@@ -26,6 +25,15 @@ interface WordOption {
   word: string;
   id: number;
 }
+
+const WordBankSkeleton = () => (
+    <div className="flex flex-wrap justify-center gap-2 w-full animate-pulse">
+      {['w-20', 'w-28', 'w-24', 'w-16', 'w-32', 'w-20', 'w-24', 'w-28', 'w-16', 'w-24'].map((width, index) => (
+        <div key={index} className={`h-11 bg-slate-700 rounded-lg ${width}`}></div>
+      ))}
+    </div>
+);
+
 
 const PhraseBuilderModal: React.FC<PhraseBuilderModalProps> = ({
   isOpen,
@@ -100,7 +108,7 @@ const PhraseBuilderModal: React.FC<PhraseBuilderModalProps> = ({
     if (isLoading) {
       return (
         <div className="flex flex-col justify-center items-center h-full">
-          <Spinner className="h-10 w-10 text-purple-400" />
+          <WordBankSkeleton />
           <p className="mt-4 text-slate-400">Подбираем слова...</p>
         </div>
       );
@@ -180,7 +188,11 @@ const PhraseBuilderModal: React.FC<PhraseBuilderModalProps> = ({
                   </span>
                   {isChecking && (
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <Spinner />
+                        <div className="flex space-x-1 items-center justify-center text-white">
+                            <div className="w-2 h-2 bg-current rounded-full animate-pulse"></div>
+                            <div className="w-2 h-2 bg-current rounded-full animate-pulse" style={{ animationDelay: '0.1s' }}></div>
+                            <div className="w-2 h-2 bg-current rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+                        </div>
                     </div>
                   )}
                 </button>

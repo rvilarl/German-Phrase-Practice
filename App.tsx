@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 // FIX: Import View type from shared types.ts
 import { Phrase, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, AdjectiveDeclension, SentenceContinuation, PhraseBuilderOptions, PhraseEvaluation, ChatMessage, PhraseCategory, ProposedCard, BookRecord, Category, CategoryAssistantRequest, CategoryAssistantResponse, View } from './types';
@@ -27,7 +28,8 @@ import SmartImportModal from './components/SmartImportModal';
 import ImprovePhraseModal from './components/ImprovePhraseModal';
 import EditPhraseModal from './components/EditPhraseModal';
 import ConfirmDeleteModal from './components/ConfirmDeleteModal';
-import VoiceWorkspaceModal from './components/VoiceWorkspaceModal';
+// FIX: Changed to a named import to resolve "no default export" error.
+import { VoiceWorkspaceModal } from './components/VoiceWorkspaceModal';
 import ExpandingFab from './components/ExpandingFab';
 import DiscussTranslationModal from './components/DiscussTranslationModal';
 import LearningAssistantModal from './components/LearningAssistantModal';

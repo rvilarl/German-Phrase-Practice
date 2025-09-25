@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ProposedCard, SpeechRecognition, SpeechRecognitionErrorEvent } from '../types';
 import CloseIcon from './icons/CloseIcon';
 import CheckIcon from './icons/CheckIcon';
-import Spinner from './Spinner';
 import SmartToyIcon from './icons/SmartToyIcon';
 import RefreshIcon from './icons/RefreshIcon';
 import WandIcon from './icons/WandIcon';
@@ -17,6 +16,21 @@ interface AutoFillPreviewModalProps {
   proposedCards: ProposedCard[];
   isLoading: boolean;
 }
+
+const CardListSkeleton: React.FC = () => (
+    <div className="space-y-2 w-full animate-pulse">
+        {[...Array(5)].map((_, index) => (
+            <div key={index} className="p-3 rounded-lg flex items-start space-x-3 bg-slate-700/80">
+                <div className="mt-1 w-5 h-5 rounded-md flex-shrink-0 bg-slate-800"></div>
+                <div className="flex-grow space-y-2">
+                    <div className="h-4 bg-slate-600 rounded w-3/4"></div>
+                    <div className="h-3 bg-slate-600 rounded w-1/2"></div>
+                </div>
+            </div>
+        ))}
+    </div>
+);
+
 
 const AutoFillPreviewModal: React.FC<AutoFillPreviewModalProps> = ({
   isOpen, onClose, onConfirm, onRefine, categoryName, proposedCards, isLoading
@@ -123,8 +137,7 @@ const AutoFillPreviewModal: React.FC<AutoFillPreviewModalProps> = ({
         <div className="p-4 flex-grow overflow-y-auto hide-scrollbar relative">
             {isLoading && (
                 <div className="absolute inset-0 bg-slate-800/80 flex flex-col items-center justify-center z-10">
-                    <Spinner />
-                    <p className="mt-4 text-slate-300">Подбираем новые варианты...</p>
+                    <CardListSkeleton />
                 </div>
             )}
             {proposedCards.length > 0 ? (
@@ -172,7 +185,13 @@ const AutoFillPreviewModal: React.FC<AutoFillPreviewModalProps> = ({
                         </button>
                     </div>
                     <button onClick={handleRefine} disabled={!refineText.trim() || isLoading} className="p-2 w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-md bg-purple-600 hover:bg-purple-700 text-white font-semibold transition-colors disabled:opacity-50">
-                        {isLoading ? <Spinner className="w-5 h-5" /> : <RefreshIcon className="w-5 h-5" />}
+                        {isLoading ? (
+                            <div className="flex space-x-1 items-center justify-center text-white">
+                                <div className="w-1.5 h-1.5 bg-current rounded-full animate-pulse"></div>
+                                <div className="w-1.5 h-1.5 bg-current rounded-full animate-pulse" style={{ animationDelay: '0.1s' }}></div>
+                                <div className="w-1.5 h-1.5 bg-current rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+                            </div>
+                        ) : <RefreshIcon className="w-5 h-5" />}
                     </button>
                 </div>
             )}

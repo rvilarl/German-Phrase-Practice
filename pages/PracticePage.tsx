@@ -2,10 +2,12 @@
 
 
 
+
+
 import React, { useCallback, useRef, useState, useEffect, useMemo } from 'react';
 import type { Phrase, WordAnalysis, PhraseCategory, Category } from '../types';
 import PhraseCard from '../components/PhraseCard';
-import Spinner from '../components/Spinner';
+import PhraseCardSkeleton from '../components/PhraseCardSkeleton';
 import PracticePageContextMenu from '../components/PracticePageContextMenu';
 import CheckIcon from '../components/icons/CheckIcon';
 import QuickReplyModal from '../components/QuickReplyModal';
@@ -345,7 +347,7 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
   }, [isExiting, currentPhrase, onUpdateMastery, onContinue]);
 
   const renderContent = () => {
-    if (isLoading) return <div className="flex justify-center items-center h-64"><Spinner /></div>;
+    if (isLoading) return <PhraseCardSkeleton />;
     if (error) return <div className="text-center bg-red-900/50 border border-red-700 text-red-300 p-4 rounded-lg max-w-md mx-auto"><p className="font-semibold">Произошла ошибка</p><p className="text-sm">{error}</p></div>;
     if (!currentPhrase) {
       if (unmasteredCount === 0 && practiceCategoryFilter === 'all') {
@@ -369,7 +371,7 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
             </div>
         );
       }
-      return <div className="flex justify-center items-center h-64"><Spinner /></div>;
+      return <PhraseCardSkeleton />;
     }
     const animationClass = isExiting 
       ? (animationState.direction === 'right' ? 'card-exit-left' : 'card-exit-right')

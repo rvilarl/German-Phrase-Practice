@@ -1,58 +1,27 @@
-
 import React from 'react';
 
-interface SpinnerProps {
-  className?: string;
-}
-
-const Spinner: React.FC<SpinnerProps> = ({ className }) => {
-  return (
-    <svg
-      className={`h-10 w-10 ${className}`}
-      viewBox="0 0 100 100"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-    >
-      <defs>
-        <linearGradient id="spinner-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor="#a855f7" />
-          <stop offset="100%" stopColor="#38bdf8" />
-        </linearGradient>
-      </defs>
-      <g fill="none" strokeWidth="6" strokeLinecap="round">
-        <circle
-          cx="50"
-          cy="50"
-          r="45"
-          stroke="url(#spinner-gradient)"
-          strokeDasharray="282.74"
-          strokeDashoffset="240"
-          className="spinner-circle-1"
-          style={{ transformOrigin: '50% 50%' }}
-        />
-        <circle
-          cx="50"
-          cy="50"
-          r="35"
-          stroke="url(#spinner-gradient)"
-          strokeDasharray="219.91"
-          strokeDashoffset="180"
-          className="spinner-circle-2"
-          style={{ transformOrigin: '50% 50%' }}
-        />
-        <circle
-          cx="50"
-          cy="50"
-          r="25"
-          stroke="url(#spinner-gradient)"
-          strokeDasharray="157.08"
-          strokeDashoffset="120"
-          className="spinner-circle-3"
-          style={{ transformOrigin: '50% 50%' }}
-        />
-      </g>
-    </svg>
-  );
-};
+const Spinner: React.FC<React.SVGProps<SVGSVGElement>> = ({ className, ...props }) => (
+  <svg
+    className={`animate-spin h-5 w-5 text-white ${className || ''}`}
+    xmlns="http://www.w3.org/2000/svg"
+    fill="none"
+    viewBox="0 0 24 24"
+    {...props}
+  >
+    <circle
+      className="opacity-25"
+      cx="12"
+      cy="12"
+      r="10"
+      stroke="currentColor"
+      strokeWidth="4"
+    />
+    <path
+      className="opacity-75"
+      fill="currentColor"
+      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+    />
+  </svg>
+);
 
 export default Spinner;

@@ -1,6 +1,5 @@
 import React from 'react';
 import type { Phrase, NounDeclension } from '../types';
-import Spinner from './Spinner';
 import CloseIcon from './icons/CloseIcon';
 import TableIcon from './icons/TableIcon';
 import AudioPlayer from './AudioPlayer';
@@ -16,6 +15,28 @@ interface NounDeclensionModalProps {
 }
 
 type CaseKey = keyof NounDeclension['singular'];
+
+const NounDeclensionSkeleton: React.FC = () => (
+    <div className="bg-slate-700/50 p-4 rounded-lg animate-pulse overflow-x-auto hide-scrollbar">
+        <div className="w-full min-w-[500px]">
+            <div className="flex items-center p-3 border-b border-slate-600">
+                <div className="h-5 bg-slate-600 rounded w-1/4"></div>
+                <div className="h-5 bg-slate-600 rounded w-1/3 ml-4"></div>
+                <div className="h-5 bg-slate-600 rounded w-1/3 ml-4"></div>
+            </div>
+            <div className="space-y-1 mt-1">
+                 {[...Array(4)].map((_, i) => (
+                    <div key={i} className="flex items-center p-3 border-b border-slate-700 last:border-b-0">
+                        <div className="h-8 bg-slate-600 rounded w-1/4"></div>
+                        <div className="h-8 bg-slate-600 rounded w-1/3 ml-4"></div>
+                        <div className="h-8 bg-slate-600 rounded w-1/3 ml-4"></div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    </div>
+);
+
 
 const NounDeclensionModal: React.FC<NounDeclensionModalProps> = ({ isOpen, onClose, noun, data, isLoading, error, onOpenWordAnalysis }) => {
   if (!isOpen) return null;
@@ -53,7 +74,7 @@ const NounDeclensionModal: React.FC<NounDeclensionModalProps> = ({ isOpen, onClo
 
   const renderContent = () => {
     if (isLoading) {
-      return <div className="flex flex-col justify-center items-center h-full"><Spinner className="h-10 w-10 text-purple-400" /><p className="mt-4 text-slate-400">Загружаем склонение...</p></div>;
+      return <NounDeclensionSkeleton />;
     }
     if (error) {
       return <div className="flex justify-center items-center h-full"><div className="text-center bg-red-900/50 border border-red-700 text-red-300 p-4 rounded-lg"><p className="font-semibold">Ошибка</p><p className="text-sm">{error}</p></div></div>;

@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import type { Phrase, WordAnalysis } from '../types';
-import Spinner from './Spinner';
 import InfoIcon from './icons/InfoIcon';
 import CardPlusIcon from './icons/CardPlusIcon';
 import PlusIcon from './icons/PlusIcon';
@@ -149,7 +148,13 @@ const ChatContextMenu: React.FC<ChatContextMenuProps> = ({
                 <p className="text-sm text-slate-300 italic mt-1">«{translation}»</p>
             ) : (
                 <button onClick={(e) => { e.stopPropagation(); handleTranslate(); }} disabled={isTranslating} className="w-full mt-2 flex items-center justify-center px-3 py-1.5 text-left text-sm bg-slate-600/70 hover:bg-slate-600 transition-colors rounded-md disabled:opacity-50">
-                    {isTranslating ? <Spinner className="w-4 h-4 mr-2" /> : <LanguagesIcon className="w-4 h-4 mr-2" />}
+                    {isTranslating ? (
+                        <div className="flex space-x-1 items-center justify-center mr-2">
+                            <div className="w-1.5 h-1.5 bg-current rounded-full animate-pulse"></div>
+                            <div className="w-1.5 h-1.5 bg-current rounded-full animate-pulse" style={{ animationDelay: '0.1s' }}></div>
+                            <div className="w-1.5 h-1.5 bg-current rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+                        </div>
+                    ) : <LanguagesIcon className="w-4 h-4 mr-2" />}
                     <span>Перевести</span>
                 </button>
             )}
@@ -172,7 +177,11 @@ const ChatContextMenu: React.FC<ChatContextMenuProps> = ({
         <div className="p-2 border-t border-slate-700">
              {isAnalysisLoading ? (
                 <div className="flex items-center px-4 py-3 text-[15px] text-slate-400">
-                    <Spinner className="w-5 h-5 mr-4" />
+                    <div className="flex space-x-1 items-center justify-center mr-4">
+                        <div className="w-2 h-2 bg-current rounded-full animate-pulse"></div>
+                        <div className="w-2 h-2 bg-current rounded-full animate-pulse" style={{ animationDelay: '0.1s' }}></div>
+                        <div className="w-2 h-2 bg-current rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+                    </div>
                     <span>Анализ...</span>
                 </div>
             ) : (

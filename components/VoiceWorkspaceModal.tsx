@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import type { Phrase, PhraseEvaluation, PhraseBuilderOptions, SpeechRecognition, SpeechRecognitionErrorEvent } from '../types';
 import CloseIcon from './icons/CloseIcon';
 import MicrophoneIcon from './icons/MicrophoneIcon';
-import Spinner from './Spinner';
 import CheckIcon from './icons/CheckIcon';
 import XCircleIcon from './icons/XCircleIcon';
 import AudioPlayer from './AudioPlayer';
@@ -61,7 +60,8 @@ const WordBankSkeleton = () => (
 
 const normalizeString = (str: string) => str.toLowerCase().replace(/[.,!?]/g, '').trim();
 
-const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
+// FIX: Changed to a named export to resolve "no default export" error.
+export const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
   isOpen, onClose, phrase, onEvaluate, onSuccess, onFailure, onNextPhrase, onGeneratePhraseBuilderOptions, onPracticeNext,
   settings, buttonUsage, onLogButtonUsage, habitTracker, onHabitTrackerChange, showToast, onOpenLearningAssistant
 }) => {
@@ -549,132 +549,137 @@ const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
                     
                     {constructedWords.map((word, index) => (
                       <React.Fragment key={word.id}>
-                        {dropIndex === index && <span className="drop-indicator" />}
+                        {dropIndex === index && <div className="drop-indicator"></div>}
                         <button
                           data-word-id={word.id}
-                          onClick={() => handleDeselectWord(word)}
                           draggable
                           onDragStart={(e) => handleDragStart(e, word, 'constructed', index)}
                           onDragEnd={handleDragEnd}
-                          className="px-3 py-1.5 bg-purple-600 text-white rounded-lg transition-colors text-lg font-medium cursor-grab active:cursor-grabbing"
+                          onClick={() => handleDeselectWord(word)}
+                          disabled={!!evaluation}
+                          className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-all text-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed cursor-grab active:cursor-grabbing"
                         >
                           {word.text}
                         </button>
                       </React.Fragment>
                     ))}
-                    {dropIndex === constructedWords.length && <span className="drop-indicator" />}
+                    {dropIndex === constructedWords.length && <div className="drop-indicator"></div>}
                   </div>
-                  <button onClick={handleReset} disabled={isChecking || !!evaluation || constructedWords.length === 0} className="p-3 self-center rounded-full bg-slate-600/50 hover:bg-slate-600 disabled:opacity-30"><BackspaceIcon className="w-5 h-5 text-white" /></button>
+                  <button
+                    onClick={handleReset}
+                    disabled={isChecking || !!evaluation || constructedWords.length === 0}
+                    className="p-3 self-center rounded-full bg-slate-600/50 hover:bg-slate-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                    aria-label="Очистить"
+                  >
+                    <BackspaceIcon className="w-5 h-5 text-white" />
+                  </button>
               </div>
-
-              <div className="flex-shrink-0 flex justify-center items-center min-h-[48px] my-2">
+              
+              <div className="flex-grow my-4 flex flex-col justify-end min-h-0 relative">
                  {transientFeedback && (
-                    <div key={transientFeedback.key} className={`w-full max-w-md transition-opacity duration-500 ${isFeedbackFading ? 'opacity-0' : 'opacity-100'}`}>
-                        <FeedbackMessage type="error" message={transientFeedback.message} />
+                    <div className={`absolute top-0 left-1/2 -translate-x-1/2 z-10 transition-all duration-500 ${isFeedbackFading ? 'opacity-0 -translate-y-4' : 'opacity-100 translate-y-0'}`}>
+                        <FeedbackMessage type="warning" message={transientFeedback.message} />
+                    </div>
+                )}
+                 {speechError && (
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 z-10">
+                        <FeedbackMessage type="error" message={speechError} />
+                    </div>
+                 )}
+                 {optionsError ? (
+                     <div className="flex-grow flex items-center justify-center">
+                        <FeedbackMessage type="error" message={optionsError} />
+                     </div>
+                 ) : isLoadingOptions ? (
+                    <div className="flex-grow flex flex-col justify-center items-center">
+                        <WordBankSkeleton />
+                        <p className="mt-4 text-slate-400">Подбираем слова...</p>
+                    </div>
+                 ) : (
+                    <div className="w-full bg-slate-900/50 flex flex-wrap items-start content-start justify-center gap-2 p-4 rounded-lg overflow-y-auto hide-scrollbar">
+                        {availableWords.map((word, index) => (
+                          <button
+                            key={word.id}
+                            draggable
+                            onDragStart={(e) => handleDragStart(e, word, 'available', index)}
+                            onDragEnd={handleDragEnd}
+                            onClick={() => handleSelectWord(word)}
+                            disabled={!!evaluation}
+                            className={`px-3 py-1.5 bg-slate-600 hover:bg-slate-500 text-slate-200 rounded-lg transition-all text-lg font-medium disabled:opacity-30 disabled:cursor-not-allowed cursor-grab active:cursor-grabbing ${hintWordId === word.id ? 'hint-glow' : ''}`}
+                          >
+                            {word.text}
+                          </button>
+                        ))}
                     </div>
                  )}
               </div>
               
-              <div className="flex-grow -mt-14 min-h-0 flex flex-col justify-end">
-                  <div className="flex-shrink-0 flex justify-center items-center gap-x-3 h-12 mb-2">
-                    {(isStuck || showPostHintButtons) && (
-                      <div className="flex justify-center items-center gap-x-3 animate-fade-in">
-                        {isStuck &&
-                          <button onClick={handleFailureAndReveal} className="px-3 py-1.5 rounded-full bg-slate-600/60 hover:bg-slate-600/80 transition-colors text-white font-medium text-sm">
-                            Не знаю
-                          </button>
-                        }
-                        <button onClick={handleFailureAndReveal} className="px-3 py-1.5 rounded-full bg-slate-600/60 hover:bg-slate-600/80 transition-colors text-white font-medium text-sm">
-                          Забыл
-                        </button>
-                        <button onClick={handleLearn} className="px-3 py-1.5 rounded-full bg-slate-600/60 hover:bg-slate-600/80 transition-colors text-white font-medium text-sm flex items-center gap-x-1.5">
-                            <BookOpenIcon className="w-4 h-4" />
-                            <span>Учить</span>
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                  <div className="w-full max-h-full bg-slate-900/50 flex flex-wrap items-end content-end justify-center gap-2 p-4 rounded-lg overflow-y-auto hide-scrollbar">
-                      {isLoadingOptions ? (
-                        <WordBankSkeleton />
-                      ) : optionsError ? (
-                        <div className="text-center text-red-400 p-4">{optionsError}</div>
-                      ) : (
-                        allWordOptions.map((word, index) => {
-                          const isUsed = constructedWordIds.has(word.id);
-                          return (
-                            <button 
-                              key={word.id}
-                              onClick={() => !isUsed && handleSelectWord(word)}
-                              draggable={!isUsed}
-                              onDragStart={(e) => !isUsed && handleDragStart(e, word, 'available', index)}
-                              onDragEnd={handleDragEnd}
-                              disabled={!!evaluation || isUsed} 
-                              className={`relative overflow-hidden px-3 py-1.5 bg-slate-600 text-slate-200 rounded-lg transition-all text-lg font-medium ${
-                                isUsed 
-                                ? 'invisible' 
-                                : `cursor-grab active:cursor-grabbing disabled:opacity-30 ${word.id === hintWordId ? 'word-hint-shine' : 'hover:bg-slate-500'}`
-                              }`}
+              <footer className="flex-shrink-0 pt-4 border-t border-slate-700/50 min-h-[80px] flex justify-center items-center">
+                   {!evaluation && (
+                      <div className="flex flex-col items-center justify-center w-full gap-y-4">
+                        <div className="flex items-center gap-x-4">
+                            <button
+                                onClick={handleCheck}
+                                disabled={constructedWords.length === 0 || isChecking}
+                                className="relative px-8 py-3 rounded-lg bg-green-600 hover:bg-green-700 transition-colors font-semibold text-white shadow-md disabled:bg-slate-600 disabled:cursor-not-allowed flex items-center justify-center min-w-[150px] h-[48px]"
                             >
-                                {word.text}
+                                <span className={`flex items-center transition-opacity ${isChecking ? 'opacity-0' : 'opacity-100'}`}>
+                                    <CheckIcon className="w-5 h-5 mr-2" />
+                                    <span>Проверить</span>
+                                </span>
+                                {isChecking && <div className="absolute inset-0 flex items-center justify-center"><div className="w-6 h-6 border-2 border-white/50 border-t-white rounded-full animate-spin"></div></div>}
                             </button>
-                          );
-                        })
-                      )}
-                  </div>
-              </div>
-
-              <div className="flex-shrink-0 pt-4 border-t border-slate-700/50 flex items-center justify-between relative min-h-[80px]">
-                  <button 
-                    onClick={handleMicClick} 
-                    disabled={isLoadingOptions || !!evaluation}
-                    className={`p-4 rounded-full transition-colors ${isListening ? 'bg-red-600 hover:bg-red-700 animate-pulse' : 'bg-slate-600 hover:bg-slate-500'} disabled:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50`}
-                  >
-                    <MicrophoneIcon className="w-6 h-6 text-white" />
-                  </button>
-                  
-                  {!evaluation && (
-                      <button onClick={handleCheck} disabled={constructedWords.length === 0 || isChecking} className="relative px-8 py-3 rounded-lg bg-green-600 hover:bg-green-700 transition-colors font-semibold text-white shadow-md disabled:bg-slate-600 disabled:cursor-not-allowed flex items-center justify-center min-w-[150px] h-[48px]">
-                          <span className={`flex items-center transition-opacity ${isChecking ? 'opacity-0' : 'opacity-100'}`}><CheckIcon className="w-5 h-5 mr-2" /><span>Проверить</span></span>
-                          {isChecking && <div className="absolute inset-0 flex items-center justify-center"><Spinner /></div>}
-                      </button>
-                  )}
-                  {/* Placeholder to keep mic button left-aligned */}
-                  {evaluation && <div />}
-
-                  {speechError && <p className="absolute -bottom-1 left-1/2 -translate-x-1/2 text-xs text-red-400 mt-1 w-full text-center">{speechError}</p>}
-              </div>
-              
-              <div className={`absolute bottom-0 left-0 right-0 p-6 pt-4 bg-slate-800 border-t border-slate-700/50 shadow-[0_-10px_20px_-5px_rgba(0,0,0,0.2)] transition-transform duration-300 ease-out ${evaluation ? 'translate-y-0' : 'translate-y-full'}`}>
-                {evaluation && (
-                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <div className={`flex-grow w-full sm:w-auto p-3 rounded-lg ${evaluation.isCorrect ? 'bg-green-500/20' : 'bg-red-500/20'} flex items-start space-x-3`}>
-                      <div className="flex-shrink-0 mt-0.5">{evaluation.isCorrect ? <CheckIcon className="w-5 h-5 text-green-400" /> : <XCircleIcon className="w-5 h-5 text-red-400" />}</div>
-                      <div>
-                        <p className="text-slate-200 text-sm">{evaluation.feedback}</p>
-                        {evaluation.correctedPhrase && <div className="mt-2 flex items-center gap-x-2 text-sm bg-slate-800/50 p-1.5 rounded-md"><AudioPlayer textToSpeak={evaluation.correctedPhrase} /><p className="text-slate-300"><strong className="font-semibold text-slate-100">{evaluation.correctedPhrase}</strong></p></div>}
+                             <button
+                                onClick={handleMicClick}
+                                disabled={isChecking}
+                                className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors flex-shrink-0 ${isListening ? 'bg-red-600 hover:bg-red-700' : 'bg-slate-600 hover:bg-slate-500'}`}
+                            >
+                                <MicrophoneIcon className="w-6 h-6 text-white" />
+                            </button>
+                        </div>
+                        
+                        {(isStuck || showPostHintButtons) && (
+                           <div className="flex items-center gap-x-2 animate-fade-in">
+                               <button onClick={handleLearn} className="flex items-center gap-x-2 px-3 py-1.5 rounded-full bg-slate-700 hover:bg-slate-600 transition-colors text-sm text-purple-300 font-medium"><BookOpenIcon className="w-4 h-4" /> Изучать с AI</button>
+                               <button onClick={handleFailureAndReveal} className="px-3 py-1.5 rounded-full bg-slate-700 hover:bg-slate-600 transition-colors text-sm text-slate-300 font-medium">Показать ответ</button>
+                           </div>
+                        )}
                       </div>
-                    </div>
-                    <div className="w-full sm:w-auto flex-shrink-0 flex items-center justify-center gap-3">
-                        {buttons.map(button => (
-                           <button
-                                key={button.key}
-                                onClick={button.action}
-                                className={`flex-1 p-3.5 rounded-lg transition-colors text-white shadow-md flex justify-center ${button.className}`}
-                                aria-label={button.label}
-                           >
-                             {button.icon}
-                           </button>
-                        ))}
-                    </div>
-                  </div>
-                )}
-              </div>
+                   )}
+                   {evaluation && (
+                       <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-4 animate-fade-in">
+                           <div className={`flex-grow w-full sm:w-auto p-3 rounded-lg ${evaluation.isCorrect ? 'bg-green-500/20' : 'bg-red-500/20'} flex items-start space-x-3`}>
+                                <div className="flex-shrink-0 mt-0.5">
+                                    {evaluation.isCorrect ? <CheckIcon className="w-5 h-5 text-green-400" /> : <XCircleIcon className="w-5 h-5 text-red-400" />}
+                                </div>
+                                <div>
+                                    <p className="text-slate-200 text-sm">{evaluation.feedback}</p>
+                                    {evaluation.correctedPhrase && (
+                                        <div className="mt-2 flex items-center gap-x-2 text-sm bg-slate-800/50 p-1.5 rounded-md">
+                                            <AudioPlayer textToSpeak={evaluation.correctedPhrase} />
+                                            <p className="text-slate-300"><strong className="font-semibold text-slate-100">{evaluation.correctedPhrase}</strong></p>
+                                        </div>
+                                    )}
+                                </div>
+                           </div>
+                           <div className="w-full sm:w-auto flex-shrink-0 flex items-center justify-center gap-3">
+                                {buttons.map(btn => (
+                                    <button
+                                        key={btn.key}
+                                        onClick={btn.action}
+                                        className={`p-3 rounded-full transition-colors text-white ${btn.className}`}
+                                        aria-label={btn.label}
+                                    >
+                                        {btn.icon}
+                                    </button>
+                                ))}
+                           </div>
+                       </div>
+                   )}
+              </footer>
           </div>
         </div>
       </div>
     </>
   );
 };
-
-export default VoiceWorkspaceModal;

@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import type { Phrase, WordAnalysis } from '../types';
-import Spinner from './Spinner';
 import ListIcon from './icons/ListIcon';
 import TrashIcon from './icons/TrashIcon';
 import MessageQuestionIcon from './icons/MessageQuestionIcon';
@@ -113,14 +112,24 @@ const PracticePageContextMenu: React.FC<PracticePageContextMenuProps> = ({
         <div className="p-1">
           {word && isAnalysisLoading && (
             <div className="flex items-center px-3 py-3 text-sm text-slate-400">
-              <Spinner className="w-5 h-5 mr-3 text-slate-300"/>
+              <div className="flex space-x-1 items-center justify-center text-slate-300 mr-3">
+                  <div className="w-2 h-2 bg-current rounded-full animate-pulse"></div>
+                  <div className="w-2 h-2 bg-current rounded-full animate-pulse" style={{ animationDelay: '0.1s' }}></div>
+                  <div className="w-2 h-2 bg-current rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+              </div>
               <span>Анализ...</span>
             </div>
           )}
 
           {!isAnalysisLoading && word && wordSpecificItems.filter(item => item.condition).map((item, index) => (
             <button key={index} onClick={item.action} disabled={item.loading} className="w-full flex items-center px-3 py-2 text-left text-sm hover:bg-slate-600/70 transition-colors rounded-md disabled:opacity-50">
-              {item.loading ? <Spinner className="w-5 h-5 mr-3 text-slate-300"/> : item.icon}
+              {item.loading ? (
+                <div className="flex space-x-1 items-center justify-center text-slate-300 mr-3">
+                    <div className="w-2 h-2 bg-current rounded-full animate-pulse"></div>
+                    <div className="w-2 h-2 bg-current rounded-full animate-pulse" style={{ animationDelay: '0.1s' }}></div>
+                    <div className="w-2 h-2 bg-current rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+                </div>
+              ) : item.icon}
               <span>{item.label}</span>
             </button>
           ))}

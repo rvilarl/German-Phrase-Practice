@@ -1,6 +1,5 @@
 import React from 'react';
 import type { Phrase, VerbConjugation } from '../types';
-import Spinner from './Spinner';
 import CloseIcon from './icons/CloseIcon';
 import TableIcon from './icons/TableIcon';
 import AudioPlayer from './AudioPlayer';
@@ -14,6 +13,30 @@ interface VerbConjugationModalProps {
   error: string | null;
   onOpenWordAnalysis: (phrase: Phrase, word: string) => void;
 }
+
+const VerbConjugationSkeleton: React.FC = () => (
+    <div className="bg-slate-700/50 p-4 rounded-lg animate-pulse">
+        <div className="w-full">
+            <div className="flex items-center p-3 border-b border-slate-600">
+                <div className="w-1/6"></div>
+                <div className="h-5 bg-slate-600 rounded w-1/4"></div>
+                <div className="h-5 bg-slate-600 rounded w-1/3 ml-auto"></div>
+            </div>
+            <div className="space-y-1 mt-1">
+                {[...Array(6)].map((_, i) => (
+                    <div key={i} className="flex items-center p-3 border-b border-slate-700 last:border-b-0">
+                        <div className="w-1/6">
+                            <div className="w-10 h-10 bg-slate-600 rounded-full"></div>
+                        </div>
+                        <div className="h-6 bg-slate-600 rounded w-1/4"></div>
+                        <div className="h-6 bg-slate-600 rounded w-1/3 ml-auto"></div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    </div>
+);
+
 
 const VerbConjugationModal: React.FC<VerbConjugationModalProps> = ({ isOpen, onClose, infinitive, data, isLoading, error, onOpenWordAnalysis }) => {
   if (!isOpen) return null;
@@ -51,7 +74,7 @@ const VerbConjugationModal: React.FC<VerbConjugationModalProps> = ({ isOpen, onC
 
   const renderContent = () => {
     if (isLoading) {
-      return <div className="flex flex-col justify-center items-center h-full"><Spinner className="h-10 w-10 text-purple-400" /><p className="mt-4 text-slate-400">Загружаем спряжение...</p></div>;
+      return <VerbConjugationSkeleton />;
     }
     if (error) {
       return <div className="flex justify-center items-center h-full"><div className="text-center bg-red-900/50 border border-red-700 text-red-300 p-4 rounded-lg"><p className="font-semibold">Ошибка</p><p className="text-sm">{error}</p></div></div>;

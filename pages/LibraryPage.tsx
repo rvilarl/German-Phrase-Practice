@@ -3,11 +3,23 @@ import ePub from 'epubjs';
 import { Book, BookRecord } from '../types';
 import * as dbService from '../services/dbService';
 import PlusIcon from '../components/icons/PlusIcon';
-import Spinner from '../components/Spinner';
 
 interface LibraryPageProps {
     onOpenBook: (bookId: number) => void;
 }
+
+const LibraryPageSkeleton: React.FC = () => (
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6 animate-pulse">
+        {[...Array(5)].map((_, i) => (
+            <div key={i}>
+                <div className="aspect-[2/3] bg-slate-700 rounded-lg"></div>
+                <div className="mt-2 h-4 bg-slate-700 rounded w-3/4"></div>
+                <div className="mt-1 h-3 bg-slate-700 rounded w-1/2"></div>
+            </div>
+        ))}
+    </div>
+);
+
 
 const LibraryPage: React.FC<LibraryPageProps> = ({ onOpenBook }) => {
     const [books, setBooks] = useState<BookRecord[]>([]);
@@ -106,7 +118,7 @@ const LibraryPage: React.FC<LibraryPageProps> = ({ onOpenBook }) => {
     return (
         <div className="w-full max-w-4xl mx-auto p-4 animate-fade-in">
             {isLoading ? (
-                <div className="flex justify-center items-center h-64"><Spinner /></div>
+                <LibraryPageSkeleton />
             ) : (
                 books.length === 0 ? (
                     <div className="text-center text-slate-400 py-16">
@@ -130,7 +142,13 @@ const LibraryPage: React.FC<LibraryPageProps> = ({ onOpenBook }) => {
                             </div>
                         ))}
                          <label className="relative aspect-[2/3] bg-slate-800/50 border-2 border-dashed border-slate-600 rounded-lg flex flex-col items-center justify-center text-slate-400 hover:bg-slate-700/50 hover:border-purple-500 transition-colors cursor-pointer">
-                            {isAddingBook ? <Spinner /> : <PlusIcon className="w-10 h-10" />}
+                            {isAddingBook ? (
+                                <div className="flex space-x-1 items-center justify-center text-slate-300">
+                                    <div className="w-2 h-2 bg-current rounded-full animate-pulse"></div>
+                                    <div className="w-2 h-2 bg-current rounded-full animate-pulse" style={{ animationDelay: '0.1s' }}></div>
+                                    <div className="w-2 h-2 bg-current rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+                                </div>
+                            ) : <PlusIcon className="w-10 h-10" />}
                             <span className="mt-2 text-sm font-semibold">{isAddingBook ? 'Добавляем...' : 'Добавить книгу'}</span>
                             <input type="file" accept=".epub" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onChange={handleFileChange} disabled={isAddingBook} />
                         </label>
