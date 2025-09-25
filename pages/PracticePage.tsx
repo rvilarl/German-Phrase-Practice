@@ -1,5 +1,6 @@
 
 
+
 import React, { useCallback, useRef, useState, useEffect, useMemo } from 'react';
 import type { Phrase, WordAnalysis, PhraseCategory, Category } from '../types';
 import PhraseCard from '../components/PhraseCard';
@@ -13,6 +14,7 @@ import { playCorrectSound } from '../services/soundService';
 import ArrowLeftIcon from '../components/icons/ArrowLeftIcon';
 import ArrowRightIcon from '../components/icons/ArrowRightIcon';
 import ChevronDownIcon from '../components/icons/ChevronDownIcon';
+import PlusIcon from '../components/icons/PlusIcon';
 
 
 const SWIPE_THRESHOLD = 50; // pixels
@@ -80,6 +82,7 @@ interface PracticePageProps {
   setPracticeCategoryFilter: (filter: 'all' | PhraseCategory) => void;
   onMarkPhraseAsSeen: (phraseId: string) => void;
   categories: Category[];
+  onAddCategory: () => void;
 }
 
 const CategoryFilter: React.FC<{
@@ -88,7 +91,8 @@ const CategoryFilter: React.FC<{
     enabledCategories: Record<PhraseCategory, boolean>;
     currentPhraseCategory: PhraseCategory | null;
     categories: Category[];
-}> = ({ currentFilter, onFilterChange, enabledCategories, currentPhraseCategory, categories }) => {
+    onAddCategory: () => void;
+}> = ({ currentFilter, onFilterChange, enabledCategories, currentPhraseCategory, categories, onAddCategory }) => {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
     const getCategoryNameById = (id: string) => categories.find(c => c.id === id)?.name || id;
@@ -111,6 +115,11 @@ const CategoryFilter: React.FC<{
         onFilterChange(filter);
         setIsOpen(false);
     };
+
+    const handleAddCategory = () => {
+        onAddCategory();
+        setIsOpen(false);
+    };
     
     const visibleCategories = categories.filter(cat => enabledCategories[cat.id]);
 
@@ -126,8 +135,8 @@ const CategoryFilter: React.FC<{
                 <ChevronDownIcon className={`w-5 h-5 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
             </button>
             {isOpen && (
-                <div className="absolute top-full mt-2 w-full bg-slate-700 border border-slate-600 rounded-lg shadow-lg z-20 animate-fade-in p-1">
-                    <ul>
+                <div className="absolute top-full mt-2 w-full bg-slate-700 border border-slate-600 rounded-lg shadow-lg z-20 animate-fade-in flex flex-col">
+                    <ul className="p-1 max-h-60 overflow-y-auto hide-scrollbar">
                         <li>
                             <button onClick={() => handleSelect('all')} className="w-full text-left px-3 py-2 text-slate-200 hover:bg-slate-600 rounded-md transition-colors">Все категории</button>
                         </li>
@@ -137,6 +146,12 @@ const CategoryFilter: React.FC<{
                             </li>
                         ))}
                     </ul>
+                    <div className="p-1 border-t border-slate-600 flex-shrink-0">
+                        <button onClick={handleAddCategory} className="w-full flex items-center justify-center gap-2 px-3 py-2 text-slate-300 hover:bg-slate-600 rounded-md transition-colors text-sm font-semibold">
+                            <PlusIcon className="w-4 h-4" />
+                            <span>Добавить категорию</span>
+                        </button>
+                    </div>
                 </div>
             )}
         </div>
@@ -156,7 +171,7 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
     settings, masteryButtonUsage, allPhrases, onCreateCard, onAnalyzeWord,
     onGenerateQuickReplyOptions, isWordAnalysisLoading, cardActionUsage, onLogCardActionUsage,
     cardHistoryLength, practiceCategoryFilter, setPracticeCategoryFilter, onMarkPhraseAsSeen,
-    categories
+    categories, onAddCategory
   } = props;
 
   const [contextMenuTarget, setContextMenuTarget] = useState<{ phrase: Phrase; word?: string } | null>(null);
@@ -428,6 +443,7 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
         enabledCategories={settings.enabledCategories}
         currentPhraseCategory={currentPhrase?.category || null}
         categories={categories}
+        onAddCategory={onAddCategory}
       />
       {renderContent()}
       {contextMenuTarget && (

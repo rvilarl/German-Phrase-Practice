@@ -290,6 +290,7 @@ const App: React.FC = () => {
   const [isCategoryFormModalOpen, setIsCategoryFormModalOpen] = useState(false);
   const [categoryToEdit, setCategoryToEdit] = useState<Category | null>(null);
   const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
+  const [isAddingCategoryFromPractice, setIsAddingCategoryFromPractice] = useState(false);
   
   // New state for auto-fill flow
   const [categoryToAutoFill, setCategoryToAutoFill] = useState<Category | null>(null);
@@ -1320,6 +1321,12 @@ const App: React.FC = () => {
       setCategoryToEdit(null);
       setIsCategoryFormModalOpen(true);
   };
+
+  const handleAddCategoryFromPractice = () => {
+    setIsAddingCategoryFromPractice(true);
+    setCategoryToEdit(null);
+    setIsCategoryFormModalOpen(true);
+  };
   
   const handleOpenCategoryFormForEdit = (category: Category) => {
       setIsCategoryManagerModalOpen(false);
@@ -1366,7 +1373,14 @@ const App: React.FC = () => {
         });
         setIsCategoryFormModalOpen(false);
         setCategoryToEdit(null);
+
+        // Always prompt to auto-fill a newly created category.
         setCategoryToAutoFill(newCategory);
+        
+        // Reset the flag, as its purpose is mainly for the form's close behavior.
+        if (isAddingCategoryFromPractice) {
+            setIsAddingCategoryFromPractice(false);
+        }
     }
     return true; // Signal success
   };
@@ -1815,6 +1829,7 @@ const App: React.FC = () => {
              setPracticeCategoryFilter={setPracticeCategoryFilter}
              onMarkPhraseAsSeen={handleMarkPhraseAsSeen}
              categories={categories}
+             onAddCategory={handleAddCategoryFromPractice}
            />;
         case 'list':
             return <PhraseListPage 
@@ -2120,7 +2135,10 @@ const App: React.FC = () => {
             isOpen={isCategoryFormModalOpen}
             onClose={() => {
                 setIsCategoryFormModalOpen(false);
-                setIsCategoryManagerModalOpen(true);
+                if (!isAddingCategoryFromPractice) {
+                    setIsCategoryManagerModalOpen(true);
+                }
+                setIsAddingCategoryFromPractice(false);
             }}
             onSubmit={handleSaveCategory}
             initialData={categoryToEdit}
@@ -2137,7 +2155,9 @@ const App: React.FC = () => {
             isOpen={!!categoryToAutoFill}
             onClose={() => {
                 setCategoryToAutoFill(null);
-                setIsCategoryManagerModalOpen(true);
+                if (!isAddingCategoryFromPractice) {
+                    setIsCategoryManagerModalOpen(true);
+                }
             }}
             onConfirm={handleStartAutoFill}
             category={categoryToAutoFill}
