@@ -52,9 +52,11 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
   const [showRefineInput, setShowRefineInput] = useState(false);
   const [refineText, setRefineText] = useState('');
   const [isRefining, setIsRefining] = useState(false);
+  const [isRefineListening, setIsRefineListening] = useState(false);
 
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const assistantRecognitionRef = useRef<SpeechRecognition | null>(null);
+  const refineRecognitionRef = useRef<SpeechRecognition | null>(null);
   const finalTranscriptRef = useRef('');
   
   const reset = useCallback(() => {
@@ -77,6 +79,9 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
     }
     if (assistantRecognitionRef.current) {
         assistantRecognitionRef.current.abort();
+    }
+    if (refineRecognitionRef.current) {
+        refineRecognitionRef.current.abort();
     }
   }, []);
 
@@ -235,7 +240,32 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
     assistantRecognitionRef.current = recognition;
     return () => recognition.abort();
   }, []);
+  
+  // Speech recognition for refine input
+  useEffect(() => {
+    const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognitionAPI) return;
 
+    const recognition = new SpeechRecognitionAPI();
+    recognition.lang = 'ru-RU';
+    recognition.interimResults = true;
+    recognition.continuous = false;
+
+    recognition.onstart = () => setIsRefineListening(true);
+    recognition.onend = () => setIsRefineListening(false);
+    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+        console.error('Refine speech recognition error:', event.error);
+        setIsRefineListening(false);
+    };
+    
+    recognition.onresult = (event) => {
+        const transcript = Array.from(event.results).map(result => result[0].transcript).join('');
+        setRefineText(transcript);
+    };
+
+    refineRecognitionRef.current = recognition;
+    return () => recognition.abort();
+  }, []);
 
   const handlePasteFromClipboard = async () => {
     if (!navigator.clipboard) return;
@@ -275,6 +305,15 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
     } else {
         setAssistantInput('');
         assistantRecognitionRef.current.start();
+    }
+  };
+  
+  const handleRefineMicClick = () => {
+    if (!refineRecognitionRef.current) return;
+    if (isRefineListening) {
+      refineRecognitionRef.current.stop();
+    } else {
+      refineRecognitionRef.current.start();
     }
   };
   
@@ -417,15 +456,20 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
   
   const renderPreviewContent = () => (
     <div className="flex flex-col h-full">
-        <header className="flex-shrink-0 flex items-center justify-center relative pb-4">
-             <button
-                onClick={() => setView('assistant')}
-                className="absolute left-0 p-2 -ml-2 rounded-full hover:bg-slate-700/80 transition-colors text-slate-300 hover:text-white"
-                aria-label="Назад"
-            >
-                <ArrowLeftIcon className="w-6 h-6"/>
+        <header className="flex-shrink-0 flex items-center justify-between pb-4">
+             <div className="flex items-center min-w-0">
+                <button
+                    onClick={() => setView('assistant')}
+                    className="p-2 -ml-2 rounded-full hover:bg-slate-700/80 transition-colors text-slate-300 hover:text-white"
+                    aria-label="Назад"
+                >
+                    <ArrowLeftIcon className="w-6 h-6"/>
+                </button>
+                <h2 className="text-xl font-bold text-slate-100 ml-2 truncate">Предложенные карточки</h2>
+            </div>
+            <button onClick={onClose} className="p-2 -mr-2 rounded-full hover:bg-slate-700/80">
+              <CloseIcon className="w-6 h-6 text-slate-400"/>
             </button>
-            <h2 className="text-xl font-bold text-slate-100">Предложенные карточки</h2>
         </header>
         <div className="flex-grow overflow-y-auto hide-scrollbar -mx-6 px-6 min-h-0">
             <ul className="space-y-2">
@@ -445,16 +489,25 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
         <footer className="flex-shrink-0 pt-4 border-t border-slate-700 space-y-3">
             {showRefineInput && (
                 <div className="flex items-center space-x-2">
-                    <input
-                        type="text"
-                        value={refineText}
-                        onChange={e => setRefineText(e.target.value)}
-                        onKeyDown={e => { if (e.key === 'Enter' && !isRefining) handleRefine(); }}
-                        placeholder="Уточнение, например: только глаголы"
-                        className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                        autoFocus
-                    />
-                    <button onClick={handleRefine} disabled={!refineText.trim() || isRefining} className="p-2 rounded-md bg-purple-600 hover:bg-purple-700 text-white font-semibold transition-colors disabled:opacity-50 flex-shrink-0 w-10 h-10 flex items-center justify-center">
+                    <div className="relative flex-grow">
+                         <input
+                            type="text"
+                            value={refineText}
+                            onChange={e => setRefineText(e.target.value)}
+                            onKeyDown={e => { if (e.key === 'Enter' && !isRefining) handleRefine(); }}
+                            placeholder="Уточнение, например: только глаголы"
+                            className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 pr-10 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            autoFocus
+                        />
+                        <button
+                          type="button"
+                          onClick={handleRefineMicClick}
+                          className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-white"
+                        >
+                          <MicrophoneIcon className={`w-5 h-5 ${isRefineListening ? 'text-purple-400' : ''}`} />
+                        </button>
+                    </div>
+                    <button onClick={handleRefine} disabled={!refineText.trim() || isRefining} className="p-2 w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-md bg-purple-600 hover:bg-purple-700 text-white font-semibold transition-colors disabled:opacity-50">
                         {isRefining ? <Spinner className="w-5 h-5" /> : <RefreshIcon className="w-5 h-5" />}
                     </button>
                 </div>
@@ -504,7 +557,7 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
   return (
     <div className="fixed inset-0 bg-black/70 z-[80] flex justify-center items-center backdrop-blur-sm p-4 animate-fade-in" onClick={onClose}>
         <div className="relative w-full max-w-2xl min-h-[34rem] h-[80vh] max-h-[600px] bg-slate-800/80 backdrop-blur-xl border border-slate-700 rounded-xl shadow-2xl flex flex-col p-6" onClick={e => e.stopPropagation()}>
-            <CloseIcon className="w-6 h-6 text-slate-400 absolute top-4 right-4 cursor-pointer hover:text-white" onClick={onClose} />
+            {(view === 'preview') ? null : <CloseIcon className="w-6 h-6 text-slate-400 absolute top-4 right-4 cursor-pointer hover:text-white" onClick={onClose} />}
             
             {(view === 'assistant' || view === 'speech') && (
                  <div className="flex-shrink-0 flex items-center justify-center space-x-2 bg-slate-900/50 rounded-full p-1 self-center mb-6">

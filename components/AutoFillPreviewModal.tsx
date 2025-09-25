@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { ProposedCard } from '../types';
+import React, { useState, useEffect, useRef } from 'react';
+import { ProposedCard, SpeechRecognition, SpeechRecognitionErrorEvent } from '../types';
 import CloseIcon from './icons/CloseIcon';
 import CheckIcon from './icons/CheckIcon';
 import Spinner from './Spinner';
 import SmartToyIcon from './icons/SmartToyIcon';
 import RefreshIcon from './icons/RefreshIcon';
 import WandIcon from './icons/WandIcon';
+import MicrophoneIcon from './icons/MicrophoneIcon';
 
 interface AutoFillPreviewModalProps {
   isOpen: boolean;
@@ -23,6 +24,8 @@ const AutoFillPreviewModal: React.FC<AutoFillPreviewModalProps> = ({
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
   const [showRefineInput, setShowRefineInput] = useState(false);
   const [refineText, setRefineText] = useState('');
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -31,6 +34,35 @@ const AutoFillPreviewModal: React.FC<AutoFillPreviewModalProps> = ({
       setRefineText('');
     }
   }, [isOpen, proposedCards]);
+  
+  useEffect(() => {
+    const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognitionAPI) {
+        console.warn('Speech Recognition is not supported in this browser.');
+        return;
+    }
+
+    const recognition = new SpeechRecognitionAPI();
+    recognition.lang = 'ru-RU';
+    recognition.interimResults = true;
+    recognition.continuous = false;
+
+    recognition.onstart = () => setIsListening(true);
+    recognition.onend = () => setIsListening(false);
+    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+        console.error('Speech recognition error:', event.error);
+        setIsListening(false);
+    };
+    
+    recognition.onresult = (event) => {
+        const transcript = Array.from(event.results)
+          .map(result => result[0].transcript)
+          .join('');
+        setRefineText(transcript);
+    };
+
+    recognitionRef.current = recognition;
+  }, []);
 
   if (!isOpen) return null;
 
@@ -61,6 +93,15 @@ const AutoFillPreviewModal: React.FC<AutoFillPreviewModalProps> = ({
     if (refineText.trim()) {
         onRefine(refineText);
         setShowRefineInput(false);
+    }
+  };
+  
+  const handleMicClick = () => {
+    if (!recognitionRef.current) return;
+    if (isListening) {
+      recognitionRef.current.stop();
+    } else {
+      recognitionRef.current.start();
     }
   };
 
@@ -113,16 +154,25 @@ const AutoFillPreviewModal: React.FC<AutoFillPreviewModalProps> = ({
         <div className="p-4 border-t border-slate-700 flex-shrink-0 space-y-3">
             {showRefineInput && (
                 <div className="flex items-center space-x-2">
-                    <input
-                        type="text"
-                        value={refineText}
-                        onChange={e => setRefineText(e.target.value)}
-                        placeholder="Например: только названия, без фраз"
-                        className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                        autoFocus
-                    />
-                    <button onClick={handleRefine} disabled={!refineText.trim() || isLoading} className="p-2 rounded-md bg-purple-600 hover:bg-purple-700 text-white font-semibold transition-colors disabled:opacity-50">
-                        <RefreshIcon className="w-5 h-5" />
+                    <div className="relative flex-grow">
+                        <input
+                            type="text"
+                            value={refineText}
+                            onChange={e => setRefineText(e.target.value)}
+                            placeholder="Например: только названия, без фраз"
+                            className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 pr-10 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            autoFocus
+                        />
+                        <button
+                            type="button"
+                            onClick={handleMicClick}
+                            className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-white"
+                        >
+                            <MicrophoneIcon className={`w-5 h-5 ${isListening ? 'text-purple-400' : ''}`} />
+                        </button>
+                    </div>
+                    <button onClick={handleRefine} disabled={!refineText.trim() || isLoading} className="p-2 w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-md bg-purple-600 hover:bg-purple-700 text-white font-semibold transition-colors disabled:opacity-50">
+                        {isLoading ? <Spinner className="w-5 h-5" /> : <RefreshIcon className="w-5 h-5" />}
                     </button>
                 </div>
             )}
