@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import type { Phrase, SpeechRecognition, SpeechRecognitionErrorEvent, TranslationChatResponse } from '../types';
+import type { Phrase, SpeechRecognition, SpeechRecognitionErrorEvent, TranslationChatResponse, Category } from '../types';
 import CloseIcon from './icons/CloseIcon';
 import MicrophoneIcon from './icons/MicrophoneIcon';
 import XCircleIcon from './icons/XCircleIcon';
@@ -11,10 +11,11 @@ interface EditPhraseModalProps {
     isOpen: boolean;
     onClose: () => void;
     phrase: Phrase;
-    onSave: (phraseId: string, newGerman: string, newRussian: string) => void;
+    onSave: (phraseId: string, updates: Partial<Omit<Phrase, 'id'>>) => void;
     onTranslate: (russianPhrase: string) => Promise<{ german: string }>;
     onDiscuss: (request: any) => Promise<TranslationChatResponse>;
     onOpenWordAnalysis: (phrase: Phrase, word: string) => void;
+    categories: Category[];
 }
 
 const useDebounce = (value: string, delay: number) => {
@@ -30,9 +31,10 @@ const useDebounce = (value: string, delay: number) => {
     return debouncedValue;
 };
 
-const EditPhraseModal: React.FC<EditPhraseModalProps> = ({ isOpen, onClose, phrase, onSave, onTranslate, onDiscuss, onOpenWordAnalysis }) => {
+const EditPhraseModal: React.FC<EditPhraseModalProps> = ({ isOpen, onClose, phrase, onSave, onTranslate, onDiscuss, onOpenWordAnalysis, categories }) => {
     const [russian, setRussian] = useState(phrase.russian);
     const [german, setGerman] = useState(phrase.german);
+    const [selectedCategory, setSelectedCategory] = useState(phrase.category);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [isListening, setIsListening] = useState(false);
@@ -46,6 +48,7 @@ const EditPhraseModal: React.FC<EditPhraseModalProps> = ({ isOpen, onClose, phra
         if (isOpen) {
             setRussian(phrase.russian);
             setGerman(phrase.german);
+            setSelectedCategory(phrase.category);
             setError(null);
             initialRussianRef.current = phrase.russian;
         }
@@ -92,7 +95,7 @@ const EditPhraseModal: React.FC<EditPhraseModalProps> = ({ isOpen, onClose, phra
     }, [debouncedRussian, onTranslate]);
     
     const handleSave = () => {
-        onSave(phrase.id, german, russian);
+        onSave(phrase.id, { german, russian, category: selectedCategory });
         onClose();
     };
 
@@ -161,6 +164,20 @@ const EditPhraseModal: React.FC<EditPhraseModalProps> = ({ isOpen, onClose, phra
                                     {isLoading ? <Spinner /> : german ? <AudioPlayer textToSpeak={german} /> : null}
                                 </div>
                             </div>
+                        </div>
+
+                         <div>
+                            <label htmlFor="category-select" className="block text-sm font-medium text-slate-400 mb-1">Категория</label>
+                            <select
+                                id="category-select"
+                                value={selectedCategory}
+                                onChange={(e) => setSelectedCategory(e.target.value)}
+                                className="w-full bg-slate-700 border border-slate-600 rounded-md p-3 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            >
+                                {categories.map(cat => (
+                                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                                ))}
+                            </select>
                         </div>
                         
                         <div className="pt-2 flex justify-between items-center">

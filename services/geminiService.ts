@@ -251,24 +251,22 @@ Example Output Format:
     }
 };
 
-const generateTopicCards: AiService['generateTopicCards'] = async (topic) => {
+const generateTopicCards: AiService['generateTopicCards'] = async (topic, refinement) => {
     const api = initializeApi();
     if (!api) throw new Error("Gemini API key not configured.");
 
+    const refinementPrompt = refinement
+        ? `\n\nПользователь был не удовлетворен предыдущими результатами и дал следующее уточнение: "${refinement}". Пожалуйста, сгенерируй новый список, строго следуя этому уточнению.`
+        : '';
+
     const prompt = `Ты — AI-ассистент для изучения немецкого языка. Пользователь хочет получить набор карточек на определенную тему.
 Тема запроса: "${topic}"
+${refinementPrompt}
 
 Твоя задача:
 1.  Проанализируй запрос пользователя.
-2.  Сгенерируй список полезных немецких слов и фраз с русским переводом по этой теме. Список должен быть достаточно полным для изучения, но не избыточным (обычно 10-20 карточек).
-3.  Верни результат ТОЛЬКО как JSON-массив объектов. Каждый объект должен иметь два ключа: 'russian' и 'german'.
-
-Пример для темы "цвета":
-[
-  { "russian": "красный", "german": "rot" },
-  { "russian": "синий", "german": "blau" },
-  { "russian": "зеленый", "german": "grün" }
-]`;
+2.  Сгенерируй список из 10-15 полезных, разнообразных немецких слов и фраз с русским переводом по этой теме. Фразы должны быть естественными и часто употребимыми.
+3.  Верни результат ТОЛЬКО как JSON-массив объектов. Каждый объект должен иметь два ключа: 'russian' и 'german'.`;
 
     try {
         const response = await api.models.generateContent({

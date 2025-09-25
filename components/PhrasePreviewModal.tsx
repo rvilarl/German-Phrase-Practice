@@ -18,7 +18,7 @@ const PhrasePreviewModal: React.FC<PhrasePreviewModalProps> = ({ phrase, onClose
 
   return (
     <div 
-        className="fixed inset-0 bg-black/70 z-50 flex flex-col justify-center items-center backdrop-blur-sm p-4" 
+        className="fixed inset-0 bg-black/70 z-[80] flex flex-col justify-center items-center backdrop-blur-sm p-4" 
         onClick={onClose}
     >
         <div className="[perspective:1000px] w-full max-w-md h-64" onClick={e => e.stopPropagation()}>

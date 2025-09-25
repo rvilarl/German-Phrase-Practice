@@ -18,6 +18,7 @@ interface PhraseListPageProps {
     onClearHighlight: () => void;
     onOpenSmartImport: () => void;
     categories: Category[];
+    onUpdatePhraseCategory: (phraseId: string, newCategoryId: string) => void;
 }
 
 type ListItem = 
@@ -25,7 +26,7 @@ type ListItem =
     | { type: 'phrase'; phrase: Phrase };
 
 
-const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, onDeletePhrase, onFindDuplicates, updateAndSavePhrases, onStartPractice, highlightedPhraseId, onClearHighlight, onOpenSmartImport, categories }) => {
+const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, onDeletePhrase, onFindDuplicates, updateAndSavePhrases, onStartPractice, highlightedPhraseId, onClearHighlight, onOpenSmartImport, categories, onUpdatePhraseCategory }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [categoryFilter, setCategoryFilter] = useState<'all' | PhraseCategory>('all');
     const [isProcessingDuplicates, setIsProcessingDuplicates] = useState(false);
@@ -420,6 +421,8 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
                                         onStartPractice={onStartPractice}
                                         categoryInfo={category}
                                         onCategoryClick={setCategoryFilter}
+                                        allCategories={categories}
+                                        onUpdatePhraseCategory={onUpdatePhraseCategory}
                                     />
                                 );
                             })}

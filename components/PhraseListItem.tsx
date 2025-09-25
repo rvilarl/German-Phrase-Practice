@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import type { Phrase, PhraseCategory, Category } from '../types';
 import ProgressBar from './ProgressBar';
 import PencilIcon from './icons/PencilIcon';
@@ -16,9 +16,13 @@ interface PhraseListItemProps {
     onStartPractice: (phrase: Phrase) => void;
     onCategoryClick: (category: PhraseCategory) => void;
     categoryInfo?: Category;
+    allCategories: Category[];
+    onUpdatePhraseCategory: (phraseId: string, newCategoryId: string) => void;
 }
 
-const PhraseListItem: React.FC<PhraseListItemProps> = React.memo(({ phrase, onEdit, onDelete, isDuplicate, isHighlighted, onPreview, onStartPractice, onCategoryClick, categoryInfo }) => {
+const PhraseListItem: React.FC<PhraseListItemProps> = React.memo(({ phrase, onEdit, onDelete, isDuplicate, isHighlighted, onPreview, onStartPractice, onCategoryClick, categoryInfo, allCategories, onUpdatePhraseCategory }) => {
+    const [isCategoryPopoverOpen, setIsCategoryPopoverOpen] = useState(false);
+    const popoverRef = useRef<HTMLDivElement>(null);
     
     const handleEditClick = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -34,6 +38,24 @@ const PhraseListItem: React.FC<PhraseListItemProps> = React.memo(({ phrase, onEd
         e.stopPropagation();
         onStartPractice(phrase);
     };
+
+    const handleCategoryChange = (e: React.MouseEvent, newCategoryId: string) => {
+        e.stopPropagation();
+        onUpdatePhraseCategory(phrase.id, newCategoryId);
+        setIsCategoryPopoverOpen(false);
+    };
+
+    useEffect(() => {
+        if (!isCategoryPopoverOpen) return;
+        const handleClickOutside = (event: MouseEvent) => {
+            if (popoverRef.current && !popoverRef.current.contains(event.target as Node)) {
+                setIsCategoryPopoverOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [isCategoryPopoverOpen]);
+
 
     const getRingClass = () => {
         if (isHighlighted) return 'ring-2 ring-cyan-400 ring-offset-2 ring-offset-slate-900';
@@ -57,16 +79,34 @@ const PhraseListItem: React.FC<PhraseListItemProps> = React.memo(({ phrase, onEd
             <div className="flex-grow">
                 <div className="flex items-center justify-between mb-1">
                     <p className="font-semibold text-slate-100">{phrase.russian}</p>
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onCategoryClick(phrase.category);
-                        }}
-                        className={`px-2 py-0.5 text-xs font-medium text-white rounded-full ${info.color} transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-white`}
-                        aria-label={`Фильтр по категории: ${info.name}`}
-                    >
-                        {info.name}
-                    </button>
+                    <div className="relative" ref={popoverRef}>
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setIsCategoryPopoverOpen(prev => !prev);
+                            }}
+                            className={`px-2 py-0.5 text-xs font-medium text-white rounded-full ${info.color} transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-white`}
+                            aria-label={`Текущая категория: ${info.name}. Нажмите, чтобы изменить.`}
+                        >
+                            {info.name}
+                        </button>
+                        {isCategoryPopoverOpen && (
+                            <div className="absolute top-full right-0 mt-2 w-48 bg-slate-700 border border-slate-600 rounded-md shadow-lg z-20 animate-fade-in p-1">
+                                <ul>
+                                    {allCategories.map(cat => (
+                                        <li key={cat.id}>
+                                            <button 
+                                                onClick={(e) => handleCategoryChange(e, cat.id)}
+                                                className="w-full text-left px-3 py-1.5 text-slate-200 text-sm hover:bg-slate-600 rounded-md transition-colors"
+                                            >
+                                                {cat.name}
+                                            </button>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+                    </div>
                 </div>
                 <p className="text-sm text-slate-400">{phrase.german}</p>
                 <div className="mt-2">

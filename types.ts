@@ -5,6 +5,7 @@ export interface Category {
   name: string;
   color: string;
   isFoundational: boolean;
+  isNew?: boolean; // Used to trigger auto-generation
 }
 
 export interface Phrase {

@@ -146,7 +146,7 @@ const ChatMessageContent: React.FC<{
                             <div key={`sug-${index}`} className="bg-slate-600/50 p-3 rounded-lg">
                                 <h4 className="font-semibold text-purple-300 mb-1">{suggestion.title}</h4>
                                 <div className="whitespace-pre-wrap leading-relaxed text-slate-300">
-                                    {suggestion.contentParts.map((part, partIndex) =>
+                                    {suggestion.contentParts && suggestion.contentParts.map((part, partIndex) =>
                                         part.type === 'german' ? (
                                             <span key={partIndex} className="inline-flex items-center align-middle bg-slate-500/50 px-1.5 py-0.5 rounded-md mx-0.5">
                                                 <span className="font-medium text-purple-200">{renderClickableGerman({ german: part.text, russian: part.translation || '' })}</span>

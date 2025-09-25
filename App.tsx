@@ -1,11 +1,8 @@
-
-
-
-
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Phrase, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, AdjectiveDeclension, SentenceContinuation, PhraseBuilderOptions, PhraseEvaluation, ChatMessage, PhraseCategory, ProposedCard, BookRecord, Category } from './types';
 import * as srsService from './services/srsService';
 import * as cacheService from './services/cacheService';
+import * as fuzzyService from './services/fuzzyService';
 import { getProviderPriorityList, getFallbackProvider, ApiProviderType } from './services/apiProvider';
 import { AiService } from './services/aiService';
 import { initialPhrases as defaultPhrases, foundationalPhrases } from './data/initialPhrases';
@@ -40,6 +37,13 @@ import Toast from './components/Toast';
 import BugIcon from './components/icons/BugIcon';
 import WandIcon from './components/icons/WandIcon';
 import MessageQuestionIcon from './components/icons/MessageQuestionIcon';
+import CategoryManagerModal from './components/CategoryManagerModal';
+import CategoryDetailModal from './components/CategoryDetailModal';
+import CategoryFormModal from './components/CategoryFormModal';
+import ConfirmDeleteCategoryModal from './components/ConfirmDeleteCategoryModal';
+import ConfirmCategoryFillModal from './components/ConfirmCategoryFillModal';
+import AutoFillLoadingModal from './components/AutoFillLoadingModal';
+import AutoFillPreviewModal from './components/AutoFillPreviewModal';
 
 
 const PHRASES_STORAGE_KEY = 'germanPhrases';
@@ -248,6 +252,7 @@ const App: React.FC = () => {
   const [addPhraseConfig, setAddPhraseConfig] = useState({ language: 'ru' as 'ru' | 'de', autoSubmit: true });
 
   const [isSmartImportModalOpen, setIsSmartImportModalOpen] = useState(false);
+  const [smartImportInitialTopic, setSmartImportInitialTopic] = useState<string | undefined>();
 
   const [isImproveModalOpen, setIsImproveModalOpen] = useState(false);
   const [phraseToImprove, setPhraseToImprove] = useState<Phrase | null>(null);
@@ -277,6 +282,20 @@ const App: React.FC = () => {
   
   const [isLeechModalOpen, setIsLeechModalOpen] = useState(false);
   const [leechPhrase, setLeechPhrase] = useState<Phrase | null>(null);
+
+  const [isCategoryManagerModalOpen, setIsCategoryManagerModalOpen] = useState(false);
+  const [categoryToView, setCategoryToView] = useState<Category | null>(null);
+  const [isCategoryFormModalOpen, setIsCategoryFormModalOpen] = useState(false);
+  const [categoryToEdit, setCategoryToEdit] = useState<Category | null>(null);
+  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
+  
+  // New state for auto-fill flow
+  const [categoryToAutoFill, setCategoryToAutoFill] = useState<Category | null>(null);
+  const [autoFillingCategory, setAutoFillingCategory] = useState<Category | null>(null);
+  const [isAutoFillPreviewOpen, setIsAutoFillPreviewOpen] = useState(false);
+  const [proposedCardsForFill, setProposedCardsForFill] = useState<ProposedCard[]>([]);
+  const [isRefining, setIsRefining] = useState(false);
+
   
   const isPrefetchingRef = useRef(false);
   const isQuickReplyPrefetchingRef = useRef(false);
@@ -526,6 +545,14 @@ const App: React.FC = () => {
             localStorage.setItem(PHRASES_STORAGE_KEY, JSON.stringify(newPhrases));
         } catch (e) { console.error("Failed to save phrases to storage", e); }
         return newPhrases;
+    });
+  }, []);
+
+  const updateAndSaveCategories = useCallback((updater: React.SetStateAction<Category[]>) => {
+    setCategories(prev => {
+        const newCategories = typeof updater === 'function' ? updater(prev) : updater;
+        localStorage.setItem(CATEGORIES_STORAGE_KEY, JSON.stringify(newCategories));
+        return newCategories;
     });
   }, []);
   
@@ -935,7 +962,7 @@ const App: React.FC = () => {
     [callApiWithFallback]
   );
   const handleGenerateTopicCards = useCallback(
-    (topic: string) => callApiWithFallback(provider => provider.generateTopicCards(topic)),
+    (topic: string, refinement?: string) => callApiWithFallback(provider => provider.generateTopicCards(topic, refinement)),
     [callApiWithFallback]
   );
 
@@ -956,17 +983,19 @@ const App: React.FC = () => {
         knowCount: 0,
         knowStreak: 0,
         isMastered: false,
-        category: 'general',
+        category: categoryToView?.id || 'general',
         lapses: 0,
         isNew: true,
     };
     updateAndSavePhrases(prev => [newPhrase, ...prev]);
     
     setIsAddPhraseModalOpen(false);
-    // Show the new card immediately
-    setCurrentPracticePhrase(newPhrase);
-    setIsPracticeAnswerRevealed(false);
-    setView('practice');
+
+    if (!categoryToView) {
+      setCurrentPracticePhrase(newPhrase);
+      setIsPracticeAnswerRevealed(false);
+      setView('practice');
+    }
   };
   
   const handleCreateCardsFromTranscript = (proposedCards: ProposedCard[]) => {
@@ -989,7 +1018,7 @@ const App: React.FC = () => {
                 knowCount: 0,
                 knowStreak: 0,
                 isMastered: false,
-                category: 'general',
+                category: categoryToView?.id || 'general',
                 lapses: 0,
                 isNew: true, // Mark as new
             };
@@ -1006,8 +1035,12 @@ const App: React.FC = () => {
     }
     showToast({ message: toastMessage });
     
-    setView('list');
-    setHighlightedPhraseId(newPhrases[0]?.id || null);
+    if (categoryToView) {
+        // Stay in category view
+    } else {
+        setView('list');
+        setHighlightedPhraseId(newPhrases[0]?.id || null);
+    }
   };
 
   const handleCreateCardFromWord = useCallback((phraseData: { german: string; russian: string; }) => {
@@ -1102,6 +1135,12 @@ const App: React.FC = () => {
     );
   };
 
+  const handleSavePhraseEdits = (phraseId: string, updates: Partial<Omit<Phrase, 'id'>>) => {
+    updateAndSavePhrases(prev =>
+      prev.map(p => (p.id === phraseId ? { ...p, ...updates } : p))
+    );
+  };
+
   const handleOpenEditModal = (phrase: Phrase) => {
     setPhraseToEdit(phrase);
     setIsEditModalOpen(true);
@@ -1181,6 +1220,160 @@ const App: React.FC = () => {
         });
     });
   }, [updateAndSavePhrases]);
+
+  const handleUpdatePhraseCategory = useCallback((phraseId: string, newCategoryId: string) => {
+    updateAndSavePhrases(prev =>
+      prev.map(p =>
+        p.id === phraseId
+          ? { ...p, category: newCategoryId }
+          : p
+      )
+    );
+  }, [updateAndSavePhrases]);
+
+  // --- Category Management Handlers ---
+  const handleOpenCategoryFormForAdd = () => {
+      setIsCategoryManagerModalOpen(false);
+      setCategoryToEdit(null);
+      setIsCategoryFormModalOpen(true);
+  };
+  
+  const handleOpenCategoryFormForEdit = (category: Category) => {
+      setIsCategoryManagerModalOpen(false);
+      setCategoryToEdit(category);
+      setIsCategoryFormModalOpen(true);
+  };
+  
+  const handleSaveCategory = (categoryData: { name: string; color: string }): boolean => {
+    const trimmedName = categoryData.name;
+    const lowercasedName = trimmedName.toLowerCase();
+    const capitalizedName = trimmedName.charAt(0).toUpperCase() + trimmedName.slice(1);
+    const finalCategoryData = { ...categoryData, name: capitalizedName };
+
+    if (categoryToEdit) { // Editing existing category
+        const isDuplicate = categories.some(
+            c => c.id !== categoryToEdit.id && c.name.trim().toLowerCase() === lowercasedName
+        );
+        if (isDuplicate) {
+            return false; // Signal failure: name already exists
+        }
+        
+        updateAndSaveCategories(prev => prev.map(c => c.id === categoryToEdit.id ? { ...c, ...finalCategoryData } : c));
+        setIsCategoryFormModalOpen(false);
+        setCategoryToEdit(null);
+        setIsCategoryManagerModalOpen(true);
+
+    } else { // Adding new category
+        const isDuplicate = categories.some(
+            c => c.name.trim().toLowerCase() === lowercasedName
+        );
+        if (isDuplicate) {
+            return false; // Signal failure: name already exists
+        }
+        
+        const newCategory: Category = {
+            id: finalCategoryData.name.toLowerCase().replace(/\s+/g, '-') + '-' + Date.now().toString(36),
+            name: finalCategoryData.name,
+            color: finalCategoryData.color,
+            isFoundational: false,
+        };
+        updateAndSaveCategories(prev => [...prev, newCategory]);
+        handleSettingsChange({
+            enabledCategories: { ...settings.enabledCategories, [newCategory.id]: true }
+        });
+        setIsCategoryFormModalOpen(false);
+        setCategoryToEdit(null);
+        setCategoryToAutoFill(newCategory);
+    }
+    return true; // Signal success
+  };
+
+  const handleConfirmDeleteCategory = ({ migrationTargetId }: { migrationTargetId: string | null }) => {
+    if (!categoryToDelete) return;
+    
+    if (migrationTargetId) {
+        updateAndSavePhrases(prev => prev.map(p => p.category === categoryToDelete.id ? { ...p, category: migrationTargetId } : p));
+    } else {
+        updateAndSavePhrases(prev => prev.filter(p => p.category !== categoryToDelete.id));
+    }
+    updateAndSaveCategories(prev => prev.filter(c => c.id !== categoryToDelete.id));
+    const newEnabled = { ...settings.enabledCategories };
+    delete newEnabled[categoryToDelete.id];
+    handleSettingsChange({ enabledCategories: newEnabled });
+    setCategoryToDelete(null);
+  };
+  
+  const handleAddPhraseFromCategoryDetail = () => {
+    handleOpenAddPhraseModal({ language: 'ru', autoSubmit: true });
+  };
+  
+  const handleAIAssistFromCategoryDetail = (topic?: string) => {
+      setCategoryToView(null);
+      setSmartImportInitialTopic(topic);
+      setIsSmartImportModalOpen(true);
+  };
+  
+  const handleStartAutoFill = async (category: Category) => {
+    if (!apiProvider) return;
+
+    setCategoryToAutoFill(null);
+    setAutoFillingCategory(category);
+
+    try {
+        const proposedCards = await handleGenerateTopicCards(category.name.replace(/^!/, '').trim());
+        setProposedCardsForFill(proposedCards);
+        setIsAutoFillPreviewOpen(true);
+    } catch (err) {
+      showToast({ message: err instanceof Error ? err.message : 'Ошибка генерации карточек.' });
+      setAutoFillingCategory(null);
+    }
+  };
+
+  const handleRefineAutoFill = async (refinement: string) => {
+    if (!autoFillingCategory) return;
+    setIsRefining(true);
+    try {
+        const proposedCards = await handleGenerateTopicCards(
+            autoFillingCategory.name.replace(/^!/, '').trim(),
+            refinement
+        );
+        setProposedCardsForFill(proposedCards);
+    } catch (err) {
+        showToast({ message: err instanceof Error ? err.message : 'Ошибка генерации карточек.' });
+    } finally {
+        setIsRefining(false);
+    }
+  };
+
+  const handleConfirmAutoFill = (selectedCards: ProposedCard[]) => {
+      if (!autoFillingCategory) return;
+
+      const existingGermanPhrases = allPhrases.map(p => p.german);
+      let addedCount = 0;
+      
+      const newPhrases: Phrase[] = selectedCards
+          .filter(p => !fuzzyService.isSimilar(p.german, existingGermanPhrases))
+          .map(p => {
+              addedCount++;
+              return {
+                  ...p,
+                  id: Math.random().toString(36).substring(2, 9),
+                  masteryLevel: 0, lastReviewedAt: null, nextReviewAt: Date.now(),
+                  knowCount: 0, knowStreak: 0, isMastered: false,
+                  category: autoFillingCategory.id, lapses: 0, isNew: true,
+              };
+          });
+
+      if (newPhrases.length > 0) {
+          updateAndSavePhrases(prev => [...newPhrases, ...prev]);
+      }
+      
+      showToast({ message: `✓ ${addedCount} карточек добавлено в категорию "${autoFillingCategory.name}".` });
+
+      setIsAutoFillPreviewOpen(false);
+      setCategoryToView(autoFillingCategory);
+      setAutoFillingCategory(null);
+  };
 
 
   // --- Practice Page Logic ---
@@ -1432,6 +1625,16 @@ const App: React.FC = () => {
     setView('reader');
   };
 
+  const phrasesForCategory = useMemo(() => {
+    if (!categoryToView) return [];
+    return allPhrases.filter(p => p.category === categoryToView.id);
+  }, [categoryToView, allPhrases]);
+
+  const phraseCountForDeletion = useMemo(() => {
+      if (!categoryToDelete) return 0;
+      return allPhrases.filter(p => p.category === categoryToDelete.id).length;
+  }, [categoryToDelete, allPhrases]);
+
   const renderCurrentView = () => {
     switch (view) {
         case 'practice':
@@ -1493,6 +1696,7 @@ const App: React.FC = () => {
                 onClearHighlight={() => setHighlightedPhraseId(null)}
                 onOpenSmartImport={() => setIsSmartImportModalOpen(true)}
                 categories={categories}
+                onUpdatePhraseCategory={handleUpdatePhraseCategory}
             />;
         case 'library':
             return <LibraryPage onOpenBook={handleOpenBook} />;
@@ -1501,8 +1705,6 @@ const App: React.FC = () => {
                 <ReaderPage
                     bookId={activeBookId}
                     onClose={() => setView('library')}
-                    onOpenWordAnalysis={handleOpenWordAnalysis}
-                    onCreateCardFromSelection={handleCreateCardFromSelection}
                 />
             ) : null;
         default:
@@ -1559,6 +1761,7 @@ const App: React.FC = () => {
         settings={settings} 
         onSettingsChange={handleSettingsChange} 
         categories={categories}
+        onOpenCategoryManager={() => setIsCategoryManagerModalOpen(true)}
       />
       {deepDivePhrase && <DeepDiveModal 
         isOpen={isDeepDiveModalOpen} 
@@ -1638,10 +1841,15 @@ const App: React.FC = () => {
       />}
       {apiProvider && <SmartImportModal 
           isOpen={isSmartImportModalOpen}
-          onClose={() => setIsSmartImportModalOpen(false)}
+          onClose={() => {
+              setIsSmartImportModalOpen(false);
+              setSmartImportInitialTopic(undefined);
+          }}
           onGenerateCards={handleGenerateCardsFromTranscript}
           onGenerateTopicCards={handleGenerateTopicCards}
           onCardsCreated={handleCreateCardsFromTranscript}
+          initialTopic={smartImportInitialTopic}
+          allPhrases={allPhrases}
       />}
        {phraseToImprove && <ImprovePhraseModal
           isOpen={isImproveModalOpen}
@@ -1655,10 +1863,11 @@ const App: React.FC = () => {
             isOpen={isEditModalOpen}
             onClose={() => setIsEditModalOpen(false)}
             phrase={phraseToEdit}
-            onSave={handlePhraseImproved}
+            onSave={handleSavePhraseEdits}
             onTranslate={handleTranslatePhrase}
             onDiscuss={handleDiscussTranslation}
             onOpenWordAnalysis={handleOpenWordAnalysis}
+            categories={categories}
        />}
        <ConfirmDeleteModal
             isOpen={isDeleteModalOpen}
@@ -1742,6 +1951,70 @@ const App: React.FC = () => {
         />}
         <PronounsModal isOpen={isPronounsModalOpen} onClose={() => setIsPronounsModalOpen(false)} onOpenWordAnalysis={handleOpenWordAnalysis} />
         <WFragenModal isOpen={isWFragenModalOpen} onClose={() => setIsWFragenModalOpen(false)} onOpenWordAnalysis={handleOpenWordAnalysis} />
+
+        {/* Category Management Modals */}
+        <CategoryManagerModal
+            isOpen={isCategoryManagerModalOpen}
+            onClose={() => setIsCategoryManagerModalOpen(false)}
+            categories={categories}
+            onAddCategory={handleOpenCategoryFormForAdd}
+            onEditCategory={handleOpenCategoryFormForEdit}
+            onDeleteCategory={setCategoryToDelete}
+            onViewCategory={setCategoryToView}
+        />
+        <CategoryDetailModal
+            isOpen={!!categoryToView}
+            onClose={() => setCategoryToView(null)}
+            category={categoryToView}
+            phrases={phrasesForCategory}
+            allCategories={categories}
+            onUpdatePhraseCategory={handleUpdatePhraseCategory}
+            onEditPhrase={handleOpenEditModal}
+            onDeletePhrase={handleDeletePhrase}
+            onPreviewPhrase={handleStartPracticeWithPhrase}
+            onStartPractice={handleStartPracticeWithPhrase}
+            onAddPhrase={handleAddPhraseFromCategoryDetail}
+            onAIAssist={handleAIAssistFromCategoryDetail}
+        />
+        <CategoryFormModal
+            isOpen={isCategoryFormModalOpen}
+            onClose={() => {
+                setIsCategoryFormModalOpen(false);
+                setIsCategoryManagerModalOpen(true);
+            }}
+            onSubmit={handleSaveCategory}
+            initialData={categoryToEdit}
+        />
+        <ConfirmDeleteCategoryModal
+            isOpen={!!categoryToDelete}
+            onClose={() => setCategoryToDelete(null)}
+            onConfirm={handleConfirmDeleteCategory}
+            category={categoryToDelete}
+            phraseCount={phraseCountForDeletion}
+            allCategories={categories}
+        />
+        <ConfirmCategoryFillModal
+            isOpen={!!categoryToAutoFill}
+            onClose={() => {
+                setCategoryToAutoFill(null);
+                setIsCategoryManagerModalOpen(true);
+            }}
+            onConfirm={handleStartAutoFill}
+            category={categoryToAutoFill}
+        />
+        <AutoFillLoadingModal isOpen={!!autoFillingCategory && !isAutoFillPreviewOpen} category={autoFillingCategory} />
+        <AutoFillPreviewModal
+            isOpen={isAutoFillPreviewOpen}
+            onClose={() => {
+                setIsAutoFillPreviewOpen(false);
+                setAutoFillingCategory(null);
+            }}
+            categoryName={autoFillingCategory?.name || ''}
+            proposedCards={proposedCardsForFill}
+            onConfirm={handleConfirmAutoFill}
+            onRefine={handleRefineAutoFill}
+            isLoading={isRefining}
+        />
     </div>
   );
 };
