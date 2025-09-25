@@ -68,7 +68,7 @@ const PhraseListItem: React.FC<PhraseListItemProps> = React.memo(({ phrase, onEd
     return (
         <li 
             id={`phrase-item-${phrase.id}`}
-            className={`relative bg-slate-400/10 backdrop-blur-xl border border-white/20 p-4 rounded-lg flex items-start space-x-4 cursor-pointer hover:bg-slate-400/20 transition-all duration-300 ${getRingClass()} ${isCategoryPopoverOpen ? 'z-30' : 'z-10'}`}
+            className={`relative bg-slate-400/10 backdrop-blur-xl border border-white/20 p-2 rounded-lg flex items-start space-x-4 cursor-pointer hover:bg-slate-400/20 transition-all duration-300 ${getRingClass()} ${isCategoryPopoverOpen ? 'z-30' : 'z-10'}`}
             onClick={() => onPreview(phrase)}
         >
             {phrase.isNew && (
@@ -79,78 +79,89 @@ const PhraseListItem: React.FC<PhraseListItemProps> = React.memo(({ phrase, onEd
             <div className="flex-grow">
                 <div className="flex items-center justify-between mb-1">
                     <p className="font-semibold text-slate-100">{phrase.russian}</p>
-                    <div className="relative" ref={popoverRef}>
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setIsCategoryPopoverOpen(prev => !prev);
-                            }}
-                            className={`px-2 py-0.5 text-xs font-medium text-white rounded-full ${info.color} transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-white`}
-                            aria-label={`Текущая категория: ${info.name}. Нажмите, чтобы изменить.`}
-                        >
-                            {info.name}
-                        </button>
-                        {isCategoryPopoverOpen && (
-                            <div className="absolute top-full right-0 mt-2 w-48 bg-slate-700 border border-slate-600 rounded-md shadow-lg z-20 animate-fade-in p-1">
-                                <ul>
-                                    {allCategories.map(cat => (
-                                        <li key={cat.id}>
-                                            <button 
-                                                onClick={(e) => handleCategoryChange(e, cat.id)}
-                                                className="w-full text-left px-3 py-1.5 text-slate-200 text-sm hover:bg-slate-600 rounded-md transition-colors"
-                                            >
-                                                {cat.name}
-                                            </button>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        )}
-                    </div>
                 </div>
                 <p className="text-sm text-slate-400">{phrase.german}</p>
                 <div className="mt-2">
                     <ProgressBar current={phrase.masteryLevel} max={srsService.MAX_MASTERY_LEVEL} />
                 </div>
+
             </div>
-            <div className="flex-shrink-0 flex items-center space-x-1">
-                <div className="relative group">
-                    <button 
-                        onClick={handlePracticeClick} 
-                        className="p-2 text-slate-400 hover:text-green-400 transition-colors"
-                        aria-label="Учить эту фразу"
-                    >
-                        <GraduationCapIcon className="w-5 h-5" />
-                    </button>
-                    <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 px-3 py-1 bg-slate-900/90 backdrop-blur-sm text-white text-xs rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 truncate max-w-40">
-                        Учить эту фразу
+
+            <div className="flex flex-col self-stretch justify-between">
+
+                {/* Кнопки */}
+                <div className="flex-shrink-0 flex items-center space-x-1">
+                    <div className="relative group">
+                        <button 
+                            onClick={handlePracticeClick} 
+                            className="p-2 text-slate-400 hover:text-green-400 transition-colors"
+                            aria-label="Учить эту фразу"
+                        >
+                            <GraduationCapIcon className="w-5 h-5" />
+                        </button>
+                        <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 px-3 py-1 bg-slate-900/90 backdrop-blur-sm text-white text-xs rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 truncate max-w-40">
+                            Учить эту фразу
+                        </div>
+                    </div>
+                    <div className="relative group">
+                        <button 
+                            onClick={handleEditClick} 
+                            className="p-2 text-slate-400 hover:text-blue-400 transition-colors"
+                            aria-label="Редактировать"
+                        >
+                            <PencilIcon className="w-5 h-5" />
+                        </button>
+                        <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 px-3 py-1 bg-slate-900/90 backdrop-blur-sm text-white text-xs rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 truncate max-w-40">
+                            Редактировать
+                        </div>
+                    </div>
+                    <div className="relative group">
+                        <button 
+                            onClick={handleDeleteClick} 
+                            className="p-2 text-slate-400 hover:text-red-400 transition-colors"
+                            aria-label="Удалить"
+                        >
+                            <TrashIcon className="w-5 h-5" />
+                        </button>
+                        <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 px-3 py-1 bg-slate-900/90 backdrop-blur-sm text-white text-xs rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 truncate max-w-40">
+                            Удалить
+                        </div>
                     </div>
                 </div>
-                <div className="relative group">
-                    <button 
-                        onClick={handleEditClick} 
-                        className="p-2 text-slate-400 hover:text-blue-400 transition-colors"
-                        aria-label="Редактировать"
+
+                {/* Маркер */}
+
+                <div className="mt-2 relative flex justify-end flex-grow items-end" ref={popoverRef}>
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setIsCategoryPopoverOpen(prev => !prev);
+                        }}
+                        className={`px-2 py-0.5 text-xs font-medium text-white rounded-full ${info.color} transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-white max-w-32 truncate whitespace-nowrap`}
+                        aria-label={`Текущая категория: ${info.name}. Нажмите, чтобы изменить.`}
                     >
-                        <PencilIcon className="w-5 h-5" />
+                        {info.name}
                     </button>
-                    <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 px-3 py-1 bg-slate-900/90 backdrop-blur-sm text-white text-xs rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 truncate max-w-40">
-                        Редактировать
-                    </div>
+                    {isCategoryPopoverOpen && (
+                        <div className="absolute top-full left-0 mt-2 w-48 bg-slate-700 border border-slate-600 rounded-md shadow-lg z-20 animate-fade-in p-1">
+                            <ul>
+                                {allCategories.map(cat => (
+                                    <li key={cat.id}>
+                                        <button
+                                            onClick={(e) => handleCategoryChange(e, cat.id)}
+                                            className="w-full text-left px-3 py-1.5 text-slate-200 text-sm hover:bg-slate-600 rounded-md transition-colors truncate whitespace-nowrap"
+                                        >
+                                            {cat.name}
+                                        </button>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
                 </div>
-                <div className="relative group">
-                    <button 
-                        onClick={handleDeleteClick} 
-                        className="p-2 text-slate-400 hover:text-red-400 transition-colors"
-                        aria-label="Удалить"
-                    >
-                        <TrashIcon className="w-5 h-5" />
-                    </button>
-                    <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 px-3 py-1 bg-slate-900/90 backdrop-blur-sm text-white text-xs rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 truncate max-w-40">
-                        Удалить
-                    </div>
-                </div>
+
             </div>
+            
         </li>
     );
 });
