@@ -50,6 +50,7 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
     const isLongPress = useRef(false);
 
     const searchInputRef = useRef<HTMLInputElement>(null);
+    const filterButtonsContainerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -280,6 +281,33 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
         }
     }, [highlightedPhraseId, onClearHighlight, listItems]);
 
+    // Прокрутка к активной кнопке фильтра
+    useEffect(() => {
+        if (!filterButtonsContainerRef.current) return;
+
+        const container = filterButtonsContainerRef.current;
+        const activeButton = container.querySelector('button.bg-purple-600') as HTMLButtonElement;
+        
+        if (!activeButton) return;
+
+        const containerRect = container.getBoundingClientRect();
+        const buttonRect = activeButton.getBoundingClientRect();
+
+        // Проверяем, видна ли кнопка полностью
+        const isFullyVisible =
+            buttonRect.left >= containerRect.left &&
+            buttonRect.right <= containerRect.right;
+
+        if (!isFullyVisible) {
+            // Если кнопка не полностью видна, прокручиваем к ней
+            activeButton.scrollIntoView({
+                behavior: 'smooth',
+                block: 'nearest',
+                inline: 'center'
+            });
+        }
+    }, [categoryFilter]);
+
 
     const handleFindDuplicates = async () => {
         setIsProcessingDuplicates(true);
@@ -340,6 +368,8 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
             <div className="w-full max-w-2xl mx-auto flex flex-col h-full">
                 <div className="flex-shrink-0 sticky top-20 z-20 p-2">
                     <div className="bg-slate-800/70 backdrop-blur-lg rounded-xl p-4 border border-slate-700">
+                        
+                        {/* Поиск */}
                         <div className="relative group">
                             <input
                                 ref={searchInputRef}
@@ -374,8 +404,13 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
                                 </button>
                             </div>
                         </div>
+
+                        {/* Кнопки фильтры категорий */}
                         <div className="mt-4">
-                            <div className="flex space-x-2 overflow-x-auto pb-2 hide-scrollbar">
+                            <div
+                                ref={filterButtonsContainerRef}
+                                className="flex space-x-2 overflow-x-auto pb-2 hide-scrollbar"
+                            >
                                 <button
                                     onPointerDown={(e) => handleButtonPointerDown(e, {id: 'all', name: 'Все', color: '', isFoundational: false})}
                                     onPointerUp={handleButtonPointerUp}
@@ -399,6 +434,11 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
                                 ))}
                             </div>
                         </div>
+
+                        {/* Количество карточек
+                            Работа с дубликатами
+                            Кнопка ассистента
+                        */}
                         <div className="flex justify-between items-center mt-3">
                             <span className="text-sm text-slate-400 pl-2">
                                {filteredPhrases.length} фраз
@@ -447,6 +487,7 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
                         </div>
                     </div>
                 </div>
+
                 <div className="flex-grow px-2 pb-6">
                     {listItems.length > 0 ? (
                         <ul className="space-y-2">
