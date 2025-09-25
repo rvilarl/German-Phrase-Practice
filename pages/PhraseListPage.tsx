@@ -395,7 +395,7 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
                         </div>
                     </div>
                 </div>
-                <div className="flex-grow overflow-y-auto px-2 pb-6 hide-scrollbar">
+                <div className="flex-grow px-2 pb-6">
                     {listItems.length > 0 ? (
                         <ul className="space-y-2">
                             {listItems.map((item, index) => {

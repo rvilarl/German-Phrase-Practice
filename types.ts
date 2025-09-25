@@ -1,3 +1,6 @@
+// FIX: Moved View type from App.tsx and exported it to be shared across components.
+export type View = 'practice' | 'list' | 'library' | 'reader';
+
 export type PhraseCategory = string;
 
 export interface Category {
@@ -143,6 +146,8 @@ export interface ChatMessage {
   isCorrect?: boolean;
   wordOptions?: string[];
   cheatSheetOptions?: CheatSheetOption[];
+  // For Category Assistant
+  assistantResponse?: CategoryAssistantResponse;
 }
 
 export interface DeepDiveAnalysis {
@@ -261,4 +266,20 @@ export interface Book {
 export interface BookRecord extends Book {
   id: number;
   coverUrl: string; // Blob URL created on retrieval
+}
+
+// Types for Category Assistant
+export interface CategoryAssistantResponse {
+  responseType: 'text' | 'proposed_cards' | 'phrases_to_review';
+  responseParts: ContentPart[];
+  promptSuggestions: string[];
+  proposedCards?: ProposedCard[];
+  phrasesToReview?: { german: string; reason: string }[];
+}
+
+export type CategoryAssistantRequestType = 'initial' | 'add_similar' | 'check_homogeneity' | 'create_dialogue' | 'user_text';
+
+export interface CategoryAssistantRequest {
+    type: CategoryAssistantRequestType;
+    text?: string;
 }

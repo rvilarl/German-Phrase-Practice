@@ -1,4 +1,4 @@
-import type { Phrase, ChatMessage, DeepDiveAnalysis, ContentPart, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, AdjectiveDeclension, SentenceContinuation, TranslationChatRequest, TranslationChatResponse, PhraseBuilderOptions, PhraseEvaluation } from '../types';
+import type { Phrase, ChatMessage, DeepDiveAnalysis, ContentPart, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, AdjectiveDeclension, SentenceContinuation, TranslationChatRequest, TranslationChatResponse, PhraseBuilderOptions, PhraseEvaluation, CategoryAssistantRequest, CategoryAssistantResponse } from '../types';
 import { AiService } from './aiService';
 import { getDeepseekApiKey } from './env';
 
@@ -76,6 +76,7 @@ const generateQuickReplyOptions: AiService['generateQuickReplyOptions'] = notImp
 const generateCardsFromTranscript: AiService['generateCardsFromTranscript'] = notImplemented;
 const generateTopicCards: AiService['generateTopicCards'] = notImplemented;
 const classifyTopic: AiService['classifyTopic'] = notImplemented;
+const getCategoryAssistantResponse: AiService['getCategoryAssistantResponse'] = notImplemented;
 
 const healthCheck: AiService['healthCheck'] = async () => {
     const apiKey = getDeepseekApiKey();
@@ -127,4 +128,5 @@ export const deepseekService: AiService = {
     generateCardsFromTranscript,
     generateTopicCards,
     classifyTopic,
+    getCategoryAssistantResponse,
 };

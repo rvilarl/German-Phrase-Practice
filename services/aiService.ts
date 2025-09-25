@@ -1,4 +1,4 @@
-import { Phrase, ChatMessage, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, AdjectiveDeclension, SentenceContinuation, TranslationChatRequest, TranslationChatResponse, PhraseBuilderOptions, PhraseEvaluation } from '../types';
+import { Phrase, ChatMessage, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, AdjectiveDeclension, SentenceContinuation, TranslationChatRequest, TranslationChatResponse, PhraseBuilderOptions, PhraseEvaluation, CategoryAssistantRequest, CategoryAssistantResponse } from '../types';
 
 export interface AiService {
   generatePhrases(prompt: string): Promise<Omit<Phrase, 'id'>[]>;
@@ -27,4 +27,5 @@ export interface AiService {
   generateCardsFromTranscript(transcript: string, sourceLang: 'ru' | 'de'): Promise<{ russian: string; german: string; }[]>;
   generateTopicCards(topic: string, refinement?: string, existingPhrases?: string[]): Promise<{ russian: string; german: string; }[]>;
   classifyTopic(topic: string): Promise<{ isCategory: boolean; categoryName: string; }>;
+  getCategoryAssistantResponse(categoryName: string, existingPhrases: Phrase[], request: CategoryAssistantRequest): Promise<CategoryAssistantResponse>;
 }

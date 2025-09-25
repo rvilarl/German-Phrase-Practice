@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import type { Phrase, ChatMessage, ExamplePair, ProactiveSuggestion, ContentPart, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, AdjectiveDeclension, SentenceContinuation, TranslationChatRequest, TranslationChatResponse, PhraseBuilderOptions, PhraseEvaluation } from '../types';
+import type { Phrase, ChatMessage, ExamplePair, ProactiveSuggestion, ContentPart, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, AdjectiveDeclension, SentenceContinuation, TranslationChatRequest, TranslationChatResponse, PhraseBuilderOptions, PhraseEvaluation, CategoryAssistantRequest, CategoryAssistantResponse, CategoryAssistantRequestType } from '../types';
 import { AiService } from './aiService';
 import { getGeminiApiKey } from './env';
 
@@ -1444,6 +1444,104 @@ const healthCheck: AiService['healthCheck'] = async () => {
     }
 };
 
+const categoryAssistantResponseSchema = {
+    type: Type.OBJECT,
+    properties: {
+        responseType: { type: Type.STRING, enum: ['text', 'proposed_cards', 'phrases_to_review'] },
+        responseParts: {
+            type: Type.ARRAY,
+            description: "The main text response, broken into segments of plain text and German text. Use Markdown for formatting like lists or bold text within 'text' type parts. Format dialogues using Markdown like '**Person A:** '.",
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    type: { type: Type.STRING, enum: ['text', 'german'] },
+                    text: { type: Type.STRING },
+                    translation: { type: Type.STRING, description: "Russian translation ONLY if type is 'german'." }
+                },
+                required: ["type", "text"],
+            }
+        },
+        promptSuggestions: {
+            type: Type.ARRAY,
+            description: "A list of 2-4 new, context-aware follow-up questions in Russian that the user might ask next.",
+            items: {
+                type: Type.STRING
+            }
+        },
+        proposedCards: {
+            type: Type.ARRAY,
+            description: 'A list of new cards. Only for responseType "proposed_cards".',
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    german: { type: Type.STRING },
+                    russian: { type: Type.STRING }
+                },
+                required: ['german', 'russian']
+            }
+        },
+        phrasesToReview: {
+            type: Type.ARRAY,
+            description: 'A list of inconsistent phrases. Only for responseType "phrases_to_review".',
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    german: { type: Type.STRING },
+                    reason: { type: Type.STRING, description: 'Reason in Russian.' }
+                },
+                required: ['german', 'reason']
+            }
+        },
+    },
+    required: ['responseType', 'responseParts', 'promptSuggestions']
+};
+
+
+const getCategoryAssistantResponse: AiService['getCategoryAssistantResponse'] = async (categoryName, existingPhrases, request) => {
+    const api = initializeApi();
+    if (!api) throw new Error("Gemini API key not configured.");
+    
+    const existingPhrasesText = existingPhrases.map(p => `"${p.german}"`).join(', ');
+
+    const requestTextMap: Record<CategoryAssistantRequestType, string> = {
+        initial: "Это первое открытие. Поприветствуй пользователя и предложи основные действия.",
+        add_similar: "Проанализируй существующие фразы и сгенерируй 10 новых, похожих по теме. Не повторяй существующие.",
+        check_homogeneity: "Проанализируй все фразы на тематическое единство. Укажи те, что не подходят, и объясни почему. Если все хорошо, так и скажи.",
+        create_dialogue: "Создай короткий диалог, используя как можно больше фраз из списка. Предоставь немецкий вариант с переводом в скобках после каждой реплики и отформатируй его с помощью Markdown.",
+        user_text: `Пользователь написал: "${request.text}". Ответь на его запрос.`
+    };
+
+    const prompt = `Ты — AI-ассистент в приложении для изучения немецкого. Ты находишься внутри категории "${categoryName}".
+Существующие фразы в категории: ${existingPhrasesText || "пока нет"}.
+
+Запрос пользователя: ${requestTextMap[request.type]}
+
+Твоя задача — выполнить запрос и вернуть ответ СТРОГО в формате JSON.
+- **responseType**: Тип ответа ('text', 'proposed_cards', 'phrases_to_review').
+- **responseParts**: Твой основной текстовый ответ, разбитый на части. Используй 'type':'german' для немецких слов с переводом. Для диалогов используй Markdown-форматирование (например, \`**Собеседник А:** ...\`) внутри частей с 'type':'text'.
+- **promptSuggestions**: ВСЕГДА предлагай 3-4 релевантных вопроса для продолжения диалога.
+- **proposedCards / phrasesToReview**: Заполняй эти поля только если тип ответа соответствующий.`;
+    
+    try {
+        const response = await api.models.generateContent({
+            model: model,
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: categoryAssistantResponseSchema,
+                temperature: 0.7,
+            },
+        });
+        
+        const jsonText = response.text.trim();
+        return JSON.parse(jsonText) as CategoryAssistantResponse;
+
+    } catch (error) {
+        console.error("Error with Category Assistant:", error);
+        throw new Error(`Failed to call the Gemini API: ${(error as any)?.message || 'Unknown error'}`);
+    }
+};
+
 
 export const geminiService: AiService = {
     generatePhrases,
@@ -1472,4 +1570,5 @@ export const geminiService: AiService = {
     generateCardsFromTranscript,
     generateTopicCards,
     classifyTopic,
+    getCategoryAssistantResponse,
 };

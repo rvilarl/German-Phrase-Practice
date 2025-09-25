@@ -2,8 +2,8 @@ import React from 'react';
 import SettingsIcon from './icons/SettingsIcon';
 import ListIcon from './icons/ListIcon';
 import PracticeIcon from './icons/PracticeIcon';
-
-type View = 'practice' | 'list' | 'library' | 'reader';
+// FIX: Import View type from shared types.ts
+import { View } from '../types';
 
 interface HeaderProps {
     view: View;

@@ -17,7 +17,7 @@ interface CategoryDetailModalProps {
   onPreviewPhrase: (phrase: Phrase) => void;
   onStartPractice: (phrase: Phrase) => void;
   onAddPhrase: () => void;
-  onAIAssist: (topic?: string) => void;
+  onAIAssist: (category: Category) => void;
 }
 
 const CategoryDetailModal: React.FC<CategoryDetailModalProps> = ({
@@ -25,19 +25,6 @@ const CategoryDetailModal: React.FC<CategoryDetailModalProps> = ({
 }) => {
   if (!isOpen || !category) return null;
 
-  const handleSmartAIAssist = () => {
-    // If category name starts with '!', use the rest as the topic.
-    if (category.name.startsWith('!')) {
-      const topic = category.name.substring(1).trim();
-      if (topic) {
-        onAIAssist(topic);
-        return;
-      }
-    }
-    // Otherwise, open the generic assistant.
-    onAIAssist();
-  };
-  
   return (
     <div className="fixed inset-0 bg-black/70 z-[70] flex justify-center items-center backdrop-blur-sm p-4 animate-fade-in" onClick={onClose}>
       <div className="bg-slate-800 rounded-lg shadow-2xl w-full max-w-2xl m-4 flex flex-col h-[90vh]" onClick={e => e.stopPropagation()}>
@@ -77,7 +64,7 @@ const CategoryDetailModal: React.FC<CategoryDetailModalProps> = ({
                       <PlusIcon className="w-5 h-5 text-purple-400"/>
                       <span>Добавить еще</span>
                   </button>
-                  <button onClick={handleSmartAIAssist} className="flex items-center gap-x-2 px-4 py-2 bg-slate-700/50 hover:bg-slate-700/80 rounded-lg transition-colors text-slate-200 font-semibold">
+                  <button onClick={() => onAIAssist(category)} className="flex items-center gap-x-2 px-4 py-2 bg-slate-700/50 hover:bg-slate-700/80 rounded-lg transition-colors text-slate-200 font-semibold">
                       <SmartToyIcon className="w-5 h-5 text-purple-400"/>
                       <span>AI Ассистент</span>
                   </button>
@@ -95,7 +82,7 @@ const CategoryDetailModal: React.FC<CategoryDetailModalProps> = ({
                     <span className="font-semibold text-slate-200">Добавить фразу</span>
                 </button>
                 <button
-                    onClick={handleSmartAIAssist}
+                    onClick={() => onAIAssist(category)}
                     className="w-40 h-40 bg-slate-700/50 hover:bg-slate-700/80 rounded-2xl flex flex-col items-center justify-center transition-colors"
                 >
                     <SmartToyIcon className="w-12 h-12 text-purple-400 mb-2"/>

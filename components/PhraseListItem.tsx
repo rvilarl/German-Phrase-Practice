@@ -68,7 +68,7 @@ const PhraseListItem: React.FC<PhraseListItemProps> = React.memo(({ phrase, onEd
     return (
         <li 
             id={`phrase-item-${phrase.id}`}
-            className={`relative bg-slate-400/10 backdrop-blur-xl border border-white/20 p-4 rounded-lg flex items-start space-x-4 cursor-pointer hover:bg-slate-400/20 transition-all duration-300 ${getRingClass()}`}
+            className={`relative bg-slate-400/10 backdrop-blur-xl border border-white/20 p-4 rounded-lg flex items-start space-x-4 cursor-pointer hover:bg-slate-400/20 transition-all duration-300 ${getRingClass()} ${isCategoryPopoverOpen ? 'z-30' : 'z-10'}`}
             onClick={() => onPreview(phrase)}
         >
             {phrase.isNew && (

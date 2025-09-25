@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Phrase, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, AdjectiveDeclension, SentenceContinuation, PhraseBuilderOptions, PhraseEvaluation, ChatMessage, PhraseCategory, ProposedCard, BookRecord, Category } from './types';
+// FIX: Import View type from shared types.ts
+import { Phrase, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, AdjectiveDeclension, SentenceContinuation, PhraseBuilderOptions, PhraseEvaluation, ChatMessage, PhraseCategory, ProposedCard, BookRecord, Category, CategoryAssistantRequest, CategoryAssistantResponse, View } from './types';
 import * as srsService from './services/srsService';
 import * as cacheService from './services/cacheService';
 import { getProviderPriorityList, getFallbackProvider, ApiProviderType } from './services/apiProvider';
@@ -44,6 +45,7 @@ import ConfirmCategoryFillModal from './components/ConfirmCategoryFillModal';
 import AutoFillLoadingModal from './components/AutoFillLoadingModal';
 import AutoFillPreviewModal from './components/AutoFillPreviewModal';
 import MoveOrSkipModal from './components/MoveOrSkipModal';
+import CategoryAssistantModal from './components/CategoryAssistantModal';
 
 
 const PHRASES_STORAGE_KEY = 'germanPhrases';
@@ -54,7 +56,7 @@ const MASTERY_BUTTON_USAGE_STORAGE_KEY = 'germanAppMasteryButtonUsage';
 const HABIT_TRACKER_STORAGE_KEY = 'germanAppHabitTracker';
 const CARD_ACTION_USAGE_STORAGE_KEY = 'germanAppCardActionUsage';
 
-type View = 'practice' | 'list' | 'library' | 'reader';
+// FIX: Removed local View type definition. It's now imported from types.ts
 type AnimationDirection = 'left' | 'right';
 interface AnimationState {
   key: string;
@@ -304,6 +306,10 @@ const App: React.FC = () => {
     targetCategory: Category;
   } | null>(null);
 
+  // New state for Category Assistant
+  const [assistantCache, setAssistantCache] = useState<{ [categoryId: string]: ChatMessage[] }>({});
+  const [isCategoryAssistantModalOpen, setIsCategoryAssistantModalOpen] = useState(false);
+  const [assistantCategory, setAssistantCategory] = useState<Category | null>(null);
   
   const isPrefetchingRef = useRef(false);
   const isQuickReplyPrefetchingRef = useRef(false);
@@ -977,6 +983,11 @@ const App: React.FC = () => {
     (topic: string) => callApiWithFallback(provider => provider.classifyTopic(topic)),
     [callApiWithFallback]
   );
+  const handleGetCategoryAssistantResponse = useCallback(
+    (categoryName: string, existingPhrases: Phrase[], request: CategoryAssistantRequest) => 
+        callApiWithFallback(provider => provider.getCategoryAssistantResponse(categoryName, existingPhrases, request)),
+    [callApiWithFallback]
+  );
 
 
   const handleOpenAddPhraseModal = (options: { language: 'ru' | 'de'; autoSubmit: boolean }) => {
@@ -986,6 +997,19 @@ const App: React.FC = () => {
   };
 
   const handlePhraseCreated = (newPhraseData: { german: string; russian: string }) => {
+    const normalizedGerman = newPhraseData.german.trim().toLowerCase();
+    const isDuplicate = allPhrases.some(p => p.german.trim().toLowerCase() === normalizedGerman);
+    const isDuplicateInCategory = categoryToView ? allPhrases.some(p => p.category === categoryToView.id && p.german.trim().toLowerCase() === normalizedGerman) : false;
+
+    if (isDuplicateInCategory) {
+        showToast({ message: `Карточка "${newPhraseData.german}" уже есть в этой категории.` });
+        return;
+    } else if (isDuplicate) {
+        showToast({ message: `Карточка "${newPhraseData.german}" уже существует в другой категории.` });
+        return;
+    }
+
+
     const newPhrase: Phrase = {
         ...newPhraseData,
         id: Math.random().toString(36).substring(2, 9),
@@ -1040,7 +1064,7 @@ const App: React.FC = () => {
         }
     }
     
-    const targetCategoryId = finalCategoryId || categoryToView?.id || 'general';
+    const targetCategoryId = finalCategoryId || assistantCategory?.id || categoryToView?.id || 'general';
     const targetCategory = newCategory || categories.find(c => c.id === targetCategoryId);
 
     if (!targetCategory) {
@@ -1087,14 +1111,14 @@ const App: React.FC = () => {
     }
     showToast({ message: toastMessage });
     
-    if (categoryToView) { /* stay in view */ } 
+    if (categoryToView || assistantCategory) { /* stay in view */ } 
     else {
         setView('list');
         // This is tricky because addCardsToCategory doesn't return the new phrases, just the count.
         // For simplicity, we'll just switch to the list view without highlighting.
         setHighlightedPhraseId(null);
     }
-  }, [allPhrases, categories, categoryToView, settings.enabledCategories, handleSettingsChange, showToast, updateAndSaveCategories, updateAndSavePhrases]);
+  }, [allPhrases, categories, categoryToView, assistantCategory, settings.enabledCategories, handleSettingsChange, showToast, updateAndSaveCategories, updateAndSavePhrases]);
 
 
   const handleCreateCardFromWord = useCallback((phraseData: { german: string; russian: string; }) => {
@@ -1361,10 +1385,10 @@ const App: React.FC = () => {
     handleOpenAddPhraseModal({ language: 'ru', autoSubmit: true });
   };
   
-  const handleAIAssistFromCategoryDetail = (topic?: string) => {
-      setCategoryToView(null);
-      setSmartImportInitialTopic(topic);
-      setIsSmartImportModalOpen(true);
+  const handleOpenCategoryAssistant = (category: Category) => {
+      setCategoryToView(null); // Close detail view
+      setAssistantCategory(category);
+      setIsCategoryAssistantModalOpen(true);
   };
   
   const handleStartAutoFill = async (category: Category) => {
@@ -2065,7 +2089,10 @@ const App: React.FC = () => {
             onAddCategory={handleOpenCategoryFormForAdd}
             onEditCategory={handleOpenCategoryFormForEdit}
             onDeleteCategory={setCategoryToDelete}
-            onViewCategory={setCategoryToView}
+            onViewCategory={(category) => {
+                setCategoryToView(category);
+                setIsCategoryManagerModalOpen(false);
+            }}
         />
         <CategoryDetailModal
             isOpen={!!categoryToView}
@@ -2079,7 +2106,7 @@ const App: React.FC = () => {
             onPreviewPhrase={handleStartPracticeWithPhrase}
             onStartPractice={handleStartPracticeWithPhrase}
             onAddPhrase={handleAddPhraseFromCategoryDetail}
-            onAIAssist={handleAIAssistFromCategoryDetail}
+            onAIAssist={handleOpenCategoryAssistant}
         />
         <CategoryFormModal
             isOpen={isCategoryFormModalOpen}
@@ -2128,6 +2155,32 @@ const App: React.FC = () => {
             onMove={handleMoveReviewedDuplicates}
             onAddOnlyNew={handleAddOnlyNewFromReview}
         />
+        {assistantCategory && (
+            <CategoryAssistantModal
+                isOpen={isCategoryAssistantModalOpen}
+                onClose={(view?: View) => {
+                    setIsCategoryAssistantModalOpen(false);
+                    if (view) {
+                        setView(view);
+                    }
+                }}
+                category={assistantCategory}
+                phrases={allPhrases.filter(p => p.category === assistantCategory.id)}
+                onGetAssistantResponse={handleGetCategoryAssistantResponse}
+                onAddCards={handleCreateProposedCards}
+                cache={assistantCache}
+                setCache={setAssistantCache}
+                onOpenWordAnalysis={handleOpenWordAnalysis}
+                allPhrases={allPhrases}
+                onCreateCard={handleCreateCardFromWord}
+                onAnalyzeWord={analyzeWord}
+                onOpenVerbConjugation={handleOpenVerbConjugation}
+                onOpenNounDeclension={handleOpenNounDeclension}
+                onOpenAdjectiveDeclension={handleOpenAdjectiveDeclension}
+                onTranslateGermanToRussian={handleTranslateGermanToRussian}
+                onGoToList={() => setView('list')}
+            />
+        )}
     </div>
   );
 };
