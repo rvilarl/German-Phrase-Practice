@@ -114,27 +114,42 @@ const PhraseListItem: React.FC<PhraseListItemProps> = React.memo(({ phrase, onEd
                 </div>
             </div>
             <div className="flex-shrink-0 flex items-center space-x-1">
-                 <button 
-                    onClick={handlePracticeClick} 
-                    className="p-2 text-slate-400 hover:text-green-400 transition-colors"
-                    aria-label="Учить эту фразу"
-                >
-                    <GraduationCapIcon className="w-5 h-5" />
-                </button>
-                <button 
-                    onClick={handleEditClick} 
-                    className="p-2 text-slate-400 hover:text-blue-400 transition-colors"
-                    aria-label="Редактировать фразу"
-                >
-                    <PencilIcon className="w-5 h-5" />
-                </button>
-                <button 
-                    onClick={handleDeleteClick} 
-                    className="p-2 text-slate-400 hover:text-red-400 transition-colors"
-                    aria-label="Удалить фразу"
-                >
-                    <TrashIcon className="w-5 h-5" />
-                </button>
+                <div className="relative group">
+                    <button 
+                        onClick={handlePracticeClick} 
+                        className="p-2 text-slate-400 hover:text-green-400 transition-colors"
+                        aria-label="Учить эту фразу"
+                    >
+                        <GraduationCapIcon className="w-5 h-5" />
+                    </button>
+                    <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 px-3 py-1 bg-slate-900/90 backdrop-blur-sm text-white text-xs rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 truncate max-w-40">
+                        Учить эту фразу
+                    </div>
+                </div>
+                <div className="relative group">
+                    <button 
+                        onClick={handleEditClick} 
+                        className="p-2 text-slate-400 hover:text-blue-400 transition-colors"
+                        aria-label="Редактировать"
+                    >
+                        <PencilIcon className="w-5 h-5" />
+                    </button>
+                    <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 px-3 py-1 bg-slate-900/90 backdrop-blur-sm text-white text-xs rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 truncate max-w-40">
+                        Редактировать
+                    </div>
+                </div>
+                <div className="relative group">
+                    <button 
+                        onClick={handleDeleteClick} 
+                        className="p-2 text-slate-400 hover:text-red-400 transition-colors"
+                        aria-label="Удалить"
+                    >
+                        <TrashIcon className="w-5 h-5" />
+                    </button>
+                    <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 px-3 py-1 bg-slate-900/90 backdrop-blur-sm text-white text-xs rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 truncate max-w-40">
+                        Удалить
+                    </div>
+                </div>
             </div>
         </li>
     );
