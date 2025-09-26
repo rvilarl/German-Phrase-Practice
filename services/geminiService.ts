@@ -964,21 +964,22 @@ const analyzeWordInPhrase: AiService['analyzeWordInPhrase'] = async (phrase, wor
     }
 };
 
-const conjugationFormSchema = {
+const pronounConjugationSchema = {
     type: Type.OBJECT,
     properties: {
-        german: { type: Type.STRING, description: 'The full example sentence in German for the given pronoun, tense, and form.' },
+        pronoun: { type: Type.STRING, description: 'The personal pronoun (e.g., "ich", "du", "er/sie/es").' },
+        german: { type: Type.STRING, description: 'The full example sentence in German for this pronoun.' },
         russian: { type: Type.STRING, description: 'The Russian translation of the German sentence.' },
     },
-    required: ["german", "russian"],
+    required: ["pronoun", "german", "russian"],
 };
 
 const tenseFormsSchema = {
     type: Type.OBJECT,
     properties: {
-        statement: { ...conjugationFormSchema, description: "A declarative statement (e.g., 'I go')." },
-        question: { ...conjugationFormSchema, description: "An interrogative sentence (e.g., 'Do I go?')." },
-        negative: { ...conjugationFormSchema, description: "A negative sentence (e.g., 'I do not go')." },
+        statement: { type: Type.ARRAY, items: pronounConjugationSchema, description: "An array of declarative statements for all pronouns." },
+        question: { type: Type.ARRAY, items: pronounConjugationSchema, description: "An array of interrogative sentences for all pronouns." },
+        negative: { type: Type.ARRAY, items: pronounConjugationSchema, description: "An array of negative sentences for all pronouns." },
     },
     required: ["statement", "question", "negative"],
 };
@@ -998,16 +999,21 @@ const conjugateVerb: AiService['conjugateVerb'] = async (infinitive) => {
     const api = initializeApi();
     if (!api) throw new Error("Gemini API key not configured.");
 
-    const prompt = `Ты — эксперт по грамматике немецкого языка. Предоставь матрицу спряжения для глагола "${infinitive}".
+    const prompt = `Ты — эксперт по грамматике немецкого языка. Предоставь полную матрицу спряжения для глагола "${infinitive}".
 
 Матрица должна включать три времени (прошедшее, настоящее, будущее) и три формы (утвердительная, вопросительная, отрицательная).
 
+**КЛЮЧЕВОЕ ТРЕБОВАНИЕ:** Для каждой ячейки матрицы (например, "Настоящее время, Утверждение") предоставь полный список спряжений для ВСЕХ личных местоимений: ich, du, er/sie/es, wir, ihr, sie/Sie.
+
 Правила:
-1.  Используй местоимение "ich" (я) как основу для всех примеров.
+1.  Для каждого местоимения в каждой ячейке предоставь:
+    - 'pronoun': само местоимение (например, "ich", "du"). Для 'er/sie/es' и 'sie/Sie' используй именно такую запись.
+    - 'german': полный, грамматически верный пример предложения.
+    - 'russian': точный перевод этого предложения на русский.
 2.  Для прошедшего времени используй Perfekt (например, "ich habe gesagt").
 3.  Для будущего времени используй Futur I (например, "ich werde sagen").
-4.  Для каждой ячейки матрицы (всего 9) предоставь полный пример предложения на немецком и его перевод на русский.
-5.  Отрицание строй с помощью "nicht" в правильной позиции. Вопросительное предложение начинай с глагола (Ja/Nein-Frage).
+4.  Отрицание строй с помощью "nicht" в правильной позиции.
+5.  Вопросительное предложение начинай с глагола (Ja/Nein-Frage).
 
 Верни результат в виде JSON-объекта, соответствующего предоставленной схеме.`;
 

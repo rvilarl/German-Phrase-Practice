@@ -58,15 +58,16 @@ export interface WordAnalysis {
   exampleSentenceTranslation: string;
 }
 
-export interface ConjugationForm {
+export interface PronounConjugation {
+    pronoun: string;
     german: string;
     russian: string;
 }
 
 export interface TenseForms {
-    statement: ConjugationForm;
-    question: ConjugationForm;
-    negative: ConjugationForm;
+    statement: PronounConjugation[];
+    question: PronounConjugation[];
+    negative: PronounConjugation[];
 }
 
 export interface VerbConjugation {
