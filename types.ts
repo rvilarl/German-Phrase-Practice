@@ -270,11 +270,12 @@ export interface BookRecord extends Book {
 
 // Types for Category Assistant
 export interface CategoryAssistantResponse {
-  responseType: 'text' | 'proposed_cards' | 'phrases_to_review';
+  responseType: 'text' | 'proposed_cards' | 'phrases_to_review' | 'phrases_to_delete';
   responseParts: ContentPart[];
   promptSuggestions: string[];
   proposedCards?: ProposedCard[];
   phrasesToReview?: { german: string; reason: string }[];
+  phrasesForDeletion?: { german: string; reason: string }[];
 }
 
 export type CategoryAssistantRequestType = 'initial' | 'add_similar' | 'check_homogeneity' | 'create_dialogue' | 'user_text';

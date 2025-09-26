@@ -21,6 +21,7 @@ interface CategoryAssistantModalProps {
   phrases: Phrase[];
   onGetAssistantResponse: (categoryName: string, existingPhrases: Phrase[], request: CategoryAssistantRequest) => Promise<ChatMessage['assistantResponse']>;
   onAddCards: (cards: ProposedCard[], options: { categoryId: string }) => void;
+  onOpenConfirmDeletePhrases: (phrases: Phrase[], sourceCategory: Category) => void;
   cache: { [categoryId: string]: ChatMessage[] };
   setCache: React.Dispatch<React.SetStateAction<{ [categoryId: string]: ChatMessage[] }>>;
   // Props for interactivity
@@ -114,7 +115,7 @@ const AssistantChatMessageContent: React.FC<{
     };
 
     if (response) {
-        const { responseType, responseParts, proposedCards, phrasesToReview } = response;
+        const { responseType, responseParts, proposedCards, phrasesToReview, phrasesForDeletion } = response;
         
         return (
             <div className="space-y-3">
@@ -163,9 +164,9 @@ const AssistantChatMessageContent: React.FC<{
                     )}
                     </div>
                 )}
-                {responseType === 'phrases_to_review' && phrasesToReview && (
+                {(responseType === 'phrases_to_review' || responseType === 'phrases_to_delete') && (phrasesToReview || phrasesForDeletion) && (
                     <ul className="space-y-2 pt-2 border-t border-slate-600">
-                        {phrasesToReview.map((item, i) => (
+                        {(phrasesToReview || phrasesForDeletion)!.map((item, i) => (
                             <li key={i} className="p-2 bg-slate-800/50 rounded-md">
                                 <p className="font-medium text-amber-300">"{item.german}"</p>
                                 <p className="text-sm text-slate-400 italic">{item.reason}</p>
@@ -180,7 +181,7 @@ const AssistantChatMessageContent: React.FC<{
 };
 
 const CategoryAssistantModal: React.FC<CategoryAssistantModalProps> = (props) => {
-    const { isOpen, onClose, category, phrases, onGetAssistantResponse, onAddCards, cache, setCache, onGoToList, ...interactiveProps } = props;
+    const { isOpen, onClose, category, phrases, onGetAssistantResponse, onAddCards, onOpenConfirmDeletePhrases, cache, setCache, onGoToList, ...interactiveProps } = props;
 
     const [isLoading, setIsLoading] = useState(false);
     const [input, setInput] = useState('');
@@ -216,13 +217,20 @@ const CategoryAssistantModal: React.FC<CategoryAssistantModalProps> = (props) =>
             if (response?.promptSuggestions) {
                 setPromptSuggestions(response.promptSuggestions);
             }
+            if (response?.responseType === 'phrases_to_delete' && response.phrasesForDeletion) {
+                const germanTextsToDelete = new Set(response.phrasesForDeletion.map(p => p.german.toLowerCase().trim()));
+                const phrasesToDelete = phrases.filter(p => germanTextsToDelete.has(p.german.toLowerCase().trim()));
+                if (phrasesToDelete.length > 0) {
+                    onOpenConfirmDeletePhrases(phrasesToDelete, category);
+                }
+            }
         } catch (err) {
             const errorMsg: ChatMessage = { role: 'model', text: `Произошла ошибка: ${(err as Error).message}` };
             updateMessages(prev => [...prev, errorMsg]);
         } finally {
             setIsLoading(false);
         }
-    }, [category.name, phrases, onGetAssistantResponse, updateMessages]);
+    }, [category, phrases, onGetAssistantResponse, updateMessages, onOpenConfirmDeletePhrases]);
   
     useEffect(() => {
         if (isOpen) {

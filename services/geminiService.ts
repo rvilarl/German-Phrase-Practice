@@ -755,7 +755,7 @@ const discussTranslation: AiService['discussTranslation'] = async (request) => {
 
         return {
             role: 'model',
-            contentParts: parsedResponse.responseParts || [{ type: 'text', text: 'Error parsing response.' }],
+            contentParts: parsedResponse.contentParts || [{ type: 'text', text: 'Error parsing response.' }],
             suggestion: parsedResponse.suggestion,
             promptSuggestions: parsedResponse.promptSuggestions || [],
         };
@@ -1447,7 +1447,7 @@ const healthCheck: AiService['healthCheck'] = async () => {
 const categoryAssistantResponseSchema = {
     type: Type.OBJECT,
     properties: {
-        responseType: { type: Type.STRING, enum: ['text', 'proposed_cards', 'phrases_to_review'] },
+        responseType: { type: Type.STRING, enum: ['text', 'proposed_cards', 'phrases_to_review', 'phrases_to_delete'] },
         responseParts: {
             type: Type.ARRAY,
             description: "The main text response, broken into segments of plain text and German text. Use Markdown for formatting like lists or bold text within 'text' type parts. Format dialogues using Markdown like '**Person A:** '.",
@@ -1492,6 +1492,18 @@ const categoryAssistantResponseSchema = {
                 required: ['german', 'reason']
             }
         },
+        phrasesForDeletion: {
+            type: Type.ARRAY,
+            description: 'A list of phrases to delete. Only for responseType "phrases_to_delete".',
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    german: { type: Type.STRING },
+                    reason: { type: Type.STRING, description: 'Reason in Russian.' }
+                },
+                required: ['german', 'reason']
+            }
+        },
     },
     required: ['responseType', 'responseParts', 'promptSuggestions']
 };
@@ -1517,10 +1529,17 @@ const getCategoryAssistantResponse: AiService['getCategoryAssistantResponse'] = 
 Запрос пользователя: ${requestTextMap[request.type]}
 
 Твоя задача — выполнить запрос и вернуть ответ СТРОГО в формате JSON.
-- **responseType**: Тип ответа ('text', 'proposed_cards', 'phrases_to_review').
+
+**ПРАВИЛА:**
+- **responseType**: Тип ответа ('text', 'proposed_cards', 'phrases_to_review', 'phrases_to_delete').
 - **responseParts**: Твой основной текстовый ответ, разбитый на части. Используй 'type':'german' для немецких слов с переводом. Для диалогов используй Markdown-форматирование (например, \`**Собеседник А:** ...\`) внутри частей с 'type':'text'.
 - **promptSuggestions**: ВСЕГДА предлагай 3-4 релевантных вопроса для продолжения диалога.
-- **proposedCards / phrasesToReview**: Заполняй эти поля только если тип ответа соответствующий.`;
+- **proposedCards / phrasesToReview**: Заполняй эти поля только если тип ответа соответствующий.
+- **УДАЛЕНИЕ ФРАЗ**: Если пользователь просит удалить, убрать, очистить фразы (например, "удали половину", "оставь только времена года"), выполни следующие действия:
+  1. Определи, какие именно фразы из списка существующих нужно удалить.
+  2. Установи \`responseType: 'phrases_to_delete'\`.
+  3. В поле \`phrasesForDeletion\` верни массив объектов с ключами \`german\` (точный текст фразы для удаления) и \`reason\` (краткое объяснение на русском, почему эта фраза удаляется).
+  4. В \`responseParts\` напиши сопроводительное сообщение, например: "Хорошо, я предлагаю удалить следующие фразы, так как они не соответствуют вашему запросу:".`;
     
     try {
         const response = await api.models.generateContent({

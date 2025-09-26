@@ -49,6 +49,7 @@ import AutoFillLoadingModal from './components/AutoFillLoadingModal';
 import AutoFillPreviewModal from './components/AutoFillPreviewModal';
 import MoveOrSkipModal from './components/MoveOrSkipModal';
 import CategoryAssistantModal from './components/CategoryAssistantModal';
+import ConfirmDeletePhrasesModal from './components/ConfirmDeletePhrasesModal';
 
 
 const PHRASES_STORAGE_KEY = 'germanPhrases';
@@ -314,6 +315,10 @@ const App: React.FC = () => {
   const [assistantCache, setAssistantCache] = useState<{ [categoryId: string]: ChatMessage[] }>({});
   const [isCategoryAssistantModalOpen, setIsCategoryAssistantModalOpen] = useState(false);
   const [assistantCategory, setAssistantCategory] = useState<Category | null>(null);
+  
+  // New state for multi-delete confirmation
+  const [isConfirmDeletePhrasesModalOpen, setIsConfirmDeletePhrasesModalOpen] = useState(false);
+  const [phrasesForDeletion, setPhrasesForDeletion] = useState<{ phrases: Phrase[]; sourceCategory: Category } | null>(null);
   
   const isPrefetchingRef = useRef(false);
   const isQuickReplyPrefetchingRef = useRef(false);
@@ -1503,6 +1508,61 @@ const App: React.FC = () => {
       setDuplicatesReviewData(null);
       setCategoryToView(targetCategory);
   };
+  
+  // New handler for opening the modal
+  const handleOpenConfirmDeletePhrases = (phrases: Phrase[], sourceCategory: Category) => {
+      setPhrasesForDeletion({ phrases, sourceCategory });
+      setIsConfirmDeletePhrasesModalOpen(true);
+      setIsCategoryAssistantModalOpen(false); // Close assistant modal
+  };
+
+  // New handler for deleting multiple phrases
+  const handleConfirmDeleteMultiplePhrases = async (phraseIds: string[]) => {
+      let deletedCount = 0;
+      const phraseIdsSet = new Set(phraseIds);
+
+      for (const phraseId of phraseIds) {
+          try {
+              await backendService.deletePhrase(phraseId);
+              deletedCount++;
+          } catch (err) {
+              console.error(`Failed to delete phrase ${phraseId}:`, err);
+          }
+      }
+      
+      if (deletedCount > 0) {
+          updateAndSavePhrases(prev => prev.filter(p => !phraseIdsSet.has(p.id)));
+          if (currentPracticePhrase && phraseIdsSet.has(currentPracticePhrase.id)) {
+              setCurrentPracticePhrase(null);
+          }
+          showToast({ message: `✓ ${deletedCount} карточек удалено.` });
+      }
+      
+      setIsConfirmDeletePhrasesModalOpen(false);
+      setPhrasesForDeletion(null);
+  };
+
+  // New handler for moving multiple phrases
+  const handleConfirmMoveMultiplePhrases = async (phraseIds: string[], targetCategoryId: string) => {
+      let movedCount = 0;
+      for (const phraseId of phraseIds) {
+          try {
+              // Re-using the existing handler is efficient
+              await handleUpdatePhraseCategory(phraseId, targetCategoryId);
+              movedCount++;
+          } catch (err) {
+              console.error(`Failed to move phrase ${phraseId}:`, err);
+          }
+      }
+      
+      if (movedCount > 0) {
+          const targetCategory = categories.find(c => c.id === targetCategoryId);
+          showToast({ message: `✓ ${movedCount} карточек перемещено в "${targetCategory?.name || 'другую категорию'}".` });
+      }
+      
+      setIsConfirmDeletePhrasesModalOpen(false);
+      setPhrasesForDeletion(null);
+  };
 
 
 
@@ -2184,7 +2244,6 @@ const App: React.FC = () => {
                 onAddCards={handleCreateProposedCards}
                 cache={assistantCache}
                 setCache={setAssistantCache}
-// FIX: Corrected prop name from onOpenWordAnalysis to handleOpenWordAnalysis
                 onOpenWordAnalysis={handleOpenWordAnalysis}
                 allPhrases={allPhrases}
                 onCreateCard={handleCreateCardFromWord}
@@ -2194,7 +2253,22 @@ const App: React.FC = () => {
                 onOpenAdjectiveDeclension={handleOpenAdjectiveDeclension}
                 onTranslateGermanToRussian={handleTranslateGermanToRussian}
                 onGoToList={() => setView('list')}
+                onOpenConfirmDeletePhrases={handleOpenConfirmDeletePhrases}
             />
+        )}
+        {isConfirmDeletePhrasesModalOpen && phrasesForDeletion && (
+          <ConfirmDeletePhrasesModal
+              isOpen={isConfirmDeletePhrasesModalOpen}
+              onClose={() => {
+                  setIsConfirmDeletePhrasesModalOpen(false);
+                  setPhrasesForDeletion(null);
+              }}
+              phrases={phrasesForDeletion.phrases}
+              categories={categories}
+              sourceCategory={phrasesForDeletion.sourceCategory}
+              onConfirmDelete={handleConfirmDeleteMultiplePhrases}
+              onConfirmMove={handleConfirmMoveMultiplePhrases}
+          />
         )}
     </div>
   );
