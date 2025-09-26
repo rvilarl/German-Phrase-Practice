@@ -1,12 +1,13 @@
 
+
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 // FIX: Import View type from shared types.ts
 import { Phrase, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, AdjectiveDeclension, SentenceContinuation, PhraseBuilderOptions, PhraseEvaluation, ChatMessage, PhraseCategory, ProposedCard, BookRecord, Category, CategoryAssistantRequest, CategoryAssistantResponse, View } from './types';
 import * as srsService from './services/srsService';
 import * as cacheService from './services/cacheService';
+import * as backendService from './services/backendService';
 import { getProviderPriorityList, getFallbackProvider, ApiProviderType } from './services/apiProvider';
 import { AiService } from './services/aiService';
-import { initialPhrases as defaultPhrases, foundationalPhrases } from './data/initialPhrases';
 import { playCorrectSound, playIncorrectSound } from './services/soundService';
 
 import Header from './components/Header';
@@ -71,14 +72,16 @@ interface ToastState {
   type: ToastType;
 }
 
-const defaultCategories: Category[] = [
-    { id: 'general', name: 'Общие', color: 'bg-slate-500', isFoundational: false },
-    { id: 'w-fragen', name: 'W-Fragen', color: 'bg-blue-500', isFoundational: true },
-    { id: 'pronouns', name: 'Местоимения', color: 'bg-purple-500', isFoundational: true },
-    { id: 'numbers', name: 'Цифры', color: 'bg-green-500', isFoundational: true },
-    { id: 'time', name: 'Время', color: 'bg-amber-500', isFoundational: true },
-    { id: 'money', name: 'Деньги', color: 'bg-emerald-500', isFoundational: true },
-];
+// FIX: Added Settings interface to fix 'Cannot find name' error
+interface Settings {
+  autoSpeak: boolean;
+  soundEffects: boolean;
+  automation: {
+    autoCheckShortPhrases: boolean;
+    learnNextPhraseHabit: boolean;
+  };
+  enabledCategories: Record<PhraseCategory, boolean>;
+}
 
 const defaultSettings = {
   autoSpeak: true,
@@ -87,10 +90,7 @@ const defaultSettings = {
     autoCheckShortPhrases: true,
     learnNextPhraseHabit: true,
   },
-  enabledCategories: defaultCategories.reduce((acc, cat) => {
-    acc[cat.id] = true;
-    return acc;
-  }, {} as Record<PhraseCategory, boolean>),
+  // enabledCategories is now loaded dynamically from fetched categories
 };
 
 const defaultHabitTracker = { 
@@ -204,7 +204,8 @@ const App: React.FC = () => {
   const [chatContextPhrase, setChatContextPhrase] = useState<Phrase | null>(null);
   
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
-  const [settings, setSettings] = useState(defaultSettings);
+  // FIX: Initialize settings state to be type-safe.
+  const [settings, setSettings] = useState<Settings>({ ...defaultSettings, enabledCategories: {} });
   const [buttonUsage, setButtonUsage] = useState({ close: 0, continue: 0, next: 0 });
   const [masteryButtonUsage, setMasteryButtonUsage] = useState({ know: 0, forgot: 0, dont_know: 0 });
   const [habitTracker, setHabitTracker] = useState(defaultHabitTracker);
@@ -316,175 +317,131 @@ const App: React.FC = () => {
   
   const isPrefetchingRef = useRef(false);
   const isQuickReplyPrefetchingRef = useRef(false);
+  
+  const showToast = useCallback((config: { message: string; type?: ToastType }) => {
+    setToast({ message: config.message, type: config.type || 'default', id: Date.now() });
+  }, []);
 
+  const updateAndSavePhrases = useCallback((updater: React.SetStateAction<Phrase[]>) => {
+    setAllPhrases(prevPhrases => {
+        const newPhrases = typeof updater === 'function' ? updater(prevPhrases) : updater;
+        try {
+            localStorage.setItem(PHRASES_STORAGE_KEY, JSON.stringify(newPhrases));
+        } catch (e) { console.error("Failed to save phrases to storage", e); }
+        return newPhrases;
+    });
+  }, []);
+  
+  const processInitialServerData = (serverData: { categories: Category[], phrases: Phrase[] }) => {
+    let loadedPhrases = serverData.phrases.map(p => ({
+        ...p,
+        isMastered: srsService.isPhraseMastered(p, serverData.categories)
+    }));
+    return { loadedCategories: serverData.categories, loadedPhrases };
+  };
 
   useEffect(() => {
     const initializeApp = async () => {
-        setIsLoading(true);
-        setError(null);
+      setIsLoading(true);
+      setError(null);
 
-        const providerList = getProviderPriorityList();
-        let activeProvider: AiService | null = null;
-        let activeProviderType: ApiProviderType | null = null;
-
-        if (providerList.length === 0) {
-            setError("No AI provider configured. Please check your API keys.");
-        } else {
-            for (const providerInfo of providerList) {
-                const isHealthy = await providerInfo.provider.healthCheck();
-                if (isHealthy) {
-                    activeProvider = providerInfo.provider;
-                    activeProviderType = providerInfo.type;
-                    break; 
-                }
-            }
+      // --- AI Provider Setup ---
+      const providerList = getProviderPriorityList();
+      let activeProvider: AiService | null = null;
+      let activeProviderType: ApiProviderType | null = null;
+      if (providerList.length > 0) {
+        for (const providerInfo of providerList) {
+          if (await providerInfo.provider.healthCheck()) {
+            activeProvider = providerInfo.provider;
+            activeProviderType = providerInfo.type;
+            break;
+          }
         }
+      }
+      if (activeProvider) {
+        setApiProvider(activeProvider);
+        setApiProviderType(activeProviderType);
+      } else {
+        setError(providerList.length === 0 ? "No AI provider configured." : "AI features are temporarily unavailable.");
+      }
 
-        if (activeProvider) {
-            setApiProvider(activeProvider);
-            setApiProviderType(activeProviderType);
-        } else if (providerList.length > 0) {
-            setError("AI features are temporarily unavailable. All configured providers failed health checks.");
-        }
+      // --- Data Loading (Categories & Phrases) ---
+      const storedCategories = localStorage.getItem(CATEGORIES_STORAGE_KEY);
+      const storedPhrases = localStorage.getItem(PHRASES_STORAGE_KEY);
+      let dataLoaded = false;
 
-        let loadedCategories: Category[] = [];
-        try {
-            const storedCategories = localStorage.getItem(CATEGORIES_STORAGE_KEY);
-            if (storedCategories) {
-                loadedCategories = JSON.parse(storedCategories);
-            }
-        } catch (e) {
-            console.error("Failed to load/parse categories, clearing invalid data.", e);
-            localStorage.removeItem(CATEGORIES_STORAGE_KEY);
-        }
-
-        if (loadedCategories.length === 0) {
-            loadedCategories = defaultCategories;
-            localStorage.setItem(CATEGORIES_STORAGE_KEY, JSON.stringify(loadedCategories));
-        }
+      if (storedCategories && storedPhrases) {
+        console.log("Loading data from localStorage cache...");
+        const loadedCategories = JSON.parse(storedCategories);
+        let loadedPhrases: Phrase[] = JSON.parse(storedPhrases);
+        loadedPhrases = loadedPhrases.map(p => ({...p, isMastered: srsService.isPhraseMastered(p, loadedCategories)}));
         setCategories(loadedCategories);
+        setAllPhrases(loadedPhrases);
+        dataLoaded = true;
 
-
+        // Background sync with server
+        backendService.fetchInitialData()
+          .then(serverData => {
+            console.log("Syncing with server in background...");
+            const { loadedCategories: serverCategories, loadedPhrases: serverPhrases } = processInitialServerData(serverData);
+            localStorage.setItem(CATEGORIES_STORAGE_KEY, JSON.stringify(serverCategories));
+            updateAndSavePhrases(serverPhrases);
+            setCategories(serverCategories);
+            showToast({ message: '✓ Данные синхронизированы с сервером.' });
+          })
+          .catch(syncError => {
+            console.warn("Background sync failed:", (syncError as Error).message);
+          });
+      } else {
+        console.log("No local data, fetching from server...");
         try {
+          const serverData = await backendService.fetchInitialData();
+          const { loadedCategories, loadedPhrases } = processInitialServerData(serverData);
+
+          localStorage.setItem(CATEGORIES_STORAGE_KEY, JSON.stringify(loadedCategories));
+          localStorage.setItem(PHRASES_STORAGE_KEY, JSON.stringify(loadedPhrases));
+          setCategories(loadedCategories);
+          setAllPhrases(loadedPhrases);
+          dataLoaded = true;
+          showToast({ message: '✓ Данные успешно загружены с сервера.' });
+        } catch (fetchError) {
+          console.error("Critical error during data initialization:", (fetchError as Error).message);
+          setError(`Не удалось загрузить данные с сервера: ${(fetchError as Error).message}. Попробуйте обновить страницу.`);
+        }
+      }
+      
+      if (dataLoaded) {
+          try {
+            const loadedCategories = JSON.parse(localStorage.getItem(CATEGORIES_STORAGE_KEY) || '[]');
             const storedSettings = localStorage.getItem(SETTINGS_STORAGE_KEY);
+            const defaultEnabledCategories = loadedCategories.reduce((acc: any, cat: Category) => ({ ...acc, [cat.id]: true }), {} as Record<PhraseCategory, boolean>);
+    
             if (storedSettings) {
-                const parsedSettings = JSON.parse(storedSettings);
-                 // Ensure enabledCategories is in sync with loadedCategories
-                const enabledCategories = { ...defaultSettings.enabledCategories, ...parsedSettings.enabledCategories };
-                for (const category of loadedCategories) {
-                    if (!(category.id in enabledCategories)) {
-                        enabledCategories[category.id] = true;
-                    }
-                }
-                setSettings(prev => ({
-                    ...defaultSettings,
-                    ...prev,
-                    ...parsedSettings,
-                    automation: { ...defaultSettings.automation, ...parsedSettings.automation },
-                    enabledCategories,
-                }));
+              const parsedSettings = JSON.parse(storedSettings);
+              const enabledCategories = { ...defaultEnabledCategories, ...parsedSettings.enabledCategories };
+              loadedCategories.forEach((cat: Category) => { if (!(cat.id in enabledCategories)) enabledCategories[cat.id] = true; });
+              setSettings({ ...defaultSettings, ...parsedSettings, enabledCategories });
+            } else {
+              setSettings({ ...defaultSettings, enabledCategories: defaultEnabledCategories });
             }
+    
             const storedUsage = localStorage.getItem(BUTTON_USAGE_STORAGE_KEY);
             if (storedUsage) setButtonUsage(JSON.parse(storedUsage));
-
             const storedMasteryUsage = localStorage.getItem(MASTERY_BUTTON_USAGE_STORAGE_KEY);
             if (storedMasteryUsage) setMasteryButtonUsage(JSON.parse(storedMasteryUsage));
-
             const storedCardActionUsage = localStorage.getItem(CARD_ACTION_USAGE_STORAGE_KEY);
-            if(storedCardActionUsage) setCardActionUsage(prev => ({ ...defaultCardActionUsage, ...prev, ...JSON.parse(storedCardActionUsage) }));
-
+            if (storedCardActionUsage) setCardActionUsage(JSON.parse(storedCardActionUsage));
             const storedHabitTracker = localStorage.getItem(HABIT_TRACKER_STORAGE_KEY);
-            if (storedHabitTracker) {
-                const parsedTracker = JSON.parse(storedHabitTracker);
-                setHabitTracker(prev => ({ ...defaultHabitTracker, ...prev, ...parsedTracker }));
-            }
-
-        } catch (e) { console.error("Failed to load settings", e); }
-
-        let loadedPhrases: Phrase[] = [];
-        try {
-            const storedPhrases = localStorage.getItem(PHRASES_STORAGE_KEY);
-            if (storedPhrases) {
-                const parsedData = JSON.parse(storedPhrases);
-                if (Array.isArray(parsedData)) {
-                    loadedPhrases = parsedData
-                        .filter((p): p is Partial<Phrase> => p && typeof p === 'object' && 'german' in p && 'russian' in p)
-                        .map(p => {
-                            const phraseBase = {
-                                russian: p.russian!,
-                                german: p.german!,
-                                transcription: p.transcription,
-                                context: p.context,
-                                knowCount: p.knowCount ?? 0,
-                                knowStreak: p.knowStreak ?? 0,
-                                masteryLevel: p.masteryLevel ?? 0,
-                                lastReviewedAt: p.lastReviewedAt ?? null,
-                                nextReviewAt: p.nextReviewAt ?? Date.now(),
-                                lapses: p.lapses ?? 0,
-                                isMastered: false,
-                            };
-                            
-                            const category = p.category || srsService.assignInitialCategory(phraseBase);
-                        
-                            const fullPhraseObject = {
-                                ...phraseBase,
-                                id: p.id ?? Math.random().toString(36).substring(2, 9),
-                                category,
-                                isNew: p.isNew,
-                            };
-                        
-                            return {
-                                ...fullPhraseObject,
-                                isMastered: srsService.isPhraseMastered(fullPhraseObject, loadedCategories),
-                            };
-                        });
-                }
-            }
-        } catch (e) {
-            console.error("Failed to load/parse phrases, clearing invalid data.", e);
-            localStorage.removeItem(PHRASES_STORAGE_KEY);
-        }
-
-        if (loadedPhrases.length === 0) {
-            loadedPhrases = defaultPhrases.map(p => ({
-                ...p,
-                id: Math.random().toString(36).substring(2, 9),
-            }));
-        } else {
-            // Check for and add any missing foundational phrases for existing users.
-            const foundationalCategoriesIds = loadedCategories.filter(c => c.isFoundational).map(c => c.id);
-            
-            const existingGermanFoundational = new Set(
-                loadedPhrases
-                    .filter(p => foundationalCategoriesIds.includes(p.category))
-                    .map(p => p.german.trim().toLowerCase())
-            );
-
-            const missingFoundational = foundationalPhrases.filter(
-                p => !existingGermanFoundational.has(p.german.trim().toLowerCase())
-            );
-
-            if (missingFoundational.length > 0) {
-                console.log(`Adding ${missingFoundational.length} missing foundational phrases.`);
-                const phrasesToAdd: Phrase[] = missingFoundational.map(p => ({
-                    ...p,
-                    id: Math.random().toString(36).substring(2, 9),
-                }));
-                // Prepend new phrases so they appear first in the "new" section of the list
-                loadedPhrases = [...phrasesToAdd, ...loadedPhrases];
-            }
-        }
-        
-        // Persist any changes made during initialization (e.g., adding missing phrases)
-        // This ensures the check only runs once if phrases were missing.
-        localStorage.setItem(PHRASES_STORAGE_KEY, JSON.stringify(loadedPhrases));
-        
-        setAllPhrases(loadedPhrases);
-        setIsLoading(false);
+            if (storedHabitTracker) setHabitTracker(JSON.parse(storedHabitTracker));
+    
+          } catch (e) { console.error("Failed to load settings or trackers", e); }
+      }
+      
+      setIsLoading(false);
     };
 
     initializeApp();
-  }, []);
+  }, [showToast, updateAndSavePhrases]);
 
   const callApiWithFallback = useCallback(async <T,>(
     apiCall: (provider: AiService) => Promise<T>
@@ -555,16 +512,6 @@ const App: React.FC = () => {
     }
   }, [apiProvider, apiProviderType]);
 
-  const updateAndSavePhrases = useCallback((updater: React.SetStateAction<Phrase[]>) => {
-    setAllPhrases(prevPhrases => {
-        const newPhrases = typeof updater === 'function' ? updater(prevPhrases) : updater;
-        try {
-            localStorage.setItem(PHRASES_STORAGE_KEY, JSON.stringify(newPhrases));
-        } catch (e) { console.error("Failed to save phrases to storage", e); }
-        return newPhrases;
-    });
-  }, []);
-
   const updateAndSaveCategories = useCallback((updater: React.SetStateAction<Category[]>) => {
     setCategories(prev => {
         const newCategories = typeof updater === 'function' ? updater(prev) : updater;
@@ -573,7 +520,7 @@ const App: React.FC = () => {
     });
   }, []);
   
-  const handleSettingsChange = (newSettings: Partial<typeof settings>) => {
+  const handleSettingsChange = (newSettings: Partial<Settings>) => {
     setSettings(prev => {
         const updated = { ...prev, ...newSettings };
         localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(updated));
@@ -587,10 +534,6 @@ const App: React.FC = () => {
         localStorage.setItem(HABIT_TRACKER_STORAGE_KEY, JSON.stringify(newTracker));
         return newTracker;
     });
-  }, []);
-
-  const showToast = useCallback((config: { message: string; type?: ToastType }) => {
-    setToast({ message: config.message, type: config.type || 'default', id: Date.now() });
   }, []);
 
   const handleLogButtonUsage = useCallback((button: 'close' | 'continue' | 'next') => {
@@ -647,22 +590,35 @@ const App: React.FC = () => {
     try {
         const existingGermanPhrases = allPhrases.map(p => p.german).join('; ');
         const prompt = `Сгенерируй ${count} новых, полезных в быту немецких фраз уровня A1. Не повторяй: "${existingGermanPhrases}". Верни JSON-массив объектов с ключами 'german' и 'russian'.`;
-        const newPhrases = await callApiWithFallback(provider => provider.generatePhrases(prompt));
+        const newPhrasesData = await callApiWithFallback(provider => provider.generatePhrases(prompt));
         
-        const now = Date.now();
-        const phrasesToAdd: Phrase[] = newPhrases.map(p => ({
-            ...p,
-            id: Math.random().toString(36).substring(2, 9), masteryLevel: 0, lastReviewedAt: null, nextReviewAt: now,
-            knowCount: 0, knowStreak: 0, isMastered: false, category: 'general', lapses: 0,
+        const generalCategory = categories.find(c => c.name.toLowerCase() === 'general');
+        const defaultCategoryId = generalCategory?.id || (categories.length > 0 ? categories[0].id : '1');
+        
+        const phrasesToCreate = newPhrasesData.map(p => ({
+            ...p, category: defaultCategoryId
         }));
-        updateAndSavePhrases(prev => [...prev, ...phrasesToAdd]);
+
+        const createdPhrases: Phrase[] = [];
+        for (const p of phrasesToCreate) {
+            try {
+                const newPhrase = await backendService.createPhrase(p);
+                createdPhrases.push(newPhrase);
+            } catch (err) {
+                console.error("Failed to save new phrase to backend:", err);
+            }
+        }
+        
+        if (createdPhrases.length > 0) {
+            updateAndSavePhrases(prev => [...prev, ...createdPhrases]);
+        }
         
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error during phrase generation.');
     } finally {
       setIsGenerating(false);
     }
-  }, [allPhrases, isGenerating, updateAndSavePhrases, callApiWithFallback, apiProvider, error]);
+  }, [allPhrases, categories, isGenerating, updateAndSavePhrases, callApiWithFallback, apiProvider, error]);
 
   const openChatForPhrase = (phrase: Phrase) => {
     if (!apiProvider) return;
@@ -887,8 +843,8 @@ const App: React.FC = () => {
             if (nextPhrase) {
                 if (phrasesToFetch.some(p => p.id === nextPhrase.id)) break;
 
-                // Only prefetch for 'general' phrases, as others are generated locally and instantly.
-                if (nextPhrase.category === 'general') {
+                const categoryInfo = categories.find(c => c.id === nextPhrase.category);
+                if (!categoryInfo?.isFoundational) {
                     phrasesToFetch.push(nextPhrase);
                 }
                 
@@ -916,7 +872,7 @@ const App: React.FC = () => {
     } finally {
         isQuickReplyPrefetchingRef.current = false;
     }
-  }, [allPhrases, callApiWithFallback, apiProvider, settings.enabledCategories]);
+  }, [allPhrases, categories, callApiWithFallback, apiProvider, settings.enabledCategories]);
   
   // New proactive pre-fetching effect for both phrase builder and quick replies
   useEffect(() => {
@@ -941,18 +897,28 @@ const App: React.FC = () => {
     return callApiWithFallback(provider => provider.evaluateSpokenPhraseAttempt(phrase, userAttempt));
   }, [callApiWithFallback]);
   
-  const updatePhraseMasteryAndCache = useCallback((phrase: Phrase, action: 'know' | 'forgot' | 'dont_know') => {
+  const updatePhraseMasteryAndCache = useCallback(async (phrase: Phrase, action: 'know' | 'forgot' | 'dont_know') => {
     const updatedPhrase = srsService.updatePhraseMastery(phrase, action, categories);
-    updateAndSavePhrases(prev =>
-        prev.map(p => (p.id === phrase.id ? updatedPhrase : p))
-    );
-
-    if (updatedPhrase.isMastered && !phrase.isMastered) {
-        cacheService.clearCacheForPhrase(phrase.id);
+    
+    try {
+        await backendService.updatePhrase(updatedPhrase);
+        updateAndSavePhrases(prev =>
+            prev.map(p => (p.id === phrase.id ? updatedPhrase : p))
+        );
+        if (updatedPhrase.isMastered && !phrase.isMastered) {
+            cacheService.clearCacheForPhrase(phrase.id);
+        }
+    } catch (err) {
+        showToast({ message: `Ошибка синхронизации: ${(err as Error).message}` });
+        // Revert UI state if API call fails
+        updateAndSavePhrases(prev =>
+            prev.map(p => (p.id === phrase.id ? phrase : p))
+        );
+        return phrase; // Return original phrase on failure
     }
     
     return updatedPhrase;
-  }, [updateAndSavePhrases, categories]);
+  }, [updateAndSavePhrases, categories, showToast]);
 
 
   const handlePhraseActionSuccess = useCallback((phrase: Phrase) => {
@@ -999,7 +965,7 @@ const App: React.FC = () => {
     setIsAddPhraseModalOpen(true);
   };
 
-  const handlePhraseCreated = (newPhraseData: { german: string; russian: string }) => {
+  const handlePhraseCreated = async (newPhraseData: { german: string; russian: string }) => {
     const normalizedGerman = newPhraseData.german.trim().toLowerCase();
     const isDuplicate = allPhrases.some(p => p.german.trim().toLowerCase() === normalizedGerman);
     const isDuplicateInCategory = categoryToView ? allPhrases.some(p => p.category === categoryToView.id && p.german.trim().toLowerCase() === normalizedGerman) : false;
@@ -1011,29 +977,25 @@ const App: React.FC = () => {
         showToast({ message: `Карточка "${newPhraseData.german}" уже существует в другой категории.` });
         return;
     }
-
-
-    const newPhrase: Phrase = {
-        ...newPhraseData,
-        id: Math.random().toString(36).substring(2, 9),
-        masteryLevel: 0,
-        lastReviewedAt: null,
-        nextReviewAt: Date.now(),
-        knowCount: 0,
-        knowStreak: 0,
-        isMastered: false,
-        category: categoryToView?.id || 'general',
-        lapses: 0,
-        isNew: true,
-    };
-    updateAndSavePhrases(prev => [newPhrase, ...prev]);
     
-    setIsAddPhraseModalOpen(false);
+    try {
+        const generalCategory = categories.find(c => c.name.toLowerCase() === 'general');
+        const defaultCategoryId = (categories.length > 0 ? categories[0].id : '1');
+        const categoryId = categoryToView?.id || generalCategory?.id || defaultCategoryId;
 
-    if (!categoryToView) {
-      setCurrentPracticePhrase(newPhrase);
-      setIsPracticeAnswerRevealed(false);
-      setView('practice');
+        const phraseToCreate = { ...newPhraseData, category: categoryId };
+        const newPhrase = await backendService.createPhrase(phraseToCreate);
+        
+        updateAndSavePhrases(prev => [{...newPhrase, isNew: true }, ...prev]);
+        setIsAddPhraseModalOpen(false);
+
+        if (!categoryToView) {
+          setCurrentPracticePhrase(newPhrase);
+          setIsPracticeAnswerRevealed(false);
+          setView('practice');
+        }
+    } catch(err) {
+        showToast({ message: `Ошибка создания фразы: ${(err as Error).message}` });
     }
   };
   
@@ -1052,22 +1014,30 @@ const App: React.FC = () => {
             const randomColor = colors[Math.floor(Math.random() * colors.length)];
             const capitalizedName = trimmedName.charAt(0).toUpperCase() + trimmedName.slice(1);
             
-            newCategory = {
-                id: capitalizedName.toLowerCase().replace(/\s+/g, '-') + '-' + Date.now().toString(36),
+            const newCategoryData = {
                 name: capitalizedName,
                 color: randomColor,
                 isFoundational: false,
             };
             
-            updateAndSaveCategories(prev => [...prev, newCategory!]);
-            handleSettingsChange({
-                enabledCategories: { ...settings.enabledCategories, [newCategory.id]: true }
-            });
-            finalCategoryId = newCategory.id;
+            try {
+                newCategory = await backendService.createCategory(newCategoryData);
+                updateAndSaveCategories(prev => [...prev, newCategory!]);
+                handleSettingsChange({
+                    enabledCategories: { ...settings.enabledCategories, [newCategory.id]: true }
+                });
+                finalCategoryId = newCategory.id;
+            } catch (err) {
+                showToast({ message: `Ошибка создания категории: ${(err as Error).message}` });
+                return;
+            }
         }
     }
     
-    const targetCategoryId = finalCategoryId || assistantCategory?.id || categoryToView?.id || 'general';
+    const generalCategory = categories.find(c => c.name.toLowerCase() === 'general');
+    const defaultCategoryId = (categories.length > 0 ? categories[0].id : '1');
+    const targetCategoryId = finalCategoryId || assistantCategory?.id || categoryToView?.id || generalCategory?.id || defaultCategoryId;
+    
     const targetCategory = newCategory || categories.find(c => c.id === targetCategoryId);
 
     if (!targetCategory) {
@@ -1105,7 +1075,7 @@ const App: React.FC = () => {
         return;
     }
     
-    const addedCount = addCardsToCategory(newCards, targetCategory);
+    const addedCount = await addCardsToCategory(newCards, targetCategory);
     
     const skippedCount = proposedCards.length - addedCount;
     let toastMessage = `✓ ${addedCount} ${addedCount === 1 ? 'карточка добавлена' : (addedCount > 1 && addedCount < 5 ? 'карточки добавлены' : 'карточек добавлено')}.`;
@@ -1117,38 +1087,32 @@ const App: React.FC = () => {
     if (categoryToView || assistantCategory) { /* stay in view */ } 
     else {
         setView('list');
-        // This is tricky because addCardsToCategory doesn't return the new phrases, just the count.
-        // For simplicity, we'll just switch to the list view without highlighting.
         setHighlightedPhraseId(null);
     }
   }, [allPhrases, categories, categoryToView, assistantCategory, settings.enabledCategories, handleSettingsChange, showToast, updateAndSaveCategories, updateAndSavePhrases]);
 
 
-  const handleCreateCardFromWord = useCallback((phraseData: { german: string; russian: string; }) => {
-    // Check for duplicates before creating
+  const handleCreateCardFromWord = useCallback(async (phraseData: { german: string; russian: string; }) => {
     const alreadyExists = allPhrases.some(p => p.german.trim().toLowerCase() === phraseData.german.trim().toLowerCase());
     if (alreadyExists) {
         showToast({ message: `Карточка "${phraseData.german}" уже существует.` });
         return;
     }
 
-    const newPhrase: Phrase = {
-        ...phraseData,
-        id: Math.random().toString(36).substring(2, 9),
-        masteryLevel: 0,
-        lastReviewedAt: null,
-        nextReviewAt: Date.now(),
-        knowCount: 0,
-        knowStreak: 0,
-        isMastered: false,
-        category: 'general',
-        lapses: 0,
-        isNew: true,
-    };
-    updateAndSavePhrases(prev => [newPhrase, ...prev]);
-    
-    showToast({ message: `Карточка для "${phraseData.german}" создана` });
-  }, [allPhrases, updateAndSavePhrases, showToast]);
+    try {
+        const generalCategory = categories.find(c => c.name.toLowerCase() === 'general');
+        const defaultCategoryId = (categories.length > 0 ? categories[0].id : '1');
+        const categoryId = generalCategory?.id || defaultCategoryId;
+
+        const phraseToCreate = { ...phraseData, category: categoryId };
+        const newPhrase = await backendService.createPhrase(phraseToCreate);
+        
+        updateAndSavePhrases(prev => [{...newPhrase, isNew: true }, ...prev]);
+        showToast({ message: `Карточка для "${phraseData.german}" создана` });
+    } catch(err) {
+        showToast({ message: `Ошибка создания карточки: ${(err as Error).message}` });
+    }
+  }, [allPhrases, categories, updateAndSavePhrases, showToast]);
 
   const handleCreateCardFromSelection = useCallback(async (germanText: string): Promise<boolean> => {
       if (!apiProvider) {
@@ -1163,22 +1127,14 @@ const App: React.FC = () => {
   
       try {
           const { russian } = await callApiWithFallback(provider => provider.translateGermanToRussian(germanText));
+          const generalCategory = categories.find(c => c.name.toLowerCase() === 'general');
+          const defaultCategoryId = (categories.length > 0 ? categories[0].id : '1');
+          const categoryId = generalCategory?.id || defaultCategoryId;
           
-          const newPhrase: Phrase = {
-              german: germanText,
-              russian: russian,
-              id: Math.random().toString(36).substring(2, 9),
-              masteryLevel: 0,
-              lastReviewedAt: null,
-              nextReviewAt: Date.now(),
-              knowCount: 0,
-              knowStreak: 0,
-              isMastered: false,
-              category: 'general',
-              lapses: 0,
-              isNew: true,
-          };
-          updateAndSavePhrases(prev => [newPhrase, ...prev]);
+          const phraseToCreate = { german: germanText, russian, category: categoryId };
+          const newPhrase = await backendService.createPhrase(phraseToCreate);
+
+          updateAndSavePhrases(prev => [{...newPhrase, isNew: true}, ...prev]);
           showToast({ message: `Карточка для "${germanText}" создана` });
           return true;
       } catch (error) {
@@ -1186,7 +1142,7 @@ const App: React.FC = () => {
           showToast({ message: "Не удалось создать карточку." });
           return false;
       }
-  }, [allPhrases, updateAndSavePhrases, showToast, callApiWithFallback, apiProvider]);
+  }, [allPhrases, categories, updateAndSavePhrases, showToast, callApiWithFallback, apiProvider]);
 
 
   const handleOpenImproveModal = (phrase: Phrase) => {
@@ -1210,16 +1166,28 @@ const App: React.FC = () => {
 
   const handleFindDuplicates = useCallback(() => callApiWithFallback(provider => provider.findDuplicatePhrases(allPhrases)), [callApiWithFallback, allPhrases]);
 
-  const handlePhraseImproved = (phraseId: string, newGerman: string, newRussian?: string) => {
-    updateAndSavePhrases(prev =>
-      prev.map(p => (p.id === phraseId ? { ...p, german: newGerman, russian: newRussian ?? p.russian } : p))
-    );
+  const handlePhraseImproved = async (phraseId: string, newGerman: string, newRussian?: string) => {
+    const originalPhrase = allPhrases.find(p => p.id === phraseId);
+    if (!originalPhrase) return;
+    const updatedPhrase = { ...originalPhrase, german: newGerman, russian: newRussian ?? originalPhrase.russian };
+    try {
+        await backendService.updatePhrase(updatedPhrase);
+        updateAndSavePhrases(prev => prev.map(p => (p.id === phraseId ? updatedPhrase : p)));
+    } catch (err) {
+        showToast({ message: `Ошибка обновления: ${(err as Error).message}` });
+    }
   };
 
-  const handleSavePhraseEdits = (phraseId: string, updates: Partial<Omit<Phrase, 'id'>>) => {
-    updateAndSavePhrases(prev =>
-      prev.map(p => (p.id === phraseId ? { ...p, ...updates } : p))
-    );
+  const handleSavePhraseEdits = async (phraseId: string, updates: Partial<Omit<Phrase, 'id'>>) => {
+    const originalPhrase = allPhrases.find(p => p.id === phraseId);
+    if (!originalPhrase) return;
+    const updatedPhrase = { ...originalPhrase, ...updates };
+    try {
+        await backendService.updatePhrase(updatedPhrase);
+        updateAndSavePhrases(prev => prev.map(p => (p.id === phraseId ? updatedPhrase : p)));
+    } catch (err) {
+        showToast({ message: `Ошибка сохранения: ${(err as Error).message}` });
+    }
   };
 
   const handleOpenEditModal = (phrase: Phrase) => {
@@ -1235,16 +1203,22 @@ const App: React.FC = () => {
     }
   }, [allPhrases]);
 
-  const handleConfirmDelete = useCallback(() => {
+  const handleConfirmDelete = useCallback(async () => {
     if (phraseToDelete) {
-        updateAndSavePhrases(prev => prev.filter(p => p.id !== phraseToDelete.id));
-        if (currentPracticePhrase?.id === phraseToDelete.id) {
-           setCurrentPracticePhrase(null); // Clear from practice view if it was active
+        try {
+            await backendService.deletePhrase(phraseToDelete.id);
+            updateAndSavePhrases(prev => prev.filter(p => p.id !== phraseToDelete.id));
+            if (currentPracticePhrase?.id === phraseToDelete.id) {
+               setCurrentPracticePhrase(null); // Clear from practice view if it was active
+            }
+        } catch (err) {
+            showToast({ message: `Ошибка удаления: ${(err as Error).message}`});
+        } finally {
+            setIsDeleteModalOpen(false);
+            setPhraseToDelete(null);
         }
-        setIsDeleteModalOpen(false);
-        setPhraseToDelete(null);
     }
-  }, [phraseToDelete, updateAndSavePhrases, currentPracticePhrase]);
+  }, [phraseToDelete, updateAndSavePhrases, currentPracticePhrase, showToast]);
 
   const handleStartPracticeWithPhrase = (phraseToPractice: Phrase) => {
     specificPhraseRequestedRef.current = true;
@@ -1298,7 +1272,6 @@ const App: React.FC = () => {
         
         return prev.map(p => {
             if (p.id === phraseId && p.isNew) {
-                // Creates a new object without the isNew property
                 const { isNew, ...rest } = p;
                 return rest;
             }
@@ -1307,15 +1280,17 @@ const App: React.FC = () => {
     });
   }, [updateAndSavePhrases]);
 
-  const handleUpdatePhraseCategory = useCallback((phraseId: string, newCategoryId: string) => {
-    updateAndSavePhrases(prev =>
-      prev.map(p =>
-        p.id === phraseId
-          ? { ...p, category: newCategoryId }
-          : p
-      )
-    );
-  }, [updateAndSavePhrases]);
+  const handleUpdatePhraseCategory = useCallback(async (phraseId: string, newCategoryId: string) => {
+    const originalPhrase = allPhrases.find(p => p.id === phraseId);
+    if (!originalPhrase) return;
+    const updatedPhrase = { ...originalPhrase, category: newCategoryId };
+    try {
+        await backendService.updatePhrase(updatedPhrase);
+        updateAndSavePhrases(prev => prev.map(p => (p.id === phraseId ? updatedPhrase : p)));
+    } catch(err) {
+        showToast({ message: `Ошибка перемещения: ${(err as Error).message}`});
+    }
+  }, [allPhrases, updateAndSavePhrases, showToast]);
 
   // --- Category Management Handlers ---
   const handleOpenCategoryFormForAdd = () => {
@@ -1336,70 +1311,67 @@ const App: React.FC = () => {
       setIsCategoryFormModalOpen(true);
   };
   
-  const handleSaveCategory = (categoryData: { name: string; color: string }): boolean => {
+  const handleSaveCategory = async (categoryData: { name: string; color: string }): Promise<boolean> => {
     const trimmedName = categoryData.name;
     const lowercasedName = trimmedName.toLowerCase();
     const capitalizedName = trimmedName.charAt(0).toUpperCase() + trimmedName.slice(1);
     const finalCategoryData = { ...categoryData, name: capitalizedName };
 
-    if (categoryToEdit) { // Editing existing category
-        const isDuplicate = categories.some(
-            c => c.id !== categoryToEdit.id && c.name.trim().toLowerCase() === lowercasedName
-        );
-        if (isDuplicate) {
-            return false; // Signal failure: name already exists
-        }
-        
-        updateAndSaveCategories(prev => prev.map(c => c.id === categoryToEdit.id ? { ...c, ...finalCategoryData } : c));
-        setIsCategoryFormModalOpen(false);
-        setCategoryToEdit(null);
-        setIsCategoryManagerModalOpen(true);
+    try {
+        if (categoryToEdit) { // Editing existing category
+            const isDuplicate = categories.some(
+                c => c.id !== categoryToEdit.id && c.name.trim().toLowerCase() === lowercasedName
+            );
+            if (isDuplicate) { return false; }
+            
+            const updatedCategory = await backendService.updateCategory({ ...categoryToEdit, ...finalCategoryData });
+            updateAndSaveCategories(prev => prev.map(c => c.id === updatedCategory.id ? updatedCategory : c));
+            setIsCategoryFormModalOpen(false);
+            setCategoryToEdit(null);
+            setIsCategoryManagerModalOpen(true);
 
-    } else { // Adding new category
-        const isDuplicate = categories.some(
-            c => c.name.trim().toLowerCase() === lowercasedName
-        );
-        if (isDuplicate) {
-            return false; // Signal failure: name already exists
+        } else { // Adding new category
+            const isDuplicate = categories.some(c => c.name.trim().toLowerCase() === lowercasedName);
+            if (isDuplicate) { return false; }
+            
+            const newCategoryData: Omit<Category, 'id'> = { ...finalCategoryData, isFoundational: false };
+            const newCategory = await backendService.createCategory(newCategoryData);
+            
+            updateAndSaveCategories(prev => [...prev, newCategory]);
+            handleSettingsChange({
+                enabledCategories: { ...settings.enabledCategories, [newCategory.id]: true }
+            });
+            setIsCategoryFormModalOpen(false);
+            setCategoryToEdit(null);
+            setCategoryToAutoFill(newCategory);
+            if (isAddingCategoryFromPractice) setIsAddingCategoryFromPractice(false);
         }
-        
-        const newCategory: Category = {
-            id: finalCategoryData.name.toLowerCase().replace(/\s+/g, '-') + '-' + Date.now().toString(36),
-            name: finalCategoryData.name,
-            color: finalCategoryData.color,
-            isFoundational: false,
-        };
-        updateAndSaveCategories(prev => [...prev, newCategory]);
-        handleSettingsChange({
-            enabledCategories: { ...settings.enabledCategories, [newCategory.id]: true }
-        });
-        setIsCategoryFormModalOpen(false);
-        setCategoryToEdit(null);
-
-        // Always prompt to auto-fill a newly created category.
-        setCategoryToAutoFill(newCategory);
-        
-        // Reset the flag, as its purpose is mainly for the form's close behavior.
-        if (isAddingCategoryFromPractice) {
-            setIsAddingCategoryFromPractice(false);
-        }
+        return true; // Signal success
+    } catch(err) {
+        showToast({ message: `Ошибка сохранения категории: ${(err as Error).message}` });
+        return false;
     }
-    return true; // Signal success
   };
 
-  const handleConfirmDeleteCategory = ({ migrationTargetId }: { migrationTargetId: string | null }) => {
+  const handleConfirmDeleteCategory = async ({ migrationTargetId }: { migrationTargetId: string | null }) => {
     if (!categoryToDelete) return;
     
-    if (migrationTargetId) {
-        updateAndSavePhrases(prev => prev.map(p => p.category === categoryToDelete.id ? { ...p, category: migrationTargetId } : p));
-    } else {
-        updateAndSavePhrases(prev => prev.filter(p => p.category !== categoryToDelete.id));
+    try {
+        await backendService.deleteCategory(categoryToDelete.id, migrationTargetId);
+        if (migrationTargetId) {
+            updateAndSavePhrases(prev => prev.map(p => p.category === categoryToDelete.id ? { ...p, category: migrationTargetId } : p));
+        } else {
+            updateAndSavePhrases(prev => prev.filter(p => p.category !== categoryToDelete.id));
+        }
+        updateAndSaveCategories(prev => prev.filter(c => c.id !== categoryToDelete.id));
+        const newEnabled = { ...settings.enabledCategories };
+        delete newEnabled[categoryToDelete.id];
+        handleSettingsChange({ enabledCategories: newEnabled });
+    } catch(err) {
+        showToast({ message: `Ошибка удаления категории: ${(err as Error).message}`});
+    } finally {
+        setCategoryToDelete(null);
     }
-    updateAndSaveCategories(prev => prev.filter(c => c.id !== categoryToDelete.id));
-    const newEnabled = { ...settings.enabledCategories };
-    delete newEnabled[categoryToDelete.id];
-    handleSettingsChange({ enabledCategories: newEnabled });
-    setCategoryToDelete(null);
   };
   
   const handleAddPhraseFromCategoryDetail = () => {
@@ -1444,22 +1416,30 @@ const App: React.FC = () => {
     }
   };
 
-  const addCardsToCategory = useCallback((cards: ProposedCard[], targetCategory: Category): number => {
-    const phrasesToAdd = cards.map(p => ({
-        ...p,
-        id: Math.random().toString(36).substring(2, 9),
-        masteryLevel: 0, lastReviewedAt: null, nextReviewAt: Date.now(),
-        knowCount: 0, knowStreak: 0, isMastered: false,
-        category: targetCategory.id, lapses: 0, isNew: true,
-    }));
-    if (phrasesToAdd.length > 0) {
-        updateAndSavePhrases(prev => [...phrasesToAdd, ...prev]);
+  const addCardsToCategory = useCallback(async (cards: ProposedCard[], targetCategory: Category): Promise<number> => {
+    let addedCount = 0;
+    const phrasesToAdd = cards.map(p => ({ ...p, category: targetCategory.id }));
+    const createdPhrases: Phrase[] = [];
+    
+    for (const phrase of phrasesToAdd) {
+        try {
+            const newPhrase = await backendService.createPhrase(phrase);
+            createdPhrases.push({...newPhrase, isNew: true});
+            addedCount++;
+        } catch (err) {
+            console.error("Failed to create a card during bulk add:", err);
+            showToast({message: `Не удалось добавить "${phrase.german}"`});
+        }
     }
-    return phrasesToAdd.length;
-  }, [updateAndSavePhrases]);
+
+    if (createdPhrases.length > 0) {
+        updateAndSavePhrases(prev => [...createdPhrases, ...prev]);
+    }
+    return addedCount;
+  }, [updateAndSavePhrases, showToast]);
 
 
-  const handleConfirmAutoFill = useCallback((selectedCards: ProposedCard[]) => {
+  const handleConfirmAutoFill = useCallback(async (selectedCards: ProposedCard[]) => {
       if (!autoFillingCategory) return;
 
       const duplicatesFound: { existingPhrase: Phrase, proposedCard: ProposedCard }[] = [];
@@ -1491,7 +1471,7 @@ const App: React.FC = () => {
           setIsAutoFillPreviewOpen(false);
           setAutoFillingCategory(null);
       } else {
-          const addedCount = addCardsToCategory(newCards, autoFillingCategory);
+          const addedCount = await addCardsToCategory(newCards, autoFillingCategory);
           showToast({ message: `✓ ${addedCount} карточек добавлено в категорию "${autoFillingCategory.name}".` });
           setIsAutoFillPreviewOpen(false);
           setCategoryToView(autoFillingCategory);
@@ -1499,22 +1479,24 @@ const App: React.FC = () => {
       }
   }, [autoFillingCategory, allPhrases, addCardsToCategory, showToast]);
   
-  const handleMoveReviewedDuplicates = (phraseIdsToMove: string[], newCards: ProposedCard[], targetCategory: Category) => {
-    updateAndSavePhrases(prev => 
-        prev.map(p => 
-            phraseIdsToMove.includes(p.id) ? { ...p, category: targetCategory.id } : p
-        )
-    );
-    const addedCount = addCardsToCategory(newCards, targetCategory);
-    showToast({ message: `✓ ${phraseIdsToMove.length} карточек перемещено и ${addedCount} добавлено в "${targetCategory.name}".` });
-    
-    setIsMoveOrSkipModalOpen(false);
-    setDuplicatesReviewData(null);
-    setCategoryToView(targetCategory);
+  const handleMoveReviewedDuplicates = async (phraseIdsToMove: string[], newCards: ProposedCard[], targetCategory: Category) => {
+    try {
+        for (const phraseId of phraseIdsToMove) {
+            await handleUpdatePhraseCategory(phraseId, targetCategory.id);
+        }
+        const addedCount = await addCardsToCategory(newCards, targetCategory);
+        showToast({ message: `✓ ${phraseIdsToMove.length} карточек перемещено и ${addedCount} добавлено в "${targetCategory.name}".` });
+    } catch(err) {
+        showToast({ message: `Ошибка: ${(err as Error).message}`});
+    } finally {
+        setIsMoveOrSkipModalOpen(false);
+        setDuplicatesReviewData(null);
+        setCategoryToView(targetCategory);
+    }
   };
     
-  const handleAddOnlyNewFromReview = (newCards: ProposedCard[], targetCategory: Category) => {
-      const addedCount = addCardsToCategory(newCards, targetCategory);
+  const handleAddOnlyNewFromReview = async (newCards: ProposedCard[], targetCategory: Category) => {
+      const addedCount = await addCardsToCategory(newCards, targetCategory);
       showToast({ message: `✓ ${addedCount} карточек добавлено в "${targetCategory.name}". Дубликаты пропущены.` });
 
       setIsMoveOrSkipModalOpen(false);
@@ -1631,49 +1613,41 @@ const App: React.FC = () => {
     }, 250);
   }, [selectNextPracticePhrase]);
   
-  const handlePracticeUpdateMastery = useCallback((action: 'know' | 'forgot' | 'dont_know') => {
+  const handlePracticeUpdateMastery = useCallback(async (action: 'know' | 'forgot' | 'dont_know') => {
     if (!currentPracticePhrase || practiceIsExitingRef.current) return;
 
     handleLogMasteryButtonUsage(action);
     const originalPhrase = currentPracticePhrase;
 
-    let updatedPhrase = srsService.updatePhraseMastery(originalPhrase, action, categories);
+    let srsUpdatedPhrase = srsService.updatePhraseMastery(originalPhrase, action, categories);
     
-    // Leech detection logic
     if (action === 'forgot' || action === 'dont_know') {
       const wasLeech = srsService.isLeech(originalPhrase);
-      const isNowLeech = srsService.isLeech(updatedPhrase);
+      const isNowLeech = srsService.isLeech(srsUpdatedPhrase);
       
       if (!wasLeech && isNowLeech) {
-        // Just save the updated phrase with its new lapse count and open the modal.
-        // The modal will decide the next review time.
-        updateAndSavePhrases(prev => prev.map(p => p.id === updatedPhrase.id ? updatedPhrase : p));
-        setLeechPhrase(updatedPhrase);
+        const backendUpdatedPhrase = await updatePhraseMasteryAndCache(originalPhrase, action);
+        setLeechPhrase(backendUpdatedPhrase);
         setIsLeechModalOpen(true);
-        // Exit early to not flip the card; the modal takes over the flow.
         return;
       }
     }
 
-    updateAndSavePhrases(prev => prev.map(p => p.id === updatedPhrase.id ? updatedPhrase : p));
+    const finalPhraseState = await updatePhraseMasteryAndCache(originalPhrase, action);
     
-    if (updatedPhrase.isMastered && !originalPhrase.isMastered) {
-      cacheService.clearCacheForPhrase(updatedPhrase.id);
-    }
-
     // Always show the flipped card
     setIsPracticeAnswerRevealed(true);
     setPracticeCardEvaluated(true);
-    setCurrentPracticePhrase(updatedPhrase); // Update the card state before showing it flipped
+    setCurrentPracticePhrase(finalPhraseState);
 
     if (action === 'know') {
         if (settings.soundEffects) playCorrectSound();
     } else {
         if (settings.soundEffects) playIncorrectSound();
     }
-  }, [currentPracticePhrase, handleLogMasteryButtonUsage, updateAndSavePhrases, settings.soundEffects, categories]);
+  }, [currentPracticePhrase, practiceIsExitingRef, handleLogMasteryButtonUsage, categories, updatePhraseMasteryAndCache, settings.soundEffects]);
 
-  const handleLeechAction = useCallback((phrase: Phrase, action: 'continue' | 'reset' | 'postpone') => {
+  const handleLeechAction = useCallback(async (phrase: Phrase, action: 'continue' | 'reset' | 'postpone') => {
     let updatedPhrase = { ...phrase };
     const now = Date.now();
 
@@ -1682,23 +1656,24 @@ const App: React.FC = () => {
     } else if (action === 'reset') {
         updatedPhrase = {
             ...phrase,
-            masteryLevel: 0,
-            lastReviewedAt: null,
-            nextReviewAt: now,
-            knowCount: 0,
-            knowStreak: 0,
-            lapses: 0, // Reset lapses so it's not a leech anymore
-            isMastered: false,
+            masteryLevel: 0, lastReviewedAt: null, nextReviewAt: now, knowCount: 0,
+            knowStreak: 0, lapses: 0, isMastered: false,
         };
     } else { // postpone
         updatedPhrase.nextReviewAt = now + 24 * 60 * 60 * 1000; // 24 hours
     }
 
-    updateAndSavePhrases(prev => prev.map(p => (p.id === updatedPhrase.id ? updatedPhrase : p)));
+    try {
+        await backendService.updatePhrase(updatedPhrase);
+        updateAndSavePhrases(prev => prev.map(p => (p.id === updatedPhrase.id ? updatedPhrase : p)));
+    } catch(err) {
+        showToast({ message: `Ошибка: ${(err as Error).message}`});
+    }
+
     setIsLeechModalOpen(false);
     setLeechPhrase(null);
     transitionToNext();
-  }, [updateAndSavePhrases, transitionToNext]);
+  }, [updateAndSavePhrases, transitionToNext, showToast]);
 
 
   const handlePracticeSwipeRight = useCallback(() => {
@@ -2209,6 +2184,7 @@ const App: React.FC = () => {
                 onAddCards={handleCreateProposedCards}
                 cache={assistantCache}
                 setCache={setAssistantCache}
+// FIX: Corrected prop name from onOpenWordAnalysis to handleOpenWordAnalysis
                 onOpenWordAnalysis={handleOpenWordAnalysis}
                 allPhrases={allPhrases}
                 onCreateCard={handleCreateCardFromWord}
