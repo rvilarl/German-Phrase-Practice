@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import type { Phrase, ChatMessage, ExamplePair, ProactiveSuggestion, ContentPart, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, AdjectiveDeclension, SentenceContinuation, TranslationChatRequest, TranslationChatResponse, PhraseBuilderOptions, PhraseEvaluation, CategoryAssistantRequest, CategoryAssistantResponse, CategoryAssistantRequestType } from '../types';
 import { AiService } from './aiService';
@@ -730,7 +731,7 @@ const discussTranslation: AiService['discussTranslation'] = async (request) => {
 1.  Ответь на запрос пользователя, помогая ему найти лучший перевод. Общайся на русском.
 2.  Если в ходе диалога ты приходишь к выводу, что фразу можно улучшить, ОБЯЗАТЕЛЬНО включи в свой JSON-ответ поле \`suggestion\`. Это поле должно содержать объект с ключами \`russian\` и \`german\` с финальным, улучшенным вариантом. Возможно, для лучшего перевода придется немного изменить и русскую фразу.
 3.  Если ты не предлагаешь конкретного изменения, НЕ включай поле \`suggestion\`.
-4.  Всегда разбивай свой текстовый ответ на \`responseParts\` и предлагай новые вопросы в \`promptSuggestions\`.
+4.  Твой ответ ДОЛЖЕН быть ТОЛЬКО в формате JSON, строго соответствующем предоставленной схеме. Не добавляй никакого текста до или после JSON. Всегда разбивай свой текстовый ответ на массив \`responseParts\` и предлагай новые вопросы в \`promptSuggestions\`.
 5.  Будь краток и по делу.`;
     
     const formattedHistory = request.history.map(msg => ({
@@ -753,16 +754,29 @@ const discussTranslation: AiService['discussTranslation'] = async (request) => {
         const jsonText = response.text.trim();
         const parsedResponse = JSON.parse(jsonText);
 
+        if (!parsedResponse || !Array.isArray(parsedResponse.responseParts) || !Array.isArray(parsedResponse.promptSuggestions)) {
+            console.error("Invalid response structure from Gemini discussTranslation:", parsedResponse);
+            const textFallback = (parsedResponse && typeof parsedResponse === 'object') 
+                ? JSON.stringify(parsedResponse) 
+                : 'Invalid response';
+            throw new Error(`AI returned an unexpected response format. Raw: ${textFallback}`);
+        }
+
         return {
             role: 'model',
-            contentParts: parsedResponse.contentParts || [{ type: 'text', text: 'Error parsing response.' }],
+            contentParts: parsedResponse.responseParts.length > 0 
+                ? parsedResponse.responseParts 
+                : [{ type: 'text', text: 'AI не предоставил текстовый ответ.' }],
             suggestion: parsedResponse.suggestion,
             promptSuggestions: parsedResponse.promptSuggestions || [],
         };
 
     } catch (error) {
         console.error("Error discussing translation with Gemini:", error);
-        throw new Error(`Failed to call the Gemini API: ${(error as any)?.message || 'Unknown error'}`);
+        if (error instanceof Error && error.message.includes('JSON')) {
+            throw new Error("Не удалось разобрать JSON-ответ от AI. Неверный формат.");
+        }
+        throw new Error(`Ошибка вызова Gemini API: ${(error as any)?.message || 'Unknown error'}`);
     }
 };
 

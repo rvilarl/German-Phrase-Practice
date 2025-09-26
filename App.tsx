@@ -1252,6 +1252,7 @@ const App: React.FC = () => {
   
   const handleOpenDiscussModal = (phrase: Phrase) => {
     setPhraseToDiscuss(phrase);
+    setDiscussInitialMessage("Проанализируй, пожалуйста, текущий перевод. Насколько он точен и естественен? Есть ли более удачные альтернативы?");
     setIsDiscussModalOpen(true);
   };
 
@@ -2118,7 +2119,7 @@ const App: React.FC = () => {
             onHabitTrackerChange={handleHabitTrackerChange}
             showToast={showToast}
             onOpenLearningAssistant={handleOpenLearningAssistant}
-       />
+       />}
        {learningAssistantPhrase && <LearningAssistantModal
             isOpen={isLearningAssistantModalOpen}
             onClose={(didSucceed?: boolean) => {
