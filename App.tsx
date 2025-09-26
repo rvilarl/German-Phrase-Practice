@@ -1,5 +1,7 @@
 
 
+
+
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 // FIX: Import View type from shared types.ts
 import { Phrase, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, AdjectiveDeclension, SentenceContinuation, PhraseBuilderOptions, PhraseEvaluation, ChatMessage, PhraseCategory, ProposedCard, BookRecord, Category, CategoryAssistantRequest, CategoryAssistantResponse, View } from './types';
@@ -1262,9 +1264,10 @@ const App: React.FC = () => {
     setIsLearningAssistantModalOpen(true);
   };
   
-  const handleLearningAssistantSuccess = useCallback((phrase: Phrase) => {
+  const handleLearningAssistantSuccess = useCallback(async (phrase: Phrase) => {
     if (settings.soundEffects) playCorrectSound();
-    const updatedPhrase = updatePhraseMasteryAndCache(phrase, 'know');
+    // FIX: Await the async function to get the updated phrase before setting state.
+    const updatedPhrase = await updatePhraseMasteryAndCache(phrase, 'know');
     if (currentPracticePhrase?.id === phrase.id) {
       setCurrentPracticePhrase(updatedPhrase);
     }

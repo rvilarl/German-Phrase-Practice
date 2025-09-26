@@ -5,7 +5,8 @@ import CloseIcon from './icons/CloseIcon';
 interface CategoryFormModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (categoryData: { name: string; color: string }) => boolean; // Returns true on success
+  // FIX: Allow onSubmit to be an async function, as it needs to perform backend operations.
+  onSubmit: (categoryData: { name: string; color: string }) => Promise<boolean>; // Returns true on success
   initialData?: Category | null;
 }
 
@@ -30,10 +31,11 @@ const CategoryFormModal: React.FC<CategoryFormModalProps> = ({ isOpen, onClose, 
     }
   }, [isOpen, initialData]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (name.trim()) {
-      const success = onSubmit({ name: name.trim(), color });
+      // FIX: Await the async onSubmit function to correctly handle the success/failure result.
+      const success = await onSubmit({ name: name.trim(), color });
       if (!success) {
         setError('Категория с таким названием уже существует.');
       } else {
