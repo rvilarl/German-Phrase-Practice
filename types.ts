@@ -58,16 +58,22 @@ export interface WordAnalysis {
   exampleSentenceTranslation: string;
 }
 
+export interface ConjugationForm {
+    german: string;
+    russian: string;
+}
+
+export interface TenseForms {
+    statement: ConjugationForm;
+    question: ConjugationForm;
+    negative: ConjugationForm;
+}
+
 export interface VerbConjugation {
   infinitive: string;
-  presentTense: {
-    ich: string;
-    du: string;
-    er_sie_es: string;
-    wir: string;
-    ihr: string;
-    sie_Sie: string;
-  };
+  past: TenseForms;
+  present: TenseForms;
+  future: TenseForms;
 }
 
 export interface NounDeclension {

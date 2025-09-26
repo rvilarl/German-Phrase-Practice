@@ -1,5 +1,5 @@
 import React from 'react';
-import type { Phrase, VerbConjugation } from '../types';
+import type { Phrase, VerbConjugation, TenseForms } from '../types';
 import CloseIcon from './icons/CloseIcon';
 import TableIcon from './icons/TableIcon';
 import AudioPlayer from './AudioPlayer';
@@ -15,24 +15,24 @@ interface VerbConjugationModalProps {
 }
 
 const VerbConjugationSkeleton: React.FC = () => (
-    <div className="bg-slate-700/50 p-4 rounded-lg animate-pulse">
-        <div className="w-full">
-            <div className="flex items-center p-3 border-b border-slate-600">
-                <div className="w-1/6"></div>
-                <div className="h-5 bg-slate-600 rounded w-1/4"></div>
-                <div className="h-5 bg-slate-600 rounded w-1/3 ml-auto"></div>
+    <div className="bg-slate-700/50 p-2 sm:p-4 rounded-lg animate-pulse">
+        <div className="w-full min-w-[700px] border-separate" style={{ borderSpacing: '0.5rem' }}>
+            {/* Header */}
+            <div className="flex">
+                <div className="w-[120px]"></div>
+                <div className="flex-1 h-8 bg-slate-600 rounded"></div>
+                <div className="flex-1 h-8 bg-slate-600 rounded"></div>
+                <div className="flex-1 h-8 bg-slate-600 rounded"></div>
             </div>
-            <div className="space-y-1 mt-1">
-                {[...Array(6)].map((_, i) => (
-                    <div key={i} className="flex items-center p-3 border-b border-slate-700 last:border-b-0">
-                        <div className="w-1/6">
-                            <div className="w-10 h-10 bg-slate-600 rounded-full"></div>
-                        </div>
-                        <div className="h-6 bg-slate-600 rounded w-1/4"></div>
-                        <div className="h-6 bg-slate-600 rounded w-1/3 ml-auto"></div>
-                    </div>
-                ))}
-            </div>
+            {/* Rows */}
+            {[...Array(3)].map((_, i) => (
+                <div key={i} className="flex mt-2">
+                    <div className="w-[120px] h-28 bg-slate-600 rounded"></div>
+                    <div className="flex-1 h-28 bg-slate-600 rounded"></div>
+                    <div className="flex-1 h-28 bg-slate-600 rounded"></div>
+                    <div className="flex-1 h-28 bg-slate-600 rounded"></div>
+                </div>
+            ))}
         </div>
     </div>
 );
@@ -82,34 +82,50 @@ const VerbConjugationModal: React.FC<VerbConjugationModalProps> = ({ isOpen, onC
     if (!data) {
       return <div className="flex justify-center items-center h-full"><p className="text-slate-400">Нет данных.</p></div>;
     }
-
-    const conjugationPairs = [
-      { pronoun: 'ich', form: data.presentTense.ich },
-      { pronoun: 'du', form: data.presentTense.du },
-      { pronoun: 'er/sie/es', form: data.presentTense.er_sie_es },
-      { pronoun: 'wir', form: data.presentTense.wir },
-      { pronoun: 'ihr', form: data.presentTense.ihr },
-      { pronoun: 'sie/Sie', form: data.presentTense.sie_Sie },
+    
+    const tenses: { key: keyof Pick<VerbConjugation, 'present' | 'past' | 'future'>, name: string }[] = [
+        { key: 'present', name: 'Настоящее' },
+        { key: 'past', name: 'Прошедшее (Perfekt)' },
+        { key: 'future', name: 'Будущее (Futur I)' },
+    ];
+    const forms: { key: keyof TenseForms, name: string }[] = [
+        { key: 'statement', name: 'Утверждение' },
+        { key: 'question', name: 'Вопрос' },
+        { key: 'negative', name: 'Отрицание' },
     ];
 
     return (
-        <div className="bg-slate-700/50 p-4 rounded-lg">
-            <table className="w-full text-left">
+        <div className="bg-slate-700/50 p-2 sm:p-4 rounded-lg overflow-x-auto hide-scrollbar">
+            <table className="w-full min-w-[700px] text-left border-separate" style={{ borderSpacing: '0.5rem' }}>
                 <thead>
-                    <tr className="border-b border-slate-600">
-                        <th className="p-3 w-1/6"><span className="sr-only">Озвучить</span></th>
-                        <th className="p-3 text-sm font-semibold text-slate-400">Местоимение</th>
-                        <th className="p-3 text-sm font-semibold text-slate-400">Форма глагола</th>
+                    <tr>
+                        <th className="p-2"></th>
+                        {tenses.map(tense => (
+                            <th key={tense.key} className="p-3 text-center font-bold text-purple-300">{tense.name}</th>
+                        ))}
                     </tr>
                 </thead>
                 <tbody>
-                    {conjugationPairs.map(pair => (
-                        <tr key={pair.pronoun} className="border-b border-slate-700 last:border-b-0">
-                            <td className="p-3">
-                                <AudioPlayer textToSpeak={`${pair.pronoun} ${pair.form}`} />
-                            </td>
-                            <td className="p-3 text-slate-300 text-lg">{pair.pronoun}</td>
-                            <td className="p-3 text-slate-100 font-semibold text-lg">{renderClickableGerman(pair.form)}</td>
+                    {forms.map(form => (
+                        <tr key={form.key}>
+                            <th className="p-3 font-bold text-purple-300 align-middle text-center">{form.name}</th>
+                            {tenses.map(tense => {
+                                const cellData = data[tense.key]?.[form.key];
+                                if (!cellData) return <td key={`${tense.key}-${form.key}`} className="bg-slate-800/60 p-3 rounded-lg align-top"></td>;
+                                return (
+                                    <td key={`${tense.key}-${form.key}`} className="bg-slate-800/60 p-3 rounded-lg align-top">
+                                        <div className="flex flex-col justify-between min-h-[100px]">
+                                            <div>
+                                                <p className="text-slate-100 font-medium">{renderClickableGerman(cellData.german)}</p>
+                                                <p className="text-xs text-slate-400 italic mt-1">«{cellData.russian}»</p>
+                                            </div>
+                                            <div className="self-end mt-2">
+                                                <AudioPlayer textToSpeak={cellData.german} />
+                                            </div>
+                                        </div>
+                                    </td>
+                                );
+                            })}
                         </tr>
                     ))}
                 </tbody>
@@ -121,7 +137,7 @@ const VerbConjugationModal: React.FC<VerbConjugationModalProps> = ({ isOpen, onC
   return (
     <div className="fixed inset-0 bg-black/60 z-[70] flex justify-center items-center" onClick={onClose}>
       <div 
-        className="bg-slate-800 w-full max-w-md m-4 rounded-2xl shadow-2xl flex flex-col"
+        className="bg-slate-800 w-full max-w-3xl m-4 rounded-2xl shadow-2xl flex flex-col"
         onClick={e => e.stopPropagation()}
       >
         <header className="flex items-center justify-between p-4 border-b border-slate-700 flex-shrink-0">

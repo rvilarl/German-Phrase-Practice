@@ -964,31 +964,52 @@ const analyzeWordInPhrase: AiService['analyzeWordInPhrase'] = async (phrase, wor
     }
 };
 
+const conjugationFormSchema = {
+    type: Type.OBJECT,
+    properties: {
+        german: { type: Type.STRING, description: 'The full example sentence in German for the given pronoun, tense, and form.' },
+        russian: { type: Type.STRING, description: 'The Russian translation of the German sentence.' },
+    },
+    required: ["german", "russian"],
+};
+
+const tenseFormsSchema = {
+    type: Type.OBJECT,
+    properties: {
+        statement: { ...conjugationFormSchema, description: "A declarative statement (e.g., 'I go')." },
+        question: { ...conjugationFormSchema, description: "An interrogative sentence (e.g., 'Do I go?')." },
+        negative: { ...conjugationFormSchema, description: "A negative sentence (e.g., 'I do not go')." },
+    },
+    required: ["statement", "question", "negative"],
+};
+
 const verbConjugationSchema = {
     type: Type.OBJECT,
     properties: {
         infinitive: { type: Type.STRING },
-        presentTense: {
-            type: Type.OBJECT,
-            properties: {
-                ich: { type: Type.STRING },
-                du: { type: Type.STRING },
-                er_sie_es: { type: Type.STRING, description: "Conjugation for er/sie/es" },
-                wir: { type: Type.STRING },
-                ihr: { type: Type.STRING },
-                sie_Sie: { type: Type.STRING, description: "Conjugation for sie (plural) and Sie (formal)" },
-            },
-            required: ["ich", "du", "er_sie_es", "wir", "ihr", "sie_Sie"],
-        }
+        past: { ...tenseFormsSchema, description: 'Forms for the Past (Perfekt) tense.' },
+        present: { ...tenseFormsSchema, description: 'Forms for the Present (Präsens) tense.' },
+        future: { ...tenseFormsSchema, description: 'Forms for the Future (Futur I) tense.' },
     },
-    required: ["infinitive", "presentTense"],
+    required: ["infinitive", "past", "present", "future"],
 };
 
 const conjugateVerb: AiService['conjugateVerb'] = async (infinitive) => {
     const api = initializeApi();
     if (!api) throw new Error("Gemini API key not configured.");
 
-    const prompt = `Предоставь спряжение немецкого глагола "${infinitive}" в настоящем времени (Präsens). Верни JSON-объект, содержащий инфинитив и формы для 'ich', 'du', 'er_sie_es', 'wir', 'ihr', 'sie_Sie'.`;
+    const prompt = `Ты — эксперт по грамматике немецкого языка. Предоставь матрицу спряжения для глагола "${infinitive}".
+
+Матрица должна включать три времени (прошедшее, настоящее, будущее) и три формы (утвердительная, вопросительная, отрицательная).
+
+Правила:
+1.  Используй местоимение "ich" (я) как основу для всех примеров.
+2.  Для прошедшего времени используй Perfekt (например, "ich habe gesagt").
+3.  Для будущего времени используй Futur I (например, "ich werde sagen").
+4.  Для каждой ячейки матрицы (всего 9) предоставь полный пример предложения на немецком и его перевод на русский.
+5.  Отрицание строй с помощью "nicht" в правильной позиции. Вопросительное предложение начинай с глагола (Ja/Nein-Frage).
+
+Верни результат в виде JSON-объекта, соответствующего предоставленной схеме.`;
 
     try {
         const response = await api.models.generateContent({
@@ -997,7 +1018,7 @@ const conjugateVerb: AiService['conjugateVerb'] = async (infinitive) => {
             config: {
                 responseMimeType: "application/json",
                 responseSchema: verbConjugationSchema,
-                temperature: 0.2,
+                temperature: 0.3,
             },
         });
         
