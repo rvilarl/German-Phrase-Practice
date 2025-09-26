@@ -1,9 +1,4 @@
 
-
-
-
-
-
 import React, { useCallback, useRef, useState, useEffect, useMemo } from 'react';
 import type { Phrase, WordAnalysis, PhraseCategory, Category } from '../types';
 import PhraseCard from '../components/PhraseCard';
@@ -52,6 +47,7 @@ interface PracticePageProps {
   isGenerating: boolean;
   apiProviderAvailable: boolean;
   onUpdateMastery: (action: 'know' | 'forgot' | 'dont_know') => void;
+  onUpdateMasteryWithoutUI: (phrase: Phrase, action: 'know' | 'forgot' | 'dont_know') => void;
   onContinue: () => void;
   onSwipeRight: () => void;
   onOpenChat: (phrase: Phrase) => void;
@@ -187,7 +183,7 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
   const {
     currentPhrase, isAnswerRevealed, onSetIsAnswerRevealed, isCardEvaluated, animationState, isExiting, unmasteredCount, currentPoolCount,
     fetchNewPhrases, isLoading, error, isGenerating, apiProviderAvailable,
-    onUpdateMastery, onContinue, onSwipeRight,
+    onUpdateMastery, onUpdateMasteryWithoutUI, onContinue, onSwipeRight,
     onOpenChat, onOpenDeepDive, onOpenMovieExamples, onOpenWordAnalysis,
     onOpenVerbConjugation, onOpenNounDeclension, onOpenAdjectiveDeclension,
     onOpenSentenceChain, onOpenImprovePhrase, onOpenLearningAssistant,
@@ -305,17 +301,14 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
   const handleQuickReplyCorrect = useCallback(() => {
     if (!quickReplyPhrase) return;
 
-    if (settings.soundEffects) {
-      playCorrectSound();
-    }
     if (settings.autoSpeak) {
       speak(quickReplyPhrase.german, 'de-DE');
     }
     
-    onUpdateMastery('know');
+    onUpdateMasteryWithoutUI(quickReplyPhrase, 'know');
     onContinue();
     setQuickReplyPhrase(null);
-  }, [quickReplyPhrase, onUpdateMastery, onContinue, settings, speak]);
+  }, [quickReplyPhrase, onUpdateMasteryWithoutUI, onContinue, settings.autoSpeak, speak]);
 
   const handleQuickReplyIncorrect = useCallback(() => {
     if (!quickReplyPhrase) return;

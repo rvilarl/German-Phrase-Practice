@@ -6,11 +6,12 @@ import SmartToyIcon from './icons/SmartToyIcon';
 import RefreshIcon from './icons/RefreshIcon';
 import WandIcon from './icons/WandIcon';
 import MicrophoneIcon from './icons/MicrophoneIcon';
+import Spinner from './Spinner';
 
 interface AutoFillPreviewModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (selectedCards: ProposedCard[]) => void;
+  onConfirm: (selectedCards: ProposedCard[]) => Promise<void>;
   onRefine: (refinementText: string) => void;
   categoryName: string;
   proposedCards: ProposedCard[];
@@ -39,6 +40,7 @@ const AutoFillPreviewModal: React.FC<AutoFillPreviewModalProps> = ({
   const [showRefineInput, setShowRefineInput] = useState(false);
   const [refineText, setRefineText] = useState('');
   const [isListening, setIsListening] = useState(false);
+  const [isConfirming, setIsConfirming] = useState(false);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
 
   useEffect(() => {
@@ -46,6 +48,7 @@ const AutoFillPreviewModal: React.FC<AutoFillPreviewModalProps> = ({
       setSelectedIndices(new Set(proposedCards.map((_, i) => i)));
       setShowRefineInput(false);
       setRefineText('');
+      setIsConfirming(false);
     }
   }, [isOpen, proposedCards]);
   
@@ -98,9 +101,11 @@ const AutoFillPreviewModal: React.FC<AutoFillPreviewModalProps> = ({
     }
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
+    setIsConfirming(true);
     const selected = proposedCards.filter((_, i) => selectedIndices.has(i));
-    onConfirm(selected);
+    await onConfirm(selected);
+    // The parent component will close the modal upon completion.
   };
 
   const handleRefine = () => {
@@ -120,7 +125,7 @@ const AutoFillPreviewModal: React.FC<AutoFillPreviewModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/70 z-[80] flex justify-center items-center backdrop-blur-sm p-4 animate-fade-in" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/70 z-[80] flex justify-center items-center backdrop-blur-sm p-4 animate-fade-in" onClick={isConfirming ? undefined : onClose}>
       <div className="bg-slate-800 rounded-lg shadow-2xl w-full max-w-lg m-4 flex flex-col h-[90vh]" onClick={e => e.stopPropagation()}>
         <header className="flex items-center justify-between p-4 border-b border-slate-700 flex-shrink-0">
           <div className="flex items-center space-x-3 overflow-hidden">
@@ -129,7 +134,7 @@ const AutoFillPreviewModal: React.FC<AutoFillPreviewModalProps> = ({
                 Предложения для "{categoryName}"
             </h2>
           </div>
-          <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-700 ml-2">
+          <button onClick={onClose} disabled={isConfirming} className="p-2 rounded-full hover:bg-slate-700 ml-2">
             <CloseIcon className="w-6 h-6 text-slate-400" />
           </button>
         </header>
@@ -196,18 +201,22 @@ const AutoFillPreviewModal: React.FC<AutoFillPreviewModalProps> = ({
                 </div>
             )}
             <div className="flex items-center justify-between">
-                <button onClick={toggleSelectAll} className="px-2 sm:px-4 py-2 text-sm rounded-md text-slate-300 hover:bg-slate-700 transition-colors">
+                <button onClick={toggleSelectAll} disabled={isConfirming} className="px-2 sm:px-4 py-2 text-sm rounded-md text-slate-300 hover:bg-slate-700 transition-colors">
                     {selectedIndices.size === proposedCards.length ? 'Снять все' : 'Выбрать все'}
                 </button>
                 <div className="flex items-center space-x-2">
-                    <button onClick={() => setShowRefineInput(prev => !prev)} className="px-3 sm:px-4 py-2 rounded-md bg-slate-600 hover:bg-slate-700 text-white font-semibold transition-colors flex items-center">
+                    <button onClick={() => setShowRefineInput(prev => !prev)} disabled={isConfirming} className="px-3 sm:px-4 py-2 rounded-md bg-slate-600 hover:bg-slate-700 text-white font-semibold transition-colors flex items-center">
                         <WandIcon className="w-5 h-5 sm:mr-2" />
                         <span className="hidden sm:inline">Уточнить</span>
                     </button>
-                    <button onClick={handleConfirm} disabled={selectedIndices.size === 0 || isLoading} className="px-4 py-2 rounded-md bg-purple-600 hover:bg-purple-700 text-white font-semibold transition-colors disabled:opacity-50">
-                        <span className="sm:hidden">+</span>
-                        <span className="hidden sm:inline">Добавить</span>
-                        <span> ({selectedIndices.size})</span>
+                    <button onClick={handleConfirm} disabled={selectedIndices.size === 0 || isLoading || isConfirming} className="px-4 sm:px-6 py-2 rounded-md bg-purple-600 hover:bg-purple-700 text-white font-semibold transition-colors disabled:opacity-50 flex items-center justify-center min-w-[120px]">
+                        {isConfirming ? <Spinner className="w-5 h-5" /> : (
+                            <>
+                                <span className="sm:hidden">+</span>
+                                <span className="hidden sm:inline">Добавить</span>
+                                <span> ({selectedIndices.size})</span>
+                            </>
+                        )}
                     </button>
                 </div>
             </div>

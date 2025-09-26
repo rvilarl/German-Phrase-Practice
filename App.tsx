@@ -1,7 +1,4 @@
 
-
-
-
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 // FIX: Import View type from shared types.ts
 import { Phrase, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, AdjectiveDeclension, SentenceContinuation, PhraseBuilderOptions, PhraseEvaluation, ChatMessage, PhraseCategory, ProposedCard, BookRecord, Category, CategoryAssistantRequest, CategoryAssistantResponse, View } from './types';
@@ -928,15 +925,23 @@ const App: React.FC = () => {
   }, [updateAndSavePhrases, categories, showToast]);
 
 
-  const handlePhraseActionSuccess = useCallback((phrase: Phrase) => {
+  const handlePhraseActionSuccess = useCallback(async (phrase: Phrase) => {
     if (settings.soundEffects) playCorrectSound();
-    updatePhraseMasteryAndCache(phrase, 'know');
+    return updatePhraseMasteryAndCache(phrase, 'know');
   }, [settings.soundEffects, updatePhraseMasteryAndCache]);
 
-  const handlePhraseActionFailure = useCallback((phrase: Phrase) => {
+  const handlePhraseActionFailure = useCallback(async (phrase: Phrase) => {
     if (settings.soundEffects) playIncorrectSound();
-    updatePhraseMasteryAndCache(phrase, 'forgot');
+    return updatePhraseMasteryAndCache(phrase, 'forgot');
   }, [settings.soundEffects, updatePhraseMasteryAndCache]);
+
+  const handleUpdateMasteryWithoutUI = useCallback(async (phrase: Phrase, action: 'know' | 'forgot' | 'dont_know') => {
+    if (action === 'know') {
+        await handlePhraseActionSuccess(phrase);
+    } else {
+        await handlePhraseActionFailure(phrase);
+    }
+  }, [handlePhraseActionSuccess, handlePhraseActionFailure]);
 
 
   const handleGenerateContinuations = useCallback((russianPhrase: string) => callApiWithFallback(provider => provider.generateSentenceContinuations(russianPhrase)),[callApiWithFallback]);
@@ -1690,6 +1695,7 @@ const App: React.FC = () => {
       
       if (!wasLeech && isNowLeech) {
         const backendUpdatedPhrase = await updatePhraseMasteryAndCache(originalPhrase, action);
+        if (settings.soundEffects) playIncorrectSound();
         setLeechPhrase(backendUpdatedPhrase);
         setIsLeechModalOpen(true);
         return;
@@ -1698,9 +1704,8 @@ const App: React.FC = () => {
 
     const finalPhraseState = await updatePhraseMasteryAndCache(originalPhrase, action);
     
-    // Always show the flipped card
     setIsPracticeAnswerRevealed(true);
-    setPracticeCardEvaluated(true);
+    setPracticeCardEvaluated(action === 'know');
     setCurrentPracticePhrase(finalPhraseState);
 
     if (action === 'know') {
@@ -1709,6 +1714,7 @@ const App: React.FC = () => {
         if (settings.soundEffects) playIncorrectSound();
     }
   }, [currentPracticePhrase, practiceIsExitingRef, handleLogMasteryButtonUsage, categories, updatePhraseMasteryAndCache, settings.soundEffects]);
+
 
   const handleLeechAction = useCallback(async (phrase: Phrase, action: 'continue' | 'reset' | 'postpone') => {
     let updatedPhrase = { ...phrase };
@@ -1846,6 +1852,7 @@ const App: React.FC = () => {
              isGenerating={isGenerating}
              apiProviderAvailable={!!apiProvider}
              onUpdateMastery={handlePracticeUpdateMastery}
+             onUpdateMasteryWithoutUI={handleUpdateMasteryWithoutUI}
              onContinue={() => transitionToNext('right')}
              onSwipeRight={handlePracticeSwipeRight}
              onOpenChat={openChatForPhrase}

@@ -21,7 +21,7 @@ interface SmartImportModalProps {
   onClose: () => void;
   onGenerateCards: (transcript: string, lang: Language) => Promise<ProposedCard[]>;
   onGenerateTopicCards: (topic: string, refinement?: string, existingPhrases?: string[]) => Promise<ProposedCard[]>;
-  onCardsCreated: (cards: ProposedCard[], options?: { categoryId?: string; createCategoryName?: string }) => void;
+  onCardsCreated: (cards: ProposedCard[], options?: { categoryId?: string; createCategoryName?: string }) => Promise<void>;
   onClassifyTopic: (topic: string) => Promise<{ isCategory: boolean; categoryName: string }>;
   initialTopic?: string;
   allPhrases: Phrase[];
@@ -39,9 +39,6 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
   const [transcript, setTranscript] = useState('');
   const [assistantInput, setAssistantInput] = useState('');
 
-  const [isPreviewing, setIsPreviewing] = useState(false);
-  const [isListening, setIsListening] = useState(false);
-
   const [proposedCards, setProposedCards] = useState<ProposedCard[]>([]);
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
   const [canPaste, setCanPaste] = useState(false);
@@ -52,7 +49,10 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
   const [showRefineInput, setShowRefineInput] = useState(false);
   const [refineText, setRefineText] = useState('');
   const [isRefining, setIsRefining] = useState(false);
+  // FIX: Added missing state for assistant's microphone listening status.
+  const [isListening, setIsListening] = useState(false);
   const [isRefineListening, setIsRefineListening] = useState(false);
+  const [isAdding, setIsAdding] = useState(false);
 
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const assistantRecognitionRef = useRef<SpeechRecognition | null>(null);
@@ -65,7 +65,6 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
     setTranscript('');
     finalTranscriptRef.current = '';
     setAssistantInput('');
-    setIsPreviewing(false);
     setProposedCards([]);
     setSelectedIndices(new Set());
     setCategorySuggestion(null);
@@ -74,6 +73,7 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
     setShowRefineInput(false);
     setRefineText('');
     setIsRefining(false);
+    setIsAdding(false);
     if (recognitionRef.current) {
         recognitionRef.current.abort();
     }
@@ -349,9 +349,10 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
     }
   };
 
-  const handleAddSelected = () => {
+  const handleAddSelected = async () => {
+    setIsAdding(true);
     const selected = proposedCards.filter((_, i) => selectedIndices.has(i));
-    onCardsCreated(selected, generationOptions);
+    await onCardsCreated(selected, generationOptions);
     onClose();
   };
 
@@ -521,10 +522,14 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
                              <span className="hidden sm:inline">Уточнить</span>
                         </button>
                     )}
-                    <button onClick={handleAddSelected} disabled={selectedIndices.size === 0} className="px-4 sm:px-6 py-2 rounded-md bg-purple-600 hover:bg-purple-700 text-white font-semibold transition-colors disabled:opacity-50">
-                        <span className="sm:hidden">+</span>
-                        <span className="hidden sm:inline">Добавить</span>
-                        <span> ({selectedIndices.size})</span>
+                    <button onClick={handleAddSelected} disabled={selectedIndices.size === 0 || isAdding} className="px-4 sm:px-6 py-2 rounded-md bg-purple-600 hover:bg-purple-700 text-white font-semibold transition-colors disabled:opacity-50 flex items-center justify-center min-w-[120px]">
+                        {isAdding ? <Spinner className="w-5 h-5" /> : (
+                            <>
+                                <span className="sm:hidden">+</span>
+                                <span className="hidden sm:inline">Добавить</span>
+                                <span> ({selectedIndices.size})</span>
+                            </>
+                        )}
                     </button>
                 </div>
             </div>
@@ -553,7 +558,7 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/70 z-[80] flex justify-center items-center backdrop-blur-sm p-4 animate-fade-in" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/70 z-[80] flex justify-center items-center backdrop-blur-sm p-4 animate-fade-in" onClick={isAdding ? undefined : onClose}>
         <div className="relative w-full max-w-2xl min-h-[34rem] h-[80vh] max-h-[600px] bg-slate-800/80 backdrop-blur-xl border border-slate-700 rounded-xl shadow-2xl flex flex-col p-6" onClick={e => e.stopPropagation()}>
             {(view === 'preview') ? null : <CloseIcon className="w-6 h-6 text-slate-400 absolute top-4 right-4 cursor-pointer hover:text-white" onClick={onClose} />}
             

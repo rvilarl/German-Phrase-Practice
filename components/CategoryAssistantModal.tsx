@@ -13,6 +13,7 @@ import MicrophoneIcon from './icons/MicrophoneIcon';
 import SoundIcon from './icons/SoundIcon';
 import CategoryAssistantContextMenu from './CategoryAssistantContextMenu';
 import ListIcon from './icons/ListIcon';
+import Spinner from './Spinner';
 
 interface CategoryAssistantModalProps {
   isOpen: boolean;
@@ -20,7 +21,7 @@ interface CategoryAssistantModalProps {
   category: Category;
   phrases: Phrase[];
   onGetAssistantResponse: (categoryName: string, existingPhrases: Phrase[], request: CategoryAssistantRequest) => Promise<ChatMessage['assistantResponse']>;
-  onAddCards: (cards: ProposedCard[], options: { categoryId: string }) => void;
+  onAddCards: (cards: ProposedCard[], options: { categoryId: string }) => Promise<void>;
   onOpenConfirmDeletePhrases: (phrases: Phrase[], sourceCategory: Category) => void;
   cache: { [categoryId: string]: ChatMessage[] };
   setCache: React.Dispatch<React.SetStateAction<{ [categoryId: string]: ChatMessage[] }>>;
@@ -39,7 +40,7 @@ interface CategoryAssistantModalProps {
 const AssistantChatMessageContent: React.FC<{
     msg: ChatMessage;
     category: Category;
-    onAddCards: (cards: ProposedCard[], options: { categoryId: string }) => void;
+    onAddCards: (cards: ProposedCard[], options: { categoryId: string }) => Promise<void>;
     onGoToList: () => void;
     onClose: () => void;
     // Interactivity props
@@ -49,6 +50,7 @@ const AssistantChatMessageContent: React.FC<{
 }> = ({ msg, category, onAddCards, onGoToList, onClose, onSpeak, onOpenWordAnalysis, onOpenContextMenu }) => {
     const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
     const [addedInfo, setAddedInfo] = useState<{ count: number } | null>(null);
+    const [isAdding, setIsAdding] = useState(false);
     const wordLongPressTimer = useRef<number | null>(null);
 
     const response = msg.assistantResponse;
@@ -59,11 +61,13 @@ const AssistantChatMessageContent: React.FC<{
         }
     }, [response, addedInfo]);
 
-    const handleAddSelected = () => {
-        if (!response?.proposedCards) return;
+    const handleAddSelected = async () => {
+        if (!response?.proposedCards || isAdding) return;
+        setIsAdding(true);
         const selected = response.proposedCards.filter((_, i) => selectedIndices.has(i));
-        onAddCards(selected, { categoryId: category.id });
+        await onAddCards(selected, { categoryId: category.id });
         setAddedInfo({ count: selected.length });
+        setIsAdding(false);
     };
     
     const handleWordPointerDown = (e: React.PointerEvent<HTMLSpanElement>, sentence: { german: string, russian: string }, word: string) => {
@@ -160,7 +164,9 @@ const AssistantChatMessageContent: React.FC<{
                             </button>
                         </div>
                     ) : (
-                        <button onClick={handleAddSelected} disabled={selectedIndices.size === 0} className="w-full mt-2 py-2 text-sm bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-md disabled:opacity-50">Добавить выбранные ({selectedIndices.size})</button>
+                        <button onClick={handleAddSelected} disabled={selectedIndices.size === 0 || isAdding} className="w-full mt-2 py-2 text-sm bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-md disabled:opacity-50 flex items-center justify-center min-h-[36px]">
+                            {isAdding ? <Spinner className="w-5 h-5"/> : `Добавить выбранные (${selectedIndices.size})`}
+                        </button>
                     )}
                     </div>
                 )}
