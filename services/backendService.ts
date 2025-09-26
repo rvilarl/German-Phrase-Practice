@@ -1,13 +1,41 @@
-// FIX: Removed Omit from import as it's a built-in TypeScript utility type.
 import { Phrase, Category } from '../types';
 
 const API_BASE_URL = 'http://localhost:3001/api';
 
+// --- Color Conversion Maps ---
+const tailwindToHexMap: Record<string, string> = {
+  'bg-slate-500': '#64748b',
+  'bg-red-500': '#ef4444',
+  'bg-orange-500': '#f97316',
+  'bg-amber-500': '#f59e0b',
+  'bg-yellow-500': '#eab308',
+  'bg-lime-500': '#84cc16',
+  'bg-green-500': '#22c55e',
+  'bg-emerald-500': '#10b981',
+  'bg-teal-500': '#14b8a6',
+  'bg-cyan-500': '#06b6d4',
+  'bg-sky-500': '#0ea5e9',
+  'bg-blue-500': '#3b82f6',
+  'bg-indigo-500': '#6366f1',
+  'bg-violet-500': '#8b5cf6',
+  'bg-purple-500': '#a855f7',
+  'bg-fuchsia-500': '#d946ef',
+  'bg-pink-500': '#ec4899',
+  'bg-rose-500': '#f43f5e',
+};
+
+const hexToTailwindMap: Record<string, string> = Object.fromEntries(
+  Object.entries(tailwindToHexMap).map(([key, value]) => [value, key])
+);
+
+
 // --- Data Conversion Helpers ---
 
 const feCategory = (beCategory: any): Category => ({
-    ...beCategory,
     id: beCategory.id.toString(),
+    name: beCategory.name,
+    color: hexToTailwindMap[beCategory.color.toLowerCase()] || 'bg-slate-500',
+    isFoundational: beCategory.is_foundational,
 });
 
 const fePhrase = (bePhrase: any): Phrase => {
@@ -72,11 +100,23 @@ export const createPhrase = async (phraseData: Omit<Phrase, 'id' | 'masteryLevel
 
 export const updatePhrase = async (phrase: Phrase): Promise<Phrase> => {
     const beData = {
-        ...phrase,
+        russian: phrase.russian,
+        german: phrase.german,
         category_id: parseInt(phrase.category, 10),
+        transcription: phrase.transcription,
+        context: phrase.context,
+        masteryLevel: phrase.masteryLevel,
+        lastReviewedAt: phrase.lastReviewedAt,
+        nextReviewAt: phrase.nextReviewAt,
+        knowCount: phrase.knowCount,
+        knowStreak: phrase.knowStreak,
+        isMastered: phrase.isMastered,
+        lapses: phrase.lapses,
     };
-    delete (beData as any).category;
-    delete (beData as any).isNew; // Don't send transient frontend state
+
+    if (isNaN(beData.category_id)) {
+        throw new Error('Category ID is required and must be a number');
+    }
 
     const response = await fetch(`${API_BASE_URL}/phrases/${phrase.id}`, {
         method: 'PUT',
@@ -84,6 +124,7 @@ export const updatePhrase = async (phrase: Phrase): Promise<Phrase> => {
         body: JSON.stringify(beData)
     });
     const updated = await handleResponse(response);
+    
     return fePhrase({ ...phrase, ...updated });
 };
 
@@ -92,20 +133,31 @@ export const deletePhrase = async (phraseId: string): Promise<void> => {
 };
 
 export const createCategory = async (categoryData: Omit<Category, 'id'>): Promise<Category> => {
+    const hexColor = tailwindToHexMap[categoryData.color] || '#64748b';
+
+    const beData = {
+        name: categoryData.name,
+        color: hexColor,
+        is_foundational: categoryData.isFoundational,
+    };
+
     const response = await fetch(`${API_BASE_URL}/categories`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(categoryData)
+        body: JSON.stringify(beData)
     });
     const created = await handleResponse(response);
     return feCategory(created);
 };
 
 export const updateCategory = async (category: Category): Promise<Category> => {
+    const hexColor = tailwindToHexMap[category.color] || '#64748b';
+    const beData = { name: category.name, color: hexColor };
+
     const response = await fetch(`${API_BASE_URL}/categories/${category.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: category.name, color: category.color })
+        body: JSON.stringify(beData)
     });
     const updated = await handleResponse(response);
     return feCategory(updated);

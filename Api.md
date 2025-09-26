@@ -10,6 +10,20 @@ This API provides endpoints for managing German phrases and categories for a lan
 
 ## Endpoints
 
+### Health Check
+
+#### GET /api/health
+
+Checks the health status of the server.
+
+**Response (200 OK):**
+```json
+{
+  "status": "ok",
+  "timestamp": "2023-10-01T12:00:00.000Z"
+}
+```
+
 ### Initial Data
 
 #### GET /api/initial-data
@@ -71,6 +85,11 @@ Creates a new phrase.
 }
 ```
 
+**Validation:**
+- `russian`: Required, non-empty string
+- `german`: Required, non-empty string
+- `category_id`: Required, number
+
 **Response (201 Created):**
 ```json
 {
@@ -78,6 +97,13 @@ Creates a new phrase.
   "russian": "спасибо",
   "german": "danke",
   "category_id": 1
+}
+```
+
+**Error Response (400 - Validation Error):**
+```json
+{
+  "error": "Russian text is required and must be a non-empty string"
 }
 ```
 
@@ -105,6 +131,11 @@ Updates an existing phrase.
 }
 ```
 
+**Validation:**
+- `russian`: Required, non-empty string
+- `german`: Required, non-empty string
+- `category_id`: Required, number
+
 **Response (200 OK):**
 ```json
 {
@@ -112,6 +143,13 @@ Updates an existing phrase.
   "russian": "пожалуйста",
   "german": "bitte",
   "category_id": 1
+}
+```
+
+**Error Response (400 - Validation Error):**
+```json
+{
+  "error": "Russian text is required and must be a non-empty string"
 }
 ```
 
@@ -156,6 +194,10 @@ Creates a new category.
 }
 ```
 
+**Validation:**
+- `name`: Required, non-empty string
+- `color`: Required, valid hex color code (e.g., #00FF00)
+
 **Response (201 Created):**
 ```json
 {
@@ -163,6 +205,13 @@ Creates a new category.
   "name": "Verbs",
   "color": "#00ff00",
   "is_foundational": false
+}
+```
+
+**Error Response (400 - Validation Error):**
+```json
+{
+  "error": "Color is required and must be a valid hex color code"
 }
 ```
 
@@ -189,6 +238,10 @@ Updates an existing category.
 }
 ```
 
+**Validation:**
+- `name`: Required, non-empty string
+- `color`: Required, valid hex color code (e.g., #0000FF)
+
 **Response (200 OK):**
 ```json
 {
@@ -196,6 +249,13 @@ Updates an existing category.
   "name": "Updated Verbs",
   "color": "#0000ff",
   "is_foundational": false
+}
+```
+
+**Error Response (400 - Validation Error):**
+```json
+{
+  "error": "Color is required and must be a valid hex color code"
 }
 ```
 
@@ -221,7 +281,17 @@ Deletes a category. If `migrationTargetId` is provided in the request body, asso
 }
 ```
 
+**Validation:**
+- `migrationTargetId`: If provided, must be a positive number
+
 **Response (204 No Content):** Empty body
+
+**Error Response (400 - Validation Error):**
+```json
+{
+  "error": "Migration target ID must be a positive number if provided"
+}
+```
 
 **Error Response (500):**
 ```json
@@ -262,7 +332,45 @@ Common HTTP status codes:
 - 200: Success
 - 201: Created
 - 204: No Content
+- 400: Bad Request (validation errors)
 - 500: Internal Server Error
+
+## Middleware
+
+The API uses several middleware for enhanced functionality:
+
+- **CORS**: Enables cross-origin requests
+- **JSON Parser**: Parses incoming JSON payloads
+- **Error Handler**: Centralized error handling and logging
+- **Rate Limiter**: Limits the number of requests per IP address
+- **Validation**: Validates incoming request data
+
+## Validation
+
+The API validates incoming request data to ensure data integrity. Validation is applied to POST and PUT requests for phrases and categories, and to DELETE requests for categories when migration is involved.
+
+### Validation Rules
+
+#### Phrases (POST /api/phrases, PUT /api/phrases/:id)
+- `russian`: Required, must be a non-empty string
+- `german`: Required, must be a non-empty string
+- `category_id`: Required, must be a number
+
+#### Categories (POST /api/categories, PUT /api/categories/:id)
+- `name`: Required, must be a non-empty string
+- `color`: Required, must be a valid hex color code (e.g., #FF0000)
+
+#### Categories (DELETE /api/categories/:id)
+- `migrationTargetId`: Optional, but if provided, must be a positive number
+
+### Validation Error Response
+If validation fails, the API returns a 400 Bad Request status with the following format:
+```json
+{
+  "error": "Validation error message",
+  "details": undefined
+}
+```
 
 ## Testing
 
