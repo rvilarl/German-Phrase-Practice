@@ -2134,7 +2134,7 @@ const App: React.FC = () => {
             onHabitTrackerChange={handleHabitTrackerChange}
             showToast={showToast}
             onOpenLearningAssistant={handleOpenLearningAssistant}
-       />}
+       />
        {learningAssistantPhrase && <LearningAssistantModal
             isOpen={isLearningAssistantModalOpen}
             onClose={(didSucceed?: boolean) => {

@@ -640,17 +640,17 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
             
             {(view === 'assistant' || view === 'speech' || view === 'file') && (
                  <div className="flex-shrink-0 flex items-center justify-center space-x-2 bg-slate-900/50 rounded-full p-1 self-center mb-6">
-                    <button onClick={() => setView('assistant')} className={`px-4 py-2 text-sm font-bold rounded-full transition-colors flex items-center space-x-2 ${view === 'assistant' ? 'bg-purple-600 text-white' : 'text-slate-300'}`}>
+                    <button onClick={() => setView('assistant')} className={`p-3 sm:py-2 sm:px-4 text-sm font-bold rounded-full transition-colors flex items-center space-x-2 ${view === 'assistant' ? 'bg-purple-600 text-white' : 'text-slate-300'}`}>
                         <SmartToyIcon className="w-5 h-5" />
-                        <span>Ассистент</span>
+                        <span className="hidden sm:inline">Ассистент</span>
                     </button>
-                    <button onClick={() => setView('speech')} className={`px-4 py-2 text-sm font-bold rounded-full transition-colors flex items-center space-x-2 ${view === 'speech' ? 'bg-purple-600 text-white' : 'text-slate-300'}`}>
+                    <button onClick={() => setView('speech')} className={`p-3 sm:py-2 sm:px-4 text-sm font-bold rounded-full transition-colors flex items-center space-x-2 ${view === 'speech' ? 'bg-purple-600 text-white' : 'text-slate-300'}`}>
                        <MicrophoneIcon className="w-5 h-5" />
-                       <span>Из речи</span>
+                       <span className="hidden sm:inline">Из речи</span>
                     </button>
-                     <button onClick={() => setView('file')} className={`px-4 py-2 text-sm font-bold rounded-full transition-colors flex items-center space-x-2 ${view === 'file' ? 'bg-purple-600 text-white' : 'text-slate-300'}`}>
+                     <button onClick={() => setView('file')} className={`p-3 sm:py-2 sm:px-4 text-sm font-bold rounded-full transition-colors flex items-center space-x-2 ${view === 'file' ? 'bg-purple-600 text-white' : 'text-slate-300'}`}>
                        <ImageIcon className="w-5 h-5" />
-                       <span>Из файла</span>
+                       <span className="hidden sm:inline">Из файла</span>
                     </button>
                 </div>
             )}
