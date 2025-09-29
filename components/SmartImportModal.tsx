@@ -10,7 +10,7 @@ import SmartToyIcon from './icons/SmartToyIcon';
 import SendIcon from './icons/SendIcon';
 import * as fuzzyService from '../services/fuzzyService';
 import ArrowLeftIcon from './icons/ArrowLeftIcon';
-import WandIcon from './icons/WandIcon';
+import PencilIcon from './icons/PencilIcon';
 import ImageIcon from './icons/ImageIcon';
 import FileImportView from './FileImportView';
 import CardListSkeleton from './CardListSkeleton';
@@ -23,7 +23,7 @@ interface SmartImportModalProps {
   isOpen: boolean;
   onClose: () => void;
   onGenerateCards: (transcript: string, lang: Language) => Promise<ProposedCard[]>;
-  onGenerateCardsFromImage: (imageData: { mimeType: string, data: string }) => Promise<ProposedCard[]>;
+  onGenerateCardsFromImage: (imageData: { mimeType: string, data: string }, refinement?: string) => Promise<{ cards: ProposedCard[], categoryName: string }>;
   onGenerateTopicCards: (topic: string, refinement?: string, existingPhrases?: string[]) => Promise<ProposedCard[]>;
   onCardsCreated: (cards: ProposedCard[], options?: { categoryId?: string; createCategoryName?: string }) => Promise<void>;
   onClassifyTopic: (topic: string) => Promise<{ isCategory: boolean; categoryName: string }>;
@@ -58,6 +58,9 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
   const [isAdding, setIsAdding] = useState(false);
   const [pendingCards, setPendingCards] = useState<ProposedCard[] | null>(null);
   const [editableCategoryName, setEditableCategoryName] = useState('');
+  
+  const [originalFileData, setOriginalFileData] = useState<{ mimeType: string, data: string } | null>(null);
+  const [generationSource, setGenerationSource] = useState<'topic' | 'image' | null>(null);
 
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const assistantRecognitionRef = useRef<SpeechRecognition | null>(null);
@@ -83,6 +86,8 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
     setIsAdding(false);
     setPendingCards(null);
     setEditableCategoryName('');
+    setOriginalFileData(null);
+    setGenerationSource(null);
     if (recognitionRef.current) {
         recognitionRef.current.abort();
     }
@@ -135,6 +140,8 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
     const generateAndPreview = useCallback(async (options: { source: 'topic', categoryOptions?: { categoryId?: string; createCategoryName?: string }}) => {
     setView('processing');
     setGenerationOptions(options.categoryOptions);
+    setOriginalFileData(null);
+    setGenerationSource('topic');
     try {
         let cards: ProposedCard[] = [];
         if (options.source === 'topic' && options.categoryOptions) {
@@ -157,15 +164,17 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
     }
   }, [allPhrases, onGenerateTopicCards, assistantInput, categorySuggestion, onClose]);
 
-    const handleImageUpload = async (fileData: { mimeType: string, data: string }) => {
+    const handleImageUpload = async (fileData: { mimeType: string, data: string }, refinement?: string) => {
         setView('processing');
+        setOriginalFileData(fileData);
+        setGenerationSource('image');
         try {
-            const cards = await onGenerateCardsFromImage(fileData);
+            const { cards, categoryName } = await onGenerateCardsFromImage(fileData, refinement);
             if (cards && cards.length > 0) {
                 setPendingCards(cards);
-                const suggestionName = 'Карточки из файла';
-                setCategorySuggestion({ name: suggestionName });
-                setEditableCategoryName(suggestionName);
+                const existingCategory = categories.find(c => fuzzyService.isSimilar(c.name, [categoryName], 0.85));
+                setCategorySuggestion({ name: categoryName, existingCategory });
+                setEditableCategoryName(categoryName);
                 setView('suggestion');
             } else {
                 onClose();
@@ -361,7 +370,7 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
     }
   };
   
-  const handleRefine = async () => {
+  const handleRefineTopic = async () => {
     if (!refineText.trim() || !currentTopic || isRefining) return;
     setIsRefining(true);
     try {
@@ -377,6 +386,25 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
       console.error("Failed to refine cards:", e);
     } finally {
       setIsRefining(false);
+    }
+  };
+  
+  const handleRefineImage = async () => {
+    if (!refineText.trim() || !originalFileData || isRefining) return;
+    setIsRefining(true);
+    try {
+        const { cards, categoryName } = await onGenerateCardsFromImage(originalFileData, refineText);
+        setProposedCards(cards);
+        setSelectedIndices(new Set(cards.map((_, i) => i)));
+        const existingCategory = categories.find(c => fuzzyService.isSimilar(c.name, [categoryName], 0.85));
+        setCategorySuggestion({ name: categoryName, existingCategory });
+        setEditableCategoryName(categoryName);
+        setRefineText('');
+        setShowRefineInput(false);
+    } catch (e) {
+        console.error("Failed to refine cards from image:", e);
+    } finally {
+        setIsRefining(false);
     }
   };
 
@@ -562,7 +590,7 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
                             type="text"
                             value={refineText}
                             onChange={e => setRefineText(e.target.value)}
-                            onKeyDown={e => { if (e.key === 'Enter' && !isRefining) handleRefine(); }}
+                            onKeyDown={e => { if (e.key === 'Enter' && !isRefining) { generationSource === 'image' ? handleRefineImage() : handleRefineTopic(); } }}
                             placeholder="Уточнение, например: только глаголы"
                             className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 pr-10 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                             autoFocus
@@ -575,7 +603,7 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
                           <MicrophoneIcon className={`w-5 h-5 ${isRefineListening ? 'text-purple-400' : ''}`} />
                         </button>
                     </div>
-                    <button onClick={handleRefine} disabled={!refineText.trim() || isRefining} className="p-2 w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-md bg-purple-600 hover:bg-purple-700 text-white font-semibold transition-colors disabled:opacity-50">
+                    <button onClick={generationSource === 'image' ? handleRefineImage : handleRefineTopic} disabled={!refineText.trim() || isRefining} className="p-2 w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-md bg-purple-600 hover:bg-purple-700 text-white font-semibold transition-colors disabled:opacity-50">
                         {isRefining ? <Spinner className="w-5 h-5" /> : <RefreshIcon className="w-5 h-5" />}
                     </button>
                 </div>
@@ -585,9 +613,9 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
                     {selectedIndices.size === proposedCards.length ? 'Снять все' : 'Выбрать все'}
                 </button>
                 <div className="flex items-center space-x-2">
-                    {currentTopic && (
-                        <button onClick={() => setShowRefineInput(prev => !prev)} className="px-3 sm:px-4 py-2 rounded-md bg-slate-600 hover:bg-slate-700 text-white font-semibold transition-colors flex items-center">
-                             <WandIcon className="w-5 h-5 sm:mr-2" />
+                    {!showRefineInput && generationSource && (
+                        <button onClick={() => setShowRefineInput(true)} className="px-3 sm:px-4 py-2 rounded-md bg-slate-600 hover:bg-slate-700 text-white font-semibold transition-colors flex items-center">
+                             <PencilIcon className="w-5 h-5 sm:mr-2" />
                              <span className="hidden sm:inline">Уточнить</span>
                         </button>
                     )}

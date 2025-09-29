@@ -253,35 +253,60 @@ Example Output Format:
     }
 };
 
-const generateCardsFromImage: AiService['generateCardsFromImage'] = async (imageData) => {
+const imageCardsWithCategorySchema = {
+    type: Type.OBJECT,
+    properties: {
+        cards: {
+            type: Type.ARRAY,
+            description: "An array of generated flashcards.",
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    german: { type: Type.STRING, description: 'The phrase in German.' },
+                    russian: { type: Type.STRING, description: 'The phrase in Russian.' },
+                },
+                required: ["german", "russian"],
+            },
+        },
+        categoryName: {
+            type: Type.STRING,
+            description: "A short, relevant category name in Russian for these cards based on the image content and user request."
+        }
+    },
+    required: ["cards", "categoryName"],
+};
+
+
+const generateCardsFromImage: AiService['generateCardsFromImage'] = async (imageData, refinement) => {
     const api = initializeApi();
     if (!api) throw new Error("Gemini API key not configured.");
-    
-    const prompt = `You are an AI assistant for learning German, specialized in creating vocabulary flashcards from images. Analyze the attached image.
 
-Your primary goal is to identify German text within the image (OCR).
-- If you find significant German text (e.g., a menu, a sign, a paragraph), your task is to:
-  1. Extract ALL German text.
-  2. Break the text into logical, self-contained phrases or words suitable for learning.
-  3. Provide an accurate Russian translation for each extracted item.
-  4. Ignore any text in other languages.
-  5. Return the result as a JSON array of objects with 'german' and 'russian' keys.
+    const prompt = `You are an AI assistant for learning German. Your task is to create flashcards from an image.
 
-- If the image contains little to no German text, but depicts clear objects or a scene (e.g., a bedroom, a kitchen, a landscape), your task is to:
-  1. Identify the main objects and concepts in the image.
-  2. Generate a list of relevant German nouns (with articles, e.g., 'das Bett'), verbs, and simple descriptive phrases related to the scene.
-  3. Provide an accurate Russian translation for each item.
-  4. Return the result as a JSON array of objects with 'german' and 'russian' keys.
-  
-- If the image is abstract, unclear, or contains no identifiable objects or text, return an empty JSON array.
+**1. HIGHEST PRIORITY: User's Refinement**
+First, check if the user provided a specific instruction. If they did, YOU MUST FOLLOW IT EXACTLY. It overrides all other rules.
+${refinement ? `User's instruction: "${refinement}"` : "No specific instruction was given by the user."}
 
-Return the result EXCLUSIVELY in the format of a JSON array of objects.
-Example for text: [{"german": "Eingang", "russian": "Вход"}]
-Example for objects: [{"german": "das Bett", "russian": "кровать"}, {"german": "die Lampe", "russian": "лампа"}]`;
+**Examples of following instructions:**
+- If the user says "get nouns from exercise 3a", find exercise 3a and extract ONLY the nouns with their articles.
+- If the user photographs a room and says "phrases about the bed", create phrases like "das Bett ist weich" (the bed is soft), not just a list of objects.
+
+**2. FALLBACK TASK (If no user instruction is given):**
+If the user did not provide an instruction, analyze the image content:
+- **If Text is present:** Use OCR to extract all German text. Break it into logical, useful phrases for flashcards and provide Russian translations.
+- **If No Text (Objects/Scene):** Identify the main objects. Generate a list of German nouns (WITH articles, e.g., "das Bett"), verbs, and simple descriptive phrases. Provide Russian translations.
+
+**3. OUTPUT REQUIREMENTS (Applies to ALL cases):**
+You must return a single JSON object with two keys:
+- **"cards"**: A JSON array of objects. Each object must have "german" and "russian" keys. If you cannot find any relevant content, return an empty array.
+- **"categoryName"**: A short, suitable category name in Russian that accurately describes the content of the generated cards. Examples: "Задание 3a: Существительные", "Объекты в комнате", "Надписи на улице".
+
+Return EXCLUSIVELY the JSON object matching the provided schema.`;
+
 
     try {
         const response = await api.models.generateContent({
-            model: model, // gemini-2.5-flash
+            model: model,
             contents: {
                 parts: [
                     { inlineData: { mimeType: imageData.mimeType, data: imageData.data } },
@@ -290,19 +315,19 @@ Example for objects: [{"german": "das Bett", "russian": "кровать"}, {"ger
             },
             config: {
                 responseMimeType: "application/json",
-                responseSchema: phraseSchema, // Re-use existing schema
+                responseSchema: imageCardsWithCategorySchema,
                 temperature: 0.5,
             },
         });
         
         const jsonText = response.text.trim();
-        const parsedCards = JSON.parse(jsonText);
+        const parsedResult = JSON.parse(jsonText);
 
-        if (!Array.isArray(parsedCards)) {
-            throw new Error("API did not return an array of cards.");
+        if (!parsedResult || !Array.isArray(parsedResult.cards) || typeof parsedResult.categoryName !== 'string') {
+            throw new Error("API did not return the expected structure with cards and categoryName.");
         }
         
-        return parsedCards;
+        return parsedResult;
 
     } catch (error) {
         console.error("Error generating cards from image with Gemini:", error);

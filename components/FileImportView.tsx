@@ -1,9 +1,12 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { SpeechRecognition, SpeechRecognitionErrorEvent } from '../types';
 import FilePlusIcon from './icons/FilePlusIcon';
 import XCircleIcon from './icons/XCircleIcon';
+import WandIcon from './icons/WandIcon';
+import MicrophoneIcon from './icons/MicrophoneIcon';
 
 interface FileImportViewProps {
-  onProcessFile: (fileData: { mimeType: string; data: string }) => void;
+  onProcessFile: (fileData: { mimeType: string; data: string }, refinement?: string) => void;
 }
 
 const fileToBase64 = (file: File): Promise<string> => {
@@ -29,6 +32,33 @@ const FileImportView: React.FC<FileImportViewProps> = ({ onProcessFile }) => {
   const [error, setError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [refinement, setRefinement] = useState('');
+  const [isRefineListening, setIsRefineListening] = useState(false);
+  const refineRecognitionRef = useRef<SpeechRecognition | null>(null);
+  
+  useEffect(() => {
+    const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognitionAPI) {
+      const recognition = new SpeechRecognitionAPI();
+      recognition.lang = 'ru-RU';
+      recognition.interimResults = true;
+      recognition.continuous = false;
+      recognition.onstart = () => setIsRefineListening(true);
+      recognition.onend = () => setIsRefineListening(false);
+      recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+        console.error('Refine speech recognition error:', event.error);
+        setIsRefineListening(false);
+      };
+      recognition.onresult = (event) => {
+        const transcript = Array.from(event.results)
+          .map(result => result[0].transcript)
+          .join('');
+        setRefinement(transcript);
+      };
+      refineRecognitionRef.current = recognition;
+    }
+  }, []);
+
 
   const handleFileChange = (selectedFile: File | null) => {
     setError(null);
@@ -64,13 +94,22 @@ const FileImportView: React.FC<FileImportViewProps> = ({ onProcessFile }) => {
     if (!file) return;
     try {
       const base64Data = await fileToBase64(file);
-      onProcessFile({ mimeType: file.type, data: base64Data });
+      onProcessFile({ mimeType: file.type, data: base64Data }, refinement.trim() || undefined);
     } catch (e) {
       setError('Не удалось прочитать файл.');
       console.error(e);
     }
   };
   
+  const handleMicClick = () => {
+    if (!refineRecognitionRef.current) return;
+    if (isRefineListening) {
+      refineRecognitionRef.current.stop();
+    } else {
+      refineRecognitionRef.current.start();
+    }
+  };
+
   const handleDragEvents = (e: React.DragEvent<HTMLLabelElement>, isEntering: boolean) => {
     e.preventDefault();
     e.stopPropagation();
@@ -137,8 +176,26 @@ const FileImportView: React.FC<FileImportViewProps> = ({ onProcessFile }) => {
                     </div>
                 )}
             </div>
-            <button onClick={handleSubmit} className="mt-4 w-full max-w-xs px-6 py-3 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-bold transition-colors shadow-md">
-                Распознать и создать карточки
+             <div className="relative w-full max-w-md mt-4">
+                <textarea
+                    value={refinement}
+                    onChange={(e) => setRefinement(e.target.value)}
+                    placeholder="Добавьте уточнение (необязательно)..."
+                    className="w-full bg-slate-700 border border-slate-600 rounded-lg p-3 pr-12 text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors resize-none"
+                    rows={2}
+                />
+                <button
+                    type="button"
+                    onClick={handleMicClick}
+                    className="absolute top-2 right-2 p-2 text-slate-400 hover:text-white"
+                    aria-label="Голосовой ввод для уточнения"
+                >
+                    <MicrophoneIcon className={`w-5 h-5 ${isRefineListening ? 'text-purple-400' : ''}`} />
+                </button>
+            </div>
+            <button onClick={handleSubmit} className="mt-4 w-full max-w-xs px-6 py-3 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-bold transition-colors shadow-md flex items-center justify-center">
+                <WandIcon className="w-5 h-5 mr-2" />
+                <span>Создать карточки</span>
             </button>
         </div>
       )}
