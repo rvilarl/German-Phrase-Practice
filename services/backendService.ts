@@ -59,8 +59,11 @@ const handleResponse = async (response: Response) => {
         try {
             errorData = JSON.parse(errorText);
         } catch (e) {
-            errorData = { error: 'An unknown error occurred', details: errorText };
+            // If the error response isn't JSON, use the raw text.
+            const statusText = response.statusText || 'Error';
+            errorData = { error: `${response.status} ${statusText}`, details: errorText };
         }
+        // Prefer the `error` field from the JSON body if it exists, otherwise construct a message.
         throw new Error(errorData.error || `Request failed with status ${response.status}`);
     }
     if (response.status === 204) {
@@ -69,8 +72,52 @@ const handleResponse = async (response: Response) => {
     return response.json();
 };
 
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+const fetchWithRetry = async (url: RequestInfo, options?: RequestInit, retries = 3, initialDelay = 500): Promise<Response> => {
+    let delay = initialDelay;
+    for (let i = 0; i < retries; i++) {
+        try {
+            const response = await fetch(url, options);
+
+            // If the response is OK, we're done.
+            if (response.ok) {
+                return response;
+            }
+            
+            // Handle rate limiting specifically
+            if (response.status === 429) {
+                console.warn(`Rate limit exceeded. Attempt ${i + 1}/${retries}. Retrying in ${delay}ms...`);
+                if (i < retries - 1) {
+                    await sleep(delay + Math.random() * 200); // Add jitter
+                    delay *= 2; // Exponential backoff
+                    continue; // to the next iteration
+                }
+            }
+
+            // For other non-ok responses, return it and let handleResponse deal with the error message.
+            // We only retry on 429s or complete fetch failures (in catch block).
+            return response;
+
+        } catch (error) {
+            console.error(`Fetch failed on attempt ${i + 1}/${retries}:`, error);
+            if (i < retries - 1) {
+                await sleep(delay + Math.random() * 200); // Add jitter
+                delay *= 2;
+            } else {
+                // If it's the last retry, rethrow the error.
+                throw error;
+            }
+        }
+    }
+    // This should not be reached, but as a fallback:
+    throw new Error('Request failed after all retries.');
+};
+
+
 export const fetchInitialData = async (): Promise<{ categories: Category[], phrases: Phrase[] }> => {
-    const data = await handleResponse(await fetch(`${API_BASE_URL}/initial-data`));
+    const response = await fetchWithRetry(`${API_BASE_URL}/initial-data`);
+    const data = await handleResponse(response);
     return {
         categories: data.categories.map(feCategory),
         phrases: data.phrases.map(fePhrase),
@@ -78,7 +125,7 @@ export const fetchInitialData = async (): Promise<{ categories: Category[], phra
 };
 
 export const createPhrase = async (phraseData: Omit<Phrase, 'id' | 'masteryLevel' | 'lastReviewedAt' | 'nextReviewAt' | 'knowCount' | 'knowStreak' | 'isMastered' | 'lapses'>): Promise<Phrase> => {
-    const response = await fetch(`${API_BASE_URL}/phrases`, {
+    const response = await fetchWithRetry(`${API_BASE_URL}/phrases`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -123,7 +170,7 @@ export const updatePhrase = async (phrase: Phrase): Promise<Phrase> => {
         throw new Error('Category ID is required and must be a number');
     }
 
-    const response = await fetch(`${API_BASE_URL}/phrases/${phrase.id}`, {
+    const response = await fetchWithRetry(`${API_BASE_URL}/phrases/${phrase.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(beData)
@@ -134,7 +181,7 @@ export const updatePhrase = async (phrase: Phrase): Promise<Phrase> => {
 };
 
 export const deletePhrase = async (phraseId: string): Promise<void> => {
-    await handleResponse(await fetch(`${API_BASE_URL}/phrases/${phraseId}`, { method: 'DELETE' }));
+    await handleResponse(await fetchWithRetry(`${API_BASE_URL}/phrases/${phraseId}`, { method: 'DELETE' }));
 };
 
 export const createCategory = async (categoryData: Omit<Category, 'id'>): Promise<Category> => {
@@ -146,7 +193,7 @@ export const createCategory = async (categoryData: Omit<Category, 'id'>): Promis
         is_foundational: categoryData.isFoundational,
     };
 
-    const response = await fetch(`${API_BASE_URL}/categories`, {
+    const response = await fetchWithRetry(`${API_BASE_URL}/categories`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(beData)
@@ -159,7 +206,7 @@ export const updateCategory = async (category: Category): Promise<Category> => {
     const hexColor = tailwindToHexMap[category.color] || '#64748b';
     const beData = { name: category.name, color: hexColor };
 
-    const response = await fetch(`${API_BASE_URL}/categories/${category.id}`, {
+    const response = await fetchWithRetry(`${API_BASE_URL}/categories/${category.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(beData)
@@ -170,7 +217,7 @@ export const updateCategory = async (category: Category): Promise<Category> => {
 
 export const deleteCategory = async (categoryId: string, migrationTargetId: string | null): Promise<void> => {
     const body = migrationTargetId ? { migrationTargetId: parseInt(migrationTargetId, 10) } : {};
-    const response = await fetch(`${API_BASE_URL}/categories/${categoryId}`, {
+    const response = await fetchWithRetry(`${API_BASE_URL}/categories/${categoryId}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)

@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 // FIX: Import View type from shared types.ts
 import { Phrase, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, AdjectiveDeclension, SentenceContinuation, PhraseBuilderOptions, PhraseEvaluation, ChatMessage, PhraseCategory, ProposedCard, BookRecord, Category, CategoryAssistantRequest, CategoryAssistantResponse, View } from './types';
@@ -597,7 +596,7 @@ const App: React.FC = () => {
         const prompt = `Сгенерируй ${count} новых, полезных в быту немецких фраз уровня A1. Не повторяй: "${existingGermanPhrases}". Верни JSON-массив объектов с ключами 'german' и 'russian'.`;
         const newPhrasesData = await callApiWithFallback(provider => provider.generatePhrases(prompt));
         
-        const generalCategory = categories.find(c => c.name.toLowerCase() === 'general');
+        const generalCategory = categories.find(c => c.name.toLowerCase() === 'общие');
         const defaultCategoryId = generalCategory?.id || (categories.length > 0 ? categories[0].id : '1');
         
         const phrasesToCreate = newPhrasesData.map(p => ({
@@ -997,7 +996,7 @@ const App: React.FC = () => {
     }
     
     try {
-        const generalCategory = categories.find(c => c.name.toLowerCase() === 'general');
+        const generalCategory = categories.find(c => c.name.toLowerCase() === 'общие');
         const defaultCategoryId = (categories.length > 0 ? categories[0].id : '1');
         const categoryId = categoryToView?.id || generalCategory?.id || defaultCategoryId;
 
@@ -1052,7 +1051,7 @@ const App: React.FC = () => {
         }
     }
     
-    const generalCategory = categories.find(c => c.name.toLowerCase() === 'general');
+    const generalCategory = categories.find(c => c.name.toLowerCase() === 'общие');
     const defaultCategoryId = (categories.length > 0 ? categories[0].id : '1');
     const targetCategoryId = finalCategoryId || assistantCategory?.id || categoryToView?.id || generalCategory?.id || defaultCategoryId;
     
@@ -1118,7 +1117,7 @@ const App: React.FC = () => {
     }
 
     try {
-        const generalCategory = categories.find(c => c.name.toLowerCase() === 'general');
+        const generalCategory = categories.find(c => c.name.toLowerCase() === 'общие');
         const defaultCategoryId = (categories.length > 0 ? categories[0].id : '1');
         const categoryId = generalCategory?.id || defaultCategoryId;
 
@@ -1145,7 +1144,7 @@ const App: React.FC = () => {
   
       try {
           const { russian } = await callApiWithFallback(provider => provider.translateGermanToRussian(germanText));
-          const generalCategory = categories.find(c => c.name.toLowerCase() === 'general');
+          const generalCategory = categories.find(c => c.name.toLowerCase() === 'общие');
           const defaultCategoryId = (categories.length > 0 ? categories[0].id : '1');
           const categoryId = generalCategory?.id || defaultCategoryId;
           
@@ -1443,12 +1442,21 @@ const App: React.FC = () => {
     
     for (const phrase of phrasesToAdd) {
         try {
+            // Add a small delay to avoid hitting API rate limits.
+            await sleep(300);
             const newPhrase = await backendService.createPhrase(phrase);
             createdPhrases.push({...newPhrase, isNew: true});
             addedCount++;
         } catch (err) {
-            console.error("Failed to create a card during bulk add:", err);
-            showToast({message: `Не удалось добавить "${phrase.german}"`});
+            const errorMessage = (err as Error).message;
+            console.error("Failed to create a card during bulk add:", errorMessage);
+            showToast({message: `Не удалось добавить "${phrase.german}": ${errorMessage}`});
+            
+            // If rate-limited, stop trying to add more cards.
+            if (errorMessage.toLowerCase().includes('too many requests')) {
+                showToast({message: 'Превышен лимит запросов. Попробуйте добавить меньше карточек за раз.'});
+                break;
+            }
         }
     }
 
