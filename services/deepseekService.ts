@@ -74,6 +74,7 @@ const evaluatePhraseAttempt: AiService['evaluatePhraseAttempt'] = notImplemented
 const evaluateSpokenPhraseAttempt: AiService['evaluateSpokenPhraseAttempt'] = notImplemented;
 const generateQuickReplyOptions: AiService['generateQuickReplyOptions'] = notImplemented;
 const generateCardsFromTranscript: AiService['generateCardsFromTranscript'] = notImplemented;
+const generateCardsFromImage: AiService['generateCardsFromImage'] = notImplemented;
 const generateTopicCards: AiService['generateTopicCards'] = notImplemented;
 const classifyTopic: AiService['classifyTopic'] = notImplemented;
 const getCategoryAssistantResponse: AiService['getCategoryAssistantResponse'] = notImplemented;
@@ -126,6 +127,7 @@ export const deepseekService: AiService = {
     healthCheck,
     getProviderName: () => "DeepSeek",
     generateCardsFromTranscript,
+    generateCardsFromImage,
     generateTopicCards,
     classifyTopic,
     getCategoryAssistantResponse,

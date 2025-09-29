@@ -1,4 +1,5 @@
 
+
 import { GoogleGenAI, Type } from "@google/genai";
 import type { Phrase, ChatMessage, ExamplePair, ProactiveSuggestion, ContentPart, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, AdjectiveDeclension, SentenceContinuation, TranslationChatRequest, TranslationChatResponse, PhraseBuilderOptions, PhraseEvaluation, CategoryAssistantRequest, CategoryAssistantResponse, CategoryAssistantRequestType } from '../types';
 import { AiService } from './aiService';
@@ -248,6 +249,43 @@ Example Output Format:
 
     } catch (error) {
         console.error("Error generating cards from transcript with Gemini:", error);
+        throw new Error(`Failed to call the Gemini API: ${(error as any)?.message || 'Unknown error'}`);
+    }
+};
+
+const generateCardsFromImage: AiService['generateCardsFromImage'] = async (imageData) => {
+    const api = initializeApi();
+    if (!api) throw new Error("Gemini API key not configured.");
+    
+    const prompt = `You are an AI assistant for learning German. Analyze the attached image or document. Your task is to extract ALL German text from it. Then, break this text into separate, logically complete phrases or words suitable for creating learning flashcards. For each German phrase/word, generate an accurate Russian translation. Ignore any text in other languages. Return the result EXCLUSIVELY in the format of a JSON array of objects, where each object has the keys 'german' and 'russian'. If no German text is found, return an empty array.`;
+
+    try {
+        const response = await api.models.generateContent({
+            model: model, // gemini-2.5-flash
+            contents: {
+                parts: [
+                    { inlineData: { mimeType: imageData.mimeType, data: imageData.data } },
+                    { text: prompt }
+                ]
+            },
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: phraseSchema, // Re-use existing schema
+                temperature: 0.5,
+            },
+        });
+        
+        const jsonText = response.text.trim();
+        const parsedCards = JSON.parse(jsonText);
+
+        if (!Array.isArray(parsedCards)) {
+            throw new Error("API did not return an array of cards.");
+        }
+        
+        return parsedCards;
+
+    } catch (error) {
+        console.error("Error generating cards from image with Gemini:", error);
         throw new Error(`Failed to call the Gemini API: ${(error as any)?.message || 'Unknown error'}`);
     }
 };
@@ -1628,6 +1666,7 @@ export const geminiService: AiService = {
     healthCheck,
     getProviderName: () => "Google Gemini",
     generateCardsFromTranscript,
+    generateCardsFromImage,
     generateTopicCards,
     classifyTopic,
     getCategoryAssistantResponse,

@@ -11,8 +11,11 @@ import SendIcon from './icons/SendIcon';
 import * as fuzzyService from '../services/fuzzyService';
 import ArrowLeftIcon from './icons/ArrowLeftIcon';
 import WandIcon from './icons/WandIcon';
+import ImageIcon from './icons/ImageIcon';
+import FileImportView from './FileImportView';
+import CardListSkeleton from './CardListSkeleton';
 
-type View = 'assistant' | 'speech' | 'classifying' | 'suggestion' | 'processing' | 'preview';
+type View = 'assistant' | 'speech' | 'file' | 'classifying' | 'suggestion' | 'processing' | 'preview';
 type SpeechStatus = 'idle' | 'recording' | 'stopped';
 type Language = 'ru' | 'de';
 
@@ -20,6 +23,7 @@ interface SmartImportModalProps {
   isOpen: boolean;
   onClose: () => void;
   onGenerateCards: (transcript: string, lang: Language) => Promise<ProposedCard[]>;
+  onGenerateCardsFromImage: (imageData: { mimeType: string, data: string }) => Promise<ProposedCard[]>;
   onGenerateTopicCards: (topic: string, refinement?: string, existingPhrases?: string[]) => Promise<ProposedCard[]>;
   onCardsCreated: (cards: ProposedCard[], options?: { categoryId?: string; createCategoryName?: string }) => Promise<void>;
   onClassifyTopic: (topic: string) => Promise<{ isCategory: boolean; categoryName: string }>;
@@ -29,7 +33,7 @@ interface SmartImportModalProps {
 }
 
 const SmartImportModal: React.FC<SmartImportModalProps> = ({ 
-    isOpen, onClose, onGenerateCards, onGenerateTopicCards, onCardsCreated, onClassifyTopic, 
+    isOpen, onClose, onGenerateCards, onGenerateCardsFromImage, onGenerateTopicCards, onCardsCreated, onClassifyTopic, 
     initialTopic, allPhrases, categories 
 }) => {
   const [view, setView] = useState<View>('assistant');
@@ -49,15 +53,17 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
   const [showRefineInput, setShowRefineInput] = useState(false);
   const [refineText, setRefineText] = useState('');
   const [isRefining, setIsRefining] = useState(false);
-  // FIX: Added missing state for assistant's microphone listening status.
   const [isListening, setIsListening] = useState(false);
   const [isRefineListening, setIsRefineListening] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
+  const [pendingCards, setPendingCards] = useState<ProposedCard[] | null>(null);
 
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const assistantRecognitionRef = useRef<SpeechRecognition | null>(null);
   const refineRecognitionRef = useRef<SpeechRecognition | null>(null);
   const finalTranscriptRef = useRef('');
+
+  const generalCategory = categories.find(c => c.name.toLowerCase() === 'general');
   
   const reset = useCallback(() => {
     setView('assistant');
@@ -74,6 +80,7 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
     setRefineText('');
     setIsRefining(false);
     setIsAdding(false);
+    setPendingCards(null);
     if (recognitionRef.current) {
         recognitionRef.current.abort();
     }
@@ -123,27 +130,21 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
     }
   }, [isOpen]);
 
-  const generateAndPreview = useCallback(async (options: { categoryId?: string; createCategoryName?: string }) => {
+    const generateAndPreview = useCallback(async (options: { source: 'topic', categoryOptions?: { categoryId?: string; createCategoryName?: string }}) => {
     setView('processing');
-    setGenerationOptions(options);
+    setGenerationOptions(options.categoryOptions);
     try {
         let cards: ProposedCard[] = [];
-        if (options.createCategoryName || options.categoryId) {
+        if (options.source === 'topic' && options.categoryOptions) {
             const topic = categorySuggestion?.name || assistantInput;
             setCurrentTopic(topic);
             let existingPhrases: string[] = [];
-            if(options.categoryId) {
+            if(options.categoryOptions.categoryId) {
                 existingPhrases = allPhrases
-                    .filter(p => p.category === options.categoryId)
+                    .filter(p => p.category === options.categoryOptions?.categoryId)
                     .map(p => p.german);
             }
             cards = await onGenerateTopicCards(topic, undefined, existingPhrases);
-        } else {
-            setCurrentTopic(''); // Clear topic for speech import
-            const finalTranscript = finalTranscriptRef.current.trim();
-            if (finalTranscript) {
-                cards = await onGenerateCards(finalTranscript, lang);
-            }
         }
         setProposedCards(cards);
         setSelectedIndices(new Set(cards.map((_, i) => i)));
@@ -152,20 +153,61 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
         console.error("Failed to generate cards:", e);
         onClose();
     }
-  }, [allPhrases, onGenerateTopicCards, onGenerateCards, lang, assistantInput, categorySuggestion, onClose]);
+  }, [allPhrases, onGenerateTopicCards, assistantInput, categorySuggestion, onClose]);
+
+    const handleImageUpload = async (fileData: { mimeType: string, data: string }) => {
+        setView('processing');
+        try {
+            const cards = await onGenerateCardsFromImage(fileData);
+            if (cards && cards.length > 0) {
+                setPendingCards(cards);
+                setCategorySuggestion({ name: 'Карточки из файла' });
+                setView('suggestion');
+            } else {
+                onClose();
+            }
+        } catch (e) {
+            console.error("Failed to generate cards from image:", e);
+            onClose();
+        }
+    };
+
+    const handleSpeechTranscript = async () => {
+        const finalTranscript = finalTranscriptRef.current.trim();
+        if (!finalTranscript) return;
+        setView('processing');
+        try {
+            const cards = await onGenerateCards(finalTranscript, lang);
+            if (cards && cards.length > 0) {
+                setPendingCards(cards);
+                setCategorySuggestion({ name: 'Карточки из речи' });
+                setView('suggestion');
+            } else {
+                onClose();
+            }
+        } catch (e) {
+            console.error("Failed to generate cards from speech:", e);
+            onClose();
+        }
+    };
+    
+    const processPendingCards = (categoryOptions: { categoryId?: string; createCategoryName?: string }) => {
+        if (!pendingCards) return;
+        setGenerationOptions(categoryOptions);
+        setProposedCards(pendingCards);
+        setSelectedIndices(new Set(pendingCards.map((_, i) => i)));
+        setCurrentTopic(''); // Clear topic as it's not from topic generation
+        setView('preview');
+        setPendingCards(null);
+    };
 
   const handleProcessAssistantRequest = useCallback(async () => {
     if (!assistantInput.trim()) return;
     setView('classifying');
     
-    // Per user request, always prompt for category creation.
-    // We skip the onClassifyTopic API call and use user input directly.
     const proposedCategoryName = assistantInput.trim();
-    
-    // Find if a similar category already exists.
     const existingCategory = categories.find(c => fuzzyService.isSimilar(c.name, [proposedCategoryName], 0.75));
     
-    // Set the suggestion and switch to the suggestion view.
     setCategorySuggestion({ name: proposedCategoryName, existingCategory });
     setView('suggestion');
   }, [assistantInput, categories]);
@@ -179,7 +221,6 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
     }
   }, [isOpen, initialTopic, assistantInput, view, handleProcessAssistantRequest]);
   
-  // Speech recognition for speech import mode
   useEffect(() => {
     const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognitionAPI) return;
@@ -213,7 +254,6 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
     return () => recognition.abort();
   }, [lang]);
 
-  // Speech recognition for assistant mode
   useEffect(() => {
     const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognitionAPI) return;
@@ -239,7 +279,6 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
     return () => recognition.abort();
   }, []);
   
-  // Speech recognition for refine input
   useEffect(() => {
     const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognitionAPI) return;
@@ -363,7 +402,7 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
     
     return (
         <div className="flex flex-col items-center justify-center h-full text-center">
-            <h2 className="text-xl font-bold text-slate-100">Импорт из речи</h2>
+            <h2 className="text-xl font-bold text-slate-100">Импорт из речи или текста</h2>
             <p className="text-slate-400 mt-1 mb-4">Запишите речь или вставьте текст для создания карточек.</p>
             
             <div className="flex items-center space-x-2 bg-slate-700/50 rounded-full p-1 mb-4">
@@ -388,7 +427,7 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
                     <MicrophoneIcon className="w-10 h-10 text-white" />
                 </button>
                 {isStopped && (
-                    <button onClick={() => generateAndPreview({})} className="p-3 rounded-full bg-green-600 hover:bg-green-700 transition-colors text-white" aria-label="Обработать">
+                    <button onClick={handleSpeechTranscript} className="p-3 rounded-full bg-green-600 hover:bg-green-700 transition-colors text-white" aria-label="Обработать">
                         <CheckIcon className="w-6 h-6" />
                     </button>
                 )}
@@ -426,6 +465,13 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
   const renderSuggestionContent = () => {
     if (!categorySuggestion) return null;
     const { name, existingCategory } = categorySuggestion;
+    const generalCategoryId = generalCategory?.id;
+
+    const handleAddToGeneral = () => {
+        const opts = generalCategoryId ? { categoryId: generalCategoryId } : {};
+        if (pendingCards) { processPendingCards(opts); } 
+        else { generateAndPreview({ source: 'topic', categoryOptions: opts }); }
+    };
 
     return (
         <div className="flex flex-col items-center justify-center h-full text-center">
@@ -435,8 +481,11 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
                     <h2 className="text-xl font-bold text-slate-100">Дополнить категорию?</h2>
                     <p className="text-slate-400 mt-2 mb-6 max-w-sm">У вас уже есть категория "{existingCategory.name}". Хотите добавить новые карточки по теме "{name}" в нее?</p>
                     <div className="flex flex-col sm:flex-row gap-3">
-                        <button onClick={() => generateAndPreview({ categoryId: existingCategory.id })} className="px-5 py-2.5 rounded-lg bg-purple-600 hover:bg-purple-700 transition-colors text-white font-semibold">Да, добавить в "{existingCategory.name}"</button>
-                        <button onClick={() => generateAndPreview({ categoryId: 'general' })} className="px-5 py-2.5 rounded-lg bg-slate-600 hover:bg-slate-700 transition-colors text-white font-semibold">Нет, добавить в "Общие"</button>
+                        <button onClick={() => {
+                            if (pendingCards) { processPendingCards({ categoryId: existingCategory.id }); } 
+                            else { generateAndPreview({ source: 'topic', categoryOptions: { categoryId: existingCategory.id } }); }
+                        }} className="px-5 py-2.5 rounded-lg bg-purple-600 hover:bg-purple-700 transition-colors text-white font-semibold">Да, добавить в "{existingCategory.name}"</button>
+                        <button onClick={handleAddToGeneral} className="px-5 py-2.5 rounded-lg bg-slate-600 hover:bg-slate-700 transition-colors text-white font-semibold">Нет, добавить в "Общие"</button>
                     </div>
                 </>
             ) : (
@@ -444,8 +493,11 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
                     <h2 className="text-xl font-bold text-slate-100">Создать новую категорию?</h2>
                     <p className="text-slate-400 mt-2 mb-6 max-w-sm">Похоже, ваша тема "{name}" идеально подходит для отдельной категории. Как поступим?</p>
                     <div className="flex flex-col sm:flex-row gap-3">
-                        <button onClick={() => generateAndPreview({ createCategoryName: name })} className="px-5 py-2.5 rounded-lg bg-purple-600 hover:bg-purple-700 transition-colors text-white font-semibold">Создать категорию "{name}"</button>
-                        <button onClick={() => generateAndPreview({ categoryId: 'general' })} className="px-5 py-2.5 rounded-lg bg-slate-600 hover:bg-slate-700 transition-colors text-white font-semibold">Просто добавить в "Общие"</button>
+                        <button onClick={() => {
+                            if (pendingCards) { processPendingCards({ createCategoryName: name }); }
+                            else { generateAndPreview({ source: 'topic', categoryOptions: { createCategoryName: name } }); }
+                        }} className="px-5 py-2.5 rounded-lg bg-purple-600 hover:bg-purple-700 transition-colors text-white font-semibold">Создать категорию "{name}"</button>
+                        <button onClick={handleAddToGeneral} className="px-5 py-2.5 rounded-lg bg-slate-600 hover:bg-slate-700 transition-colors text-white font-semibold">Просто добавить в "Общие"</button>
                     </div>
                 </>
             )}
@@ -541,12 +593,19 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
     switch (view) {
         case 'assistant': return renderAssistantContent();
         case 'speech': return renderSpeechContent();
+        case 'file': return <FileImportView onProcessFile={handleImageUpload} />;
         case 'classifying':
-        case 'processing':
             return (
                 <div className="flex flex-col items-center justify-center h-full">
                     <Spinner />
-                    <p className="mt-4 text-slate-300">{view === 'classifying' ? 'Анализируем тему...' : 'AI генерирует карточки...'}</p>
+                    <p className="mt-4 text-slate-300">Анализируем тему...</p>
+                </div>
+            );
+        case 'processing':
+            return (
+                <div className="flex flex-col items-center justify-center h-full">
+                    <p className="mb-4 text-lg text-slate-300">AI генерирует карточки...</p>
+                    <CardListSkeleton />
                 </div>
             );
         case 'suggestion': return renderSuggestionContent();
@@ -562,7 +621,7 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
         <div className="relative w-full max-w-2xl min-h-[34rem] h-[80vh] max-h-[600px] bg-slate-800/80 backdrop-blur-xl border border-slate-700 rounded-xl shadow-2xl flex flex-col p-6" onClick={e => e.stopPropagation()}>
             {(view === 'preview') ? null : <CloseIcon className="w-6 h-6 text-slate-400 absolute top-4 right-4 cursor-pointer hover:text-white" onClick={onClose} />}
             
-            {(view === 'assistant' || view === 'speech') && (
+            {(view === 'assistant' || view === 'speech' || view === 'file') && (
                  <div className="flex-shrink-0 flex items-center justify-center space-x-2 bg-slate-900/50 rounded-full p-1 self-center mb-6">
                     <button onClick={() => setView('assistant')} className={`px-4 py-2 text-sm font-bold rounded-full transition-colors flex items-center space-x-2 ${view === 'assistant' ? 'bg-purple-600 text-white' : 'text-slate-300'}`}>
                         <SmartToyIcon className="w-5 h-5" />
@@ -571,6 +630,10 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
                     <button onClick={() => setView('speech')} className={`px-4 py-2 text-sm font-bold rounded-full transition-colors flex items-center space-x-2 ${view === 'speech' ? 'bg-purple-600 text-white' : 'text-slate-300'}`}>
                        <MicrophoneIcon className="w-5 h-5" />
                        <span>Из речи</span>
+                    </button>
+                     <button onClick={() => setView('file')} className={`px-4 py-2 text-sm font-bold rounded-full transition-colors flex items-center space-x-2 ${view === 'file' ? 'bg-purple-600 text-white' : 'text-slate-300'}`}>
+                       <ImageIcon className="w-5 h-5" />
+                       <span>Из файла</span>
                     </button>
                 </div>
             )}

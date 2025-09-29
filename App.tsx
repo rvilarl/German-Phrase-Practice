@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 // FIX: Import View type from shared types.ts
 import { Phrase, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, AdjectiveDeclension, SentenceContinuation, PhraseBuilderOptions, PhraseEvaluation, ChatMessage, PhraseCategory, ProposedCard, BookRecord, Category, CategoryAssistantRequest, CategoryAssistantResponse, View } from './types';
@@ -954,6 +955,11 @@ const App: React.FC = () => {
   const handleGenerateCardsFromTranscript = useCallback(
     (transcript: string, sourceLang: 'ru' | 'de') =>
         callApiWithFallback(provider => provider.generateCardsFromTranscript(transcript, sourceLang)),
+    [callApiWithFallback]
+  );
+  const handleGenerateCardsFromImage = useCallback(
+    (imageData: { mimeType: string; data: string; }) =>
+      callApiWithFallback(provider => provider.generateCardsFromImage(imageData)),
     [callApiWithFallback]
   );
   const handleGenerateTopicCards = useCallback(
@@ -2053,6 +2059,7 @@ const App: React.FC = () => {
               setSmartImportInitialTopic(undefined);
           }}
           onGenerateCards={handleGenerateCardsFromTranscript}
+          onGenerateCardsFromImage={handleGenerateCardsFromImage}
           onGenerateTopicCards={handleGenerateTopicCards}
           onCardsCreated={handleCreateProposedCards}
           onClassifyTopic={handleClassifyTopic}
