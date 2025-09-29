@@ -16,6 +16,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>German Phrase Practice</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css" />
   <script type="importmap">
 {
   "imports": {
@@ -27,7 +28,8 @@
     "remark-gfm": "https://esm.sh/remark-gfm@^4.0.0",
     "epubjs": "https://esm.sh/epubjs@^0.3.93",
     "jszip": "https://esm.sh/jszip@^3.10.1",
-    "idb": "https://esm.sh/idb@^8.0.0"
+    "idb": "https://esm.sh/idb@^8.0.0",
+    "cropperjs": "https://esm.sh/cropperjs@^1.6.2"
   }
 }
 </script>
@@ -321,6 +323,12 @@
   .epub-container iframe {
     /* Allow text selection inside the reader iframe */
     user-select: text !important;
+  }
+
+  /* Cropper styles */
+  .cropper-view-box,
+  .cropper-face {
+    border-radius: 0.5rem; /* rounded-lg */
   }
 </style>
 </head>

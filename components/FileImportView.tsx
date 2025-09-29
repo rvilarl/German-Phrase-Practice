@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { SpeechRecognition, SpeechRecognitionErrorEvent } from '../types';
+import Cropper from 'cropperjs';
 import FilePlusIcon from './icons/FilePlusIcon';
 import XCircleIcon from './icons/XCircleIcon';
 import WandIcon from './icons/WandIcon';
@@ -26,6 +27,23 @@ const fileToBase64 = (file: File): Promise<string> => {
   });
 };
 
+const blobToBase64 = (blob: Blob): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(blob);
+    reader.onload = () => {
+      const result = reader.result as string;
+      const base64Data = result.split(',')[1];
+      if (base64Data) {
+        resolve(base64Data);
+      } else {
+        reject(new Error('Failed to extract base64 data from blob.'));
+      }
+    };
+    reader.onerror = (error) => reject(error);
+  });
+};
+
 const FileImportView: React.FC<FileImportViewProps> = ({ onProcessFile }) => {
   const [file, setFile] = useState<File | null>(null);
   const [previewSrc, setPreviewSrc] = useState<string | null>(null);
@@ -35,6 +53,8 @@ const FileImportView: React.FC<FileImportViewProps> = ({ onProcessFile }) => {
   const [refinement, setRefinement] = useState('');
   const [isRefineListening, setIsRefineListening] = useState(false);
   const refineRecognitionRef = useRef<SpeechRecognition | null>(null);
+  const [cropper, setCropper] = useState<Cropper | null>(null);
+  const imageRef = useRef<HTMLImageElement>(null);
   
   useEffect(() => {
     const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -59,9 +79,34 @@ const FileImportView: React.FC<FileImportViewProps> = ({ onProcessFile }) => {
     }
   }, []);
 
+  useEffect(() => {
+    if (previewSrc && imageRef.current) {
+        const cropperInstance = new Cropper(imageRef.current, {
+            aspectRatio: 0,
+            viewMode: 1,
+            background: false,
+            responsive: true,
+            autoCropArea: 0.95,
+            zoomable: true,
+            guides: true,
+        });
+        setCropper(cropperInstance);
+        
+        return () => {
+            cropperInstance.destroy();
+            setCropper(null);
+        };
+    }
+  }, [previewSrc]);
+
 
   const handleFileChange = (selectedFile: File | null) => {
     setError(null);
+    if (cropper) {
+        cropper.destroy();
+        setCropper(null);
+    }
+
     if (!selectedFile) {
         setFile(null);
         setPreviewSrc(null);
@@ -92,12 +137,36 @@ const FileImportView: React.FC<FileImportViewProps> = ({ onProcessFile }) => {
 
   const handleSubmit = async () => {
     if (!file) return;
-    try {
-      const base64Data = await fileToBase64(file);
-      onProcessFile({ mimeType: file.type, data: base64Data }, refinement.trim() || undefined);
-    } catch (e) {
-      setError('Не удалось прочитать файл.');
-      console.error(e);
+
+    if (cropper && file.type.startsWith('image/')) {
+        const croppedCanvas = cropper.getCroppedCanvas();
+        if (!croppedCanvas) {
+            setError('Не удалось обрезать изображение.');
+            return;
+        }
+        croppedCanvas.toBlob(async (blob) => {
+            if (blob) {
+                try {
+                    const base64Data = await blobToBase64(blob);
+                    onProcessFile({ mimeType: 'image/jpeg', data: base64Data }, refinement.trim() || undefined);
+                } catch (e) {
+                    setError('Не удалось обработать обрезанное изображение.');
+                    console.error(e);
+                }
+            } else {
+                setError('Не удалось создать Blob из обрезанного изображения.');
+            }
+        }, 'image/jpeg', 0.9); // Quality 90%
+    } else if (file.type === 'application/pdf') {
+        try {
+            const base64Data = await fileToBase64(file);
+            onProcessFile({ mimeType: file.type, data: base64Data }, refinement.trim() || undefined);
+        } catch (e) {
+            setError('Не удалось прочитать файл.');
+            console.error(e);
+        }
+    } else {
+        setError('Неподдерживаемый файл для обработки.');
     }
   };
   
@@ -127,6 +196,10 @@ const FileImportView: React.FC<FileImportViewProps> = ({ onProcessFile }) => {
   const clearFile = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
+    if (cropper) {
+        cropper.destroy();
+        setCropper(null);
+    }
     setFile(null);
     setPreviewSrc(null);
     if(fileInputRef.current) {
@@ -163,12 +236,20 @@ const FileImportView: React.FC<FileImportViewProps> = ({ onProcessFile }) => {
         </>
       ) : (
         <div className="w-full flex flex-col items-center">
-            <div className="w-full h-48 bg-slate-700/50 rounded-lg p-3 flex items-center justify-center relative">
-                <button onClick={clearFile} className="absolute top-2 right-2 p-1 rounded-full bg-black/50 text-white/70 hover:text-white transition-colors">
+            <div className="w-full h-48 bg-slate-700/50 rounded-lg p-1 flex items-center justify-center relative mb-4">
+                <button onClick={clearFile} className="absolute top-2 right-2 p-1 rounded-full bg-black/50 text-white/70 hover:text-white transition-colors z-10">
                     <XCircleIcon className="w-6 h-6"/>
                 </button>
                 {previewSrc ? (
-                    <img src={previewSrc} alt="Предпросмотр" className="max-w-full max-h-full object-contain rounded-md" />
+                    <div className="h-full w-full">
+                        <img
+                            ref={imageRef}
+                            src={previewSrc}
+                            alt="Предпросмотр для обрезки"
+                            className="max-w-full max-h-full"
+                            style={{ display: 'block', opacity: 0 }}
+                        />
+                    </div>
                 ) : (
                     <div className="text-center">
                         <p className="text-lg font-semibold text-slate-300">PDF Документ</p>

@@ -16,7 +16,8 @@
     "remark-gfm": "^4.0.0",
     "epubjs": "^0.3.93",
     "jszip": "^3.10.1",
-    "idb": "^8.0.0"
+    "idb": "^8.0.0",
+    "cropperjs": "^1.6.2"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
