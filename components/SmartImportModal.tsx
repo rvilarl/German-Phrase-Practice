@@ -57,6 +57,7 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
   const [isRefineListening, setIsRefineListening] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   const [pendingCards, setPendingCards] = useState<ProposedCard[] | null>(null);
+  const [editableCategoryName, setEditableCategoryName] = useState('');
 
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const assistantRecognitionRef = useRef<SpeechRecognition | null>(null);
@@ -81,6 +82,7 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
     setIsRefining(false);
     setIsAdding(false);
     setPendingCards(null);
+    setEditableCategoryName('');
     if (recognitionRef.current) {
         recognitionRef.current.abort();
     }
@@ -161,7 +163,9 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
             const cards = await onGenerateCardsFromImage(fileData);
             if (cards && cards.length > 0) {
                 setPendingCards(cards);
-                setCategorySuggestion({ name: 'Карточки из файла' });
+                const suggestionName = 'Карточки из файла';
+                setCategorySuggestion({ name: suggestionName });
+                setEditableCategoryName(suggestionName);
                 setView('suggestion');
             } else {
                 onClose();
@@ -180,7 +184,9 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
             const cards = await onGenerateCards(finalTranscript, lang);
             if (cards && cards.length > 0) {
                 setPendingCards(cards);
-                setCategorySuggestion({ name: 'Карточки из речи' });
+                const suggestionName = 'Карточки из речи';
+                setCategorySuggestion({ name: suggestionName });
+                setEditableCategoryName(suggestionName);
                 setView('suggestion');
             } else {
                 onClose();
@@ -209,6 +215,7 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
     const existingCategory = categories.find(c => fuzzyService.isSimilar(c.name, [proposedCategoryName], 0.75));
     
     setCategorySuggestion({ name: proposedCategoryName, existingCategory });
+    setEditableCategoryName(proposedCategoryName);
     setView('suggestion');
   }, [assistantInput, categories]);
 
@@ -491,13 +498,23 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
             ) : (
                 <>
                     <h2 className="text-xl font-bold text-slate-100">Создать новую категорию?</h2>
-                    <p className="text-slate-400 mt-2 mb-6 max-w-sm">Похоже, ваша тема "{name}" идеально подходит для отдельной категории. Как поступим?</p>
+                    <p className="text-slate-400 mt-2 mb-4 max-w-sm">AI предлагает создать категорию с названием:</p>
+                    <input
+                        type="text"
+                        value={editableCategoryName}
+                        onChange={e => setEditableCategoryName(e.target.value)}
+                        className="w-full max-w-xs bg-slate-700 border border-slate-600 rounded-md p-2 text-white text-center text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-purple-500 mb-6"
+                    />
                     <div className="flex flex-col sm:flex-row gap-3">
                         <button onClick={() => {
-                            if (pendingCards) { processPendingCards({ createCategoryName: name }); }
-                            else { generateAndPreview({ source: 'topic', categoryOptions: { createCategoryName: name } }); }
-                        }} className="px-5 py-2.5 rounded-lg bg-purple-600 hover:bg-purple-700 transition-colors text-white font-semibold">Создать категорию "{name}"</button>
-                        <button onClick={handleAddToGeneral} className="px-5 py-2.5 rounded-lg bg-slate-600 hover:bg-slate-700 transition-colors text-white font-semibold">Просто добавить в "Общие"</button>
+                            if (editableCategoryName.trim()) {
+                                if (pendingCards) { processPendingCards({ createCategoryName: editableCategoryName.trim() }); } 
+                                else { generateAndPreview({ source: 'topic', categoryOptions: { createCategoryName: editableCategoryName.trim() } }); }
+                            }
+                        }} className="px-5 py-2.5 rounded-lg bg-purple-600 hover:bg-purple-700 transition-colors text-white font-semibold disabled:opacity-50" disabled={!editableCategoryName.trim()}>
+                            Создать
+                        </button>
+                        <button onClick={handleAddToGeneral} className="px-5 py-2.5 rounded-lg bg-slate-600 hover:bg-slate-700 transition-colors text-white font-semibold">Добавить в "Общие"</button>
                     </div>
                 </>
             )}
