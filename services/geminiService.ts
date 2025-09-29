@@ -257,7 +257,27 @@ const generateCardsFromImage: AiService['generateCardsFromImage'] = async (image
     const api = initializeApi();
     if (!api) throw new Error("Gemini API key not configured.");
     
-    const prompt = `You are an AI assistant for learning German. Analyze the attached image or document. Your task is to extract ALL German text from it. Then, break this text into separate, logically complete phrases or words suitable for creating learning flashcards. For each German phrase/word, generate an accurate Russian translation. Ignore any text in other languages. Return the result EXCLUSIVELY in the format of a JSON array of objects, where each object has the keys 'german' and 'russian'. If no German text is found, return an empty array.`;
+    const prompt = `You are an AI assistant for learning German, specialized in creating vocabulary flashcards from images. Analyze the attached image.
+
+Your primary goal is to identify German text within the image (OCR).
+- If you find significant German text (e.g., a menu, a sign, a paragraph), your task is to:
+  1. Extract ALL German text.
+  2. Break the text into logical, self-contained phrases or words suitable for learning.
+  3. Provide an accurate Russian translation for each extracted item.
+  4. Ignore any text in other languages.
+  5. Return the result as a JSON array of objects with 'german' and 'russian' keys.
+
+- If the image contains little to no German text, but depicts clear objects or a scene (e.g., a bedroom, a kitchen, a landscape), your task is to:
+  1. Identify the main objects and concepts in the image.
+  2. Generate a list of relevant German nouns (with articles, e.g., 'das Bett'), verbs, and simple descriptive phrases related to the scene.
+  3. Provide an accurate Russian translation for each item.
+  4. Return the result as a JSON array of objects with 'german' and 'russian' keys.
+  
+- If the image is abstract, unclear, or contains no identifiable objects or text, return an empty JSON array.
+
+Return the result EXCLUSIVELY in the format of a JSON array of objects.
+Example for text: [{"german": "Eingang", "russian": "Вход"}]
+Example for objects: [{"german": "das Bett", "russian": "кровать"}, {"german": "die Lampe", "russian": "лампа"}]`;
 
     try {
         const response = await api.models.generateContent({

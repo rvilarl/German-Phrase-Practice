@@ -99,6 +99,7 @@ const FileImportView: React.FC<FileImportViewProps> = ({ onProcessFile }) => {
     <div className="flex flex-col items-center justify-center h-full text-center">
       {!file ? (
         <>
+            <p className="text-slate-400 -mt-4 mb-4 max-w-md">Загрузите изображение или PDF. AI распознает текст или опишет объекты на фото, превратив их в карточки.</p>
             <input
                 ref={fileInputRef}
                 type="file"
