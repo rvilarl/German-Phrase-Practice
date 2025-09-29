@@ -162,9 +162,8 @@ const FileImportView: React.FC<FileImportViewProps> = ({ onProcessFile }) => {
     clearFile();
     if (!selectedFile) return;
 
-    const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
-    if (!validTypes.includes(selectedFile.type)) {
-      setError('Неподдерживаемый тип файла. Пожалуйста, выберите изображение (JPG, PNG, WEBP).');
+    if (!selectedFile.type.startsWith('image/')) {
+      setError('Неподдерживаемый тип файла. Пожалуйста, выберите изображение.');
       return;
     }
     
@@ -237,7 +236,7 @@ const FileImportView: React.FC<FileImportViewProps> = ({ onProcessFile }) => {
                   type="file"
                   id="file-upload"
                   className="hidden"
-                  accept="image/png, image/jpeg, image/webp"
+                  accept="image/*"
                   onChange={(e) => handleFileChange(e.target.files?.[0] || null)}
               />
               <label
@@ -251,7 +250,7 @@ const FileImportView: React.FC<FileImportViewProps> = ({ onProcessFile }) => {
                   <FilePlusIcon className="w-12 h-12 text-slate-500 mb-4" />
                   <span className="font-semibold text-slate-300">Перетащите файл сюда</span>
                   <span className="text-slate-400">или нажмите для выбора</span>
-                  <span className="text-xs text-slate-500 mt-2">JPG, PNG, WEBP (макс. 10МБ)</span>
+                  <span className="text-xs text-slate-500 mt-2">Изображение (макс. 10МБ)</span>
               </label>
           </>
         ) : (
