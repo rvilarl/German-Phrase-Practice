@@ -7,6 +7,8 @@ import WandIcon from './icons/WandIcon';
 import MicrophoneIcon from './icons/MicrophoneIcon';
 import CheckIcon from './icons/CheckIcon';
 import CloseIcon from './icons/CloseIcon';
+import CameraIcon from './icons/CameraIcon';
+import CameraCaptureModal from './CameraCaptureModal';
 
 interface ImageCropperModalProps {
   isOpen: boolean;
@@ -87,23 +89,6 @@ interface FileImportViewProps {
   onProcessFile: (fileData: { mimeType: string; data: string }, refinement?: string) => void;
 }
 
-const fileToBase64 = (file: File): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => {
-      const result = reader.result as string;
-      const base64Data = result.split(',')[1];
-      if (base64Data) {
-        resolve(base64Data);
-      } else {
-        reject(new Error('Failed to extract base64 data from file.'));
-      }
-    };
-    reader.onerror = (error) => reject(error);
-  });
-};
-
 const FileImportView: React.FC<FileImportViewProps> = ({ onProcessFile }) => {
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -117,6 +102,7 @@ const FileImportView: React.FC<FileImportViewProps> = ({ onProcessFile }) => {
   const [imageToCrop, setImageToCrop] = useState<string | null>(null);
   const [croppedImageSrc, setCroppedImageSrc] = useState<string | null>(null);
   const [croppedImageData, setCroppedImageData] = useState<{ mimeType: string, data: string } | null>(null);
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
 
   useEffect(() => {
     const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -224,6 +210,12 @@ const FileImportView: React.FC<FileImportViewProps> = ({ onProcessFile }) => {
       clearFile();
   };
 
+  const handleCapture = (dataUrl: string) => {
+    setIsCameraOpen(false);
+    setImageToCrop(dataUrl);
+    setIsCropperOpen(true);
+  };
+
 
   return (
     <>
@@ -239,19 +231,29 @@ const FileImportView: React.FC<FileImportViewProps> = ({ onProcessFile }) => {
                   accept="image/*"
                   onChange={(e) => handleFileChange(e.target.files?.[0] || null)}
               />
-              <label
-                  htmlFor="file-upload"
-                  onDragEnter={(e) => handleDragEvents(e, true)}
-                  onDragLeave={(e) => handleDragEvents(e, false)}
-                  onDragOver={(e) => handleDragEvents(e, true)}
-                  onDrop={handleDrop}
-                  className={`w-full h-64 border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer transition-colors ${isDragging ? 'border-purple-500 bg-slate-700' : 'border-slate-600 hover:border-slate-500'}`}
-              >
-                  <FilePlusIcon className="w-12 h-12 text-slate-500 mb-4" />
-                  <span className="font-semibold text-slate-300">Перетащите файл сюда</span>
-                  <span className="text-slate-400">или нажмите для выбора</span>
-                  <span className="text-xs text-slate-500 mt-2">Изображение (макс. 10МБ)</span>
-              </label>
+              <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <label
+                    htmlFor="file-upload"
+                    onDragEnter={(e) => handleDragEvents(e, true)}
+                    onDragLeave={(e) => handleDragEvents(e, false)}
+                    onDragOver={(e) => handleDragEvents(e, true)}
+                    onDrop={handleDrop}
+                    className={`h-48 border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer transition-colors ${isDragging ? 'border-purple-500 bg-slate-700' : 'border-slate-600 hover:border-slate-500'}`}
+                >
+                    <FilePlusIcon className="w-10 h-10 text-slate-500 mb-2" />
+                    <span className="font-semibold text-slate-300">Перетащите или выберите файл</span>
+                    <span className="text-xs text-slate-500 mt-1">Изображение (макс. 10МБ)</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setIsCameraOpen(true)}
+                  className="h-48 border-2 border-dashed border-slate-600 hover:border-slate-500 rounded-lg flex flex-col items-center justify-center cursor-pointer transition-colors"
+                >
+                  <CameraIcon className="w-10 h-10 text-slate-500 mb-2" />
+                  <span className="font-semibold text-slate-300">Сделать фото</span>
+                  <span className="text-xs text-slate-500 mt-1">Использовать камеру</span>
+                </button>
+              </div>
           </>
         ) : (
           <div className="w-full flex flex-col items-center">
@@ -295,6 +297,11 @@ const FileImportView: React.FC<FileImportViewProps> = ({ onProcessFile }) => {
         src={imageToCrop}
         onConfirm={handleCropConfirm}
         onCancel={handleCropCancel}
+      />
+       <CameraCaptureModal
+        isOpen={isCameraOpen}
+        onClose={() => setIsCameraOpen(false)}
+        onCapture={handleCapture}
       />
     </>
   );

@@ -1,7 +1,8 @@
 {
   "requestFramePermissions": [
     "microphone",
-    "clipboard-read"
+    "clipboard-read",
+    "camera"
   ],
   "name": "German Practice",
   "description": ""
