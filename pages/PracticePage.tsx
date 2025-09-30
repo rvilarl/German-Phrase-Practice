@@ -1,5 +1,6 @@
 
 
+
 import React, { useCallback, useRef, useState, useEffect, useMemo } from 'react';
 import type { Phrase, WordAnalysis, PhraseCategory, Category } from '../types';
 import PhraseCard from '../components/PhraseCard';
@@ -318,13 +319,22 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
 
                 <div className="flex justify-center items-center mt-8 h-12">
                     {!isAnswerRevealed && currentPhrase && (
-                        <button
-                            onClick={handleKnowClick}
-                            disabled={isExiting}
-                            className="w-full max-w-[200px] mx-auto px-10 py-3 rounded-lg font-semibold text-white shadow-md transition-colors bg-green-600 hover:bg-green-700 animate-fade-in"
-                        >
-                            Знаю
-                        </button>
+                        <div className="flex items-center justify-center space-x-4 animate-fade-in w-full max-w-sm">
+                            <button
+                                onClick={onContinue}
+                                disabled={isExiting}
+                                className="px-8 py-3 rounded-lg font-semibold text-slate-300 shadow-md transition-colors bg-slate-600 hover:bg-slate-500"
+                            >
+                                Пропустить
+                            </button>
+                            <button
+                                onClick={handleKnowClick}
+                                disabled={isExiting}
+                                className="px-10 py-3 rounded-lg font-semibold text-white shadow-md transition-colors bg-green-600 hover:bg-green-700"
+                            >
+                                Знаю
+                            </button>
+                        </div>
                     )}
                     {/* This button appears ONLY when the card is manually flipped to check the answer */}
                     {isAnswerRevealed && !isCardEvaluated && (
