@@ -37,7 +37,7 @@ interface PracticePageProps {
   error: string | null;
   isGenerating: boolean;
   apiProviderAvailable: boolean;
-  onUpdateMastery: (action: 'know' | 'forgot' | 'dont_know') => void;
+  onUpdateMastery: (action: 'know' | 'forgot' | 'dont_know') => Promise<boolean>;
   onUpdateMasteryWithoutUI: (phrase: Phrase, action: 'know' | 'forgot' | 'dont_know') => void;
   onContinue: () => void;
   onSwipeRight: () => void;
@@ -217,16 +217,19 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
     touchStartRef.current = null; touchMoveRef.current = null;
   };
 
-  const handleKnowClick = useCallback(() => {
+  const handleKnowClick = useCallback(async () => {
     if (isExiting || !currentPhrase) return;
     
     setFlashState('green');
-    onUpdateMastery('know');
+    const leechModalShown = await onUpdateMastery('know');
     
-    // Auto-advance after showing the answer
-    setTimeout(() => {
-      onContinue();
-    }, 1500);
+    // Если было показано модальное окно "пиявки", оно само управляет переходом.
+    // В противном случае, переходим к следующей карточке через задержку.
+    if (!leechModalShown) {
+        setTimeout(() => {
+            onContinue();
+        }, 1500);
+    }
   }, [isExiting, currentPhrase, onUpdateMastery, onContinue]);
 
   const renderContent = () => {

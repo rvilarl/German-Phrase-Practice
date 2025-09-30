@@ -851,25 +851,25 @@ const App: React.FC = () => {
   
   const updatePhraseMasteryAndCache = useCallback(async (phrase: Phrase, action: 'know' | 'forgot' | 'dont_know') => {
     const updatedPhrase = srsService.updatePhraseMastery(phrase, action, categories);
-    
+
+    // Optimistic UI update
+    updateAndSavePhrases(prev =>
+        prev.map(p => (p.id === phrase.id ? updatedPhrase : p))
+    );
+    if (updatedPhrase.isMastered && !phrase.isMastered) {
+        cacheService.clearCacheForPhrase(phrase.id);
+    }
+
     try {
+        // Background sync
         await backendService.updatePhrase(updatedPhrase);
-        updateAndSavePhrases(prev =>
-            prev.map(p => (p.id === phrase.id ? updatedPhrase : p))
-        );
-        if (updatedPhrase.isMastered && !phrase.isMastered) {
-            cacheService.clearCacheForPhrase(phrase.id);
-        }
     } catch (err) {
+        // On failure, just show a toast. Do NOT revert the UI state.
         showToast({ message: `Ошибка синхронизации: ${(err as Error).message}` });
-        // Revert UI state if API call fails
-        updateAndSavePhrases(prev =>
-            prev.map(p => (p.id === phrase.id ? phrase : p))
-        );
-        return phrase; // Return original phrase on failure
+        console.error("Background sync failed for phrase " + phrase.id, err);
     }
     
-    return updatedPhrase;
+    return updatedPhrase; // Return the optimistically updated phrase.
   }, [updateAndSavePhrases, categories, showToast]);
 
 
@@ -1666,14 +1666,13 @@ const App: React.FC = () => {
     }, 250);
   }, [selectNextPracticePhrase]);
   
-  const handlePracticeUpdateMastery = useCallback(async (action: 'know' | 'forgot' | 'dont_know') => {
-    if (!currentPracticePhrase || practiceIsExitingRef.current) return;
+  const handlePracticeUpdateMastery = useCallback(async (action: 'know' | 'forgot' | 'dont_know'): Promise<boolean> => {
+    if (!currentPracticePhrase || practiceIsExitingRef.current) return false;
 
     handleLogMasteryButtonUsage(action);
     const originalPhrase = currentPracticePhrase;
+    const srsUpdatedPhrase = srsService.updatePhraseMastery(originalPhrase, action, categories);
 
-    let srsUpdatedPhrase = srsService.updatePhraseMastery(originalPhrase, action, categories);
-    
     if (action === 'forgot' || action === 'dont_know') {
       const wasLeech = srsService.isLeech(originalPhrase);
       const isNowLeech = srsService.isLeech(srsUpdatedPhrase);
@@ -1683,7 +1682,7 @@ const App: React.FC = () => {
         if (settings.soundEffects) playIncorrectSound();
         setLeechPhrase(backendUpdatedPhrase);
         setIsLeechModalOpen(true);
-        return;
+        return true; // Leech modal shown
       }
     }
 
@@ -1698,6 +1697,7 @@ const App: React.FC = () => {
     } else {
         if (settings.soundEffects) playIncorrectSound();
     }
+    return false; // Leech modal not shown
   }, [currentPracticePhrase, practiceIsExitingRef, handleLogMasteryButtonUsage, categories, updatePhraseMasteryAndCache, settings.soundEffects]);
 
 
