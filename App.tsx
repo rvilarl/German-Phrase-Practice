@@ -48,6 +48,8 @@ import AutoFillPreviewModal from './components/AutoFillPreviewModal';
 import MoveOrSkipModal from './components/MoveOrSkipModal';
 import CategoryAssistantModal from './components/CategoryAssistantModal';
 import ConfirmDeletePhrasesModal from './components/ConfirmDeletePhrasesModal';
+import PracticeChatFab from './components/PracticeChatFab';
+import PracticeChatModal from './components/PracticeChatModal';
 
 
 const PHRASES_STORAGE_KEY = 'germanPhrases';
@@ -57,6 +59,7 @@ const BUTTON_USAGE_STORAGE_KEY = 'germanAppButtonUsage';
 const MASTERY_BUTTON_USAGE_STORAGE_KEY = 'germanAppMasteryButtonUsage';
 const HABIT_TRACKER_STORAGE_KEY = 'germanAppHabitTracker';
 const CARD_ACTION_USAGE_STORAGE_KEY = 'germanAppCardActionUsage';
+const PRACTICE_CHAT_HISTORY_KEY = 'germanAppPracticeChatHistory';
 
 // FIX: Removed local View type definition. It's now imported from types.ts
 type AnimationDirection = 'left' | 'right';
@@ -315,6 +318,10 @@ const App: React.FC = () => {
   const [isConfirmDeletePhrasesModalOpen, setIsConfirmDeletePhrasesModalOpen] = useState(false);
   const [phrasesForDeletion, setPhrasesForDeletion] = useState<{ phrases: Phrase[]; sourceCategory: Category } | null>(null);
   
+  // New state for practice chat
+  const [isPracticeChatModalOpen, setIsPracticeChatModalOpen] = useState(false);
+  const [practiceChatHistory, setPracticeChatHistory] = useState<ChatMessage[]>([]);
+
   const isPrefetchingRef = useRef(false);
   
   const showToast = useCallback((config: { message: string; type?: ToastType }) => {
@@ -433,6 +440,9 @@ const App: React.FC = () => {
             const storedHabitTracker = localStorage.getItem(HABIT_TRACKER_STORAGE_KEY);
             if (storedHabitTracker) setHabitTracker(JSON.parse(storedHabitTracker));
     
+            const storedPracticeChat = localStorage.getItem(PRACTICE_CHAT_HISTORY_KEY);
+            if (storedPracticeChat) setPracticeChatHistory(JSON.parse(storedPracticeChat));
+
           } catch (e) { console.error("Failed to load settings or trackers", e); }
       }
       
@@ -545,6 +555,14 @@ const App: React.FC = () => {
         return updated;
     });
   }
+
+  const handlePracticeChatHistoryChange = useCallback((updater: React.SetStateAction<ChatMessage[]>) => {
+    setPracticeChatHistory(prev => {
+        const newHistory = typeof updater === 'function' ? updater(prev) : updater;
+        localStorage.setItem(PRACTICE_CHAT_HISTORY_KEY, JSON.stringify(newHistory));
+        return newHistory;
+    });
+  }, []);
 
   const handleHabitTrackerChange = useCallback((updater: React.SetStateAction<typeof habitTracker>) => {
     setHabitTracker(prev => {
@@ -895,6 +913,7 @@ const App: React.FC = () => {
   const handleGenerateContinuations = useCallback((russianPhrase: string) => callApiWithFallback(provider => provider.generateSentenceContinuations(russianPhrase)),[callApiWithFallback]);
   const handleGenerateInitialExamples = useCallback((phrase: Phrase) => callApiWithFallback(provider => provider.generateInitialExamples(phrase)),[callApiWithFallback]);
   const handleContinueChat = useCallback((phrase: Phrase, history: any[], newMessage: string) => callApiWithFallback(provider => provider.continueChat(phrase, history, newMessage)),[callApiWithFallback]);
+  const handlePracticeConversation = useCallback((history: ChatMessage[], newMessage: string) => callApiWithFallback(provider => provider.practiceConversation(history, newMessage, allPhrases)),[callApiWithFallback, allPhrases]);
   const handleGuideToTranslation = useCallback((phrase: Phrase, history: ChatMessage[], userAnswer: string) => callApiWithFallback(provider => provider.guideToTranslation(phrase, history, userAnswer)),[callApiWithFallback]);
   const handleGenerateSinglePhrase = useCallback((russianPhrase: string) => callApiWithFallback(provider => provider.generateSinglePhrase(russianPhrase)),[callApiWithFallback]);
   const handleTranslateGermanToRussian = useCallback((germanPhrase: string) => callApiWithFallback(provider => provider.translateGermanToRussian(germanPhrase)), [callApiWithFallback]);
@@ -1947,12 +1966,15 @@ const App: React.FC = () => {
       </main>
       
       {view === 'practice' && !isLoading && (
-        <ExpandingFab 
-          onAddPhrase={handleOpenAddPhraseModal}
-          onSmartImport={() => setIsSmartImportModalOpen(true)}
-          onOpenLibrary={handleOpenLibrary}
-          disabled={!apiProvider}
-        />
+        <>
+          <PracticeChatFab onClick={() => setIsPracticeChatModalOpen(true)} disabled={!apiProvider} />
+          <ExpandingFab 
+            onAddPhrase={handleOpenAddPhraseModal}
+            onSmartImport={() => setIsSmartImportModalOpen(true)}
+            onOpenLibrary={handleOpenLibrary}
+            disabled={!apiProvider}
+          />
+        </>
       )}
 
       <footer className="text-center text-slate-500 py-4 text-sm h-6">
@@ -1976,6 +1998,21 @@ const App: React.FC = () => {
           onOpenNounDeclension={handleOpenNounDeclension}
           onOpenAdjectiveDeclension={handleOpenAdjectiveDeclension}
           onTranslateGermanToRussian={handleTranslateGermanToRussian}
+      />}
+      {apiProvider && <PracticeChatModal 
+        isOpen={isPracticeChatModalOpen}
+        onClose={() => setIsPracticeChatModalOpen(false)}
+        history={practiceChatHistory}
+        setHistory={handlePracticeChatHistoryChange}
+        onSendMessage={handlePracticeConversation}
+        allPhrases={allPhrases}
+        onOpenWordAnalysis={handleOpenWordAnalysis}
+        onCreateCard={handleCreateCardFromWord}
+        onAnalyzeWord={analyzeWord}
+        onOpenVerbConjugation={handleOpenVerbConjugation}
+        onOpenNounDeclension={handleOpenNounDeclension}
+        onOpenAdjectiveDeclension={handleOpenAdjectiveDeclension}
+        onTranslateGermanToRussian={handleTranslateGermanToRussian}
       />}
       <SettingsModal 
         isOpen={isSettingsModalOpen} 

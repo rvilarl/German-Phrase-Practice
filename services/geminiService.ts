@@ -1,6 +1,7 @@
 
 
 
+
 import { GoogleGenAI, Type } from "@google/genai";
 import type { Phrase, ChatMessage, ExamplePair, ProactiveSuggestion, ContentPart, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, AdjectiveDeclension, SentenceContinuation, TranslationChatRequest, TranslationChatResponse, PhraseBuilderOptions, PhraseEvaluation, CategoryAssistantRequest, CategoryAssistantResponse, CategoryAssistantRequestType } from '../types';
 import { AiService } from './aiService';
@@ -700,6 +701,68 @@ const continueChat: AiService['continueChat'] = async (phrase, history, newMessa
         throw new Error(`Failed to call the Gemini API: ${errorMessage}`);
     }
 };
+
+const practiceConversation: AiService['practiceConversation'] = async (history, newMessage, allPhrases) => {
+    const api = initializeApi();
+    if (!api) throw new Error("Gemini API key not configured.");
+
+    const formattedHistory = history.map(msg => ({
+        role: msg.role,
+        parts: [{ text: msg.text || msg.contentParts?.map(p => p.text).join('') || '' }]
+    }));
+    
+    const systemInstruction = `You are a friendly and patient German language tutor named 'Alex'. Your goal is to have a practical, spoken-style conversation with a student in German to help them practice.
+
+You have been given a list of all the German phrases the student is learning, along with their progress (masteryLevel from 0-6). This is the student's entire known vocabulary and grammar.
+
+**Your primary directive is to keep the conversation within the scope of this known material.**
+
+Here is the student's learning data:
+${JSON.stringify(allPhrases.map(p => ({ g: p.german, r: p.russian, mastery: p.masteryLevel })))}
+
+**Conversation Rules:**
+1.  **Start the conversation:** If this is the first message (history is empty), greet the student in German, introduce yourself as Alex, and ask a simple opening question based on their known phrases (e.g., "Hallo! Wie geht es Ihnen?").
+2.  **Stay Relevant:** Build the conversation around the themes present in the student's phrases (e.g., greetings, in a cafe, asking for directions, personal information).
+3.  **Use Their Words:** Primarily use the vocabulary and grammatical structures from the provided list. Try to naturally incorporate phrases they are struggling with (low mastery level) to give them practice.
+4.  **Correct Mistakes:** If the student's German has errors, you MUST correct them. Your correction should be gentle and encouraging. First, provide the corrected German sentence. Then, give a very short and simple explanation for the correction **in Russian**.
+5.  **Be a Conversation Partner:** Ask questions, react to their answers, and keep the conversation flowing naturally. You can propose simple scenarios like "Stellen wir uns vor, wir sind in einem Café. Was möchten Sie bestellen?" (Let's imagine we're in a cafe. What would you like to order?).
+6.  **Keep it German:** Your main conversational responses should be in German. Only use Russian for explanations of corrections.
+
+**Response Format:**
+Your entire response MUST be a single JSON object matching the provided schema.
+- \`responseParts\`: An array of objects. Each object has a \`type\` ('text' for Russian explanations, 'german' for your German conversational response) and \`text\`. Use this to mix your German response with Russian explanations of corrections.
+- \`promptSuggestions\`: An array of 2-3 short, relevant German phrases the user could say next. This helps them continue the conversation.`;
+
+    const userMessage = { role: 'user', parts: [{ text: newMessage || '(Start the conversation)' }] };
+
+    try {
+        const response = await api.models.generateContent({
+            model: model,
+            contents: [...formattedHistory, userMessage],
+            config: {
+                systemInstruction,
+                responseMimeType: "application/json",
+                responseSchema: chatResponseSchema,
+                temperature: 0.7,
+            },
+        });
+
+        const jsonText = response.text.trim();
+        const parsedResponse = JSON.parse(jsonText);
+        
+        return {
+            role: 'model',
+            contentParts: parsedResponse.responseParts || [{ type: 'text', text: 'Error.' }],
+            promptSuggestions: parsedResponse.promptSuggestions || [],
+        };
+
+    } catch (error) {
+        console.error("Error in practice conversation with Gemini:", error);
+        const errorMessage = (error as any)?.message || 'Unknown error';
+        throw new Error(`Failed to call the Gemini API: ${errorMessage}`);
+    }
+};
+
 
 const learningAssistantResponseSchema = {
     type: Type.OBJECT,
@@ -1736,6 +1799,7 @@ export const geminiService: AiService = {
     improvePhrase,
     generateInitialExamples,
     continueChat,
+    practiceConversation,
     guideToTranslation,
     discussTranslation,
     generateDeepDiveAnalysis,

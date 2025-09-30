@@ -60,6 +60,7 @@ const getWordTranslation: AiService['getWordTranslation'] = notImplemented;
 const improvePhrase: AiService['improvePhrase'] = notImplemented;
 const generateInitialExamples: AiService['generateInitialExamples'] = notImplemented;
 const continueChat: AiService['continueChat'] = notImplemented;
+const practiceConversation: AiService['practiceConversation'] = notImplemented;
 const guideToTranslation: AiService['guideToTranslation'] = notImplemented;
 const discussTranslation: AiService['discussTranslation'] = notImplemented;
 const generateDeepDiveAnalysis: AiService['generateDeepDiveAnalysis'] = notImplemented;
@@ -112,6 +113,7 @@ export const deepseekService: AiService = {
     improvePhrase,
     generateInitialExamples,
     continueChat,
+    practiceConversation,
     guideToTranslation,
     discussTranslation,
     generateDeepDiveAnalysis,
