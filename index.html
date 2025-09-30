@@ -77,7 +77,7 @@
   }
   @keyframes slideOutToRight {
     0% { transform: translateX(0); opacity: 1; }
-    100% { transform: translateX(100%); opacity: 0; }
+    100% { transform: translateX(100%); opacity: 1; }
   }
   .card-enter-right { animation: slideInFromRight 0.25s ease-out forwards; }
   .card-exit-left { animation: slideOutToLeft 0.25s ease-in forwards; }
@@ -329,6 +329,30 @@
   .cropper-view-box,
   .cropper-face {
     border-radius: 0.5rem; /* rounded-lg */
+  }
+
+  /* Word Hint Tooltip */
+  .word-hint-tooltip {
+    position: absolute;
+    transform: translate(-50%, -100%); /* Center above the word */
+    background-color: rgba(15, 23, 42, 0.9); /* slate-900 with opacity */
+    backdrop-filter: blur(4px);
+    color: white;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    font-weight: 500;
+    pointer-events: auto;
+    z-index: 20;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    /* Animation */
+    animation: tooltip-fade-in 0.2s ease-out forwards;
+    white-space: nowrap;
+  }
+
+  @keyframes tooltip-fade-in {
+      from { opacity: 0; transform: translate(-50%, -80%); }
+      to { opacity: 1; transform: translate(-50%, -100%); }
   }
 </style>
 </head>

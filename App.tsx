@@ -1,4 +1,6 @@
 
+
+
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 // FIX: Import View type from shared types.ts
 import { Phrase, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, AdjectiveDeclension, SentenceContinuation, PhraseBuilderOptions, PhraseEvaluation, ChatMessage, PhraseCategory, ProposedCard, BookRecord, Category, CategoryAssistantRequest, CategoryAssistantResponse, View } from './types';
@@ -233,9 +235,6 @@ const App: React.FC = () => {
   const [wordAnalysisError, setWordAnalysisError] = useState<string | null>(null);
 
   const [isVerbConjugationModalOpen, setIsVerbConjugationModalOpen] = useState(false);
-  const [verbConjugationData, setVerbConjugationData] = useState<VerbConjugation | null>(null);
-  const [isVerbConjugationLoading, setIsVerbConjugationLoading] = useState<boolean>(false);
-  const [verbConjugationError, setVerbConjugationError] = useState<string | null>(null);
   const [conjugationVerb, setConjugationVerb] = useState<string>('');
 
   const [isNounDeclensionModalOpen, setIsNounDeclensionModalOpen] = useState(false);
@@ -320,7 +319,6 @@ const App: React.FC = () => {
   const [phrasesForDeletion, setPhrasesForDeletion] = useState<{ phrases: Phrase[]; sourceCategory: Category } | null>(null);
   
   const isPrefetchingRef = useRef(false);
-  const isQuickReplyPrefetchingRef = useRef(false);
   
   const showToast = useCallback((config: { message: string; type?: ToastType }) => {
     setToast({ message: config.message, type: config.type || 'default', id: Date.now() });
@@ -714,30 +712,11 @@ const App: React.FC = () => {
     setIsWordAnalysisLoading(false);
   }, [analyzeWord, isWordAnalysisLoading]);
 
-  const handleOpenVerbConjugation = useCallback(async (infinitive: string) => {
+  const handleOpenVerbConjugation = useCallback((infinitive: string) => {
     if (!apiProvider) return;
     setConjugationVerb(infinitive);
     setIsVerbConjugationModalOpen(true);
-    setIsVerbConjugationLoading(true);
-    setVerbConjugationData(null);
-    setVerbConjugationError(null);
-    const cacheKey = `verb_conjugation_${infinitive}`;
-    const cachedData = cacheService.getCache<VerbConjugation>(cacheKey);
-    if (cachedData) {
-        setVerbConjugationData(cachedData);
-        setIsVerbConjugationLoading(false);
-        return;
-    }
-    try {
-        const data = await callApiWithFallback(provider => provider.conjugateVerb(infinitive));
-        setVerbConjugationData(data);
-        cacheService.setCache(cacheKey, data);
-    } catch (err) {
-        setVerbConjugationError(err instanceof Error ? err.message : 'Unknown error during conjugation generation.');
-    } finally {
-        setIsVerbConjugationLoading(false);
-    }
-  }, [apiProvider, callApiWithFallback]);
+  }, [apiProvider]);
 
   const handleOpenNounDeclension = useCallback(async (noun: string, article: string) => {
     if (!apiProvider) return;
@@ -832,59 +811,12 @@ const App: React.FC = () => {
     }
   }, [allPhrases, callApiWithFallback, apiProvider]);
 
-  const prefetchQuickReplyOptions = useCallback(async (startingPhraseId: string | null) => {
-    if (isQuickReplyPrefetchingRef.current || !apiProvider) return;
-    isQuickReplyPrefetchingRef.current = true;
-
-    try {
-        const PREFETCH_COUNT = 5; // Increased prefetch count
-        let nextPhraseId = startingPhraseId;
-        const phrasesToFetch: Phrase[] = [];
-        const unmastered = allPhrases.filter(p => p && !p.isMastered && settings.enabledCategories[p.category]);
-
-        for (let i = 0; i < PREFETCH_COUNT; i++) {
-            const nextPhrase = srsService.selectNextPhrase(unmastered, nextPhraseId);
-            if (nextPhrase) {
-                if (phrasesToFetch.some(p => p.id === nextPhrase.id)) break;
-
-                const categoryInfo = categories.find(c => c.id === nextPhrase.category);
-                if (!categoryInfo?.isFoundational) {
-                    phrasesToFetch.push(nextPhrase);
-                }
-                
-                nextPhraseId = nextPhrase.id;
-            } else {
-                break;
-            }
-        }
-        
-        if (phrasesToFetch.length > 0) {
-            await Promise.all(phrasesToFetch.map(async (phrase) => {
-                const cacheKey = `quick_reply_options_${phrase.id}`;
-                if (!cacheService.getCache<string[]>(cacheKey)) {
-                    try {
-                        const result = await callApiWithFallback(provider => provider.generateQuickReplyOptions(phrase));
-                        if (result.options && result.options.length > 0) {
-                            cacheService.setCache(cacheKey, result.options);
-                        }
-                    } catch (err) {
-                        console.warn(`Background prefetch for quick reply options failed for phrase ${phrase.id}:`, err);
-                    }
-                }
-            }));
-        }
-    } finally {
-        isQuickReplyPrefetchingRef.current = false;
-    }
-  }, [allPhrases, categories, callApiWithFallback, apiProvider, settings.enabledCategories]);
-  
   // New proactive pre-fetching effect for both phrase builder and quick replies
   useEffect(() => {
     if (view === 'practice' && currentPracticePhrase) {
         prefetchPhraseBuilderOptions(currentPracticePhrase.id);
-        prefetchQuickReplyOptions(currentPracticePhrase.id);
     }
-  }, [view, currentPracticePhrase, prefetchPhraseBuilderOptions, prefetchQuickReplyOptions]);
+  }, [view, currentPracticePhrase, prefetchPhraseBuilderOptions]);
 
 
   const handleOpenVoiceWorkspace = (phrase: Phrase) => {
@@ -947,10 +879,18 @@ const App: React.FC = () => {
   const handleGenerateContinuations = useCallback((russianPhrase: string) => callApiWithFallback(provider => provider.generateSentenceContinuations(russianPhrase)),[callApiWithFallback]);
   const handleGenerateInitialExamples = useCallback((phrase: Phrase) => callApiWithFallback(provider => provider.generateInitialExamples(phrase)),[callApiWithFallback]);
   const handleContinueChat = useCallback((phrase: Phrase, history: any[], newMessage: string) => callApiWithFallback(provider => provider.continueChat(phrase, history, newMessage)),[callApiWithFallback]);
-  const handleGenerateQuickReplyOptions = useCallback((phrase: Phrase) => callApiWithFallback(provider => provider.generateQuickReplyOptions(phrase)),[callApiWithFallback]);
   const handleGuideToTranslation = useCallback((phrase: Phrase, history: ChatMessage[], userAnswer: string) => callApiWithFallback(provider => provider.guideToTranslation(phrase, history, userAnswer)),[callApiWithFallback]);
   const handleGenerateSinglePhrase = useCallback((russianPhrase: string) => callApiWithFallback(provider => provider.generateSinglePhrase(russianPhrase)),[callApiWithFallback]);
   const handleTranslateGermanToRussian = useCallback((germanPhrase: string) => callApiWithFallback(provider => provider.translateGermanToRussian(germanPhrase)), [callApiWithFallback]);
+  const handleGetWordTranslation = useCallback(async (russianPhrase: string, germanPhrase: string, russianWord: string): Promise<{ germanTranslation: string }> => {
+    const cacheKey = `word_translation_${russianPhrase}_${russianWord}`;
+    const cached = cacheService.getCache<{ germanTranslation: string }>(cacheKey);
+    if (cached) return cached;
+
+    const result = await callApiWithFallback(provider => provider.getWordTranslation(russianPhrase, germanPhrase, russianWord));
+    cacheService.setCache(cacheKey, result);
+    return result;
+  }, [callApiWithFallback]);
   const handleGenerateCardsFromTranscript = useCallback(
     (transcript: string, sourceLang: 'ru' | 'de') =>
         callApiWithFallback(provider => provider.generateCardsFromTranscript(transcript, sourceLang)),
@@ -974,6 +914,22 @@ const App: React.FC = () => {
         callApiWithFallback(provider => provider.getCategoryAssistantResponse(categoryName, existingPhrases, request)),
     [callApiWithFallback]
   );
+  const handleConjugateVerbSimple = useCallback(async (infinitive: string) => {
+    const cacheKey = `verb_conjugation_simple_${infinitive}`;
+    const cached = cacheService.getCache<any[]>(cacheKey);
+    if (cached) return cached;
+    const result = await callApiWithFallback(provider => provider.conjugateVerbSimple(infinitive));
+    cacheService.setCache(cacheKey, result);
+    return result;
+  }, [callApiWithFallback]);
+  const handleConjugateVerbDetailed = useCallback(async (infinitive: string) => {
+    const cacheKey = `verb_conjugation_detailed_${infinitive}`;
+    const cached = cacheService.getCache<VerbConjugation>(cacheKey);
+    if (cached) return cached;
+    const result = await callApiWithFallback(provider => provider.conjugateVerb(infinitive));
+    cacheService.setCache(cacheKey, result);
+    return result;
+  }, [callApiWithFallback]);
 
 
   const handleOpenAddPhraseModal = (options: { language: 'ru' | 'de'; autoSubmit: boolean }) => {
@@ -1874,6 +1830,7 @@ const App: React.FC = () => {
              onOpenDeepDive={handleOpenDeepDive}
              onOpenMovieExamples={handleOpenMovieExamples}
              onOpenWordAnalysis={handleOpenWordAnalysis}
+             onGetWordTranslation={handleGetWordTranslation}
              onOpenVerbConjugation={handleOpenVerbConjugation}
              onOpenNounDeclension={handleOpenNounDeclension}
              onOpenAdjectiveDeclension={handleOpenAdjectiveDeclension}
@@ -1889,7 +1846,6 @@ const App: React.FC = () => {
              allPhrases={allPhrases}
              onCreateCard={handleCreateCardFromWord}
              onAnalyzeWord={analyzeWord}
-             onGenerateQuickReplyOptions={handleGenerateQuickReplyOptions}
              isWordAnalysisLoading={isWordAnalysisLoading}
              cardActionUsage={cardActionUsage}
              onLogCardActionUsage={handleLogCardActionUsage}
@@ -2028,9 +1984,8 @@ const App: React.FC = () => {
         isOpen={isVerbConjugationModalOpen}
         onClose={() => setIsVerbConjugationModalOpen(false)}
         infinitive={conjugationVerb}
-        data={verbConjugationData}
-        isLoading={isVerbConjugationLoading}
-        error={verbConjugationError}
+        onConjugateSimple={handleConjugateVerbSimple}
+        onConjugateDetailed={handleConjugateVerbDetailed}
         onOpenWordAnalysis={handleOpenWordAnalysis}
        />}
        {declensionNoun && <NounDeclensionModal

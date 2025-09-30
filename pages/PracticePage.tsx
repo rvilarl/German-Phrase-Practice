@@ -1,11 +1,11 @@
 
+
 import React, { useCallback, useRef, useState, useEffect, useMemo } from 'react';
 import type { Phrase, WordAnalysis, PhraseCategory, Category } from '../types';
 import PhraseCard from '../components/PhraseCard';
 import PhraseCardSkeleton from '../components/PhraseCardSkeleton';
 import PracticePageContextMenu from '../components/PracticePageContextMenu';
 import CheckIcon from '../components/icons/CheckIcon';
-import QuickReplyModal from '../components/QuickReplyModal';
 import * as srsService from '../services/srsService';
 import * as cacheService from '../services/cacheService';
 import { playCorrectSound } from '../services/soundService';
@@ -23,14 +23,6 @@ interface AnimationState {
   key: string;
   direction: AnimationDirection;
 }
-
-// Pools for local quick reply generation
-const W_FRAGEN_POOL = ["Was?", "Wer?", "Wo?", "Wann?", "Wie?", "Warum?", "Woher?", "Wohin?", "Welcher?", "Wie viel?", "Wie viele?"];
-const PRONOUN_POOL = ["ich", "du", "er", "sie", "es", "wir", "ihr", "Sie", "mich", "dich", "ihn", "mir", "dir", "ihm", "ihnen", "mein", "dein", "sein"];
-const NUMBERS_POOL = ["null", "eins", "zwei", "drei", "vier", "fünf", "sechs", "sieben", "acht", "neun", "zehn", "elf", "zwölf", "zwanzig", "hundert"];
-const TIME_POOL = ["Montag", "Dienstag", "Januar", "Februar", "Wie spät ist es?", "Es ist ein Uhr.", "Es ist zwei Uhr.", "Es ist halb eins.", "Es ist halb drei.", "Es ist Viertel nach vier.", "Es ist Viertel vor sechs."];
-const MONEY_POOL = ["Was kostet das?", "Das kostet zehn Euro.", "dreiundzwanzig Euro fünfundsiebzig", "zwölf Dollar fünfzig", "Haben Sie Wechselgeld für fünfzig Euro?", "Ich möchte bezahlen."];
-
 
 interface PracticePageProps {
   currentPhrase: Phrase | null;
@@ -54,6 +46,7 @@ interface PracticePageProps {
   onOpenDeepDive: (phrase: Phrase) => void;
   onOpenMovieExamples: (phrase: Phrase) => void;
   onOpenWordAnalysis: (phrase: Phrase, word: string) => void;
+  onGetWordTranslation: (russianPhrase: string, germanPhrase: string, russianWord: string) => Promise<{ germanTranslation: string }>;
   onOpenVerbConjugation: (infinitive: string) => void;
   onOpenNounDeclension: (noun: string, article: string) => void;
   onOpenAdjectiveDeclension: (adjective: string) => void;
@@ -73,7 +66,6 @@ interface PracticePageProps {
   allPhrases: Phrase[];
   onCreateCard: (phraseData: { german: string; russian: string; }) => void;
   onAnalyzeWord: (phrase: Phrase, word: string) => Promise<WordAnalysis | null>;
-  onGenerateQuickReplyOptions: (phrase: Phrase) => Promise<{ options: string[] }>;
   isWordAnalysisLoading: boolean;
   cardActionUsage: { [key: string]: number };
   onLogCardActionUsage: (button: string) => void;
@@ -184,21 +176,17 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
     currentPhrase, isAnswerRevealed, onSetIsAnswerRevealed, isCardEvaluated, animationState, isExiting, unmasteredCount, currentPoolCount,
     fetchNewPhrases, isLoading, error, isGenerating, apiProviderAvailable,
     onUpdateMastery, onUpdateMasteryWithoutUI, onContinue, onSwipeRight,
-    onOpenChat, onOpenDeepDive, onOpenMovieExamples, onOpenWordAnalysis,
+    onOpenChat, onOpenDeepDive, onOpenMovieExamples, onOpenWordAnalysis, onGetWordTranslation,
     onOpenVerbConjugation, onOpenNounDeclension, onOpenAdjectiveDeclension,
     onOpenSentenceChain, onOpenImprovePhrase, onOpenLearningAssistant,
     onOpenVoiceWorkspace, onDeletePhrase, onGoToList, onOpenDiscussTranslation,
     settings, masteryButtonUsage, allPhrases, onCreateCard, onAnalyzeWord,
-    onGenerateQuickReplyOptions, isWordAnalysisLoading, cardActionUsage, onLogCardActionUsage,
+    isWordAnalysisLoading, cardActionUsage, onLogCardActionUsage,
     cardHistoryLength, practiceCategoryFilter, setPracticeCategoryFilter, onMarkPhraseAsSeen,
     categories, onAddCategory, onOpenCategoryManager, unmasteredCountsByCategory
   } = props;
 
   const [contextMenuTarget, setContextMenuTarget] = useState<{ phrase: Phrase; word?: string } | null>(null);
-  const [quickReplyPhrase, setQuickReplyPhrase] = useState<Phrase | null>(null);
-  const [quickReplyOptions, setQuickReplyOptions] = useState<string[]>([]);
-  const [isQuickReplyLoading, setIsQuickReplyLoading] = useState(false);
-  const [quickReplyError, setQuickReplyError] = useState<string | null>(null);
   const [flashState, setFlashState] = useState<'green' | null>(null);
   const touchStartRef = useRef<number | null>(null);
   const touchMoveRef = useRef<number | null>(null);
@@ -218,103 +206,6 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
       window.speechSynthesis.speak(utterance);
     }
   }, []);
-  
-  const isQuickReplyEligible = useMemo(() => {
-    if (!currentPhrase) return false;
-    const { category, german } = currentPhrase;
-    const wordCount = german.split(' ').filter(Boolean).length;
-    // Any foundational category is eligible, plus short general phrases.
-    return category !== 'general' || wordCount <= 2;
-  }, [currentPhrase]);
-
-
-  const handleOpenQuickReply = useCallback(async (phraseToReply: Phrase) => {
-    setQuickReplyPhrase(phraseToReply);
-    setQuickReplyError(null);
-    setQuickReplyOptions([]);
-    setIsQuickReplyLoading(true);
-
-    try {
-        const { category } = phraseToReply;
-        const correctAnswer = phraseToReply.german.replace(/[?]/g, '');
-        let distractors: string[] = [];
-        
-        const categoryDetails = categories.find(c => c.id === category);
-        const isFoundational = categoryDetails?.isFoundational;
-
-        if (isFoundational) {
-            // INSTANT LOCAL GENERATION
-            setIsQuickReplyLoading(false); 
-            let pool: string[] = [];
-            switch(category) {
-                case 'w-fragen': pool = W_FRAGEN_POOL.map(p => p.replace(/[?]/g, '')); break;
-                case 'pronouns': pool = PRONOUN_POOL; break;
-                case 'numbers': pool = NUMBERS_POOL; break;
-                case 'time': pool = TIME_POOL; break;
-                case 'money': pool = MONEY_POOL; break;
-            }
-            
-             distractors = pool
-                .filter(p => p.toLowerCase() !== correctAnswer.toLowerCase())
-                .sort(() => 0.5 - Math.random())
-                .slice(0, 3);
-            
-            if (distractors.length < 3) {
-                const genericDistractors = ["Hallo", "Danke", "Bitte", "Ja", "Nein", "Gut"];
-                const needed = 3 - distractors.length;
-                distractors.push(
-                    ...genericDistractors
-                        .filter(d => d.toLowerCase() !== correctAnswer.toLowerCase() && !distractors.includes(d))
-                        .slice(0, needed)
-                );
-            }
-
-            const options = [correctAnswer, ...distractors].sort(() => 0.5 - Math.random());
-            setQuickReplyOptions(options);
-
-        } else { // 'general' category - use AI
-            const cacheKey = `quick_reply_options_${phraseToReply.id}`;
-            const cachedDistractors = cacheService.getCache<string[]>(cacheKey);
-
-            if (cachedDistractors) {
-                distractors = cachedDistractors;
-            } else {
-                const result = await onGenerateQuickReplyOptions(phraseToReply);
-                if (result.options && result.options.length > 0) {
-                    distractors = result.options;
-                    cacheService.setCache(cacheKey, distractors);
-                } else {
-                    throw new Error("Не удалось сгенерировать варианты ответа.");
-                }
-            }
-            const options = [correctAnswer, ...distractors].sort(() => 0.5 - Math.random());
-            setQuickReplyOptions(options);
-            setIsQuickReplyLoading(false);
-        }
-    } catch (error) {
-        console.error("Failed to prepare quick reply options:", error);
-        setQuickReplyError(error instanceof Error ? error.message : "Не удалось загрузить варианты.");
-        setIsQuickReplyLoading(false);
-    }
-  }, [onGenerateQuickReplyOptions, categories]);
-  
-  const handleQuickReplyCorrect = useCallback(() => {
-    if (!quickReplyPhrase) return;
-
-    if (settings.autoSpeak) {
-      speak(quickReplyPhrase.german, 'de-DE');
-    }
-    
-    onUpdateMasteryWithoutUI(quickReplyPhrase, 'know');
-    onContinue();
-    setQuickReplyPhrase(null);
-  }, [quickReplyPhrase, onUpdateMasteryWithoutUI, onContinue, settings.autoSpeak, speak]);
-
-  const handleQuickReplyIncorrect = useCallback(() => {
-    if (!quickReplyPhrase) return;
-    onUpdateMastery('forgot');
-    setQuickReplyPhrase(null);
-  }, [quickReplyPhrase, onUpdateMastery]);
   
   const handleTouchStart = (e: React.TouchEvent) => { touchMoveRef.current = null; touchStartRef.current = e.targetTouches[0].clientX; };
   const handleTouchMove = (e: React.TouchEvent) => { touchMoveRef.current = e.targetTouches[0].clientX; };
@@ -410,14 +301,13 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
                           onOpenDeepDive={onOpenDeepDive}
                           onOpenMovieExamples={onOpenMovieExamples}
                           onWordClick={onOpenWordAnalysis}
+                          onGetWordTranslation={onGetWordTranslation}
                           onOpenSentenceChain={onOpenSentenceChain}
                           onOpenImprovePhrase={onOpenImprovePhrase}
                           onOpenContextMenu={setContextMenuTarget}
                           onOpenVoicePractice={onOpenVoiceWorkspace}
                           onOpenLearningAssistant={onOpenLearningAssistant}
-                          onOpenQuickReply={handleOpenQuickReply}
                           isWordAnalysisLoading={isWordAnalysisLoading}
-                          isQuickReplyEligible={isQuickReplyEligible}
                           cardActionUsage={cardActionUsage}
                           onLogCardActionUsage={onLogCardActionUsage}
                           flash={flashState}
@@ -479,19 +369,6 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
           onOpenVerbConjugation={onOpenVerbConjugation}
           onOpenNounDeclension={onOpenNounDeclension}
           onOpenAdjectiveDeclension={onOpenAdjectiveDeclension}
-        />
-      )}
-      {quickReplyPhrase && (
-        <QuickReplyModal
-          isOpen={!!quickReplyPhrase}
-          onClose={() => setQuickReplyPhrase(null)}
-          phrase={quickReplyPhrase}
-          options={quickReplyOptions}
-          correctAnswer={quickReplyPhrase.german}
-          onCorrect={handleQuickReplyCorrect}
-          onIncorrect={handleQuickReplyIncorrect}
-          isLoading={isQuickReplyLoading}
-          error={quickReplyError}
         />
       )}
     </>

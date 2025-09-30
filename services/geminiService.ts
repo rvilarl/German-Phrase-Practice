@@ -1,5 +1,6 @@
 
 
+
 import { GoogleGenAI, Type } from "@google/genai";
 import type { Phrase, ChatMessage, ExamplePair, ProactiveSuggestion, ContentPart, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, AdjectiveDeclension, SentenceContinuation, TranslationChatRequest, TranslationChatResponse, PhraseBuilderOptions, PhraseEvaluation, CategoryAssistantRequest, CategoryAssistantResponse, CategoryAssistantRequestType } from '../types';
 import { AiService } from './aiService';
@@ -182,6 +183,44 @@ const translateGermanToRussian: AiService['translateGermanToRussian'] = async (g
         return { russian: parsedResult.russian };
     } catch (error) {
         console.error("Error translating German phrase with Gemini:", error);
+        throw new Error(`Failed to call the Gemini API: ${(error as any)?.message || 'Unknown error'}`);
+    }
+};
+
+const wordTranslationSchema = {
+    type: Type.OBJECT,
+    properties: {
+        germanTranslation: {
+            type: Type.STRING,
+            description: 'The German word(s) that correspond to the given Russian word in the context of the full phrase.'
+        },
+    },
+    required: ["germanTranslation"],
+};
+
+const getWordTranslation: AiService['getWordTranslation'] = async (russianPhrase, germanPhrase, russianWord) => {
+    const api = initializeApi();
+    if (!api) throw new Error("Gemini API key not configured.");
+
+    const prompt = `Дана русская фраза: "${russianPhrase}".
+Ее немецкий перевод: "${germanPhrase}".
+Каков точный перевод русского слова "${russianWord}" в этом конкретном контексте?
+Верни ТОЛЬКО JSON-объект с одним ключом "germanTranslation".`;
+
+    try {
+        const response = await api.models.generateContent({
+            model: model,
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: wordTranslationSchema,
+                temperature: 0.1,
+            },
+        });
+        const jsonText = response.text.trim();
+        return JSON.parse(jsonText);
+    } catch (error) {
+        console.error("Error getting word translation with Gemini:", error);
         throw new Error(`Failed to call the Gemini API: ${(error as any)?.message || 'Unknown error'}`);
     }
 };
@@ -1135,6 +1174,45 @@ const conjugateVerb: AiService['conjugateVerb'] = async (infinitive) => {
     }
 };
 
+const simpleVerbConjugationSchema = {
+    type: Type.ARRAY,
+    items: {
+        type: Type.OBJECT,
+        properties: {
+            pronoun: { type: Type.STRING, description: 'The personal pronoun (e.g., "ich", "du").' },
+            form: { type: Type.STRING, description: 'The conjugated verb form in Präsens.' },
+        },
+        required: ["pronoun", "form"],
+    },
+};
+
+const conjugateVerbSimple: AiService['conjugateVerbSimple'] = async (infinitive) => {
+    const api = initializeApi();
+    if (!api) throw new Error("Gemini API key not configured.");
+
+    const prompt = `Спрягай глагол "${infinitive}" в настоящем времени (Präsens) для всех личных местоимений: ich, du, er/sie/es, wir, ihr, sie/Sie. Верни JSON-массив объектов, где каждый объект содержит только два ключа: "pronoun" (местоимение) и "form" (спряженная форма глагола, без дополнительных слов).`;
+
+    try {
+        const response = await api.models.generateContent({
+            model: model,
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: simpleVerbConjugationSchema,
+                temperature: 0.1,
+            },
+        });
+        
+        const jsonText = response.text.trim();
+        return JSON.parse(jsonText);
+    } catch (error) {
+        console.error("Error conjugating verb simply with Gemini:", error);
+        const errorMessage = (error as any)?.message || 'Unknown error';
+        throw new Error(`Failed to call the Gemini API: ${errorMessage}`);
+    }
+};
+
+
 const nounDeclensionSchema = {
     type: Type.OBJECT,
     properties: {
@@ -1517,43 +1595,6 @@ const evaluateSpokenPhraseAttempt: AiService['evaluateSpokenPhraseAttempt'] = as
     }
 };
 
-const quickReplyOptionsSchema = {
-    type: Type.OBJECT,
-    properties: {
-        options: {
-            type: Type.ARRAY,
-            description: "An array of 3 plausible but incorrect distractor options in German.",
-            items: { type: Type.STRING }
-        }
-    },
-    required: ["options"]
-};
-
-const generateQuickReplyOptions: AiService['generateQuickReplyOptions'] = async (phrase) => {
-    const api = initializeApi();
-    if (!api) throw new Error("Gemini API key not configured.");
-
-    const prompt = `Для немецкой фразы "${phrase.german}" (перевод: "${phrase.russian}"), сгенерируй 3 правдоподобных, но неверных варианта ответа на немецком языке. Эти варианты будут использоваться в тесте с множественным выбором. Они должны быть похожи на правильный ответ, но содержать распространенные ошибки. Верни JSON-объект с ключом "options", который содержит массив из 3 строк-дистракторов на немецком.`;
-
-    try {
-        const response = await api.models.generateContent({
-            model: model,
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: quickReplyOptionsSchema,
-                temperature: 0.9,
-            },
-        });
-
-        const jsonText = response.text.trim();
-        return JSON.parse(jsonText) as { options: string[] };
-    } catch (error) {
-        console.error("Error generating quick reply options with Gemini:", error);
-        throw new Error(`Failed to call the Gemini API: ${(error as any)?.message || 'Unknown error'}`);
-    }
-};
-
 const healthCheck: AiService['healthCheck'] = async () => {
     const api = initializeApi();
     if (!api) return false;
@@ -1691,6 +1732,7 @@ export const geminiService: AiService = {
     generateSinglePhrase,
     translatePhrase,
     translateGermanToRussian,
+    getWordTranslation,
     improvePhrase,
     generateInitialExamples,
     continueChat,
@@ -1700,6 +1742,7 @@ export const geminiService: AiService = {
     generateMovieExamples,
     analyzeWordInPhrase,
     conjugateVerb,
+    conjugateVerbSimple,
     declineNoun,
     declineAdjective,
     generateSentenceContinuations,
@@ -1707,7 +1750,6 @@ export const geminiService: AiService = {
     generatePhraseBuilderOptions,
     evaluatePhraseAttempt,
     evaluateSpokenPhraseAttempt,
-    generateQuickReplyOptions,
     healthCheck,
     getProviderName: () => "Google Gemini",
     generateCardsFromTranscript,

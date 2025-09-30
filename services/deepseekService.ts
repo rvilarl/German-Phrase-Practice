@@ -56,6 +56,7 @@ const generatePhrases: AiService['generatePhrases'] = notImplemented;
 const generateSinglePhrase: AiService['generateSinglePhrase'] = notImplemented;
 const translatePhrase: AiService['translatePhrase'] = notImplemented;
 const translateGermanToRussian: AiService['translateGermanToRussian'] = notImplemented;
+const getWordTranslation: AiService['getWordTranslation'] = notImplemented;
 const improvePhrase: AiService['improvePhrase'] = notImplemented;
 const generateInitialExamples: AiService['generateInitialExamples'] = notImplemented;
 const continueChat: AiService['continueChat'] = notImplemented;
@@ -65,6 +66,7 @@ const generateDeepDiveAnalysis: AiService['generateDeepDiveAnalysis'] = notImple
 const generateMovieExamples: AiService['generateMovieExamples'] = notImplemented;
 const analyzeWordInPhrase: AiService['analyzeWordInPhrase'] = notImplemented;
 const conjugateVerb: AiService['conjugateVerb'] = notImplemented;
+const conjugateVerbSimple: AiService['conjugateVerbSimple'] = notImplemented;
 const declineNoun: AiService['declineNoun'] = notImplemented;
 const declineAdjective: AiService['declineAdjective'] = notImplemented;
 const generateSentenceContinuations: AiService['generateSentenceContinuations'] = notImplemented;
@@ -72,7 +74,6 @@ const findDuplicatePhrases: AiService['findDuplicatePhrases'] = notImplemented;
 const generatePhraseBuilderOptions: AiService['generatePhraseBuilderOptions'] = notImplemented;
 const evaluatePhraseAttempt: AiService['evaluatePhraseAttempt'] = notImplemented;
 const evaluateSpokenPhraseAttempt: AiService['evaluateSpokenPhraseAttempt'] = notImplemented;
-const generateQuickReplyOptions: AiService['generateQuickReplyOptions'] = notImplemented;
 const generateCardsFromTranscript: AiService['generateCardsFromTranscript'] = notImplemented;
 const generateCardsFromImage: AiService['generateCardsFromImage'] = notImplemented;
 const generateTopicCards: AiService['generateTopicCards'] = notImplemented;
@@ -107,6 +108,7 @@ export const deepseekService: AiService = {
     generateSinglePhrase,
     translatePhrase,
     translateGermanToRussian,
+    getWordTranslation,
     improvePhrase,
     generateInitialExamples,
     continueChat,
@@ -116,6 +118,7 @@ export const deepseekService: AiService = {
     generateMovieExamples,
     analyzeWordInPhrase,
     conjugateVerb,
+    conjugateVerbSimple,
     declineNoun,
     declineAdjective,
     generateSentenceContinuations,
@@ -123,7 +126,6 @@ export const deepseekService: AiService = {
     generatePhraseBuilderOptions,
     evaluatePhraseAttempt,
     evaluateSpokenPhraseAttempt,
-    generateQuickReplyOptions,
     healthCheck,
     getProviderName: () => "DeepSeek",
     generateCardsFromTranscript,

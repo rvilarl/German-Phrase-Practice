@@ -5,6 +5,7 @@ export interface AiService {
   generateSinglePhrase(russianPhrase: string): Promise<{ german: string; russian: string; }>;
   translatePhrase(russianPhrase: string): Promise<{ german: string }>;
   translateGermanToRussian(germanPhrase: string): Promise<{ russian: string }>;
+  getWordTranslation(russianPhrase: string, germanPhrase: string, russianWord: string): Promise<{ germanTranslation: string }>;
   improvePhrase(originalRussian: string, currentGerman: string): Promise<{ suggestedGerman: string; explanation: string }>;
   generateInitialExamples(phrase: Phrase): Promise<ChatMessage>;
   continueChat(phrase: Phrase, history: ChatMessage[], newMessage: string): Promise<ChatMessage>;
@@ -14,6 +15,7 @@ export interface AiService {
   generateMovieExamples(phrase: Phrase): Promise<MovieExample[]>;
   analyzeWordInPhrase(phrase: Phrase, word: string): Promise<WordAnalysis>;
   conjugateVerb(infinitive: string): Promise<VerbConjugation>;
+  conjugateVerbSimple(infinitive: string): Promise<{ pronoun: string; form: string; }[]>;
   declineNoun(noun: string, article: string): Promise<NounDeclension>;
   declineAdjective(adjective: string): Promise<AdjectiveDeclension>;
   generateSentenceContinuations(russianPhrase: string): Promise<SentenceContinuation>;
@@ -21,7 +23,6 @@ export interface AiService {
   generatePhraseBuilderOptions(phrase: Phrase): Promise<PhraseBuilderOptions>;
   evaluatePhraseAttempt(phrase: Phrase, userAttempt: string): Promise<PhraseEvaluation>;
   evaluateSpokenPhraseAttempt(phrase: Phrase, userAttempt: string): Promise<PhraseEvaluation>;
-  generateQuickReplyOptions(phrase: Phrase): Promise<{ options: string[] }>;
   healthCheck(): Promise<boolean>;
   getProviderName(): string;
   generateCardsFromTranscript(transcript: string, sourceLang: 'ru' | 'de'): Promise<{ russian: string; german: string; }[]>;

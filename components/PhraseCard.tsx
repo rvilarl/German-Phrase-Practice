@@ -1,4 +1,5 @@
 
+
 import React, { useRef, useState, useMemo, useCallback, useEffect } from 'react';
 import type { Phrase } from '../types';
 import ChatIcon from './icons/ChatIcon';
@@ -8,12 +9,14 @@ import LinkIcon from './icons/LinkIcon';
 import SettingsIcon from './icons/SettingsIcon';
 import BlocksIcon from './icons/BlocksIcon';
 import BookOpenIcon from './icons/BookOpenIcon';
+import Spinner from './Spinner';
 import { getPhraseCategory } from '../services/srsService';
 import MoreHorizontalIcon from './icons/MoreHorizontalIcon';
 import CloseIcon from './icons/CloseIcon';
 import MoreActionsMenu from './MoreActionsMenu';
 import ProgressBar from './ProgressBar';
 import { MAX_MASTERY_LEVEL } from '../services/srsService';
+import SoundIcon from './icons/SoundIcon';
 
 
 interface PhraseCardProps {
@@ -25,43 +28,63 @@ interface PhraseCardProps {
   onOpenDeepDive: (phrase: Phrase) => void;
   onOpenMovieExamples: (phrase: Phrase) => void;
   onWordClick: (phrase: Phrase, word: string) => void;
+  onGetWordTranslation: (russianPhrase: string, germanPhrase: string, russianWord: string) => Promise<{ germanTranslation: string }>;
   onOpenSentenceChain: (phrase: Phrase) => void;
   onOpenImprovePhrase: (phrase: Phrase) => void;
   onOpenContextMenu: (target: { phrase: Phrase, word?: string }) => void;
   onOpenVoicePractice: (phrase: Phrase) => void;
   onOpenLearningAssistant: (phrase: Phrase) => void;
-  onOpenQuickReply: (phrase: Phrase) => void;
   isWordAnalysisLoading: boolean;
-  isQuickReplyEligible: boolean;
   cardActionUsage: { [key: string]: number };
   onLogCardActionUsage: (button: string) => void;
   flash: 'green' | null;
   onFlashEnd: () => void;
 }
 
-const RussianPhraseDisplay: React.FC<{ text: string; as: 'h2' | 'div' }> = ({ text, as: Component }) => {
+interface RussianPhraseDisplayProps {
+  text: string;
+  as: 'h2' | 'div';
+  onWordClick: (event: React.MouseEvent<HTMLSpanElement>, word: string) => void;
+}
+
+const RussianPhraseDisplay: React.FC<RussianPhraseDisplayProps> = ({ text, as: Component, onWordClick }) => {
   const match = text.match(/(.*?)\s*\(([^)]+)\)/);
-  if (match && match[1] && match[2]) {
-    const mainText = match[1].trim();
-    const noteText = match[2].trim();
-    return (
-      <Component className="text-2xl font-semibold text-slate-100">
-        {mainText}
-        <p className="text-sm text-slate-300 mt-1 font-normal">({noteText})</p>
+  
+  const mainText = match && match[1] ? match[1].trim() : text;
+  const noteText = match && match[2] ? match[2].trim() : null;
+
+  return (
+    <>
+      <Component className="text-2xl font-semibold text-slate-100 flex flex-wrap justify-center items-center gap-x-1">
+        {mainText.split(/(\s+)/).map((part, index) => (
+          part.trim() ? (
+            <span key={index} onClick={(e) => onWordClick(e, part.replace(/[.,!?]/g, ''))} className="cursor-pointer hover:bg-white/20 px-1 py-0.5 rounded-md transition-colors">
+              {part}
+            </span>
+          ) : (
+            <span key={index}>{part}</span>
+          )
+        ))}
       </Component>
-    );
-  }
-  return <Component className="text-2xl font-semibold text-slate-100">{text}</Component>;
+      {noteText && <p className="text-sm text-slate-300 mt-1 font-normal">({noteText})</p>}
+    </>
+  );
 };
 
 const PhraseCard: React.FC<PhraseCardProps> = ({
   phrase, onSpeak, isFlipped, onFlip, onOpenChat,
-  onOpenDeepDive, onOpenMovieExamples, onWordClick, onOpenSentenceChain,
+  onOpenDeepDive, onOpenMovieExamples, onWordClick, onGetWordTranslation, onOpenSentenceChain,
   onOpenImprovePhrase, onOpenContextMenu, onOpenVoicePractice,
-  onOpenLearningAssistant, onOpenQuickReply, isWordAnalysisLoading,
-  isQuickReplyEligible, cardActionUsage, onLogCardActionUsage,
+  onOpenLearningAssistant, isWordAnalysisLoading,
+  cardActionUsage, onLogCardActionUsage,
   flash, onFlashEnd,
 }) => {
+  const [wordHint, setWordHint] = useState<{
+    word: string;
+    translation: string | null;
+    position: { top: number; left: number } | null;
+    isLoading: boolean;
+  } | null>(null);
 
   const longPressTimer = useRef<number | null>(null);
   const wordLongPressTimer = useRef<number | null>(null);
@@ -95,6 +118,7 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
   }, [flash, onFlashEnd]);
 
   const handleCardClick = useCallback(() => {
+    setWordHint(null); // Close hint on any card interaction
     if (isFlipped) {
       onSpeak(phrase.german, 'de-DE');
     } else {
@@ -102,6 +126,37 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
     }
   }, [isFlipped, phrase.german, onSpeak, onFlip]);
   
+  const handleRussianWordClick = async (e: React.MouseEvent<HTMLSpanElement>, word: string) => {
+    e.stopPropagation();
+
+    if (wordHint?.word === word) {
+      setWordHint(null);
+      return;
+    }
+    
+    const target = e.target as HTMLElement;
+    const cardFace = target.closest('.card-face');
+    if (!cardFace) return;
+    
+    const rect = target.getBoundingClientRect();
+    const cardRect = cardFace.getBoundingClientRect();
+    
+    const position = {
+      top: rect.top - cardRect.top,
+      left: rect.left - cardRect.left + rect.width / 2,
+    };
+
+    setWordHint({ word, translation: null, position, isLoading: true });
+    
+    try {
+      const { germanTranslation } = await onGetWordTranslation(phrase.russian, phrase.german, word);
+      setWordHint(prev => (prev?.word === word ? { ...prev, translation: germanTranslation, isLoading: false } : prev));
+    } catch (error) {
+      console.error("Failed to get word translation:", error);
+      setWordHint(prev => (prev?.word === word ? { ...prev, translation: '???', isLoading: false } : prev));
+    }
+  };
+
   const createLoggedAction = useCallback((key: string, action: (p: Phrase) => void) => (e: React.MouseEvent) => {
     e.stopPropagation();
     onLogCardActionUsage(key);
@@ -162,7 +217,7 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
     onOpenImprovePhrase(phrase);
   }
 
-  const handleWordClick = (e: React.MouseEvent, word: string) => {
+  const handleGermanWordClick = (e: React.MouseEvent, word: string) => {
     e.stopPropagation();
     if (isWordAnalysisLoading) return;
     const cleanedWord = word.replace(/[.,!?]/g, '');
@@ -171,12 +226,6 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
     }
   }
   
-  const handleQuickReplyClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onOpenQuickReply(phrase);
-  };
-
-
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     longPressTimer.current = window.setTimeout(() => {
@@ -282,22 +331,38 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
                 <SettingsIcon className="w-5 h-5" />
             </button>
             <div className="flex-grow flex flex-col items-center justify-center w-full">
-                {isQuickReplyEligible ? (
-                    <button
-                        onClick={handleQuickReplyClick}
-                        className="group/quick-reply relative text-center p-4 -m-4 rounded-lg hover:bg-white/10 transition-colors"
-                    >
-                        <RussianPhraseDisplay text={phrase.russian} as="div" />
-                        <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-purple-500 rounded-full" />
-                    </button>
-                    ) : (
-                    <RussianPhraseDisplay text={phrase.russian} as="h2" />
-                )}
+                <RussianPhraseDisplay text={phrase.russian} as="h2" onWordClick={handleRussianWordClick} />
                 {phrase.context && (
                   <p className="text-slate-300 mt-3 text-sm text-center font-normal italic max-w-xs">{phrase.context}</p>
                 )}
             </div>
-
+            {wordHint?.position && (
+              <div
+                className="word-hint-tooltip"
+                style={{ top: wordHint.position.top, left: wordHint.position.left }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                {wordHint.isLoading ? (
+                  <Spinner className="w-4 h-4" />
+                ) : (
+                  <div className="flex items-center gap-x-2">
+                    <span>{wordHint.translation}</span>
+                    {wordHint.translation && wordHint.translation !== '???' && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onSpeak(wordHint.translation!, 'de-DE');
+                        }}
+                        className="p-1 -my-1 -mr-1.5 rounded-full hover:bg-white/20 transition-colors"
+                        aria-label="Озвучить перевод"
+                      >
+                        <SoundIcon className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
             <div className="relative w-full">
                 {renderActionButtons('front')}
             </div>
@@ -323,7 +388,7 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
                       <span 
                         key={index} 
                         className={`cursor-pointer hover:bg-white/20 px-1 py-0.5 rounded-md transition-colors ${isWordAnalysisLoading ? 'opacity-50 pointer-events-none' : ''}`}
-                        onClick={(e) => handleWordClick(e, word)}
+                        onClick={(e) => handleGermanWordClick(e, word)}
                         onPointerDown={(e) => handleWordPointerDown(e, word)}
                         onPointerUp={clearWordLongPress}
                         onPointerLeave={clearWordLongPress}

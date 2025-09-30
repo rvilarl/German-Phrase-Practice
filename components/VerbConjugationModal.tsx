@@ -1,18 +1,36 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { Phrase, VerbConjugation, TenseForms, PronounConjugation } from '../types';
 import CloseIcon from './icons/CloseIcon';
 import TableIcon from './icons/TableIcon';
 import AudioPlayer from './AudioPlayer';
+import Spinner from './Spinner';
 
 interface VerbConjugationModalProps {
   isOpen: boolean;
   onClose: () => void;
   infinitive: string;
-  data: VerbConjugation | null;
-  isLoading: boolean;
-  error: string | null;
+  onConjugateSimple: (infinitive: string) => Promise<{ pronoun: string; form: string }[]>;
+  onConjugateDetailed: (infinitive: string) => Promise<VerbConjugation>;
   onOpenWordAnalysis: (phrase: Phrase, word: string) => void;
 }
+
+const SimpleSkeleton: React.FC = () => (
+    <div className="bg-slate-900/50 rounded-lg overflow-hidden border border-slate-700/50 animate-pulse">
+        <div className="p-4 bg-slate-800/50">
+            <div className="h-6 w-1/2 bg-slate-700 rounded"></div>
+        </div>
+        <div className="p-4 space-y-4">
+            {[...Array(6)].map((_, j) => (
+                <div key={j} className="flex items-center space-x-3">
+                    <div className="h-5 w-16 bg-slate-700 rounded"></div>
+                    <div className="flex-grow h-4 bg-slate-700 rounded w-5/6"></div>
+                    <div className="h-8 w-8 bg-slate-700 rounded-full"></div>
+                </div>
+            ))}
+        </div>
+    </div>
+);
+
 
 const VerbConjugationSkeleton: React.FC = () => (
     <div className="space-y-6 animate-pulse">
@@ -43,12 +61,62 @@ const VerbConjugationSkeleton: React.FC = () => (
 );
 
 
-const VerbConjugationModal: React.FC<VerbConjugationModalProps> = ({ isOpen, onClose, infinitive, data, isLoading, error, onOpenWordAnalysis }) => {
+const VerbConjugationModal: React.FC<VerbConjugationModalProps> = ({ isOpen, onClose, infinitive, onConjugateSimple, onConjugateDetailed, onOpenWordAnalysis }) => {
+  type SimpleConjugation = { pronoun: string; form: string };
+  const [simpleData, setSimpleData] = useState<SimpleConjugation[] | null>(null);
+  const [detailedData, setDetailedData] = useState<VerbConjugation | null>(null);
+  const [isDetailedView, setIsDetailedView] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   const [activeTabs, setActiveTabs] = useState({
     present: 'statement' as keyof TenseForms,
     past: 'statement' as keyof TenseForms,
     future: 'statement' as keyof TenseForms,
   });
+
+  useEffect(() => {
+    if (!isOpen) {
+        setTimeout(() => {
+            setSimpleData(null);
+            setDetailedData(null);
+            setIsDetailedView(false);
+            setError(null);
+        }, 300); // after close animation
+        return;
+    };
+
+    const fetchSimple = async () => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const data = await onConjugateSimple(infinitive);
+            setSimpleData(data);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Не удалось загрузить простое спряжение.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    fetchSimple();
+  }, [isOpen, infinitive, onConjugateSimple]);
+
+  const handleShowDetails = async () => {
+    setIsDetailedView(true);
+    if (detailedData) return; // already fetched
+
+    setIsLoading(true);
+    setError(null);
+    try {
+        const data = await onConjugateDetailed(infinitive);
+        setDetailedData(data);
+    } catch (err) {
+        setError(err instanceof Error ? err.message : 'Не удалось загрузить подробное спряжение.');
+    } finally {
+        setIsLoading(false);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -81,10 +149,37 @@ const VerbConjugationModal: React.FC<VerbConjugationModalProps> = ({ isOpen, onC
           </span>
       ));
   };
+
+  const renderSimpleView = () => (
+    <>
+      <section className="bg-slate-900/50 rounded-lg overflow-hidden border border-slate-700/50">
+        <h3 className="text-xl font-bold text-slate-100 p-4 bg-slate-800/50">Präsens (Настоящее)</h3>
+        <div className="p-4 space-y-3">
+          {simpleData!.map((conj) => (
+            <div key={conj.pronoun} className="grid grid-cols-[80px_1fr_auto] items-center gap-x-3 text-sm">
+                <span className="font-mono text-purple-300 text-right">{conj.pronoun}</span>
+                <p className="text-slate-100 font-medium truncate">{renderClickableGerman(conj.form)}</p>
+                <AudioPlayer textToSpeak={conj.form} />
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <div className="mt-6 text-center">
+        <button
+            onClick={handleShowDetails}
+            className="px-6 py-2 rounded-md bg-slate-600 hover:bg-slate-700 text-white font-semibold transition-colors"
+        >
+            Подробнее
+        </button>
+      </div>
+    </>
+  );
+
   
   const renderTenseSection = (tenseKey: 'present' | 'past' | 'future', title: string) => {
-    if (!data) return null;
-    const tenseData = data[tenseKey];
+    if (!detailedData) return null;
+    const tenseData = detailedData[tenseKey];
     if (!tenseData) return null;
 
     const forms: { key: keyof TenseForms; name: string }[] = [
@@ -130,25 +225,26 @@ const VerbConjugationModal: React.FC<VerbConjugationModalProps> = ({ isOpen, onC
     );
   };
 
+  const renderDetailedView = () => {
+      if (isLoading && !detailedData) return <VerbConjugationSkeleton />;
+      if (!detailedData) return null; // Or some other state
+      return (
+        <div className="space-y-6">
+            {renderTenseSection('present', 'Präsens (Настоящее)')}
+            {renderTenseSection('past', 'Perfekt (Прошедшее)')}
+            {renderTenseSection('future', 'Futur I (Будущее)')}
+        </div>
+      );
+  }
 
   const renderContent = () => {
-    if (isLoading) {
-      return <VerbConjugationSkeleton />;
-    }
-    if (error) {
-      return <div className="flex justify-center items-center h-full"><div className="text-center bg-red-900/50 border border-red-700 text-red-300 p-4 rounded-lg"><p className="font-semibold">Ошибка</p><p className="text-sm">{error}</p></div></div>;
-    }
-    if (!data) {
-      return <div className="flex justify-center items-center h-full"><p className="text-slate-400">Нет данных.</p></div>;
-    }
+    if (isLoading && !simpleData && !detailedData) return <SimpleSkeleton />;
+    if (error) return <div className="flex justify-center items-center h-full"><div className="text-center bg-red-900/50 border border-red-700 text-red-300 p-4 rounded-lg"><p className="font-semibold">Ошибка</p><p className="text-sm">{error}</p></div></div>;
     
-    return (
-      <div className="space-y-6">
-        {renderTenseSection('present', 'Präsens (Настоящее)')}
-        {renderTenseSection('past', 'Perfekt (Прошедшее)')}
-        {renderTenseSection('future', 'Futur I (Будущее)')}
-      </div>
-    );
+    if (isDetailedView) return renderDetailedView();
+    if (simpleData) return renderSimpleView();
+
+    return <SimpleSkeleton />;
   };
 
   return (
