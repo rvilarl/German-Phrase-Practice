@@ -1346,22 +1346,53 @@ const App: React.FC = () => {
 
   const handleConfirmDeleteCategory = async ({ migrationTargetId }: { migrationTargetId: string | null }) => {
     if (!categoryToDelete) return;
-    
+  
+    const phrasesToProcess = allPhrases.filter(p => p.category === categoryToDelete.id);
+    const delay = 250; // ms between API calls to avoid rate limiting
+  
+    // Immediately close the confirmation modal and show progress in toasts
+    const categoryName = categoryToDelete.name;
+    const categoryIdToDelete = categoryToDelete.id;
+    setCategoryToDelete(null);
+  
     try {
-        await backendService.deleteCategory(categoryToDelete.id, migrationTargetId);
+      if (phrasesToProcess.length > 0) {
         if (migrationTargetId) {
-            updateAndSavePhrases(prev => prev.map(p => p.category === categoryToDelete.id ? { ...p, category: migrationTargetId } : p));
+          // --- Move phrases ---
+          showToast({ message: `Перемещение ${phrasesToProcess.length} карт...` });
+          for (let i = 0; i < phrasesToProcess.length; i++) {
+            const phrase = phrasesToProcess[i];
+            await backendService.updatePhrase({ ...phrase, category: migrationTargetId });
+            if (i < phrasesToProcess.length - 1) await sleep(delay);
+          }
+          updateAndSavePhrases(prev => prev.map(p => p.category === categoryIdToDelete ? { ...p, category: migrationTargetId } : p));
+          showToast({ message: `✓ Карточки перемещены.` });
         } else {
-            updateAndSavePhrases(prev => prev.filter(p => p.category !== categoryToDelete.id));
+          // --- Delete phrases ---
+          showToast({ message: `Удаление ${phrasesToProcess.length} карт...` });
+          for (let i = 0; i < phrasesToProcess.length; i++) {
+            const phrase = phrasesToProcess[i];
+            await backendService.deletePhrase(phrase.id);
+            if (i < phrasesToProcess.length - 1) await sleep(delay);
+          }
+          updateAndSavePhrases(prev => prev.filter(p => p.category !== categoryIdToDelete));
+          showToast({ message: `✓ Карточки удалены.` });
         }
-        updateAndSaveCategories(prev => prev.filter(c => c.id !== categoryToDelete.id));
-        const newEnabled = { ...settings.enabledCategories };
-        delete newEnabled[categoryToDelete.id];
-        handleSettingsChange({ enabledCategories: newEnabled });
-    } catch(err) {
-        showToast({ message: `Ошибка удаления категории: ${(err as Error).message}`});
-    } finally {
-        setCategoryToDelete(null);
+      }
+  
+      // After processing all phrases, delete the now-empty category.
+      await backendService.deleteCategory(categoryIdToDelete, null);
+  
+      // Update local state for categories and settings
+      updateAndSaveCategories(prev => prev.filter(c => c.id !== categoryIdToDelete));
+      const newEnabled = { ...settings.enabledCategories };
+      delete newEnabled[categoryIdToDelete];
+      handleSettingsChange({ enabledCategories: newEnabled });
+  
+      showToast({ message: `✓ Категория "${categoryName}" удалена.` });
+  
+    } catch (err) {
+      showToast({ message: `Ошибка удаления: ${(err as Error).message}` });
     }
   };
   
