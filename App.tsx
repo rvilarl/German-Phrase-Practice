@@ -1,6 +1,3 @@
-
-
-
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 // FIX: Import View type from shared types.ts
 import { Phrase, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, AdjectiveDeclension, SentenceContinuation, PhraseBuilderOptions, PhraseEvaluation, ChatMessage, PhraseCategory, ProposedCard, BookRecord, Category, CategoryAssistantRequest, CategoryAssistantResponse, View } from './types';
@@ -460,7 +457,8 @@ const App: React.FC = () => {
                 return await apiCall(provider);
             } catch (error: any) {
                 attempt++;
-                let isRateLimitError = false;
+                let isRetryableError = false;
+                let errorType = 'generic';
 
                 if (type === 'gemini') {
                     try {
@@ -468,22 +466,40 @@ const App: React.FC = () => {
                         const jsonMatch = message.match(/{.*}/s);
                         if (jsonMatch) {
                             const errorJson = JSON.parse(jsonMatch[0]);
-                            if (errorJson?.error?.code === 429 || errorJson?.error?.status === 'RESOURCE_EXHAUSTED') {
-                                isRateLimitError = true;
+                            const errorCode = errorJson?.error?.code;
+                            const errorStatus = errorJson?.error?.status;
+
+                            if (errorCode === 429 || errorStatus === 'RESOURCE_EXHAUSTED') {
+                                isRetryableError = true;
+                                errorType = 'rate limit';
+                            } else if (errorCode === 503 || errorStatus === 'UNAVAILABLE') {
+                                isRetryableError = true;
+                                errorType = 'server overloaded';
                             }
-                        } else if (message.includes('429') || message.includes('RESOURCE_EXHAUSTED')) {
-                            isRateLimitError = true;
+                        } else {
+                            if (message.includes('429') || message.includes('RESOURCE_EXHAUSTED')) {
+                                isRetryableError = true;
+                                errorType = 'rate limit';
+                            } else if (message.includes('503') || message.includes('UNAVAILABLE')) {
+                                isRetryableError = true;
+                                errorType = 'server overloaded';
+                            }
                         }
                     } catch (e) {
-                        if (error.message?.includes('429') || error.message?.includes('RESOURCE_EXHAUSTED')) {
-                           isRateLimitError = true;
+                        const message = error.message || '';
+                        if (message.includes('429') || message.includes('RESOURCE_EXHAUSTED')) {
+                           isRetryableError = true;
+                           errorType = 'rate limit';
+                        } else if (message.includes('503') || message.includes('UNAVAILABLE')) {
+                           isRetryableError = true;
+                           errorType = 'server overloaded';
                         }
                     }
                 }
                 
-                if (isRateLimitError && attempt < maxRetries) {
+                if (isRetryableError && attempt < maxRetries) {
                     const jitter = Math.random() * 500;
-                    console.warn(`Rate limit exceeded on attempt ${attempt} with ${type}. Retrying in ${(delay + jitter) / 1000}s...`);
+                    console.warn(`API call failed (${errorType}) on attempt ${attempt} with ${type}. Retrying in ${(delay + jitter) / 1000}s...`);
                     await sleep(delay + jitter);
                     delay *= 2; // Exponential backoff
                 } else {
@@ -1610,13 +1626,11 @@ const App: React.FC = () => {
     if (nextPhrase) {
         changePracticePhrase(nextPhrase, 'right');
     } else {
-        // No due or new cards. This is our trigger to generate more.
-        changePracticePhrase(null, 'right'); // Clear view to show loading/empty state
-        if (!isGenerating && apiProvider) {
-            fetchNewPhrases(10);
-        }
+        // No due or new cards. Clear view to show loading/empty state.
+        // Automatic phrase generation was removed as per user request.
+        changePracticePhrase(null, 'right');
     }
-  }, [practicePool, currentPracticePhrase, fetchNewPhrases, isGenerating, changePracticePhrase, apiProvider]);
+  }, [practicePool, currentPracticePhrase, changePracticePhrase]);
 
   useEffect(() => {
     if (specificPhraseRequestedRef.current) {

@@ -1,6 +1,4 @@
 
-
-
 import React, { useCallback, useRef, useState, useEffect, useMemo } from 'react';
 import type { Phrase, WordAnalysis, PhraseCategory, Category } from '../types';
 import PhraseCard from '../components/PhraseCard';
@@ -234,6 +232,7 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
   const renderContent = () => {
     if (isLoading) return <PhraseCardSkeleton />;
     if (error) return <div className="text-center bg-red-900/50 border border-red-700 text-red-300 p-4 rounded-lg max-w-md mx-auto"><p className="font-semibold">Произошла ошибка</p><p className="text-sm">{error}</p></div>;
+    
     if (!currentPhrase) {
       if (unmasteredCount === 0 && practiceCategoryFilter === 'all') {
         return (
@@ -244,8 +243,23 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
             </div>
         );
       }
-       if (currentPoolCount === 0) {
-        const categoryName = categories.find(c => c.id === practiceCategoryFilter)?.name || 'этой';
+      if (currentPoolCount === 0) {
+        const category = categories.find(c => c.id === practiceCategoryFilter);
+        const categoryName = category?.name || 'этой';
+
+        if (category?.isFoundational) {
+            return (
+                <div className="text-center text-slate-400 p-4">
+                    <h2 className="text-2xl font-bold text-white mb-4">Отлично!</h2>
+                    <p>Фундаментальные карточки в категории "{categoryName}" пройдены.</p>
+                    <p className="mt-2 text-sm">Карточек к обучению больше нет.</p>
+                    <button onClick={() => setPracticeCategoryFilter('all')} className="mt-6 px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-md text-white font-bold transition-colors">
+                        Практиковать другие категории
+                    </button>
+                </div>
+            );
+        }
+        
         return (
             <div className="text-center text-slate-400 p-4">
                 <h2 className="text-2xl font-bold text-white mb-4">Пусто</h2>
@@ -255,9 +269,21 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
                 </button>
             </div>
         );
+      } else {
+        // This case means there are cards in the pool, but none are due for review right now.
+        return (
+            <div className="text-center text-slate-400 p-4">
+                <h2 className="text-2xl font-bold text-white mb-4">На сегодня всё!</h2>
+                <p>Вы прошли все доступные карточки в этой категории.</p>
+                <p className="mt-2 text-sm">Загляните позже, чтобы повторить изученное.</p>
+                <button onClick={() => setPracticeCategoryFilter('all')} className="mt-6 px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-md text-white font-bold transition-colors">
+                    Практиковать другие категории
+                </button>
+            </div>
+        );
       }
-      return <PhraseCardSkeleton />;
     }
+
     const animationClass = isExiting 
       ? (animationState.direction === 'right' ? 'card-exit-left' : 'card-exit-right')
       : (animationState.direction === 'right' ? 'card-enter-right' : 'card-enter-left');
