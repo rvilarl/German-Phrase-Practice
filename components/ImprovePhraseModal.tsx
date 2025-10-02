@@ -4,6 +4,7 @@ import CloseIcon from './icons/CloseIcon';
 import RefreshIcon from './icons/RefreshIcon';
 import CheckIcon from './icons/CheckIcon';
 import MessageQuestionIcon from './icons/MessageQuestionIcon';
+import { useTranslation } from '../src/hooks/useTranslation';
 
 interface Suggestion {
   suggestedGerman: string;
@@ -34,6 +35,7 @@ const ImprovePhraseSkeleton: React.FC = () => (
 
 
 const ImprovePhraseModal: React.FC<ImprovePhraseModalProps> = ({ isOpen, onClose, phrase, onGenerateImprovement, onPhraseImproved, onOpenDiscussion }) => {
+  const { t } = useTranslation();
   const [currentSuggestion, setCurrentSuggestion] = useState<Suggestion | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -87,14 +89,14 @@ const ImprovePhraseModal: React.FC<ImprovePhraseModalProps> = ({ isOpen, onClose
             onClick={() => handleGenerate(currentGerman)}
             className="flex items-center justify-center w-full px-6 py-3 rounded-lg bg-purple-600 hover:bg-purple-700 transition-colors font-semibold text-white shadow-md"
           >
-            Предложить корректный вариант
+            {t('modals.improvePhrase.actions.suggest')}
           </button>
            <button
             onClick={() => onOpenDiscussion(phrase)}
             className="flex items-center justify-center w-full px-6 py-2 rounded-lg bg-slate-600 hover:bg-slate-700 transition-colors font-semibold text-white text-sm"
           >
             <MessageQuestionIcon className="w-4 h-4 mr-2" />
-            Обсудить с AI
+            {t('modals.improvePhrase.actions.discuss')}
           </button>
       </div>
     </>
@@ -106,10 +108,10 @@ const ImprovePhraseModal: React.FC<ImprovePhraseModalProps> = ({ isOpen, onClose
         <p className="text-2xl font-bold text-white">{currentSuggestion?.suggestedGerman}</p>
       </div>
       <div className="w-full text-left text-sm text-slate-300 p-4 rounded-lg bg-slate-900/50 border-l-2 border-purple-400">
-        <p className="font-semibold mb-1 text-white">Обоснование:</p>
+        <p className="font-semibold mb-1 text-white">{t('modals.improvePhrase.reasoning')}</p>
         <p>{currentSuggestion?.explanation}</p>
       </div>
-      {error && <div className="text-center bg-red-900/50 border border-red-700 text-red-300 p-2 rounded-lg text-sm"><p>{error}</p></div>}
+      {error && <div className="text-center bg-red-900/50 border border-red-700 text-red-300 p-2 rounded-lg text-sm"><p>{t('modals.improvePhrase.errors.generic')}</p></div>}
       <div className="grid grid-cols-5 gap-3 w-full">
         <button
           onClick={onClose}
@@ -123,7 +125,7 @@ const ImprovePhraseModal: React.FC<ImprovePhraseModalProps> = ({ isOpen, onClose
           className="col-span-3 flex items-center justify-center px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 transition-colors font-semibold text-white shadow-md text-sm"
         >
           <RefreshIcon className="w-4 h-4 mr-1.5" />
-          Улучшить
+          {t('modals.improvePhrase.improve')}
         </button>
         <button
           onClick={handleUse}

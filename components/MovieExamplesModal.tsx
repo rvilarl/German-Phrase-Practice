@@ -4,6 +4,7 @@ import type { Phrase, MovieExample } from '../types';
 import CloseIcon from './icons/CloseIcon';
 import FilmIcon from './icons/FilmIcon';
 import AudioPlayer from './AudioPlayer';
+import { useTranslation } from '../src/hooks/useTranslation';
 
 interface MovieExamplesModalProps {
   isOpen: boolean;
@@ -79,6 +80,8 @@ const MovieExamplesSkeleton: React.FC = () => (
 
 
 const MovieExamplesModal: React.FC<MovieExamplesModalProps> = ({ isOpen, onClose, phrase, examples, isLoading, error, onOpenWordAnalysis }) => {
+  const { t } = useTranslation();
+
   if (!isOpen) return null;
 
   const renderContent = () => {
@@ -86,10 +89,10 @@ const MovieExamplesModal: React.FC<MovieExamplesModalProps> = ({ isOpen, onClose
       return <MovieExamplesSkeleton />;
     }
     if (error) {
-      return <div className="flex justify-center items-center h-full"><div className="text-center bg-red-900/50 border border-red-700 text-red-300 p-4 rounded-lg"><p className="font-semibold">Ошибка</p><p className="text-sm">{error}</p></div></div>;
+      return <div className="flex justify-center items-center h-full"><div className="text-center bg-red-900/50 border border-red-700 text-red-300 p-4 rounded-lg"><p className="font-semibold">{t('modals.movieExamples.errors.generic')}</p><p className="text-sm">{error}</p></div></div>;
     }
     if (examples.length === 0) {
-      return <div className="flex justify-center items-center h-full"><p className="text-slate-400">Не удалось найти примеры из фильмов для этой фразы.</p></div>;
+      return <div className="flex justify-center items-center h-full"><p className="text-slate-400">{t('modals.movieExamples.noExamples')}</p></div>;
     }
 
     return (
@@ -128,7 +131,7 @@ const MovieExamplesModal: React.FC<MovieExamplesModalProps> = ({ isOpen, onClose
         <header className="flex items-center justify-between p-4 border-b border-slate-700 flex-shrink-0">
           <div className="flex items-center space-x-3">
             <FilmIcon className="w-7 h-7 text-purple-400"/>
-            <h2 className="text-lg font-bold text-slate-100">Примеры из фильмов</h2>
+            <h2 className="text-lg font-bold text-slate-100">{t('modals.movieExamples.title')}</h2>
           </div>
           <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-700">
             <CloseIcon className="w-6 h-6 text-slate-400"/>

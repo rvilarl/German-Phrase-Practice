@@ -491,6 +491,60 @@
       "errors": {
         "search": "Error searching for duplicates: {{message}}"
       }
+    },
+    "improvePhrase": {
+      "actions": {
+        "suggest": "Suggest correct option",
+        "discuss": "Discuss with AI"
+      },
+      "reasoning": "Reasoning:",
+      "improve": "Improve",
+      "errors": {
+        "generic": "Failed to get improvement."
+      }
+    },
+    "learningAssistant": {
+      "success": "Correct!",
+      "placeholder": "Your answer...",
+      "errors": {
+        "generic": "An error occurred: {{message}}"
+      }
+    },
+    "moveOrSkip": {
+      "title": "Duplicates found",
+      "body": "Found {{count}} {{cards}} that already exist in other categories.{{newCards}}",
+      "newCards": " Also {{count}} new will be added.",
+      "question": "What do you want to do?",
+      "actions": {
+        "move": "Move {{count}} to \"{{category}}\"",
+        "addOnlyNew": "Add only {{count}} new",
+        "cancel": "Cancel"
+      },
+      "cards": {
+        "one": "card",
+        "few": "cards",
+        "many": "cards",
+        "other": "cards"
+      }
+    },
+    "movieExamples": {
+      "title": "Movie examples",
+      "errors": {
+        "generic": "Error"
+      },
+      "noExamples": "Could not find movie examples for this phrase."
+    },
+    "nounDeclension": {
+      "title": "Declension: {{noun}}",
+      "errors": {
+        "generic": "Error",
+        "noData": "No data."
+      },
+      "headers": {
+        "case": "Case",
+        "singular": "Singular",
+        "plural": "Plural"
+      }
     }
   }
 }

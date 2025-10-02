@@ -3,6 +3,7 @@ import type { Phrase, NounDeclension } from '../types';
 import CloseIcon from './icons/CloseIcon';
 import TableIcon from './icons/TableIcon';
 import AudioPlayer from './AudioPlayer';
+import { useTranslation } from '../src/hooks/useTranslation';
 
 interface NounDeclensionModalProps {
   isOpen: boolean;
@@ -39,6 +40,8 @@ const NounDeclensionSkeleton: React.FC = () => (
 
 
 const NounDeclensionModal: React.FC<NounDeclensionModalProps> = ({ isOpen, onClose, noun, data, isLoading, error, onOpenWordAnalysis }) => {
+  const { t } = useTranslation();
+
   if (!isOpen) return null;
 
   const handleWordClick = (contextText: string, word: string) => {
@@ -77,10 +80,10 @@ const NounDeclensionModal: React.FC<NounDeclensionModalProps> = ({ isOpen, onClo
       return <NounDeclensionSkeleton />;
     }
     if (error) {
-      return <div className="flex justify-center items-center h-full"><div className="text-center bg-red-900/50 border border-red-700 text-red-300 p-4 rounded-lg"><p className="font-semibold">Ошибка</p><p className="text-sm">{error}</p></div></div>;
+      return <div className="flex justify-center items-center h-full"><div className="text-center bg-red-900/50 border border-red-700 text-red-300 p-4 rounded-lg"><p className="font-semibold">{t('modals.nounDeclension.errors.generic')}</p><p className="text-sm">{error}</p></div></div>;
     }
     if (!data) {
-      return <div className="flex justify-center items-center h-full"><p className="text-slate-400">Нет данных.</p></div>;
+      return <div className="flex justify-center items-center h-full"><p className="text-slate-400">{t('modals.nounDeclension.errors.noData')}</p></div>;
     }
 
     const cases: CaseKey[] = ['nominativ', 'akkusativ', 'dativ', 'genitiv'];
@@ -103,9 +106,9 @@ const NounDeclensionModal: React.FC<NounDeclensionModalProps> = ({ isOpen, onClo
             <table className="w-full min-w-[500px] text-left">
                 <thead>
                     <tr className="border-b border-slate-600">
-                        <th className="p-3 text-sm font-semibold text-slate-400">Падеж</th>
-                        <th className="p-3 text-sm font-semibold text-slate-400">Единственное число</th>
-                        <th className="p-3 text-sm font-semibold text-slate-400">Множественное число</th>
+                        <th className="p-3 text-sm font-semibold text-slate-400">{t('modals.nounDeclension.headers.case')}</th>
+                        <th className="p-3 text-sm font-semibold text-slate-400">{t('modals.nounDeclension.headers.singular')}</th>
+                        <th className="p-3 text-sm font-semibold text-slate-400">{t('modals.nounDeclension.headers.plural')}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -138,7 +141,7 @@ const NounDeclensionModal: React.FC<NounDeclensionModalProps> = ({ isOpen, onClo
         <header className="flex items-center justify-between p-4 border-b border-slate-700 flex-shrink-0">
           <div className="flex items-center space-x-3">
             <TableIcon className="w-6 h-6 text-purple-400"/>
-            <h2 className="text-lg font-bold text-slate-100">Склонение: {noun}</h2>
+            <h2 className="text-lg font-bold text-slate-100">{t('modals.nounDeclension.title', { noun })}</h2>
           </div>
           <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-700">
             <CloseIcon className="w-6 h-6 text-slate-400"/>

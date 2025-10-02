@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Category, Phrase, ProposedCard } from '../types';
 import FolderMoveIcon from './icons/FolderMoveIcon';
 import Spinner from './Spinner';
+import { useTranslation } from '../src/hooks/useTranslation';
 
 interface MoveOrSkipModalProps {
   isOpen: boolean;
@@ -18,6 +19,7 @@ interface MoveOrSkipModalProps {
 }
 
 const MoveOrSkipModal: React.FC<MoveOrSkipModalProps> = ({ isOpen, onClose, reviewData, categories, onMove, onAddOnlyNew }) => {
+  const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState<'move' | 'add' | false>(false);
 
   if (!isOpen || !reviewData) return null;
@@ -43,13 +45,12 @@ const MoveOrSkipModal: React.FC<MoveOrSkipModalProps> = ({ isOpen, onClose, revi
           <div className="w-10 h-10 rounded-full bg-amber-900/50 flex items-center justify-center flex-shrink-0">
             <FolderMoveIcon className="w-5 h-5 text-amber-400" />
           </div>
-          <h2 className="text-xl font-bold text-slate-100">Найдены дубликаты</h2>
+          <h2 className="text-xl font-bold text-slate-100">{t('modals.moveOrSkip.title')}</h2>
         </header>
 
         <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto hide-scrollbar">
             <p className="text-slate-300">
-                Найдено {duplicates.length} {duplicates.length === 1 ? 'карточка' : 'карточки'}, которые уже существуют в других категориях.
-                {newCards.length > 0 && ` Также будет добавлено ${newCards.length} новых.`}
+                {t('modals.moveOrSkip.body', { count: duplicates.length, cards: t(`modals.moveOrSkip.cards.${duplicates.length === 1 ? 'one' : (duplicates.length > 1 && duplicates.length < 5 ? 'few' : 'many')}`) })}{newCards.length > 0 && t('modals.moveOrSkip.newCards', { count: newCards.length })}
             </p>
             <div className="bg-slate-900/50 p-3 rounded-lg max-h-48 overflow-y-auto hide-scrollbar">
                 <ul className="space-y-2">
@@ -60,21 +61,21 @@ const MoveOrSkipModal: React.FC<MoveOrSkipModalProps> = ({ isOpen, onClose, revi
                     ))}
                 </ul>
             </div>
-            <p className="text-slate-300">Что вы хотите сделать?</p>
+            <p className="text-slate-300">{t('modals.moveOrSkip.question')}</p>
         </div>
 
         <footer className="p-4 border-t border-slate-700 flex flex-col sm:flex-row gap-3">
           <button onClick={handleMove} disabled={!!isLoading} className="w-full px-4 py-3 rounded-md bg-purple-600 hover:bg-purple-700 text-white font-semibold transition-colors disabled:opacity-50 flex items-center justify-center">
-            {isLoading === 'move' ? <Spinner className="w-5 h-5"/> : `Переместить ${duplicates.length} в "${targetCategory.name}"`}
+          {isLoading === 'move' ? <Spinner className="w-5 h-5"/> : t('modals.moveOrSkip.actions.move', { count: duplicates.length, category: targetCategory.name })}
+        </button>
+        {newCards.length > 0 && (
+          <button onClick={handleAddOnlyNew} disabled={!!isLoading} className="w-full px-4 py-3 rounded-md bg-slate-600 hover:bg-slate-700 text-white font-semibold transition-colors disabled:opacity-50 flex items-center justify-center">
+            {isLoading === 'add' ? <Spinner className="w-5 h-5"/> : t('modals.moveOrSkip.actions.addOnlyNew', { count: newCards.length })}
           </button>
-          {newCards.length > 0 && (
-            <button onClick={handleAddOnlyNew} disabled={!!isLoading} className="w-full px-4 py-3 rounded-md bg-slate-600 hover:bg-slate-700 text-white font-semibold transition-colors disabled:opacity-50 flex items-center justify-center">
-              {isLoading === 'add' ? <Spinner className="w-5 h-5"/> : `Добавить только ${newCards.length} новых`}
-            </button>
-          )}
-          <button onClick={onClose} disabled={!!isLoading} className="w-full sm:w-auto px-4 py-3 rounded-md bg-transparent hover:bg-slate-700/50 text-slate-300 font-medium transition-colors disabled:opacity-50">
-            Отмена
-          </button>
+        )}
+        <button onClick={onClose} disabled={!!isLoading} className="w-full sm:w-auto px-4 py-3 rounded-md bg-transparent hover:bg-slate-700/50 text-slate-300 font-medium transition-colors disabled:opacity-50">
+          {t('modals.moveOrSkip.actions.cancel')}
+        </button>
         </footer>
       </div>
     </div>

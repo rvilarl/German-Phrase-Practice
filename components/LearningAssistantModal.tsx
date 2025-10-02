@@ -8,6 +8,7 @@ import SoundIcon from './icons/SoundIcon';
 import BookOpenIcon from './icons/BookOpenIcon';
 import CheckIcon from './icons/CheckIcon';
 import MicrophoneIcon from './icons/MicrophoneIcon';
+import { useTranslation } from '../src/hooks/useTranslation';
 
 interface LearningAssistantModalProps {
   isOpen: boolean;
@@ -85,6 +86,7 @@ const ChatMessageContent: React.FC<{
 };
 
 const LearningAssistantModal: React.FC<LearningAssistantModalProps> = ({ isOpen, onClose, phrase, onGuide, onSuccess, onOpenVerbConjugation, onOpenNounDeclension, onOpenPronounsModal, onOpenWFragenModal, cache, setCache, onOpenWordAnalysis, onOpenAdjectiveDeclension }) => {
+  const { t } = useTranslation();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [input, setInput] = useState('');
@@ -150,7 +152,7 @@ const LearningAssistantModal: React.FC<LearningAssistantModalProps> = ({ isOpen,
             setCheatSheetOptions(initialMessage.cheatSheetOptions || []);
           })
           .catch(err => {
-            const errorMsg: ChatMessage = { role: 'model', contentParts: [{type: 'text', text: `Произошла ошибка: ${(err as Error).message}`}] };
+            const errorMsg: ChatMessage = { role: 'model', contentParts: [{type: 'text', text: t('modals.learningAssistant.errors.generic', { message: (err as Error).message })}] };
             updateMessages(() => [errorMsg]);
           })
           .finally(() => {
@@ -246,7 +248,7 @@ const LearningAssistantModal: React.FC<LearningAssistantModalProps> = ({ isOpen,
           setTimeout(() => onClose(true), 2500);
         }
     } catch (error) {
-        const errorMsg: ChatMessage = { role: 'model', contentParts: [{type: 'text', text: `Произошла ошибка: ${(error as Error).message}`}] };
+        const errorMsg: ChatMessage = { role: 'model', contentParts: [{type: 'text', text: t('modals.learningAssistant.errors.generic', { message: (error as Error).message })}] };
         updateMessages(prev => [...prev, errorMsg]);
     } finally {
         setIsLoading(false);
@@ -330,7 +332,7 @@ const LearningAssistantModal: React.FC<LearningAssistantModalProps> = ({ isOpen,
             {isSuccess ? (
                  <div className="flex items-center justify-center h-28 bg-green-900/50 rounded-lg animate-fade-in">
                     <CheckIcon className="w-8 h-8 text-green-400 mr-3" />
-                    <span className="text-xl font-bold text-green-300">Верно!</span>
+                    <span className="text-xl font-bold text-green-300">{t('modals.learningAssistant.success')}</span>
                 </div>
             ) : (
             <>
@@ -356,7 +358,7 @@ const LearningAssistantModal: React.FC<LearningAssistantModalProps> = ({ isOpen,
                   <textarea
                     ref={textareaRef} value={input} onChange={e => setInput(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(input); } }}
-                    placeholder={isListening ? "Слушаю..." : "Ваш ответ..."}
+                    placeholder={isListening ? t('modals.chat.placeholders.listening') : t('modals.learningAssistant.placeholder')}
                     className="flex-grow bg-slate-700 rounded-lg p-3 text-slate-200 resize-none max-h-32 min-h-12 focus:outline-none focus:ring-2 focus:ring-purple-500"
                     rows={1} disabled={isLoading}
                   />

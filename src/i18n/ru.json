@@ -479,6 +479,60 @@
       "errors": {
         "search": "Ошибка при поиске дубликатов: {{message}}"
       }
+    },
+    "improvePhrase": {
+      "actions": {
+        "suggest": "Предложить корректный вариант",
+        "discuss": "Обсудить с AI"
+      },
+      "reasoning": "Обоснование:",
+      "improve": "Улучшить",
+      "errors": {
+        "generic": "Не удалось получить улучшение."
+      }
+    },
+    "learningAssistant": {
+      "success": "Верно!",
+      "placeholder": "Ваш ответ...",
+      "errors": {
+        "generic": "Произошла ошибка: {{message}}"
+      }
+    },
+    "moveOrSkip": {
+      "title": "Найдены дубликаты",
+      "body": "Найдено {{count}} {{cards}}, которые уже существуют в других категориях.{{newCards}}",
+      "newCards": " Также будет добавлено {{count}} новых.",
+      "question": "Что вы хотите сделать?",
+      "actions": {
+        "move": "Переместить {{count}} в \"{{category}}\"",
+        "addOnlyNew": "Добавить только {{count}} новых",
+        "cancel": "Отмена"
+      },
+      "cards": {
+        "one": "карточка",
+        "few": "карточки",
+        "many": "карточек",
+        "other": "карточек"
+      }
+    },
+    "movieExamples": {
+      "title": "Примеры из фильмов",
+      "errors": {
+        "generic": "Ошибка"
+      },
+      "noExamples": "Не удалось найти примеры из фильмов для этой фразы."
+    },
+    "nounDeclension": {
+      "title": "Склонение: {{noun}}",
+      "errors": {
+        "generic": "Ошибка",
+        "noData": "Нет данных."
+      },
+      "headers": {
+        "case": "Падеж",
+        "singular": "Единственное число",
+        "plural": "Множественное число"
+      }
     }
   }
 }
