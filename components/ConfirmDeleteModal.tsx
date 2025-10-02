@@ -3,6 +3,7 @@ import type { Phrase } from '../types';
 import AlertTriangleIcon from './icons/AlertTriangleIcon';
 import ProgressBar from './ProgressBar';
 import * as srsService from '../services/srsService';
+import { useTranslation } from '../src/hooks/useTranslation';
 
 interface ConfirmDeleteModalProps {
   isOpen: boolean;
@@ -12,6 +13,8 @@ interface ConfirmDeleteModalProps {
 }
 
 const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({ isOpen, onClose, onConfirm, phrase }) => {
+  const { t } = useTranslation();
+
   if (!isOpen || !phrase) return null;
 
   return (
@@ -29,8 +32,8 @@ const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({ isOpen, onClose
           </div>
         </div>
         
-        <h2 className="text-xl font-bold text-slate-100">Подтвердите удаление</h2>
-        <p className="text-slate-400 mt-2 mb-4">Вы уверены, что хотите навсегда удалить эту фразу?</p>
+        <h2 className="text-xl font-bold text-slate-100">{t('modals.confirmDelete.title')}</h2>
+        <p className="text-slate-400 mt-2 mb-4">{t('modals.confirmDelete.body')}</p>
         
         <div className="bg-slate-700/50 p-4 rounded-md text-center mb-4">
             <p className="text-slate-200 font-medium text-lg">"{phrase.text.native}"</p>
@@ -38,22 +41,22 @@ const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({ isOpen, onClose
         </div>
 
         <div className="mb-6 px-2">
-            <p className="text-xs text-slate-400 mb-1 text-left">Уровень освоения:</p>
+            <p className="text-xs text-slate-400 mb-1 text-left">{t('modals.confirmDelete.mastery')}:</p>
             <ProgressBar current={phrase.masteryLevel} max={srsService.MAX_MASTERY_LEVEL} />
         </div>
 
         <div className="flex justify-center space-x-4">
-          <button 
-            onClick={onClose} 
+          <button
+            onClick={onClose}
             className="px-6 py-2 rounded-md bg-slate-600 hover:bg-slate-700 text-white font-semibold transition-colors"
           >
-            Отмена
+            {t('modals.confirmDelete.actions.cancel')}
           </button>
-          <button 
-            onClick={onConfirm} 
+          <button
+            onClick={onConfirm}
             className="px-6 py-2 rounded-md bg-red-600 hover:bg-red-700 text-white font-semibold transition-colors"
           >
-            Удалить
+            {t('modals.confirmDelete.actions.confirm')}
           </button>
         </div>
       </div>

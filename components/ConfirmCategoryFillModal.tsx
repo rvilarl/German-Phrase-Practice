@@ -1,6 +1,7 @@
 import React from 'react';
 import { Category } from '../types';
 import SmartToyIcon from './icons/SmartToyIcon';
+import { useTranslation } from '../src/hooks/useTranslation';
 
 interface ConfirmCategoryFillModalProps {
   isOpen: boolean;
@@ -10,8 +11,10 @@ interface ConfirmCategoryFillModalProps {
 }
 
 const ConfirmCategoryFillModal: React.FC<ConfirmCategoryFillModalProps> = ({ isOpen, onClose, onConfirm, category }) => {
+  const { t } = useTranslation();
+
   if (!isOpen || !category) return null;
-  
+
   const handleConfirmClick = () => {
     onConfirm(category);
   }
@@ -31,21 +34,21 @@ const ConfirmCategoryFillModal: React.FC<ConfirmCategoryFillModalProps> = ({ isO
           </div>
         </div>
         
-        <h2 className="text-xl font-bold text-slate-100">Заполнить категорию?</h2>
-        <p className="text-slate-400 mt-2 mb-4">Хотите сразу заполнить категорию <strong className="text-slate-200">"{category.name}"</strong> с помощью AI?</p>
-        
+        <h2 className="text-xl font-bold text-slate-100">{t('modals.confirmCategoryFill.title')}</h2>
+        <p className="text-slate-400 mt-2 mb-4">{t('modals.confirmCategoryFill.body', { category: category.name })}</p>
+
         <div className="flex justify-center space-x-4 mt-6">
-          <button 
-            onClick={onClose} 
+          <button
+            onClick={onClose}
             className="px-6 py-2 rounded-md bg-slate-600 hover:bg-slate-700 text-white font-semibold transition-colors"
           >
-            Позже
+            {t('modals.confirmCategoryFill.actions.cancel')}
           </button>
-          <button 
-            onClick={handleConfirmClick} 
+          <button
+            onClick={handleConfirmClick}
             className="px-6 py-2 rounded-md bg-purple-600 hover:bg-purple-700 text-white font-semibold transition-colors"
           >
-            Да, заполнить
+            {t('modals.confirmCategoryFill.actions.confirm')}
           </button>
         </div>
       </div>

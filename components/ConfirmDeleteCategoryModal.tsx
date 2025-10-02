@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Category } from '../types';
 import AlertTriangleIcon from './icons/AlertTriangleIcon';
+import { useTranslation } from '../src/hooks/useTranslation';
 
 interface ConfirmDeleteCategoryModalProps {
   isOpen: boolean;
@@ -12,6 +13,7 @@ interface ConfirmDeleteCategoryModalProps {
 }
 
 const ConfirmDeleteCategoryModal: React.FC<ConfirmDeleteCategoryModalProps> = ({ isOpen, onClose, onConfirm, category, phraseCount, allCategories }) => {
+  const { t } = useTranslation();
   const [action, setAction] = useState<'move' | 'delete' | ''>('');
   const [migrationTarget, setMigrationTarget] = useState('');
 
@@ -58,8 +60,8 @@ const ConfirmDeleteCategoryModal: React.FC<ConfirmDeleteCategoryModalProps> = ({
           </div>
         </div>
         
-        <h2 className="text-xl font-bold text-slate-100 text-center">Удалить категорию?</h2>
-        <p className="text-slate-400 mt-2 text-center">Вы собираетесь удалить категорию:</p>
+        <h2 className="text-xl font-bold text-slate-100 text-center">{t('modals.confirmDeleteCategory.title')}</h2>
+        <p className="text-slate-400 mt-2 text-center">{t('modals.confirmDeleteCategory.body')}</p>
         
         <div className="bg-slate-700/50 p-3 rounded-md text-center my-4">
             <p className="text-slate-200 font-medium text-lg">{category.name}</p>
@@ -67,12 +69,12 @@ const ConfirmDeleteCategoryModal: React.FC<ConfirmDeleteCategoryModalProps> = ({
         
         {phraseCount > 0 && (
           <div className="space-y-4 mb-6">
-            <p className="text-slate-300 text-sm text-center">В этой категории находится {phraseCount} {phraseCount === 1 ? 'карточка' : (phraseCount > 1 && phraseCount < 5 ? 'карточки' : 'карточек')}. Что с ними сделать?</p>
+            <p className="text-slate-300 text-sm text-center">{t('modals.confirmDeleteCategory.phraseCount', { count: phraseCount, cards: t(`modals.confirmDeleteCategory.cards.${phraseCount === 1 ? 'one' : (phraseCount > 1 && phraseCount < 5 ? 'few' : 'many')}`) })}</p>
             {canMove && (
                 <div className="p-3 bg-slate-900/50 rounded-md">
                   <label className="flex items-center">
                     <input type="radio" name="deleteAction" value="move" checked={action === 'move'} onChange={() => setAction('move')} className="w-5 h-5 bg-slate-600 border-slate-500 text-purple-500 focus:ring-purple-500"/>
-                    <span className="ml-3 text-slate-200">Переместить в</span>
+                    <span className="ml-3 text-slate-200">{t('modals.confirmDeleteCategory.actions.move')}</span>
                   </label>
                   {action === 'move' && (
                     <select
@@ -88,7 +90,7 @@ const ConfirmDeleteCategoryModal: React.FC<ConfirmDeleteCategoryModalProps> = ({
             <div className="p-3 bg-slate-900/50 rounded-md">
               <label className="flex items-center">
                 <input type="radio" name="deleteAction" value="delete" checked={action === 'delete'} onChange={() => setAction('delete')} className="w-5 h-5 bg-slate-600 border-slate-500 text-purple-500 focus:ring-purple-500" />
-                <span className="ml-3 text-red-400">Удалить все карточки</span>
+                <span className="ml-3 text-red-400">{t('modals.confirmDeleteCategory.actions.delete')}</span>
               </label>
             </div>
           </div>
@@ -96,10 +98,10 @@ const ConfirmDeleteCategoryModal: React.FC<ConfirmDeleteCategoryModalProps> = ({
 
         <div className="flex justify-center space-x-4">
           <button onClick={onClose} className="px-6 py-2 rounded-md bg-slate-600 hover:bg-slate-700 text-white font-semibold transition-colors">
-            Отмена
+            {t('modals.confirmDeleteCategory.actions.cancel')}
           </button>
           <button onClick={handleConfirm} disabled={isConfirmDisabled} className="px-6 py-2 rounded-md bg-red-600 hover:bg-red-700 text-white font-semibold transition-colors disabled:opacity-50">
-            Удалить
+            {t('modals.confirmDeleteCategory.actions.confirm')}
           </button>
         </div>
       </div>

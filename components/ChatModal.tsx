@@ -12,6 +12,7 @@ import SendIcon from './icons/SendIcon';
 import SoundIcon from './icons/SoundIcon';
 import MicrophoneIcon from './icons/MicrophoneIcon';
 import ChatContextMenu from './ChatContextMenu';
+import { useTranslation } from '../src/hooks/useTranslation';
 
 interface ChatModalProps {
   isOpen: boolean;
@@ -198,12 +199,13 @@ const ChatSkeleton: React.FC = () => (
 
 
 const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, phrase, onGenerateInitialExamples, onContinueChat, apiProviderType, onOpenWordAnalysis, allPhrases, onCreateCard, onAnalyzeWord, onOpenVerbConjugation, onOpenNounDeclension, onOpenAdjectiveDeclension, onTranslateGermanToRussian }) => {
+  const { t } = useTranslation();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [input, setInput] = useState('');
   const [promptSuggestions, setPromptSuggestions] = useState<string[]>([]);
   const [usedSuggestions, setUsedSuggestions] = useState<string[]>([]);
-  
+
   const [isListening, setIsListening] = useState(false);
   const [speechSupported, setSpeechSupported] = useState(false);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
@@ -277,7 +279,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, phrase, onGenera
             }
             setMessages([initialMessage]);
           } catch(err) {
-            setMessages([{ role: 'model', contentParts: [{type: 'text', text: `Произошла ошибка: ${(err as Error).message}`}] }]);
+            setMessages([{ role: 'model', contentParts: [{type: 'text', text: t('modals.chat.errors.generic', { message: (err as Error).message })}] }]);
           } finally {
             setIsLoading(false);
           }
@@ -337,7 +339,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, phrase, onGenera
         }
     } catch (error) {
         console.error("Chat error:", error);
-        setMessages(prev => [...prev, { role: 'model', contentParts: [{type: 'text', text: `Произошла ошибка: ${(error as Error).message}`}] }]);
+        setMessages(prev => [...prev, { role: 'model', contentParts: [{type: 'text', text: t('modals.chat.errors.generic', { message: (error as Error).message })}] }]);
     } finally {
         setIsLoading(false);
     }
@@ -438,7 +440,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, phrase, onGenera
                       handleSendMessage(input);
                   }
               }}
-              placeholder={isListening ? "Слушаю..." : "Спросите что-нибудь..."}
+              placeholder={isListening ? t('modals.chat.placeholders.listening') : t('modals.chat.placeholders.ask')}
               className="flex-grow bg-slate-700 rounded-lg p-3 text-slate-200 resize-none max-h-32 min-h-12 focus:outline-none focus:ring-2 focus:ring-purple-500"
               rows={1}
               disabled={isLoading}
@@ -448,7 +450,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, phrase, onGenera
                 type="button"
                 onClick={handleToggleListening}
                 disabled={isLoading}
-                aria-label={isListening ? 'Stop listening' : 'Start listening'}
+                aria-label={isListening ? t('modals.chat.aria.stopListening') : t('modals.chat.aria.startListening')}
                 className={`p-3 rounded-lg transition-colors flex-shrink-0 ${isListening ? 'bg-red-600 hover:bg-red-700 animate-pulse' : 'bg-slate-600 hover:bg-slate-500'} disabled:bg-slate-600 disabled:cursor-not-allowed`}
               >
                 <MicrophoneIcon className="w-6 h-6 text-white" />
