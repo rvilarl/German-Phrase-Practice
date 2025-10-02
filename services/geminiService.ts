@@ -19,7 +19,7 @@ const initializeApi = () => {
     return null;
 }
 
-const model = "gemini-2.5-flash";
+const model = "gemini-2.5-flash-lite";
 
 const phraseSchema = {
     type: Type.ARRAY,
