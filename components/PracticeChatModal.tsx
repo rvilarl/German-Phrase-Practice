@@ -6,6 +6,7 @@ import SendIcon from './icons/SendIcon';
 import SoundIcon from './icons/SoundIcon';
 import MicrophoneIcon from './icons/MicrophoneIcon';
 import MessageQuestionIcon from './icons/MessageQuestionIcon';
+import { useTranslation } from '../src/hooks/useTranslation.ts';
 
 // Reusing a similar component from other chat modals for consistent UI
 import ChatContextMenu from './ChatContextMenu';
@@ -105,6 +106,7 @@ const ChatMessageContent: React.FC<{
 };
 
 const PracticeChatModal: React.FC<PracticeChatModalProps> = ({ isOpen, onClose, history, setHistory, onSendMessage, allPhrases, settings, ...interactiveProps }) => {
+  const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [input, setInput] = useState('');
   const [promptSuggestions, setPromptSuggestions] = useState<string[]>([]);
@@ -240,7 +242,7 @@ const PracticeChatModal: React.FC<PracticeChatModalProps> = ({ isOpen, onClose, 
           <header className="flex items-center justify-between p-4 border-b border-slate-700 flex-shrink-0">
             <div className="flex items-center space-x-3">
               <MessageQuestionIcon className="w-7 h-7 text-purple-400" />
-              <h2 className="text-lg font-bold text-slate-100">Практика с AI</h2>
+              <h2 className="text-lg font-bold text-slate-100">{t('practice.chat.title')}</h2>
             </div>
             <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-700">
               <CloseIcon className="w-6 h-6 text-slate-400"/>
@@ -287,7 +289,7 @@ const PracticeChatModal: React.FC<PracticeChatModalProps> = ({ isOpen, onClose, 
               <textarea
                 ref={textareaRef} value={input} onChange={e => setInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(input); } }}
-                placeholder={isListening ? "Слушаю..." : "Ответьте по-немецки..."}
+                placeholder={isListening ? t('practice.chat.listeningPlaceholder') : t('practice.chat.placeholder')}
                 className="flex-grow bg-slate-700 rounded-lg p-3 text-slate-200 resize-none max-h-32 min-h-12 focus:outline-none focus:ring-2 focus:ring-purple-500"
                 rows={1} disabled={isLoading}
               />

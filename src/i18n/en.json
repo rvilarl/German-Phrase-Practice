@@ -195,5 +195,46 @@
     "alt": {
       "cover": "Cover of {{title}}"
     }
+  },
+  "categories": {
+    "manager": {
+      "title": "Manage categories",
+      "aria": {
+        "edit": "Edit {{name}}",
+        "delete": "Delete {{name}}"
+      },
+      "add": "Add new category"
+    },
+    "form": {
+      "createTitle": "Create category",
+      "editTitle": "Edit category",
+      "fields": {
+        "nameLabel": "Category name",
+        "namePlaceholder": "E.g. Travel, Work, or Conversation",
+        "colorLabel": "Color",
+        "colorAria": "Select color {{color}}"
+      },
+      "notes": {
+        "aiHint": "Tip: Use descriptive names without '!' or hyphen so AI automations can categorize phrases correctly."
+      },
+      "errors": {
+        "duplicate": "A category with this name already exists."
+      },
+      "submit": {
+        "create": "Create",
+        "save": "Save changes"
+      }
+    }
+  },
+  "practice": {
+    "chat": {
+      "title": "Practice with AI",
+      "placeholder": "Type your message...",
+      "listeningPlaceholder": "Listening..."
+    },
+    "actions": {
+      "skip": "Skip",
+      "know": "I know it"
+    }
   }
 }

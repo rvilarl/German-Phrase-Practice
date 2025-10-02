@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Category } from '../types';
 import CloseIcon from './icons/CloseIcon';
+import { useTranslation } from '../src/hooks/useTranslation.ts';
 
 interface CategoryFormModalProps {
   isOpen: boolean;
   onClose: () => void;
-  // FIX: Allow onSubmit to be an async function, as it needs to perform backend operations.
-  onSubmit: (categoryData: { name: string; color: string }) => Promise<boolean>; // Returns true on success
+  onSubmit: (categoryData: { name: string; color: string }) => Promise<boolean>;
   initialData?: Category | null;
 }
 
@@ -19,6 +19,7 @@ const colors = [
 ];
 
 const CategoryFormModal: React.FC<CategoryFormModalProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
+  const { t } = useTranslation();
   const [name, setName] = useState('');
   const [color, setColor] = useState(colors[0]);
   const [error, setError] = useState<string | null>(null);
@@ -27,20 +28,19 @@ const CategoryFormModal: React.FC<CategoryFormModalProps> = ({ isOpen, onClose, 
     if (isOpen) {
       setName(initialData?.name || '');
       setColor(initialData?.color || colors[Math.floor(Math.random() * colors.length)]);
-      setError(null); // Reset error when modal opens
+      setError(null);
     }
   }, [isOpen, initialData]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (name.trim()) {
-      // FIX: Await the async onSubmit function to correctly handle the success/failure result.
-      const success = await onSubmit({ name: name.trim(), color });
-      if (!success) {
-        setError('Категория с таким названием уже существует.');
-      } else {
-        setError(null);
-      }
+    if (!name.trim()) return;
+
+    const success = await onSubmit({ name: name.trim(), color });
+    if (!success) {
+      setError(t('categories.form.errors.duplicate'));
+    } else {
+      setError(null);
     }
   };
   
@@ -54,7 +54,7 @@ const CategoryFormModal: React.FC<CategoryFormModalProps> = ({ isOpen, onClose, 
         onClick={e => e.stopPropagation()}
       >
         <header className="flex items-center justify-between p-4 border-b border-slate-700">
-          <h2 className="text-lg font-bold text-slate-100">{initialData ? 'Редактировать категорию' : 'Создать категорию'}</h2>
+          <h2 className="text-lg font-bold text-slate-100">{initialData ? t('categories.form.editTitle') : t('categories.form.createTitle')}</h2>
           <button type="button" onClick={onClose} className="p-2 rounded-full hover:bg-slate-700">
             <CloseIcon className="w-6 h-6 text-slate-400" />
           </button>
@@ -62,22 +62,22 @@ const CategoryFormModal: React.FC<CategoryFormModalProps> = ({ isOpen, onClose, 
 
         <div className="p-6 space-y-6">
           <div>
-            <label htmlFor="category-name" className="block text-sm font-medium text-slate-300 mb-2">Название категории</label>
+            <label htmlFor="category-name" className="block text-sm font-medium text-slate-300 mb-2">{t('categories.form.fields.nameLabel')}</label>
             <input
               id="category-name"
               type="text"
               value={name}
               onChange={e => setName(e.target.value)}
-              placeholder="Например, !Еда в ресторане"
+              placeholder={t('categories.form.fields.namePlaceholder')}
               className="w-full bg-slate-700 border border-slate-600 rounded-md p-3 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
               required
               autoFocus
             />
-             <p className="text-xs text-slate-400 mt-2">Совет: Используйте '!' в начале, чтобы AI автоматически сгенерировал карточки по этой теме.</p>
-             {error && <p className="text-red-400 text-sm mt-2">{error}</p>}
+            <p className="text-xs text-slate-400 mt-2">{t('categories.form.notes.aiHint')}</p>
+            {error && <p className="text-red-400 text-sm mt-2">{error}</p>}
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">Цвет</label>
+            <label className="block text-sm font-medium text-slate-300 mb-2">{t('categories.form.fields.colorLabel')}</label>
             <div className="grid grid-cols-6 gap-2">
               {colors.map(c => (
                 <button
@@ -85,7 +85,7 @@ const CategoryFormModal: React.FC<CategoryFormModalProps> = ({ isOpen, onClose, 
                   key={c}
                   onClick={() => setColor(c)}
                   className={`w-10 h-10 rounded-full ${c} transition-transform hover:scale-110 ${color === c ? 'ring-2 ring-offset-2 ring-offset-slate-800 ring-white' : ''}`}
-                  aria-label={`Выбрать цвет ${c}`}
+                  aria-label={t('categories.form.fields.colorAria', { color: c })}
                 />
               ))}
             </div>
@@ -98,7 +98,7 @@ const CategoryFormModal: React.FC<CategoryFormModalProps> = ({ isOpen, onClose, 
             disabled={!name.trim()}
             className="w-full px-6 py-3 rounded-md bg-purple-600 hover:bg-purple-700 text-white font-semibold transition-colors disabled:opacity-50"
           >
-            {initialData ? 'Сохранить' : 'Создать'}
+            {initialData ? t('categories.form.submit.save') : t('categories.form.submit.create')}
           </button>
         </div>
       </form>

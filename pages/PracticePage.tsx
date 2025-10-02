@@ -13,6 +13,7 @@ import ArrowRightIcon from '../components/icons/ArrowRightIcon';
 import ChevronDownIcon from '../components/icons/ChevronDownIcon';
 import PlusIcon from '../components/icons/PlusIcon';
 import SettingsIcon from '../components/icons/SettingsIcon';
+import { useTranslation } from '../src/hooks/useTranslation.ts';
 
 
 const SWIPE_THRESHOLD = 50; // pixels
@@ -184,6 +185,8 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
     cardHistoryLength, practiceCategoryFilter, setPracticeCategoryFilter, onMarkPhraseAsSeen,
     categories, onAddCategory, onOpenCategoryManager, unmasteredCountsByCategory
   } = props;
+  const { t } = useTranslation();
+
 
   const [contextMenuTarget, setContextMenuTarget] = useState<{ phrase: Phrase; word?: string } | null>(null);
   const [flashState, setFlashState] = useState<'green' | null>(null);
@@ -354,14 +357,14 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
                                 disabled={isExiting}
                                 className="px-8 py-3 rounded-lg font-semibold text-slate-300 shadow-md transition-colors bg-slate-600 hover:bg-slate-500"
                             >
-                                Пропустить
+                                {t('practice.actions.skip')}
                             </button>
                             <button
                                 onClick={handleKnowClick}
                                 disabled={isExiting}
                                 className="px-10 py-3 rounded-lg font-semibold text-white shadow-md transition-colors bg-green-600 hover:bg-green-700"
                             >
-                                Знаю
+                                {t('practice.actions.know')}
                             </button>
                         </div>
                     )}
