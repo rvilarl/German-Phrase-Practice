@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 // FIX: Import View type from shared types.ts
-import { Phrase, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, AdjectiveDeclension, SentenceContinuation, PhraseBuilderOptions, PhraseEvaluation, ChatMessage, PhraseCategory, ProposedCard, BookRecord, Category, CategoryAssistantRequest, CategoryAssistantResponse, View } from './types';
+import { Phrase, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, AdjectiveDeclension, SentenceContinuation, PhraseBuilderOptions, PhraseEvaluation, ChatMessage, PhraseCategory, ProposedCard, BookRecord, Category, CategoryAssistantRequest, CategoryAssistantResponse, View, LanguageCode } from './types';
 import * as srsService from './services/srsService';
 import * as cacheService from './services/cacheService';
 import * as backendService from './services/backendService';
@@ -38,6 +38,7 @@ import LearningAssistantModal from './components/LearningAssistantModal';
 import PronounsModal from './components/PronounsModal';
 import WFragenModal from './components/WFragenModal';
 import Toast from './components/Toast';
+import AccountDrawer from './components/AccountDrawer';
 import BugIcon from './components/icons/BugIcon';
 import WandIcon from './components/icons/WandIcon';
 import MessageQuestionIcon from './components/icons/MessageQuestionIcon';
@@ -259,7 +260,7 @@ const App: React.FC = () => {
   const [sentenceChainPhrase, setSentenceChainPhrase] = useState<Phrase | null>(null);
   
   const [isAddPhraseModalOpen, setIsAddPhraseModalOpen] = useState(false);
-  const [addPhraseConfig, setAddPhraseConfig] = useState({ language: 'ru' as 'ru' | 'de', autoSubmit: true });
+  const [addPhraseConfig, setAddPhraseConfig] = useState({ language: 'ru' as LanguageCode, autoSubmit: true });
 
   const [isSmartImportModalOpen, setIsSmartImportModalOpen] = useState(false);
   const [smartImportInitialTopic, setSmartImportInitialTopic] = useState<string | undefined>();
@@ -327,6 +328,8 @@ const App: React.FC = () => {
   // New state for practice chat
   const [isPracticeChatModalOpen, setIsPracticeChatModalOpen] = useState(false);
   const [practiceChatHistory, setPracticeChatHistory] = useState<ChatMessage[]>([]);
+
+  const [isAccountDrawerOpen, setIsAccountDrawerOpen] = useState(false);
 
   const isPrefetchingRef = useRef(false);
   
@@ -976,7 +979,7 @@ const App: React.FC = () => {
   }, [callApiWithFallback]);
 
 
-  const handleOpenAddPhraseModal = (options: { language: 'ru' | 'de'; autoSubmit: boolean }) => {
+  const handleOpenAddPhraseModal = (options: { language: LanguageCode; autoSubmit: boolean }) => {
     if (!apiProvider) return;
     setAddPhraseConfig(options);
     setIsAddPhraseModalOpen(true);
@@ -1876,6 +1879,8 @@ const App: React.FC = () => {
     setView('reader');
   };
 
+  const handleOpenAccountDrawer = () => setIsAccountDrawerOpen(true);
+
   const phrasesForCategory = useMemo(() => {
     if (!categoryToView) return [];
     return allPhrases.filter(p => p.category === categoryToView.id);
@@ -1974,10 +1979,11 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-transparent text-white font-sans p-4 flex flex-col items-center overflow-x-hidden">
-      <Header 
-        view={view} 
-        onSetView={setView} 
-        onOpenSettings={() => setIsSettingsModalOpen(true)} 
+      <Header
+        view={view}
+        onSetView={setView}
+        onOpenSettings={() => setIsSettingsModalOpen(true)}
+        onOpenAccountDrawer={handleOpenAccountDrawer}
       />
       <main className={`w-full flex-grow flex flex-col items-center pt-20 ${view === 'practice' ? 'justify-center' : ''}`}>
         {renderCurrentView()}
@@ -2352,6 +2358,10 @@ const App: React.FC = () => {
               onConfirmMove={handleConfirmMoveMultiplePhrases}
           />
         )}
+        <AccountDrawer
+          isOpen={isAccountDrawerOpen}
+          onClose={() => setIsAccountDrawerOpen(false)}
+        />
     </div>
   );
 };

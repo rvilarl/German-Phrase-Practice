@@ -2,6 +2,7 @@
 import SettingsIcon from './icons/SettingsIcon.tsx';
 import ListIcon from './icons/ListIcon.tsx';
 import PracticeIcon from './icons/PracticeIcon.tsx';
+import { FaUser } from 'react-icons/fa';
 import { View } from '../types.ts';
 import { useAuth } from '../src/contexts/authContext.tsx';
 import { useTranslation } from '../src/hooks/useTranslation.ts';
@@ -10,9 +11,10 @@ interface HeaderProps {
     view: View;
     onSetView: (view: View) => void;
     onOpenSettings: () => void;
+    onOpenAccountDrawer: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ view, onSetView, onOpenSettings }) => {
+const Header: React.FC<HeaderProps> = ({ view, onSetView, onOpenSettings, onOpenAccountDrawer }) => {
     const { t } = useTranslation();
     const { user, signOut, loading: authLoading } = useAuth();
     const isPracticeArea = view === 'practice' || view === 'list';
@@ -68,17 +70,12 @@ const Header: React.FC<HeaderProps> = ({ view, onSetView, onOpenSettings }) => {
                     </button>
                 </div>
                 <div className="flex items-center space-x-3">
-                    {user?.email && (
-                        <span className="text-sm text-slate-400 hidden sm:inline">{user.email}</span>
-                    )}
                     <button
-                        type="button"
-                        onClick={handleSignOut}
-                        className="px-3 py-2 text-sm font-medium text-slate-300 hover:text-white border border-slate-700/70 rounded-lg transition-colors disabled:opacity-60"
-                        disabled={authLoading}
-                        aria-label={t('header.actions.signOut')}
+                        onClick={onOpenAccountDrawer}
+                        className="p-2 text-slate-400 hover:text-white transition-colors"
+                        aria-label={t('account.title')}
                     >
-                        {authLoading ? t('header.actions.signingOut') : t('header.actions.signOut')}
+                        <FaUser className="w-6 h-6" />
                     </button>
                 </div>
             </div>

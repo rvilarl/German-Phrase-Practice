@@ -19,6 +19,9 @@
     },
     "placeholder": {
       "email": "you@example.com"
+    },
+    "labels": {
+      "error": "Error"
     }
   },
   "auth": {
@@ -235,6 +238,124 @@
     "actions": {
       "skip": "Skip",
       "know": "I know it"
+    }
+  },
+  "languages": {
+    "names": {
+      "ru": "Russian",
+      "de": "German"
+    },
+    "prepositional": {
+      "ru": "Russian",
+      "de": "German"
+    },
+    "badge": {
+      "en": "EN",
+      "de": "DE",
+      "ru": "RU",
+      "fr": "FR",
+      "es": "ES",
+      "it": "IT",
+      "pt": "PT",
+      "pl": "PL",
+      "zh": "中文",
+      "ja": "日本",
+      "ar": "AR"
+    }
+  },
+  "fab": {
+    "addPhrase": "Add phrase in {{language}}",
+    "openLibrary": "Open library",
+    "smartImport": "Smart import",
+    "chooseLanguage": "Choose phrase language",
+    "toggle": "Add phrase"
+  },
+  "modals": {
+    "addContinuation": {
+      "placeholders": {
+        "text": "Type the continuation..."
+      },
+      "aria": {
+        "microphone": "Voice input",
+        "send": "Send continuation",
+        "switchToText": "Switch to text input",
+        "switchToVoice": "Switch to voice input"
+      }
+    },
+    "addPhrase": {
+      "loading": "Creating card...",
+      "title": "Create a new phrase",
+      "body": {
+        "instructions": {
+          "voice": "Speak the phrase in {{language}}",
+          "text": "Enter the phrase in {{language}}"
+        }
+      },
+      "placeholders": {
+        "ru": "e.g., \"Сколько это стоит?\"",
+        "de": "e.g., \"Wie viel kostet das?\""
+      },
+      "aria": {
+        "microphone": "Voice input",
+        "textField": {
+          "ru": "Russian phrase",
+          "de": "German phrase"
+        },
+        "send": "Create phrase",
+        "toggleToText": "Switch to text input",
+        "toggleToVoice": "Switch to voice input",
+        "close": "Close"
+      },
+      "status": {
+        "listening": "Listening..."
+      },
+      "errors": {
+        "generic": "Could not create the phrase.",
+        "network": "Network error. Check your connection or type the text manually.",
+        "permission": "Microphone access is not allowed. Check settings or type the text manually.",
+        "recognition": "Speech recognition failed."
+      },
+      "errorLabel": "Error",
+      "actions": {
+        "create": "Create"
+      }
+    },
+    "adjectiveDeclension": {
+      "title": "Adjective: {{adjective}}",
+      "phraseNative": "Declension: {{adjective}}",
+      "labels": {
+        "case": "Case",
+        "masculine": "Masculine",
+        "feminine": "Feminine",
+        "neuter": "Neuter",
+        "plural": "Plural",
+        "weak": "Weak declension (with definite article)",
+        "mixed": "Mixed declension (with indefinite article)",
+        "strong": "Strong declension (without article)",
+        "degrees": "Degrees of comparison",
+        "positive": "Positive",
+        "comparative": "Comparative",
+        "superlative": "Superlative"
+      },
+      "sections": {
+        "grammar": "Grammar reference",
+        "example": "Usage example"
+      },
+      "states": {
+        "errorTitle": "Error",
+        "empty": "No data.",
+        "errorMessage": "Failed to load declension data."
+      },
+      "cases": {
+        "nominativ": "Nominative",
+        "akkusativ": "Accusative",
+        "dativ": "Dative",
+        "genitiv": "Genitive"
+      }
+    },
+    "autoFillLoading": {
+      "title": "Generating cards...",
+      "body": "Please wait. AI is selecting phrases for the \"{{category}}\" category."
     }
   }
 }
