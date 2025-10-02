@@ -18,7 +18,8 @@ const initializeApi = () => {
     return null;
 }
 
-const model = "gemini-2.5-flash";
+const model = "gemini-2.5-flash-lite-preview-09-2025";
+// const model = "gemini-2.5-flash";
 
 const phraseSchema = {
     type: Type.ARRAY,
