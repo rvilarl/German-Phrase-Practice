@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@google/genai": "^1.15.0",
-    "@supabase/supabase-js": "^2.39.0",
+    "@supabase/supabase-js": "^2.58.0",
     "cropperjs": "^1.6.2",
     "epubjs": "^0.3.93",
     "i18next": "^25.5.3",
