@@ -1,19 +1,36 @@
-import React, { createContext, useCallback, useEffect, useMemo, useRef, useState, ReactNode } from 'react';
+﻿import React, {
+  createContext,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import { I18nextProvider } from 'react-i18next';
-import i18n, { DEFAULT_LANG, SUPPORTED_LANGS } from '../i18n/config.ts';
+import i18n, { DEFAULT_LANG, LOCALE_SCHEMA_VERSION, SUPPORTED_LANGS } from '../i18n/config.ts';
 import * as configService from '../../services/configService.ts';
 import type { LanguageProfile, LanguageCode } from '../../types.ts';
-import { hasLocaleGaps, loadLocaleResources } from '../services/languageService.ts';
+import {
+  hasLocaleGaps,
+  loadLocaleResources,
+  validateLocaleShape,
+} from '../services/languageService.ts';
+import { readLocaleCache } from '../services/localeCache.ts';
 import LocalizationOverlay from '../../components/LocalizationOverlay.tsx';
 import DevLanguageSelector from '../../components/DevLanguageSelector.tsx';
 import type { LocalizationPhase } from '../i18n/localizationPhases.ts';
-import { getLanguageLabel } from '../i18n/languageMeta.ts';
 
 const DEV_OVERRIDE_KEY = 'devLanguageOverride';
 
+type ProfileUpdater = LanguageProfile | ((prev: LanguageProfile) => LanguageProfile);
+interface SetProfileOptions {
+  lockUi?: boolean;
+}
+
 interface LanguageContextType {
   profile: LanguageProfile;
-  setProfile: (profile: LanguageProfile) => void;
+  setProfile: (profile: ProfileUpdater, options?: SetProfileOptions) => void;
   currentLanguage: string;
   isLocalizing: boolean;
   localizationPhase: LocalizationPhase;
@@ -36,21 +53,33 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
   const isDev = import.meta.env.DEV;
   const [profile, setProfileState] = useState<LanguageProfile>(() => {
     const { profile: storedProfile, source } = configService.getLanguageProfile();
+    const meta = configService.getLanguageProfileMeta();
+    const detected = detectBrowserLanguage();
+
     let resolvedProfile = storedProfile;
+    let uiLocked = meta.uiLocked ?? false;
 
     if (source === 'default') {
-      const detected = detectBrowserLanguage();
-      resolvedProfile = { ...storedProfile, ui: detected };
-      configService.saveLanguageProfile(resolvedProfile);
+      uiLocked = false;
+    }
+
+    if (!uiLocked && resolvedProfile.ui !== detected) {
+      resolvedProfile = { ...resolvedProfile, ui: detected };
     }
 
     if (isDev) {
       const override = localStorage.getItem(DEV_OVERRIDE_KEY) as LanguageCode | null;
       if (override && SUPPORTED_LANGS.includes(override)) {
         resolvedProfile = { ...resolvedProfile, ui: override };
-        configService.saveLanguageProfile(resolvedProfile);
+        uiLocked = true;
       }
     }
+
+    configService.saveLanguageProfile(resolvedProfile);
+    configService.saveLanguageProfileMeta({
+      uiLocked,
+      lastDetected: detected,
+    });
 
     return resolvedProfile;
   });
@@ -83,6 +112,10 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
     if (override && override !== profile.ui && SUPPORTED_LANGS.includes(override)) {
       setProfileState((prev) => ({ ...prev, ui: override }));
       configService.saveLanguageProfile({ ...profile, ui: override });
+      configService.saveLanguageProfileMeta({
+        uiLocked: true,
+        lastDetected: detectBrowserLanguage(),
+      });
     }
   }, []);
 
@@ -94,6 +127,7 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
       window.clearTimeout(hideOverlayTimeout.current);
       hideOverlayTimeout.current = null;
     }
+
     if (activeController.current) {
       activeController.current.abort();
     }
@@ -108,38 +142,60 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
     const controller = new AbortController();
     activeController.current = controller;
 
-    const needsLocalizationOverlay = hasLocaleGaps(targetLang);
-    if (needsLocalizationOverlay) {
-      setOverlayVisible(true);
-      setIsLocalizing(true);
-      setLocalizationPhase('checkingStatic');
-    }
+    const runLocalization = async () => {
+      let overlayNeeded = false;
 
-    let finalPhase: LocalizationPhase = 'completed';
+      const staticHasGaps = hasLocaleGaps(targetLang);
+      if (staticHasGaps) {
+        try {
+          const cached = await readLocaleCache(targetLang, LOCALE_SCHEMA_VERSION);
+          if (!cached || !validateLocaleShape(cached)) {
+            overlayNeeded = true;
+          }
+        } catch (cacheError) {
+          console.warn('Failed to read locale cache:', cacheError);
+          overlayNeeded = true;
+        }
+      }
 
-    loadLocaleResources(targetLang, {
-      signal: controller.signal,
-      onPhase: (phase) => {
+      if (overlayNeeded) {
+        setOverlayVisible(true);
+        setIsLocalizing(true);
+        setLocalizationPhase('checkingStatic');
+      } else {
+        setOverlayVisible(false);
+        setIsLocalizing(false);
+        setLocalizationPhase('completed');
+      }
+
+      let finalPhase: LocalizationPhase = 'completed';
+
+      try {
+        const result = await loadLocaleResources(targetLang, {
+          signal: controller.signal,
+          onPhase: overlayNeeded
+            ? (phase) => {
+                if (!controller.signal.aborted) {
+                  setLocalizationPhase(phase);
+                }
+              }
+            : undefined,
+        });
+
         if (controller.signal.aborted) {
           return;
         }
-        setLocalizationPhase(phase);
-      },
-    })
-      .then(async (result) => {
-        if (controller.signal.aborted) {
-          return;
-        }
-        if (!i18n.hasResourceBundle(result.lang, 'translation')) {
-          i18n.addResourceBundle(result.lang, 'translation', result.resources, true, true);
-        } else if (result.source !== 'static') {
+
+        if (!i18n.hasResourceBundle(result.lang, 'translation') || result.source !== 'static') {
           i18n.addResourceBundle(result.lang, 'translation', result.resources, true, true);
         }
+
         await i18n.changeLanguage(result.lang);
         finalPhase = 'completed';
-        setLocalizationPhase('completed');
-      })
-      .catch((error) => {
+        if (!overlayNeeded) {
+          setLocalizationPhase('completed');
+        }
+      } catch (error) {
         if (controller.signal.aborted) {
           return;
         }
@@ -149,12 +205,11 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
         i18n.changeLanguage(DEFAULT_LANG).catch((changeError) => {
           console.error('Failed to revert to default language', changeError);
         });
-      })
-      .finally(() => {
+      } finally {
         if (controller.signal.aborted) {
           return;
         }
-        if (needsLocalizationOverlay) {
+        if (overlayNeeded) {
           const delay = finalPhase === 'fallback' ? 1800 : 600;
           hideOverlayTimeout.current = window.setTimeout(() => {
             setOverlayVisible(false);
@@ -164,26 +219,48 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
         } else {
           setIsLocalizing(false);
         }
-      });
+      }
+    };
+
+    runLocalization().catch((error) => {
+      if (!controller.signal.aborted) {
+        console.error('Failed to initialize localization', error);
+      }
+    });
 
     return () => {
       controller.abort();
     };
   }, [profile.ui, isDev, showDevSelector]);
 
-  const setProfile = useCallback((newProfile: LanguageProfile) => {
-    configService.saveLanguageProfile(newProfile);
-    setProfileState(newProfile);
-  }, []);
+  const setProfile = useCallback(
+    (update: ProfileUpdater, options: SetProfileOptions = {}) => {
+      const { lockUi = true } = options;
+      const detected = detectBrowserLanguage();
+      setProfileState((prev) => {
+        const next = typeof update === 'function' ? (update as (value: LanguageProfile) => LanguageProfile)(prev) : update;
+        configService.saveLanguageProfile(next);
+        configService.saveLanguageProfileMeta({
+          uiLocked: lockUi,
+          lastDetected: detected,
+        });
+        return next;
+      });
+    },
+    []
+  );
 
-  const handleDevLanguageSelect = useCallback((lang: LanguageCode) => {
-    if (!isDev) {
-      return;
-    }
-    localStorage.setItem(DEV_OVERRIDE_KEY, lang);
-    setShowDevSelector(false);
-    setProfile((prev) => ({ ...prev, ui: lang }));
-  }, [isDev, setProfile]);
+  const handleDevLanguageSelect = useCallback(
+    (lang: LanguageCode) => {
+      if (!isDev) {
+        return;
+      }
+      localStorage.setItem(DEV_OVERRIDE_KEY, lang);
+      setShowDevSelector(false);
+      setProfile((prev) => ({ ...prev, ui: lang }), { lockUi: true });
+    },
+    [isDev, setProfile]
+  );
 
   const handleUseSystemLanguage = useCallback(() => {
     if (!isDev) {
@@ -192,7 +269,7 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
     localStorage.removeItem(DEV_OVERRIDE_KEY);
     const detected = detectBrowserLanguage();
     setShowDevSelector(false);
-    setProfile((prev) => ({ ...prev, ui: detected }));
+    setProfile((prev) => ({ ...prev, ui: detected }), { lockUi: false });
   }, [isDev, setProfile]);
 
   const openDevLanguageSelector = useCallback(() => {
@@ -236,3 +313,4 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
     </LanguageContext.Provider>
   );
 };
+
