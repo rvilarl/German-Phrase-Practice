@@ -1,17 +1,22 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import App from '../App';
 import LoginPage from '../pages/LoginPage.tsx';
 import SignUpPage from '../pages/SignUpPage.tsx';
 import { useAuth } from './contexts/authContext.tsx';
+import { useTranslation } from './hooks/useTranslation.ts';
 
-const LoadingScreen: React.FC = () => (
-  <div className="min-h-screen flex items-center justify-center bg-slate-950 text-slate-100">
-    <div className="text-center">
-      <div className="w-16 h-16 border-4 border-slate-700 border-t-cyan-400 rounded-full animate-spin mx-auto mb-6" />
-      <p className="text-slate-400">Загружаем ваши данные…</p>
+const LoadingScreen: React.FC = () => {
+  const { t } = useTranslation();
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-slate-950 text-slate-100">
+      <div className="text-center">
+        <div className="w-16 h-16 border-4 border-slate-700 border-t-cyan-400 rounded-full animate-spin mx-auto mb-6" />
+        <p className="text-slate-400">{t('auth.loading.preparingData')}</p>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const AppRoot: React.FC = () => {
   const { user, initializing } = useAuth();

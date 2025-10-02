@@ -1,0 +1,73 @@
+{
+  "header": {
+    "title": "",
+    "subtitle": ""
+  },
+  "common": {
+    "field": {
+      "email": ""
+    },
+    "placeholder": {
+      "email": ""
+    }
+  },
+  "auth": {
+    "errors": {
+      "ensureUserData": "",
+      "sessionExpired": "",
+      "supabaseSignOut": "",
+      "restoreSession": "",
+      "subscribeAuth": "",
+      "noSessionAfterSignIn": "",
+      "noSessionAfterSignUp": ""
+    },
+    "loading": {
+      "preparingData": ""
+    },
+    "login": {
+      "validation": {
+        "missingCredentials": ""
+      },
+      "title": "",
+      "subtitle": "",
+      "field": {
+        "passwordLabel": "",
+        "passwordPlaceholder": ""
+      },
+      "submit": {
+        "state": {
+          "loading": ""
+        },
+        "label": ""
+      },
+      "switch": {
+        "prompt": "",
+        "cta": ""
+      }
+    },
+    "signup": {
+      "validation": {
+        "missingFields": "",
+        "passwordMismatch": ""
+      },
+      "title": "",
+      "subtitle": "",
+      "field": {
+        "passwordLabel": "",
+        "passwordPlaceholder": "",
+        "confirmLabel": "",
+        "confirmPlaceholder": ""
+      },
+      "submit": {
+        "state": {
+          "loading": ""
+        },
+        "label": ""
+      },
+      "switch": {
+        "prompt": "",
+        "cta": ""
+      }
+    }
+  }
+}

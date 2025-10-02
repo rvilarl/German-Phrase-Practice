@@ -1,0 +1,32 @@
+key,default_en,location,notes
+auth.errors.ensureUserData,Failed to ensure user data is initialized.,src/contexts/authContext.tsx:69,Console + fallback log
+auth.errors.sessionExpired,Session expired. Please sign in again.,src/contexts/authContext.tsx:77,Shown in UI via setError
+auth.errors.supabaseSignOut,Failed to sign out from Supabase after 401.,src/contexts/authContext.tsx:79,Console log
+auth.errors.restoreSession,Failed to restore authentication session.,src/contexts/authContext.tsx:100,Console log
+auth.errors.subscribeAuth,Failed to subscribe to auth state changes.,src/contexts/authContext.tsx:125,Console log
+auth.errors.noSessionAfterSignIn,Unable to obtain session after sign-in.,src/contexts/authContext.tsx:154,Surface via throw new Error
+auth.errors.noSessionAfterSignUp,Unable to obtain session after sign-up.,src/contexts/authContext.tsx:175,Surface via throw new Error
+auth.loading.preparingData,Preparing your data...,src/AppRoot.tsx:11,Loading screen copy
+auth.login.validation.missingCredentials,Enter your email and password.,pages/LoginPage.tsx:19,Client-side validation error
+auth.login.title,Sign in,pages/LoginPage.tsx:35,Main heading
+auth.login.subtitle,Sign in to continue practicing phrases.,pages/LoginPage.tsx:36,Subheading copy
+common.field.email,Email,pages/LoginPage.tsx:44,Shared field label
+auth.login.field.passwordLabel,Password,pages/LoginPage.tsx:57,Field label
+auth.login.field.passwordPlaceholder,********,pages/LoginPage.tsx:64,Input placeholder
+auth.login.submit.state.loading,Signing in...,pages/LoginPage.tsx:74,Submit button loading text
+auth.login.submit.label,Sign in,pages/LoginPage.tsx:74,Submit button label
+auth.login.switch.prompt,Don't have an account?,pages/LoginPage.tsx:78,Switch prompt
+auth.login.switch.cta,Create account,pages/LoginPage.tsx:80,Switch CTA button
+auth.signup.validation.missingFields,Fill in all fields.,pages/SignUpPage.tsx:20,Client-side validation error
+auth.signup.validation.passwordMismatch,Passwords do not match.,pages/SignUpPage.tsx:25,Client-side validation error
+auth.signup.title,Create account,pages/SignUpPage.tsx:41,Main heading
+auth.signup.subtitle,Create an account to sync your phrases.,pages/SignUpPage.tsx:42,Subheading copy
+auth.signup.field.passwordLabel,Password,pages/SignUpPage.tsx:63,Field label
+auth.signup.field.passwordPlaceholder,At least 6 characters,pages/SignUpPage.tsx:70,Input placeholder
+auth.signup.field.confirmLabel,Confirm password,pages/SignUpPage.tsx:76,Field label
+auth.signup.field.confirmPlaceholder,Repeat your password,pages/SignUpPage.tsx:83,Input placeholder
+auth.signup.submit.state.loading,Creating account...,pages/SignUpPage.tsx:93,Submit button loading text
+auth.signup.submit.label,Sign up,pages/SignUpPage.tsx:93,Submit button label
+auth.signup.switch.prompt,Already have an account?,pages/SignUpPage.tsx:97,Switch prompt
+auth.signup.switch.cta,Sign in,pages/SignUpPage.tsx:99,Switch CTA button
+common.placeholder.email,you@example.com,pages/LoginPage.tsx:51,Email placeholder shared with sign-up

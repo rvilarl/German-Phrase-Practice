@@ -1,10 +1,19 @@
 import { useContext } from 'react';
+import { useTranslation as useI18nextTranslation } from 'react-i18next';
 import { LanguageContext } from '../contexts/languageContext.tsx';
 
 export const useTranslation = () => {
-    const context = useContext(LanguageContext);
-    if (context === undefined) {
-        throw new Error('useTranslation must be used within a LanguageProvider');
-    }
-    return context;
+  const languageContext = useContext(LanguageContext);
+  if (languageContext === undefined) {
+    throw new Error('useTranslation must be used within a LanguageProvider');
+  }
+
+  const translation = useI18nextTranslation();
+
+  return {
+    ...translation,
+    profile: languageContext.profile,
+    setProfile: languageContext.setProfile,
+    currentLanguage: languageContext.currentLanguage,
+  };
 };

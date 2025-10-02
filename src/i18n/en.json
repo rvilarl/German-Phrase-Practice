@@ -1,4 +1,73 @@
 {
-    "header.title": "Lingopo",
-    "header.subtitle": "Spaced Repetition System"
+  "header": {
+    "title": "Lingopo",
+    "subtitle": "Spaced Repetition System"
+  },
+  "common": {
+    "field": {
+      "email": "Email"
+    },
+    "placeholder": {
+      "email": "you@example.com"
+    }
+  },
+  "auth": {
+    "errors": {
+      "ensureUserData": "Failed to ensure user data is initialized.",
+      "sessionExpired": "Session expired. Please sign in again.",
+      "supabaseSignOut": "Failed to sign out from Supabase after 401.",
+      "restoreSession": "Failed to restore authentication session.",
+      "subscribeAuth": "Failed to subscribe to auth state changes.",
+      "noSessionAfterSignIn": "Unable to obtain session after sign-in.",
+      "noSessionAfterSignUp": "Unable to obtain session after sign-up."
+    },
+    "loading": {
+      "preparingData": "Preparing your data..."
+    },
+    "login": {
+      "validation": {
+        "missingCredentials": "Enter your email and password."
+      },
+      "title": "Sign in",
+      "subtitle": "Sign in to continue practicing phrases.",
+      "field": {
+        "passwordLabel": "Password",
+        "passwordPlaceholder": "********"
+      },
+      "submit": {
+        "state": {
+          "loading": "Signing in..."
+        },
+        "label": "Sign in"
+      },
+      "switch": {
+        "prompt": "Don't have an account?",
+        "cta": "Create account"
+      }
+    },
+    "signup": {
+      "validation": {
+        "missingFields": "Fill in all fields.",
+        "passwordMismatch": "Passwords do not match."
+      },
+      "title": "Create account",
+      "subtitle": "Create an account to sync your phrases.",
+      "field": {
+        "passwordLabel": "Password",
+        "passwordPlaceholder": "At least 6 characters",
+        "confirmLabel": "Confirm password",
+        "confirmPlaceholder": "Repeat your password"
+      },
+      "submit": {
+        "state": {
+          "loading": "Creating account..."
+        },
+        "label": "Sign up"
+      },
+      "switch": {
+        "prompt": "Already have an account?",
+        "cta": "Sign in"
+      }
+    }
+  }
 }

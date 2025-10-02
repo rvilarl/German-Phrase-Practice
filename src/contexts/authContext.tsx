@@ -7,6 +7,7 @@
   useState,
 } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
+import { useTranslation } from '../hooks/useTranslation.ts';
 import * as authService from '../../services/authService.ts';
 import * as backendService from '../../services/backendService.ts';
 import {
@@ -54,6 +55,7 @@ const useApplySession = () => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { t } = useTranslation();
   const { session, user, token, applySession } = useApplySession();
   const [initializing, setInitializing] = useState<boolean>(true);
   const [loading, setLoading] = useState<boolean>(false);
@@ -66,24 +68,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await backendService.loadInitialData();
       }
     } catch (initError) {
-      console.error('Не удалось инициализировать данные пользователя', initError);
+      console.error(t('auth.errors.ensureUserData'), initError);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     setUnauthorizedHandler(() => {
       applySession(null);
       clearAppCaches();
-      setError('Сессия истекла. Выполните вход снова.');
+      setError(t('auth.errors.sessionExpired'));
       authService.signOut().catch((signOutError) => {
-        console.error('Не удалось завершить сессию Supabase после 401', signOutError);
+        console.error(t('auth.errors.supabaseSignOut'), signOutError);
       });
     });
 
     return () => {
       setUnauthorizedHandler(null);
     };
-  }, [applySession]);
+  }, [applySession, t]);
 
   useEffect(() => {
     let isMounted = true;
@@ -97,7 +99,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         applySession(existingSession);
       } catch (bootstrapError) {
-        console.error('Не удалось восстановить сессию авторизации', bootstrapError);
+        console.error(t('auth.errors.restoreSession'), bootstrapError);
         if (isMounted) {
           setError((bootstrapError as Error).message);
         }
@@ -122,7 +124,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       });
     } catch (subscriptionError) {
-      console.error('Не удалось подписаться на события авторизации', subscriptionError);
+      console.error(t('auth.errors.subscribeAuth'), subscriptionError);
       if (isMounted) {
         setError((subscriptionError as Error).message);
         setInitializing(false);
@@ -133,7 +135,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isMounted = false;
       subscription?.unsubscribe();
     };
-  }, [applySession]);
+  }, [applySession, t]);
 
   const withLoading = async <T,>(fn: () => Promise<T>): Promise<T> => {
     setLoading(true);
@@ -151,7 +153,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const previousUserId = session?.user?.id;
         const { session: nextSession } = await authService.signIn(email, password);
         if (!nextSession) {
-          throw new Error('Не удалось получить сессию после входа.');
+          throw new Error(t('auth.errors.noSessionAfterSignIn'));
         }
         if (!previousUserId || nextSession.user?.id !== previousUserId) {
           clearAppCaches();
@@ -172,7 +174,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const { session: nextSession } = await authService.signUp(email, password);
 
         if (!nextSession) {
-          throw new Error('Не удалось получить сессию после регистрации.');
+          throw new Error(t('auth.errors.noSessionAfterSignUp'));
         }
 
         clearAppCaches();

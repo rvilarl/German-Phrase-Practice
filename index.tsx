@@ -24,10 +24,10 @@ const root = ReactDOM.createRoot(rootElement);
 root.render(
   // StrictMode removed to prevent double-rendering and duplicate API calls in useEffect.
   // <React.StrictMode>
-  <AuthProvider>
-    <LanguageProvider>
+  <LanguageProvider>
+    <AuthProvider>
       <AppRoot />
-    </LanguageProvider>
-  </AuthProvider>
+    </AuthProvider>
+  </LanguageProvider>
   // </React.StrictMode>
 );

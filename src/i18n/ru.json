@@ -1,4 +1,73 @@
 {
-    "header.title": "Lingopo",
-    "header.subtitle": "Система интервального повторения"
+  "header": {
+    "title": "Lingopo",
+    "subtitle": "Система интервальных повторений"
+  },
+  "common": {
+    "field": {
+      "email": "Email"
+    },
+    "placeholder": {
+      "email": "you@example.com"
+    }
+  },
+  "auth": {
+    "errors": {
+      "ensureUserData": "Не удалось инициализировать данные пользователя.",
+      "sessionExpired": "Сессия истекла. Выполните вход снова.",
+      "supabaseSignOut": "Не удалось завершить сессию Supabase после 401.",
+      "restoreSession": "Не удалось восстановить сессию авторизации.",
+      "subscribeAuth": "Не удалось подписаться на события авторизации.",
+      "noSessionAfterSignIn": "Не удалось получить сессию после входа.",
+      "noSessionAfterSignUp": "Не удалось получить сессию после регистрации."
+    },
+    "loading": {
+      "preparingData": "Загружаем ваши данные..."
+    },
+    "login": {
+      "validation": {
+        "missingCredentials": "Введите email и пароль."
+      },
+      "title": "Вход",
+      "subtitle": "Авторизуйтесь, чтобы продолжить изучение фраз.",
+      "field": {
+        "passwordLabel": "Пароль",
+        "passwordPlaceholder": "********"
+      },
+      "submit": {
+        "state": {
+          "loading": "Входим..."
+        },
+        "label": "Войти"
+      },
+      "switch": {
+        "prompt": "Нет аккаунта?",
+        "cta": "Зарегистрироваться"
+      }
+    },
+    "signup": {
+      "validation": {
+        "missingFields": "Заполните все поля.",
+        "passwordMismatch": "Пароли не совпадают."
+      },
+      "title": "Регистрация",
+      "subtitle": "Создайте аккаунт, чтобы синхронизировать свои фразы.",
+      "field": {
+        "passwordLabel": "Пароль",
+        "passwordPlaceholder": "Минимум 6 символов",
+        "confirmLabel": "Повторите пароль",
+        "confirmPlaceholder": "Повторите пароль"
+      },
+      "submit": {
+        "state": {
+          "loading": "Создаем аккаунт..."
+        },
+        "label": "Зарегистрироваться"
+      },
+      "switch": {
+        "prompt": "Уже есть аккаунт?",
+        "cta": "Войти"
+      }
+    }
+  }
 }
