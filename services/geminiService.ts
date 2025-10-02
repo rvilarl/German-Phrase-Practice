@@ -2,9 +2,10 @@
 
 
 import { GoogleGenAI, Type } from "@google/genai";
-import type { Phrase, ChatMessage, ExamplePair, ProactiveSuggestion, ContentPart, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, AdjectiveDeclension, SentenceContinuation, TranslationChatRequest, TranslationChatResponse, PhraseBuilderOptions, PhraseEvaluation, CategoryAssistantRequest, CategoryAssistantResponse, CategoryAssistantRequestType, ProposedCard } from '../types';
+import type { Phrase, ChatMessage, ExamplePair, ProactiveSuggestion, ContentPart, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, AdjectiveDeclension, SentenceContinuation, TranslationChatRequest, TranslationChatResponse, PhraseBuilderOptions, PhraseEvaluation, CategoryAssistantRequest, CategoryAssistantResponse, CategoryAssistantRequestType, ProposedCard, LanguageCode } from '../types';
 import { AiService } from './aiService';
 import { getGeminiApiKey } from './env';
+import type { TranslationRecord } from '../src/services/languageService.ts';
 
 let ai: GoogleGenAI | null = null;
 
@@ -20,6 +21,65 @@ const initializeApi = () => {
 
 const model = "gemini-2.5-flash-lite-preview-09-2025";
 // const model = "gemini-2.5-flash";
+
+const buildLocalePrompt = (languageLabel: string) => [
+  {
+    role: 'user',
+    parts: [
+      {
+        text: `You translate UI text from English to ${languageLabel}. Return valid JSON matching the input structure. Translate string values only. Preserve placeholders like {{count}} or {{name}} exactly. Keep HTML tags and Markdown untouched. Use straight quotes and ASCII ellipsis (...). Do not add explanations.`
+      }
+    ]
+  }
+];
+
+const sanitizeJsonResponse = (raw: string) => {
+  const trimmed = raw.trim();
+  if (trimmed.startsWith('```')) {
+    const withoutFence = trimmed.replace(/^```[a-z]*\s*/i, '').replace(/```$/, '');
+    return withoutFence.trim();
+  }
+  return trimmed;
+};
+
+
+
+export const translateLocaleTemplate = async (template: TranslationRecord, targetLanguage: LanguageCode): Promise<TranslationRecord> => {
+  const api = initializeApi();
+  if (!api) {
+    throw new Error('Gemini API key not configured.');
+  }
+
+  const templateJson = JSON.stringify(template, null, 2);
+  const prompt = buildLocalePrompt(targetLanguage);
+  prompt[0].parts.push({ text: templateJson });
+
+  try {
+    const response = await api.models.generateContent({
+      model,
+      contents: prompt,
+      config: {
+        responseMimeType: 'application/json',
+        temperature: 0.2,
+      },
+    });
+
+    const raw = (response?.text ?? '').toString();
+    const sanitized = sanitizeJsonResponse(raw);
+    if (!sanitized) {
+      throw new Error('Received empty translation response.');
+    }
+
+    const parsed = JSON.parse(sanitized);
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+      throw new Error('Translated locale must be a JSON object.');
+    }
+    return parsed as TranslationRecord;
+  } catch (error) {
+    console.error('Error translating locale with Gemini:', error);
+    throw error instanceof Error ? error : new Error('Failed to translate locale via Gemini.');
+  }
+};
 
 const phraseSchema = {
     type: Type.ARRAY,

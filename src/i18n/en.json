@@ -1,7 +1,17 @@
 {
   "header": {
     "title": "Lingopo",
-    "subtitle": "Spaced Repetition System"
+    "subtitle": "Spaced Repetition System",
+    "actions": {
+      "openList": "Open list",
+      "openPractice": "Open practice",
+      "openSettings": "Open settings",
+      "signOut": "Sign out",
+      "signingOut": "Signing out..."
+    },
+    "errors": {
+      "signOutFailed": "Sign out failed"
+    }
   },
   "common": {
     "field": {
@@ -67,6 +77,102 @@
       "switch": {
         "prompt": "Already have an account?",
         "cta": "Sign in"
+      }
+    }
+  },
+  "settings": {
+    "views": {
+      "main": "Settings",
+      "general": "General",
+      "automation": "Automation (AI)",
+      "categories": "Practice categories"
+    },
+    "general": {
+      "legend": "General settings",
+      "autoSpeak": {
+        "label": "Automatic pronunciation"
+      },
+      "soundEffects": {
+        "label": "Sound effects"
+      }
+    },
+    "automation": {
+      "legend": "Automation settings",
+      "autoCheckShortPhrases": {
+        "label": "Auto-check short phrases",
+        "description": "Instantly check when the phrase is assembled correctly."
+      },
+      "learnNextPhraseHabit": {
+        "label": "Next phrase habit",
+        "description": "Auto-advance after a quick streak of correct answers."
+      }
+    },
+    "categories": {
+      "manageButton": "Manage categories"
+    }
+  },
+  "notifications": {
+    "sync": {
+      "synced": "✓ Data synced with the server.",
+      "loaded": "✓ Data loaded from the server.",
+      "error": "Sync error: {{message}}"
+    },
+    "phrases": {
+      "existsInCategory": "Card \"{{phrase}}\" is already in this category.",
+      "existsInOtherCategory": "Card \"{{phrase}}\" already exists in another category.",
+      "createError": "Failed to create phrase: {{message}}",
+      "exists": "Card \"{{phrase}}\" already exists.",
+      "created": "Card for \"{{phrase}}\" created.",
+      "createCardError": "Failed to create card: {{message}}",
+      "createCardGenericError": "Could not create the card."
+    },
+    "ai": {
+      "providerUnavailable": "AI provider not available."
+    },
+    "updateError": "Update error: {{message}}",
+    "saveError": "Save error: {{message}}",
+    "deleteError": "Delete error: {{message}}",
+    "moveError": "Move error: {{message}}",
+    "genericError": "Error: {{message}}",
+    "cards": {
+      "moving": "Moving {{count}} cards...",
+      "moveSuccess": "✓ Cards moved.",
+      "deleting": "Deleting {{count}} cards...",
+      "deleteSuccess": "✓ Cards deleted.",
+      "generateError": "Failed to generate cards.",
+      "addFailed": "Could not add \"{{phrase}}\": {{error}}",
+      "rateLimit": "Rate limit exceeded. Try adding fewer cards at once.",
+      "addedToCategory": "✓ {{count}} cards added to \"{{category}}\".",
+      "movedAndAdded": "✓ {{moved}} cards moved and {{added}} added to \"{{category}}\".",
+      "addedWithDuplicatesSkipped": "✓ {{count}} cards added to \"{{category}}\". Duplicates were skipped.",
+      "deletedCount": "✓ {{count}} cards deleted.",
+      "movedToCategory": "✓ {{count}} cards moved to \"{{category}}\".",
+      "otherCategory": "another category",
+      "bulkAdded": "✓ {{count}} card added.",
+      "bulkAdded_plural": "✓ {{count}} cards added.",
+      "bulkSkipped": "{{count}} already existed and were skipped.",
+      "bulkSkipped_plural": "{{count}} already existed and were skipped."
+    },
+    "categories": {
+      "createError": "Failed to create category: {{message}}",
+      "saveError": "Failed to save category: {{message}}",
+      "deleteSuccess": "✓ Category \"{{name}}\" deleted."
+    }
+  },
+  "localization": {
+    "overlay": {
+      "heading": "Localization",
+      "title": "Preparing interface in {{language}}",
+      "subtitle": "Localizing UI strings to {{language}}.",
+      "fallbackDescription": "Something went wrong while translating. Fallback language will be used.",
+      "currentStepHint": "In progress…",
+      "fallbackMessage": "Using English until the {{language}} translation is ready.",
+      "steps": {
+        "checkingStatic": "Checking built-in translations",
+        "loadingCache": "Loading cached translations",
+        "requestingAI": "Requesting AI translation",
+        "validating": "Validating translation structure",
+        "applying": "Applying translations"
       }
     }
   }

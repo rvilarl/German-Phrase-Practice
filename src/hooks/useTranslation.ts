@@ -15,5 +15,8 @@ export const useTranslation = () => {
     profile: languageContext.profile,
     setProfile: languageContext.setProfile,
     currentLanguage: languageContext.currentLanguage,
+    isLocalizing: languageContext.isLocalizing,
+    localizationPhase: languageContext.localizationPhase,
+    localizationLanguage: languageContext.localizationLanguage,
   };
 };

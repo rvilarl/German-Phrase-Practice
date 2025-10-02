@@ -3,6 +3,7 @@ import CloseIcon from './icons/CloseIcon';
 import ArrowLeftIcon from './icons/ArrowLeftIcon';
 import ArrowRightIcon from './icons/ArrowRightIcon';
 import { Category, PhraseCategory } from '../types';
+import { useTranslation } from '../src/hooks/useTranslation.ts';
 
 interface Settings {
   autoSpeak: boolean;
@@ -26,15 +27,16 @@ interface SettingsModalProps {
 type SettingsView = 'main' | 'general' | 'automation' | 'categories';
 
 const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings, onSettingsChange, onOpenCategoryManager, categories }) => {
+  const { t } = useTranslation();
   const [view, setView] = useState<SettingsView>('main');
-  
+
   const titles: Record<SettingsView, string> = {
-    main: 'Настройки',
-    general: 'Основные',
-    automation: 'Автоматизация (AI)',
-    categories: 'Категории для практики',
+    main: t('settings.views.main'),
+    general: t('settings.views.general'),
+    automation: t('settings.views.automation'),
+    categories: t('settings.views.categories'),
   };
-  
+
   if (!isOpen) return null;
 
   const handleSettingChange = (setting: keyof Omit<Settings, 'automation' | 'enabledCategories'>, value: boolean) => {
@@ -88,15 +90,15 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
             {/* Main Settings View */}
             <div className={`absolute inset-0 p-6 space-y-4 transition-transform duration-300 ease-in-out ${view === 'main' ? 'translate-x-0' : '-translate-x-full'}`}>
                 <button onClick={() => setView('general')} className="w-full flex items-center justify-between p-4 bg-slate-700/50 hover:bg-slate-700 rounded-lg transition-colors">
-                    <span className="text-slate-200">Основные</span>
+                    <span className="text-slate-200">{t('settings.views.general')}</span>
                     <ArrowRightIcon className="w-5 h-5 text-slate-400" />
                 </button>
                 <button onClick={() => setView('automation')} className="w-full flex items-center justify-between p-4 bg-slate-700/50 hover:bg-slate-700 rounded-lg transition-colors">
-                    <span className="text-slate-200">Автоматизация (AI)</span>
+                    <span className="text-slate-200">{t('settings.views.automation')}</span>
                     <ArrowRightIcon className="w-5 h-5 text-slate-400" />
                 </button>
                 <button onClick={() => setView('categories')} className="w-full flex items-center justify-between p-4 bg-slate-700/50 hover:bg-slate-700 rounded-lg transition-colors">
-                    <span className="text-slate-200">Категории для практики</span>
+                    <span className="text-slate-200">{t('settings.views.categories')}</span>
                     <ArrowRightIcon className="w-5 h-5 text-slate-400" />
                 </button>
             </div>
@@ -104,15 +106,15 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
             {/* General View */}
             <div className={`absolute inset-0 p-6 space-y-6 transition-transform duration-300 ease-in-out ${view === 'general' ? 'translate-x-0' : 'translate-x-full'}`}>
                 <fieldset className="space-y-4">
-                    <legend className="sr-only">Основные настройки</legend>
+                    <legend className="sr-only">{t('settings.general.legend')}</legend>
                     <div className="flex items-center justify-between">
-                        <label htmlFor="autoSpeak" className="text-slate-200">Автоматическое произношение</label>
+                        <label htmlFor="autoSpeak" className="text-slate-200">{t('settings.general.autoSpeak.label')}</label>
                         <button id="autoSpeak" role="switch" aria-checked={settings.autoSpeak} onClick={() => handleSettingChange('autoSpeak', !settings.autoSpeak)} className={`${settings.autoSpeak ? 'bg-purple-600' : 'bg-slate-600'} relative inline-flex h-6 w-11 items-center rounded-full transition-colors`}>
                             <span className={`${settings.autoSpeak ? 'translate-x-6' : 'translate-x-1'} inline-block h-4 w-4 transform rounded-full bg-white transition-transform`} />
                         </button>
                     </div>
                     <div className="flex items-center justify-between">
-                        <label htmlFor="soundEffects" className="text-slate-200">Звуковые эффекты</label>
+                        <label htmlFor="soundEffects" className="text-slate-200">{t('settings.general.soundEffects.label')}</label>
                         <button id="soundEffects" role="switch" aria-checked={settings.soundEffects} onClick={() => handleSettingChange('soundEffects', !settings.soundEffects)} className={`${settings.soundEffects ? 'bg-purple-600' : 'bg-slate-600'} relative inline-flex h-6 w-11 items-center rounded-full transition-colors`}>
                             <span className={`${settings.soundEffects ? 'translate-x-6' : 'translate-x-1'} inline-block h-4 w-4 transform rounded-full bg-white transition-transform`} />
                         </button>
@@ -123,11 +125,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
              {/* Automation View */}
             <div className={`absolute inset-0 p-6 space-y-6 transition-transform duration-300 ease-in-out ${view === 'automation' ? 'translate-x-0' : 'translate-x-full'}`}>
                 <fieldset className="space-y-4">
-                     <legend className="sr-only">Настройки автоматизации</legend>
+                     <legend className="sr-only">{t('settings.automation.legend')}</legend>
                     <div className="flex items-center justify-between">
                         <div>
-                            <label htmlFor="autoCheckShortPhrases" className="text-slate-200">Автопроверка коротких фраз</label>
-                            <p className="text-xs text-slate-400">Мгновенная проверка, если фраза собрана верно.</p>
+                            <label htmlFor="autoCheckShortPhrases" className="text-slate-200">{t('settings.automation.autoCheckShortPhrases.label')}</label>
+                            <p className="text-xs text-slate-400">{t('settings.automation.autoCheckShortPhrases.description')}</p>
                         </div>
                         <button id="autoCheckShortPhrases" role="switch" aria-checked={settings.automation.autoCheckShortPhrases} onClick={() => handleAutomationChange('autoCheckShortPhrases', !settings.automation.autoCheckShortPhrases)} className={`${settings.automation.autoCheckShortPhrases ? 'bg-purple-600' : 'bg-slate-600'} relative inline-flex h-6 w-11 items-center rounded-full transition-colors`}>
                             <span className={`${settings.automation.autoCheckShortPhrases ? 'translate-x-6' : 'translate-x-1'} inline-block h-4 w-4 transform rounded-full bg-white transition-transform`} />
@@ -135,8 +137,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                     </div>
                     <div className="flex items-center justify-between">
                         <div>
-                            <label htmlFor="learnNextPhraseHabit" className="text-slate-200">Привычка "Следующая фраза"</label>
-                            <p className="text-xs text-slate-400">Автопереход при быстрой серии правильных ответов.</p>
+                            <label htmlFor="learnNextPhraseHabit" className="text-slate-200">{t('settings.automation.learnNextPhraseHabit.label')}</label>
+                            <p className="text-xs text-slate-400">{t('settings.automation.learnNextPhraseHabit.description')}</p>
                         </div>
                         <button id="learnNextPhraseHabit" role="switch" aria-checked={settings.automation.learnNextPhraseHabit} onClick={() => handleAutomationChange('learnNextPhraseHabit', !settings.automation.learnNextPhraseHabit)} className={`${settings.automation.learnNextPhraseHabit ? 'bg-purple-600' : 'bg-slate-600'} relative inline-flex h-6 w-11 items-center rounded-full transition-colors`}>
                             <span className={`${settings.automation.learnNextPhraseHabit ? 'translate-x-6' : 'translate-x-1'} inline-block h-4 w-4 transform rounded-full bg-white transition-transform`} />
@@ -162,7 +164,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                     ))}
                 </div>
                 <button onClick={onOpenCategoryManager} className="w-full text-center px-4 py-3 rounded-lg bg-slate-600 hover:bg-slate-700 transition-colors font-semibold text-white shadow-md mt-2">
-                    Управление категориями
+                    {t('settings.categories.manageButton')}
                 </button>
             </div>
         </div>

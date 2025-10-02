@@ -1,7 +1,17 @@
 {
   "header": {
     "title": "",
-    "subtitle": ""
+    "subtitle": "",
+    "actions": {
+      "openList": "",
+      "openPractice": "",
+      "openSettings": "",
+      "signOut": "",
+      "signingOut": ""
+    },
+    "errors": {
+      "signOutFailed": ""
+    }
   },
   "common": {
     "field": {
@@ -67,6 +77,102 @@
       "switch": {
         "prompt": "",
         "cta": ""
+      }
+    }
+  },
+  "settings": {
+    "views": {
+      "main": "",
+      "general": "",
+      "automation": "",
+      "categories": ""
+    },
+    "general": {
+      "legend": "",
+      "autoSpeak": {
+        "label": ""
+      },
+      "soundEffects": {
+        "label": ""
+      }
+    },
+    "automation": {
+      "legend": "",
+      "autoCheckShortPhrases": {
+        "label": "",
+        "description": ""
+      },
+      "learnNextPhraseHabit": {
+        "label": "",
+        "description": ""
+      }
+    },
+    "categories": {
+      "manageButton": ""
+    }
+  },
+  "notifications": {
+    "sync": {
+      "synced": "",
+      "loaded": "",
+      "error": ""
+    },
+    "phrases": {
+      "existsInCategory": "",
+      "existsInOtherCategory": "",
+      "createError": "",
+      "exists": "",
+      "created": "",
+      "createCardError": "",
+      "createCardGenericError": ""
+    },
+    "ai": {
+      "providerUnavailable": ""
+    },
+    "updateError": "",
+    "saveError": "",
+    "deleteError": "",
+    "moveError": "",
+    "genericError": "",
+    "cards": {
+      "moving": "",
+      "moveSuccess": "",
+      "deleting": "",
+      "deleteSuccess": "",
+      "generateError": "",
+      "addFailed": "",
+      "rateLimit": "",
+      "addedToCategory": "",
+      "movedAndAdded": "",
+      "addedWithDuplicatesSkipped": "",
+      "deletedCount": "",
+      "movedToCategory": "",
+      "otherCategory": "",
+      "bulkAdded": "",
+      "bulkAdded_plural": "",
+      "bulkSkipped": "",
+      "bulkSkipped_plural": ""
+    },
+    "categories": {
+      "createError": "",
+      "saveError": "",
+      "deleteSuccess": ""
+    }
+  },
+  "localization": {
+    "overlay": {
+      "heading": "",
+      "title": "",
+      "subtitle": "",
+      "fallbackDescription": "",
+      "currentStepHint": "",
+      "fallbackMessage": "",
+      "steps": {
+        "checkingStatic": "",
+        "loadingCache": "",
+        "requestingAI": "",
+        "validating": "",
+        "applying": ""
       }
     }
   }

@@ -1,4 +1,4 @@
-import { LanguageProfile } from '../types';
+import { LanguageProfile } from '../types.ts';
 
 const LANGUAGE_PROFILE_KEY = 'appLanguageProfile';
 

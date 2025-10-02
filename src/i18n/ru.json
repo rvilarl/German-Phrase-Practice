@@ -1,7 +1,17 @@
 {
   "header": {
     "title": "Lingopo",
-    "subtitle": "Система интервальных повторений"
+    "subtitle": "Система интервальных повторений",
+    "actions": {
+      "openList": "Открыть список",
+      "openPractice": "Перейти к практике",
+      "openSettings": "Открыть настройки",
+      "signOut": "Выйти",
+      "signingOut": "Выходим..."
+    },
+    "errors": {
+      "signOutFailed": "Не удалось завершить выход"
+    }
   },
   "common": {
     "field": {
@@ -67,6 +77,110 @@
       "switch": {
         "prompt": "Уже есть аккаунт?",
         "cta": "Войти"
+      }
+    }
+  },
+  "settings": {
+    "views": {
+      "main": "Настройки",
+      "general": "Основные",
+      "automation": "Автоматизация (AI)",
+      "categories": "Категории для практики"
+    },
+    "general": {
+      "legend": "Основные настройки",
+      "autoSpeak": {
+        "label": "Автоматическое произношение"
+      },
+      "soundEffects": {
+        "label": "Звуковые эффекты"
+      }
+    },
+    "automation": {
+      "legend": "Настройки автоматизации",
+      "autoCheckShortPhrases": {
+        "label": "Автопроверка коротких фраз",
+        "description": "Мгновенная проверка, если фраза собрана верно."
+      },
+      "learnNextPhraseHabit": {
+        "label": "Привычка «Следующая фраза»",
+        "description": "Автопереход при быстрой серии правильных ответов."
+      }
+    },
+    "categories": {
+      "manageButton": "Управление категориями"
+    }
+  },
+  "notifications": {
+    "sync": {
+      "synced": "✓ Данные синхронизированы с сервером.",
+      "loaded": "✓ Данные успешно загружены с сервера.",
+      "error": "Ошибка синхронизации: {{message}}"
+    },
+    "phrases": {
+      "existsInCategory": "Карточка \"{{phrase}}\" уже есть в этой категории.",
+      "existsInOtherCategory": "Карточка \"{{phrase}}\" уже существует в другой категории.",
+      "createError": "Ошибка создания фразы: {{message}}",
+      "exists": "Карточка \"{{phrase}}\" уже существует.",
+      "created": "Карточка для \"{{phrase}}\" создана.",
+      "createCardError": "Ошибка создания карточки: {{message}}",
+      "createCardGenericError": "Не удалось создать карточку."
+    },
+    "ai": {
+      "providerUnavailable": "AI-провайдер недоступен."
+    },
+    "updateError": "Ошибка обновления: {{message}}",
+    "saveError": "Ошибка сохранения: {{message}}",
+    "deleteError": "Ошибка удаления: {{message}}",
+    "moveError": "Ошибка перемещения: {{message}}",
+    "genericError": "Ошибка: {{message}}",
+    "categories": {
+      "createError": "Ошибка создания категории: {{message}}",
+      "saveError": "Ошибка сохранения категории: {{message}}",
+      "deleteSuccess": "✓ Категория \"{{name}}\" удалена."
+    },
+    "cards": {
+      "moving": "Перемещение {{count}} карт...",
+      "moveSuccess": "✓ Карточки перемещены.",
+      "deleting": "Удаление {{count}} карт...",
+      "deleteSuccess": "✓ Карточки удалены.",
+      "generateError": "Не удалось сгенерировать карточки.",
+      "addFailed": "Не удалось добавить \"{{phrase}}\": {{error}}",
+      "rateLimit": "Превышен лимит запросов. Попробуйте добавить меньше карточек за раз.",
+      "addedToCategory": "✓ {{count}} карточек добавлено в \"{{category}}\".",
+      "movedAndAdded": "✓ {{moved}} карточек перемещено и {{added}} добавлено в \"{{category}}\".",
+      "addedWithDuplicatesSkipped": "✓ {{count}} карточек добавлено в \"{{category}}\". Дубликаты пропущены.",
+      "deletedCount": "✓ {{count}} карточек удалено.",
+      "movedToCategory": "✓ {{count}} карточек перемещено в \"{{category}}\".",
+      "otherCategory": "другую категорию",
+      "bulkAdded_one": "✓ {{count}} карточка добавлена.",
+      "bulkAdded_few": "✓ {{count}} карточки добавлены.",
+      "bulkAdded_many": "✓ {{count}} карточек добавлено.",
+      "bulkAdded_other": "✓ {{count}} карточек добавлено.",
+      "bulkSkipped_one": "{{count}} уже существовала и была пропущена.",
+      "bulkSkipped_few": "{{count}} уже существовали и были пропущены.",
+      "bulkSkipped_many": "{{count}} уже существовали и были пропущены.",
+      "bulkSkipped_other": "{{count}} уже существовали и были пропущены.",
+      "bulkAdded": "✓ {{count}} карточек добавлено.",
+      "bulkAdded_plural": "✓ {{count}} карточек добавлено.",
+      "bulkSkipped": "{{count}} уже существовало и было пропущено.",
+      "bulkSkipped_plural": "{{count}} уже существовали и были пропущены."
+    }
+  },
+  "localization": {
+    "overlay": {
+      "heading": "Локализация",
+      "title": "Подготавливаем интерфейс на {{language}}",
+      "subtitle": "Переводим элементы интерфейса на {{language}}.",
+      "fallbackDescription": "В ходе перевода возникла ошибка, включим резервный язык.",
+      "currentStepHint": "Выполняем…",
+      "fallbackMessage": "До готовности перевода на {{language}} используем английский.",
+      "steps": {
+        "checkingStatic": "Проверяем встроенные переводы",
+        "loadingCache": "Загружаем локальный кэш",
+        "requestingAI": "Запрашиваем перевод у AI",
+        "validating": "Проверяем структуру перевода",
+        "applying": "Применяем переводы"
       }
     }
   }

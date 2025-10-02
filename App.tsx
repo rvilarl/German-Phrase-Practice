@@ -53,6 +53,7 @@ import CategoryAssistantModal from './components/CategoryAssistantModal';
 import ConfirmDeletePhrasesModal from './components/ConfirmDeletePhrasesModal';
 import PracticeChatFab from './components/PracticeChatFab';
 import PracticeChatModal from './components/PracticeChatModal';
+import { useTranslation } from './src/hooks/useTranslation.ts';
 
 
 const PHRASES_STORAGE_KEY = 'germanPhrases';
@@ -186,6 +187,7 @@ const LeechModal: React.FC<LeechModalProps> = ({ isOpen, phrase, onImprove, onDi
 
 
 const App: React.FC = () => {
+  const { t } = useTranslation();
   const [allPhrases, setAllPhrases] = useState<Phrase[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -397,7 +399,7 @@ const App: React.FC = () => {
             localStorage.setItem(CATEGORIES_STORAGE_KEY, JSON.stringify(serverCategories));
             updateAndSavePhrases(serverPhrases);
             setCategories(serverCategories);
-            showToast({ message: '✓ Данные синхронизированы с сервером.' });
+            showToast({ message: t('notifications.sync.synced') });
           })
           .catch(syncError => {
             console.warn("Background sync failed:", (syncError as Error).message);
@@ -413,7 +415,7 @@ const App: React.FC = () => {
           setCategories(loadedCategories);
           setAllPhrases(loadedPhrases);
           dataLoaded = true;
-          showToast({ message: '✓ Данные успешно загружены с сервера.' });
+          showToast({ message: t('notifications.sync.loaded') });
         } catch (fetchError) {
           console.error("Critical error during data initialization:", (fetchError as Error).message);
           setError(`Не удалось загрузить данные с сервера: ${(fetchError as Error).message}. Попробуйте обновить страницу.`);
@@ -890,7 +892,7 @@ const App: React.FC = () => {
         await backendService.updatePhrase(updatedPhrase);
     } catch (err) {
         // On failure, just show a toast. Do NOT revert the UI state.
-        showToast({ message: `Ошибка синхронизации: ${(err as Error).message}` });
+        showToast({ message: t('notifications.sync.error', { message: (err as Error).message }) });
         console.error("Background sync failed for phrase " + phrase.id, err);
     }
     
@@ -986,10 +988,10 @@ const App: React.FC = () => {
     const isDuplicateInCategory = categoryToView ? allPhrases.some(p => p.category === categoryToView.id && p.text.learning.trim().toLowerCase() === normalizedGerman) : false;
 
     if (isDuplicateInCategory) {
-        showToast({ message: `Карточка "${newPhraseData.german}" уже есть в этой категории.` });
+        showToast({ message: t('notifications.phrases.existsInCategory', { phrase: newPhraseData.german }) });
         return;
     } else if (isDuplicate) {
-        showToast({ message: `Карточка "${newPhraseData.german}" уже существует в другой категории.` });
+        showToast({ message: t('notifications.phrases.existsInOtherCategory', { phrase: newPhraseData.german }) });
         return;
     }
     
@@ -1011,7 +1013,7 @@ const App: React.FC = () => {
           setView('practice');
         }
     } catch(err) {
-        showToast({ message: `Ошибка создания фразы: ${(err as Error).message}` });
+        showToast({ message: t('notifications.phrases.createError', { message: (err as Error).message }) });
     }
   };
   
@@ -1044,7 +1046,7 @@ const App: React.FC = () => {
                 });
                 finalCategoryId = newCategory.id;
             } catch (err) {
-                showToast({ message: `Ошибка создания категории: ${(err as Error).message}` });
+                showToast({ message: t('notifications.categories.createError', { message: (err as Error).message }) });
                 return;
             }
         }
@@ -1095,10 +1097,10 @@ const App: React.FC = () => {
     const addedCount = await addCardsToCategory(newCards, targetCategory);
     
     const skippedCount = proposedCards.length - addedCount;
-    let toastMessage = `✓ ${addedCount} ${addedCount === 1 ? 'карточка добавлена' : (addedCount > 1 && addedCount < 5 ? 'карточки добавлены' : 'карточек добавлено')}.`;
-    if (skippedCount > 0) {
-        toastMessage += ` ${skippedCount} уже существовали и были пропущены.`;
-    }
+    const baseToastMessage = t('notifications.cards.bulkAdded', { count: addedCount });
+    const toastMessage = skippedCount > 0
+      ? `${baseToastMessage} ${t('notifications.cards.bulkSkipped', { count: skippedCount })}`
+      : baseToastMessage;
     showToast({ message: toastMessage });
     
     if (categoryToView || assistantCategory) { /* stay in view */ } 
@@ -1112,7 +1114,7 @@ const App: React.FC = () => {
   const handleCreateCardFromWord = useCallback(async (phraseData: { german: string; russian: string; }) => {
     const alreadyExists = allPhrases.some(p => p.text.learning.trim().toLowerCase() === phraseData.german.trim().toLowerCase());
     if (alreadyExists) {
-        showToast({ message: `Карточка "${phraseData.german}" уже существует.` });
+        showToast({ message: t('notifications.phrases.exists', { phrase: phraseData.german }) });
         return;
     }
 
@@ -1126,20 +1128,20 @@ const App: React.FC = () => {
         const newPhrase = await backendService.createPhrase(phraseToCreate);
         
         updateAndSavePhrases(prev => [{...newPhrase, isNew: true }, ...prev]);
-        showToast({ message: `Карточка для "${phraseData.german}" создана` });
+        showToast({ message: t('notifications.phrases.created', { phrase: phraseData.german }) });
     } catch(err) {
-        showToast({ message: `Ошибка создания карточки: ${(err as Error).message}` });
+        showToast({ message: t('notifications.phrases.createCardError', { message: (err as Error).message }) });
     }
   }, [allPhrases, categories, updateAndSavePhrases, showToast]);
 
   const handleCreateCardFromSelection = useCallback(async (germanText: string): Promise<boolean> => {
       if (!apiProvider) {
-          showToast({ message: "AI provider not available." });
+          showToast({ message: t('notifications.ai.providerUnavailable') });
           return false;
       }
       const alreadyExists = allPhrases.some(p => p.text.learning.trim().toLowerCase() === germanText.trim().toLowerCase());
       if (alreadyExists) {
-          showToast({ message: `Карточка "${germanText}" уже существует.` });
+          showToast({ message: t('notifications.phrases.exists', { phrase: germanText }) });
           return false;
       }
   
@@ -1154,11 +1156,11 @@ const App: React.FC = () => {
           const newPhrase = await backendService.createPhrase(phraseToCreate);
 
           updateAndSavePhrases(prev => [{...newPhrase, isNew: true}, ...prev]);
-          showToast({ message: `Карточка для "${germanText}" создана` });
+          showToast({ message: t('notifications.phrases.created', { phrase: germanText }) });
           return true;
       } catch (error) {
           console.error("Failed to create card from selection:", error);
-          showToast({ message: "Не удалось создать карточку." });
+          showToast({ message: t('notifications.phrases.createCardGenericError') });
           return false;
       }
   }, [allPhrases, categories, updateAndSavePhrases, showToast, callApiWithFallback, apiProvider]);
@@ -1194,7 +1196,7 @@ const App: React.FC = () => {
         await backendService.updatePhrase(updatedPhrase);
         updateAndSavePhrases(prev => prev.map(p => (p.id === phraseId ? updatedPhrase : p)));
     } catch (err) {
-        showToast({ message: `Ошибка обновления: ${(err as Error).message}` });
+        showToast({ message: t('notifications.updateError', { message: (err as Error).message }) });
     }
   };
 
@@ -1206,7 +1208,7 @@ const App: React.FC = () => {
         await backendService.updatePhrase(updatedPhrase);
         updateAndSavePhrases(prev => prev.map(p => (p.id === phraseId ? updatedPhrase : p)));
     } catch (err) {
-        showToast({ message: `Ошибка сохранения: ${(err as Error).message}` });
+        showToast({ message: t('notifications.saveError', { message: (err as Error).message }) });
     }
   };
 
@@ -1232,7 +1234,7 @@ const App: React.FC = () => {
                setCurrentPracticePhrase(null); // Clear from practice view if it was active
             }
         } catch (err) {
-            showToast({ message: `Ошибка удаления: ${(err as Error).message}`});
+            showToast({ message: t('notifications.deleteError', { message: (err as Error).message }) });
         } finally {
             setIsDeleteModalOpen(false);
             setPhraseToDelete(null);
@@ -1310,7 +1312,7 @@ const App: React.FC = () => {
         await backendService.updatePhrase(updatedPhrase);
         updateAndSavePhrases(prev => prev.map(p => (p.id === phraseId ? updatedPhrase : p)));
     } catch(err) {
-        showToast({ message: `Ошибка перемещения: ${(err as Error).message}`});
+        showToast({ message: t('notifications.moveError', { message: (err as Error).message }) });
     }
   }, [allPhrases, updateAndSavePhrases, showToast]);
 
@@ -1370,7 +1372,7 @@ const App: React.FC = () => {
         }
         return true; // Signal success
     } catch(err) {
-        showToast({ message: `Ошибка сохранения категории: ${(err as Error).message}` });
+        showToast({ message: t('notifications.categories.saveError', { message: (err as Error).message }) });
         return false;
     }
   };
@@ -1390,24 +1392,24 @@ const App: React.FC = () => {
       if (phrasesToProcess.length > 0) {
         if (migrationTargetId) {
           // --- Move phrases ---
-          showToast({ message: `Перемещение ${phrasesToProcess.length} карт...` });
+          showToast({ message: t('notifications.cards.moving', { count: phrasesToProcess.length }) });
           for (let i = 0; i < phrasesToProcess.length; i++) {
             const phrase = phrasesToProcess[i];
             await backendService.updatePhrase({ ...phrase, category: migrationTargetId });
             if (i < phrasesToProcess.length - 1) await sleep(delay);
           }
           updateAndSavePhrases(prev => prev.map(p => p.category === categoryIdToDelete ? { ...p, category: migrationTargetId } : p));
-          showToast({ message: `✓ Карточки перемещены.` });
+          showToast({ message: t('notifications.cards.moveSuccess') });
         } else {
           // --- Delete phrases ---
-          showToast({ message: `Удаление ${phrasesToProcess.length} карт...` });
+          showToast({ message: t('notifications.cards.deleting', { count: phrasesToProcess.length }) });
           for (let i = 0; i < phrasesToProcess.length; i++) {
             const phrase = phrasesToProcess[i];
             await backendService.deletePhrase(phrase.id);
             if (i < phrasesToProcess.length - 1) await sleep(delay);
           }
           updateAndSavePhrases(prev => prev.filter(p => p.category !== categoryIdToDelete));
-          showToast({ message: `✓ Карточки удалены.` });
+          showToast({ message: t('notifications.cards.deleteSuccess') });
         }
       }
   
@@ -1420,10 +1422,10 @@ const App: React.FC = () => {
       delete newEnabled[categoryIdToDelete];
       handleSettingsChange({ enabledCategories: newEnabled });
   
-      showToast({ message: `✓ Категория "${categoryName}" удалена.` });
+      showToast({ message: t('notifications.categories.deleteSuccess', { name: categoryName }) });
   
     } catch (err) {
-      showToast({ message: `Ошибка удаления: ${(err as Error).message}` });
+      showToast({ message: t('notifications.deleteError', { message: (err as Error).message }) });
     }
   };
   
@@ -1448,7 +1450,7 @@ const App: React.FC = () => {
         setProposedCardsForFill(proposedCards);
         setIsAutoFillPreviewOpen(true);
     } catch (err) {
-      showToast({ message: err instanceof Error ? err.message : 'Ошибка генерации карточек.' });
+      showToast({ message: err instanceof Error ? err.message : t('notifications.cards.generateError') });
       setAutoFillingCategory(null);
     }
   };
@@ -1463,7 +1465,7 @@ const App: React.FC = () => {
         );
         setProposedCardsForFill(proposedCards);
     } catch (err) {
-        showToast({ message: err instanceof Error ? err.message : 'Ошибка генерации карточек.' });
+        showToast({ message: err instanceof Error ? err.message : t('notifications.cards.generateError') });
     } finally {
         setIsRefining(false);
     }
@@ -1486,11 +1488,11 @@ const App: React.FC = () => {
             const errorMessage = (err as Error).message;
             console.error("Failed to create a card during bulk add:", errorMessage);
             // FIX: Use `phrase.text.learning` to display the correct property in the toast message
-            showToast({message: `Не удалось добавить "${phrase.text.learning}": ${errorMessage}`});
+            showToast({ message: t('notifications.cards.addFailed', { phrase: phrase.text.learning, error: errorMessage }) });
             
             // If rate-limited, stop trying to add more cards.
             if (errorMessage.toLowerCase().includes('too many requests')) {
-                showToast({message: 'Превышен лимит запросов. Попробуйте добавить меньше карточек за раз.'});
+                showToast({ message: t('notifications.cards.rateLimit') });
                 break;
             }
         }
@@ -1537,7 +1539,7 @@ const App: React.FC = () => {
           setAutoFillingCategory(null);
       } else {
           const addedCount = await addCardsToCategory(newCards, autoFillingCategory);
-          showToast({ message: `✓ ${addedCount} карточек добавлено в категорию "${autoFillingCategory.name}".` });
+          showToast({ message: t('notifications.cards.addedToCategory', { count: addedCount, category: autoFillingCategory.name }) });
           setIsAutoFillPreviewOpen(false);
           setCategoryToView(autoFillingCategory);
           setAutoFillingCategory(null);
@@ -1550,9 +1552,9 @@ const App: React.FC = () => {
             await handleUpdatePhraseCategory(phraseId, targetCategory.id);
         }
         const addedCount = await addCardsToCategory(newCards, targetCategory);
-        showToast({ message: `✓ ${phraseIdsToMove.length} карточек перемещено и ${addedCount} добавлено в "${targetCategory.name}".` });
+        showToast({ message: t('notifications.cards.movedAndAdded', { moved: phraseIdsToMove.length, added: addedCount, category: targetCategory.name }) });
     } catch(err) {
-        showToast({ message: `Ошибка: ${(err as Error).message}`});
+        showToast({ message: t('notifications.genericError', { message: (err as Error).message }) });
     } finally {
         setIsMoveOrSkipModalOpen(false);
         setDuplicatesReviewData(null);
@@ -1562,7 +1564,7 @@ const App: React.FC = () => {
     
   const handleAddOnlyNewFromReview = async (newCards: ProposedCard[], targetCategory: Category) => {
       const addedCount = await addCardsToCategory(newCards, targetCategory);
-      showToast({ message: `✓ ${addedCount} карточек добавлено в "${targetCategory.name}". Дубликаты пропущены.` });
+      showToast({ message: t('notifications.cards.addedWithDuplicatesSkipped', { count: addedCount, category: targetCategory.name }) });
 
       setIsMoveOrSkipModalOpen(false);
       setDuplicatesReviewData(null);
@@ -1595,7 +1597,7 @@ const App: React.FC = () => {
           if (currentPracticePhrase && phraseIdsSet.has(currentPracticePhrase.id)) {
               setCurrentPracticePhrase(null);
           }
-          showToast({ message: `✓ ${deletedCount} карточек удалено.` });
+          showToast({ message: t('notifications.cards.deletedCount', { count: deletedCount }) });
       }
       
       setIsConfirmDeletePhrasesModalOpen(false);
@@ -1617,7 +1619,7 @@ const App: React.FC = () => {
       
       if (movedCount > 0) {
           const targetCategory = categories.find(c => c.id === targetCategoryId);
-          showToast({ message: `✓ ${movedCount} карточек перемещено в "${targetCategory?.name || 'другую категорию'}".` });
+          showToast({ message: t('notifications.cards.movedToCategory', { count: movedCount, category: targetCategory?.name ?? t('notifications.cards.otherCategory') }) });
       }
       
       setIsConfirmDeletePhrasesModalOpen(false);
@@ -1786,7 +1788,7 @@ const App: React.FC = () => {
         await backendService.updatePhrase(updatedPhrase);
         updateAndSavePhrases(prev => prev.map(p => (p.id === updatedPhrase.id ? updatedPhrase : p)));
     } catch(err) {
-        showToast({ message: `Ошибка: ${(err as Error).message}`});
+        showToast({ message: t('notifications.genericError', { message: (err as Error).message }) });
     }
 
     setIsLeechModalOpen(false);
