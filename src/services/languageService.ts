@@ -6,7 +6,7 @@ export type TranslationKey = string;
 
 // A minimal, hardcoded fallback in case fetching translations fails completely.
 const enTranslationsFallback = {
-    "header.title": "German Language Practice",
+    "header.title": "Lingopo",
     "header.subtitle": "Spaced Repetition System"
 };
 
