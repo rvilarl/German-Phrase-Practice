@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import type { Phrase } from '../types';
 import Spinner from './Spinner';
 import CloseIcon from './icons/CloseIcon';
@@ -13,11 +13,11 @@ interface FindDuplicatesModalProps {
 }
 
 const FindDuplicatesModal: React.FC<FindDuplicatesModalProps> = ({ onClose, onFindDuplicates, updateAndSavePhrases, phrases, backendService }) => {
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(true);
   const [duplicateGroups, setDuplicateGroups] = useState<string[][]>([]);
   const [searchCompleted, setSearchCompleted] = useState(false);
 
-  const handleFindDuplicates = async () => {
+  const handleFindDuplicates = useCallback(async () => {
     setIsProcessing(true);
     setDuplicateGroups([]);
     setSearchCompleted(false);
@@ -30,7 +30,11 @@ const FindDuplicatesModal: React.FC<FindDuplicatesModalProps> = ({ onClose, onFi
       setIsProcessing(false);
       setSearchCompleted(true);
     }
-  };
+  }, [onFindDuplicates]);
+
+  useEffect(() => {
+    handleFindDuplicates();
+  }, [handleFindDuplicates]);
 
   const handleCleanDuplicates = useCallback(async () => {
     if (duplicateGroups.length === 0) return;
@@ -84,19 +88,7 @@ const FindDuplicatesModal: React.FC<FindDuplicatesModalProps> = ({ onClose, onFi
           <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors">
             <CloseIcon className="w-6 h-6" />
           </button>
-          <h2 className="text-2xl font-bold text-white mb-4">Поиск дубликатов</h2>
-
-          {!searchCompleted && !isProcessing && (
-            <div className="text-center">
-              <p className="text-slate-300 mb-6">Начать поиск дубликатов среди всех фраз?</p>
-              <button
-                onClick={handleFindDuplicates}
-                className="w-full px-4 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-colors"
-              >
-                Начать поиск
-              </button>
-            </div>
-          )}
+          <h2 className="text-xl font-bold text-white mb-4">Поиск дубликатов</h2>
 
           {isProcessing && (
             <div className="flex flex-col items-center justify-center h-32">
