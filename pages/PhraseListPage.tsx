@@ -310,8 +310,8 @@ export const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditP
     return (
         <>
             <div className="w-full max-w-2xl mx-auto flex flex-col h-full">
-                <div className="flex-shrink-0 sticky top-20 z-20 p-2">
-                    <div className="bg-slate-800/70 backdrop-blur-lg rounded-xl p-4 border border-slate-700">
+                <div className="flex-shrink-0 sticky top-20 z-20">
+                    <div className="backdrop-blur-lg rounded-xl">
                         
                         {/* Поиск */}
                         <div className="relative group">
@@ -383,7 +383,7 @@ export const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditP
                             Работа с дубликатами
                             Кнопка ассистента
                         */}
-                        <div className="flex justify-between items-center mt-3">
+                        <div className="flex justify-between items-end mt-3">
                             <span className="text-sm text-slate-400 pl-2">
                                {filteredPhrases.length} фраз
                             </span>
