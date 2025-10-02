@@ -1,11 +1,8 @@
 import { Phrase, Category } from '../types';
+import { getApiBaseUrl } from './env.ts';
+import { getAccessToken, notifyUnauthorized } from './authTokenStore.ts';
 
-const LOCAL_API_URL = 'http://localhost:3001/api';
-const PRODUCTION_API_URL = 'https://german-phrase-practice-back.vercel.app/api';
-
-const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-const API_BASE_URL = isLocal ? LOCAL_API_URL : PRODUCTION_API_URL;
-
+const API_BASE_URL = getApiBaseUrl();
 
 // --- Color Conversion Maps ---
 const tailwindToHexMap: Record<string, string> = {
@@ -66,70 +63,87 @@ const fePhrase = (bePhrase: any): Phrase => {
 };
 
 const handleResponse = async (response: Response) => {
+    if (response.status === 401 || response.status === 403) {
+        notifyUnauthorized();
+    }
+
     if (!response.ok) {
         const errorText = await response.text();
-        let errorData;
+        let errorData: any;
         try {
             errorData = JSON.parse(errorText);
         } catch (e) {
-            // If the error response isn't JSON, use the raw text.
             const statusText = response.statusText || 'Error';
             errorData = { error: `${response.status} ${statusText}`, details: errorText };
         }
-        // Prefer the `error` field from the JSON body if it exists, otherwise construct a message.
-        throw new Error(errorData.error || `Request failed with status ${response.status}`);
+        const message = errorData?.error || `Request failed with status ${response.status}`;
+        throw new Error(message);
     }
+
     if (response.status === 204) {
         return null;
     }
+
     return response.json();
 };
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-const fetchWithRetry = async (url: RequestInfo, options?: RequestInit, retries = 3, initialDelay = 500): Promise<Response> => {
+const fetchWithRetry = async (url: RequestInfo, options: RequestInit = {}, retries = 3, initialDelay = 500): Promise<Response> => {
     let delay = initialDelay;
     for (let i = 0; i < retries; i++) {
         try {
-            const response = await fetch(url, options);
+            const token = getAccessToken();
+            const headers = new Headers(options.headers || {});
+            if (!headers.has('Accept')) {
+                headers.set('Accept', 'application/json');
+            }
+            if (options.body && !headers.has('Content-Type')) {
+                headers.set('Content-Type', 'application/json');
+            }
+            if (token) {
+                headers.set('Authorization', `Bearer ${token}`);
+            }
 
-            // If the response is OK, we're done.
-            if (response.ok) {
+            const response = await fetch(url, { ...options, headers });
+
+            if (response.ok || response.status === 401 || response.status === 403) {
                 return response;
             }
-            
-            // Handle rate limiting specifically
+
             if (response.status === 429) {
                 console.warn(`Rate limit exceeded. Attempt ${i + 1}/${retries}. Retrying in ${delay}ms...`);
                 if (i < retries - 1) {
-                    await sleep(delay + Math.random() * 200); // Add jitter
-                    delay *= 2; // Exponential backoff
-                    continue; // to the next iteration
+                    await sleep(delay + Math.random() * 200);
+                    delay *= 2;
+                    continue;
                 }
             }
 
-            // For other non-ok responses, return it and let handleResponse deal with the error message.
-            // We only retry on 429s or complete fetch failures (in catch block).
             return response;
 
         } catch (error) {
             console.error(`Fetch failed on attempt ${i + 1}/${retries}:`, error);
             if (i < retries - 1) {
-                await sleep(delay + Math.random() * 200); // Add jitter
+                await sleep(delay + Math.random() * 200);
                 delay *= 2;
             } else {
-                // If it's the last retry, rethrow the error.
                 throw error;
             }
         }
     }
-    // This should not be reached, but as a fallback:
     throw new Error('Request failed after all retries.');
 };
 
 
 export const fetchInitialData = async (): Promise<{ categories: Category[], phrases: Phrase[] }> => {
-    const response = await fetchWithRetry(`${API_BASE_URL}/initial-data`);
+    let response = await fetchWithRetry(`${API_BASE_URL}/initial-data`);
+
+    if (response.status === 404) {
+        await loadInitialData();
+        response = await fetchWithRetry(`${API_BASE_URL}/initial-data`);
+    }
+
     const data = await handleResponse(response);
     return {
         categories: data.categories.map(feCategory),
@@ -227,3 +241,17 @@ export const deleteCategory = async (categoryId: string, migrationTargetId: stri
     });
     await handleResponse(response);
 };
+
+
+
+
+export const loadInitialData = async (): Promise<void> => {
+    const response = await fetchWithRetry(`${API_BASE_URL}/initial-data`, {
+        method: 'POST'
+    });
+    await handleResponse(response);
+};
+
+
+
+

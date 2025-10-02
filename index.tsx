@@ -1,7 +1,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './App';
+import { AuthProvider } from './src/contexts/authContext.tsx';
 import { LanguageProvider } from './src/contexts/languageContext.tsx';
+import AppRoot from './src/AppRoot.tsx';
 
 // PWA Service Worker Registration
 if ('serviceWorker' in navigator) {
@@ -23,8 +24,10 @@ const root = ReactDOM.createRoot(rootElement);
 root.render(
   // StrictMode removed to prevent double-rendering and duplicate API calls in useEffect.
   // <React.StrictMode>
-  <LanguageProvider>
-    <App />
-  </LanguageProvider>
+  <AuthProvider>
+    <LanguageProvider>
+      <AppRoot />
+    </LanguageProvider>
+  </AuthProvider>
   // </React.StrictMode>
 );
