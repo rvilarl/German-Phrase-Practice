@@ -3,6 +3,7 @@ import type { Phrase, PhraseEvaluation } from '../types';
 import CheckIcon from './icons/CheckIcon';
 import XCircleIcon from './icons/XCircleIcon';
 import AudioPlayer from './AudioPlayer';
+import { useTranslation } from '../src/hooks/useTranslation';
 
 interface PracticeResultModalProps {
   isOpen: boolean;
@@ -13,6 +14,8 @@ interface PracticeResultModalProps {
 }
 
 const PracticeResultModal: React.FC<PracticeResultModalProps> = ({ isOpen, onClose, isCorrect, phrase, evaluation }) => {
+  const { t } = useTranslation();
+
   useEffect(() => {
     if (isOpen && isCorrect) {
       const timer = setTimeout(onClose, 1500);
@@ -35,7 +38,7 @@ const PracticeResultModal: React.FC<PracticeResultModalProps> = ({ isOpen, onClo
                 <CheckIcon className="w-10 h-10 text-green-400" />
               </div>
             </div>
-            <h2 className="text-2xl font-bold text-slate-100">Отлично!</h2>
+            <h2 className="text-2xl font-bold text-slate-100">{t('modals.practiceResult.correct')}</h2>
             <p className="text-xl text-slate-200 mt-4">{phrase.text.learning}</p>
           </>
         ) : (
@@ -45,19 +48,19 @@ const PracticeResultModal: React.FC<PracticeResultModalProps> = ({ isOpen, onClo
                 <XCircleIcon className="w-10 h-10 text-red-400" />
               </div>
             </div>
-            <h2 className="text-2xl font-bold text-slate-100">Неверно</h2>
+            <h2 className="text-2xl font-bold text-slate-100">{t('modals.practiceResult.incorrect')}</h2>
             {evaluation?.feedback && (
               <p className="text-slate-400 mt-2 mb-4">{evaluation.feedback}</p>
             )}
             <div className="bg-slate-700/50 p-3 rounded-md text-center mb-6">
-              <p className="text-xs text-slate-400 text-left">Правильный ответ:</p>
+              <p className="text-xs text-slate-400 text-left">{t('modals.practiceResult.correctAnswer')}</p>
               <div className="flex items-center justify-center gap-x-2 mt-1">
                 <AudioPlayer textToSpeak={evaluation?.correctedPhrase || phrase.text.learning} />
                 <p className="text-slate-100 font-medium text-lg">{evaluation?.correctedPhrase || phrase.text.learning}</p>
               </div>
             </div>
             <button onClick={onClose} className="w-full px-6 py-3 rounded-md bg-purple-600 hover:bg-purple-700 text-white font-semibold transition-colors">
-              Продолжить
+              {t('modals.practiceResult.actions.continue')}
             </button>
           </>
         )}

@@ -7,6 +7,7 @@ import XCircleIcon from './icons/XCircleIcon';
 import AudioPlayer from './AudioPlayer';
 import BackspaceIcon from './icons/BackspaceIcon';
 import ArrowRightIcon from './icons/ArrowRightIcon';
+import { useTranslation } from '../src/hooks/useTranslation';
 
 interface PhraseBuilderModalProps {
   isOpen: boolean;
@@ -47,6 +48,7 @@ const PhraseBuilderModal: React.FC<PhraseBuilderModalProps> = ({
   onFailure,
   onNextPhrase
 }) => {
+  const { t } = useTranslation();
   const [constructedWords, setConstructedWords] = useState<WordOption[]>([]);
   const [availableWords, setAvailableWords] = useState<WordOption[]>([]);
   const [evaluation, setEvaluation] = useState<PhraseEvaluation | null>(null);
@@ -96,7 +98,7 @@ const PhraseBuilderModal: React.FC<PhraseBuilderModalProps> = ({
     } catch (err) {
       setEvaluation({
         isCorrect: false,
-        feedback: err instanceof Error ? err.message : 'Произошла ошибка при проверке.',
+        feedback: err instanceof Error ? err.message : t('modals.phraseBuilder.errors.check'),
       });
       onFailure(phrase);
     } finally {
@@ -109,7 +111,7 @@ const PhraseBuilderModal: React.FC<PhraseBuilderModalProps> = ({
       return (
         <div className="flex flex-col justify-center items-center h-full">
           <WordBankSkeleton />
-          <p className="mt-4 text-slate-400">Подбираем слова...</p>
+          <p className="mt-4 text-slate-400">{t('modals.phraseBuilder.loading')}</p>
         </div>
       );
     }
@@ -117,7 +119,7 @@ const PhraseBuilderModal: React.FC<PhraseBuilderModalProps> = ({
       return (
         <div className="flex justify-center items-center h-full">
           <div className="text-center bg-red-900/50 border border-red-700 text-red-300 p-4 rounded-lg">
-            <p className="font-semibold">Ошибка</p>
+            <p className="font-semibold">{t('modals.phraseBuilder.errors.generic')}</p>
             <p className="text-sm">{error}</p>
           </div>
         </div>
@@ -134,7 +136,7 @@ const PhraseBuilderModal: React.FC<PhraseBuilderModalProps> = ({
             <AudioPlayer textToSpeak={userAttempt} />
             <div className="flex-grow bg-slate-700/50 p-4 rounded-lg min-h-[80px] flex flex-wrap items-center justify-center gap-2 border-2 border-dashed border-slate-600">
               {constructedWords.length === 0 && (
-                <p className="text-slate-500">Нажмите на слова ниже, чтобы собрать фразу</p>
+                <p className="text-slate-500">{t('modals.phraseBuilder.instructions')}</p>
               )}
               {constructedWords.map(word => (
                 <button
@@ -151,7 +153,7 @@ const PhraseBuilderModal: React.FC<PhraseBuilderModalProps> = ({
               onClick={handleReset}
               disabled={isChecking || !!evaluation || constructedWords.length === 0}
               className="p-3 self-center rounded-full bg-slate-600/50 hover:bg-slate-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-              aria-label="Очистить"
+              aria-label={t('modals.phraseBuilder.aria.clear')}
             >
               <BackspaceIcon className="w-5 h-5 text-white" />
             </button>
@@ -184,7 +186,7 @@ const PhraseBuilderModal: React.FC<PhraseBuilderModalProps> = ({
                 >
                   <span className={`flex items-center transition-opacity ${isChecking ? 'opacity-0' : 'opacity-100'}`}>
                     <CheckIcon className="w-5 h-5 mr-2" />
-                    <span>Проверить</span>
+                    <span>{t('modals.phraseBuilder.actions.check')}</span>
                   </span>
                   {isChecking && (
                     <div className="absolute inset-0 flex items-center justify-center">
@@ -224,13 +226,13 @@ const PhraseBuilderModal: React.FC<PhraseBuilderModalProps> = ({
                     onClick={onClose}
                     className="flex-1 sm:flex-none px-6 py-3 rounded-lg bg-slate-600 hover:bg-slate-700 transition-colors font-semibold text-white shadow-md text-center"
                   >
-                    Закрыть
+                    {t('modals.phraseBuilder.actions.close')}
                   </button>
                   <button
                     onClick={onNextPhrase}
                     className="flex-1 sm:flex-none px-6 py-3 rounded-lg bg-purple-600 hover:bg-purple-700 transition-colors font-semibold text-white shadow-md flex items-center justify-center"
                   >
-                    <span>Продолжить</span>
+                    <span>{t('modals.phraseBuilder.actions.continue')}</span>
                     <ArrowRightIcon className="w-5 h-5 ml-2" />
                   </button>
               </div>

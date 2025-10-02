@@ -1,6 +1,7 @@
 import React from 'react';
 import type { Phrase } from '../types';
 import GraduationCapIcon from './icons/GraduationCapIcon';
+import { useTranslation } from '../src/hooks/useTranslation';
 
 interface PhrasePreviewModalProps {
   phrase: Phrase | null;
@@ -9,6 +10,8 @@ interface PhrasePreviewModalProps {
 }
 
 const PhrasePreviewModal: React.FC<PhrasePreviewModalProps> = ({ phrase, onClose, onStartPractice }) => {
+  const { t } = useTranslation();
+
   if (!phrase) return null;
 
   const handlePractice = () => {
@@ -41,7 +44,7 @@ const PhrasePreviewModal: React.FC<PhrasePreviewModalProps> = ({ phrase, onClose
             className="mt-8 px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-md text-white font-bold transition-colors shadow-lg flex items-center space-x-2"
         >
             <GraduationCapIcon className="w-5 h-5" />
-            <span>Учить эту фразу</span>
+            <span>{t('modals.phrasePreview.actions.learn')}</span>
         </button>
     </div>
   );

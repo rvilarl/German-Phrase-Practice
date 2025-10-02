@@ -545,6 +545,67 @@
         "singular": "Singular",
         "plural": "Plural"
       }
+    },
+    "phraseBuilder": {
+      "loading": "Selecting words...",
+      "errors": {
+        "generic": "Error",
+        "check": "An error occurred while checking."
+      },
+      "instructions": "Click on the words below to build the phrase",
+      "aria": {
+        "clear": "Clear"
+      },
+      "actions": {
+        "check": "Check",
+        "close": "Close",
+        "continue": "Continue"
+      }
+    },
+    "phrasePreview": {
+      "actions": {
+        "learn": "Learn this phrase"
+      }
+    },
+    "practiceResult": {
+      "correct": "Excellent!",
+      "incorrect": "Incorrect",
+      "correctAnswer": "Correct answer:",
+      "actions": {
+        "continue": "Continue"
+      }
+    },
+    "voiceWorkspace": {
+      "instructions": "Speak the phrase or drag words here",
+      "loading": "Selecting words...",
+      "actions": {
+        "check": "Check",
+        "learnWithAI": "Learn with AI",
+        "showAnswer": "Show answer",
+        "clear": "Clear",
+        "close": "Close",
+        "continue": "Continue",
+        "nextPhrase": "Next phrase"
+      },
+      "feedback": {
+        "correct": "Excellent! That's correct.",
+        "incorrect": "Unfortunately, that's incorrect. Try again.",
+        "revealAnswer": "Here's the correct answer. Try again next time!"
+      },
+      "errors": {
+        "check": "An error occurred while checking.",
+        "speech": "Speech recognition error occurred.",
+        "speechNetwork": "Network error during speech recognition.",
+        "microphoneDenied": "Microphone access is not allowed.",
+        "unexpected": "An unexpected error occurred.",
+        "serviceUnavailable": "Service temporarily unavailable (error 500).",
+        "apiKey": "API key configuration error.",
+        "requestFailed": "Failed to execute request.",
+        "loadWords": "Failed to load word options."
+      },
+      "automation": {
+        "nextPhrase": "Next phrase"
+      }
     }
   }
 }

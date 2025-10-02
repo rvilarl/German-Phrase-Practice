@@ -10,6 +10,7 @@ import ArrowRightIcon from './icons/ArrowRightIcon';
 import * as cacheService from '../services/cacheService';
 import BookOpenIcon from './icons/BookOpenIcon';
 import FeedbackMessage from './FeedbackMessage';
+import { useTranslation } from '../src/hooks/useTranslation';
 
 interface VoiceWorkspaceModalProps {
   isOpen: boolean;
@@ -76,6 +77,8 @@ export const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
   const [isFeedbackFading, setIsFeedbackFading] = useState(false);
   const [optionsError, setOptionsError] = useState<string | null>(null);
   const [speechError, setSpeechError] = useState<string | null>(null);
+
+  const { t } = useTranslation();
 
   // Drag & Drop State
   const [draggedItem, setDraggedItem] = useState<DraggedItem | null>(null);
@@ -146,18 +149,18 @@ export const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
           cacheService.setCache(cacheKey, options);
           setAllWordOptions(options.words.map((w, i) => ({ text: w, id: `avail-${i}`, originalIndex: i })));
       } catch (err) {
-          let displayError = "Произошла непредвиденная ошибка.";
+          let displayError = t('voiceWorkspace.errors.unexpected');
           console.error("Failed to load phrase builder options:", err);
           if (err instanceof Error) {
               if (err.message.includes("500") || err.message.includes("Internal Server Error")) {
-                  displayError = "Сервис временно недоступен (ошибка 500).";
+                  displayError = t('voiceWorkspace.errors.serviceUnavailable');
               } else if (err.message.includes("API key")) {
-                  displayError = "Ошибка конфигурации API ключа.";
+                  displayError = t('voiceWorkspace.errors.apiKey');
               } else {
-                  displayError = "Не удалось выполнить запрос.";
+                  displayError = t('voiceWorkspace.errors.requestFailed');
               }
           }
-          setOptionsError(`Не удалось загрузить варианты слов. ${displayError}`);
+          setOptionsError(`${t('voiceWorkspace.errors.loadWords')} ${displayError}`);
       } finally {
           setIsLoadingOptions(false);
       }
@@ -271,12 +274,12 @@ export const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
         onSuccess(phrase);
         setSuccessTimestamp(Date.now());
         onPracticeNext();
-        showToast({ message: 'Следующая фраза', type: 'automationSuccess' });
+        showToast({ message: t('voiceWorkspace.automation.nextPhrase'), type: 'automationSuccess' });
         return; 
     }
 
     if (isCorrectLocally) {
-      setEvaluation({ isCorrect: true, feedback: 'Отлично! Всё верно.' });
+      setEvaluation({ isCorrect: true, feedback: t('voiceWorkspace.feedback.correct') });
       onSuccess(phrase);
       setSuccessTimestamp(Date.now());
       return;
@@ -284,7 +287,7 @@ export const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
 
     if (attemptNumber === 1) {
       setAttemptNumber(2);
-      setTransientFeedback({ message: 'К сожалению, ошибка. Попробуйте еще раз.', key: Date.now() });
+      setTransientFeedback({ message: t('voiceWorkspace.feedback.incorrect'), key: Date.now() });
       setIsFeedbackFading(false);
       recognitionRef.current?.stop();
     } else {
@@ -300,7 +303,7 @@ export const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
           onFailure(phrase);
         }
       } catch (err) {
-        setEvaluation({ isCorrect: false, feedback: err instanceof Error ? err.message : 'Ошибка проверки.' });
+        setEvaluation({ isCorrect: false, feedback: err instanceof Error ? err.message : t('voiceWorkspace.errors.check') });
         onFailure(phrase);
       } finally {
         setIsChecking(false);
@@ -355,11 +358,11 @@ export const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
       recognition.onerror = (e: SpeechRecognitionErrorEvent) => { 
         if (e.error !== 'aborted' && e.error !== 'no-speech') {
           console.error('Speech error:', e.error);
-          let userFriendlyError = 'Произошла ошибка распознавания речи.';
+          let userFriendlyError = t('voiceWorkspace.errors.speech');
           if (e.error === 'network') {
-              userFriendlyError = 'Ошибка сети при распознавании речи.';
+              userFriendlyError = t('voiceWorkspace.errors.speechNetwork');
           } else if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
-              userFriendlyError = 'Доступ к микрофону не разрешен.';
+              userFriendlyError = t('voiceWorkspace.errors.microphoneDenied');
           }
           setSpeechError(userFriendlyError);
         }
@@ -474,33 +477,33 @@ export const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
         action: () => handleActionButtonClick('close', onClose),
         icon: <CloseIcon className="w-6 h-6" />,
         className: 'bg-slate-600 hover:bg-slate-700',
-        label: 'Закрыть',
+        label: t('voiceWorkspace.actions.close'),
       },
       {
         key: 'continue' as const,
         action: () => handleActionButtonClick('continue', onNextPhrase),
         icon: <CheckIcon className="w-6 h-6" />,
         className: 'bg-green-600 hover:bg-green-700',
-        label: 'Продолжить',
+        label: t('voiceWorkspace.actions.continue'),
       },
       {
         key: 'next' as const,
         action: () => handleActionButtonClick('next', onPracticeNext),
         icon: <ArrowRightIcon className="w-6 h-6" />,
         className: 'bg-purple-600 hover:bg-purple-700',
-        label: 'Следующая фраза',
+        label: t('voiceWorkspace.actions.nextPhrase'),
       },
     ];
     // Dynamic button layout has been removed for a consistent UI.
     return buttonData;
-  }, [handleActionButtonClick, onClose, onNextPhrase, onPracticeNext]);
+  }, [handleActionButtonClick, onClose, onNextPhrase, onPracticeNext, t]);
 
   const handleFailureAndReveal = useCallback(() => {
     if (!phrase) return;
     onFailure(phrase);
     setEvaluation({
       isCorrect: false,
-      feedback: 'Вот правильный ответ. Попробуйте в следующий раз!',
+      feedback: t('voiceWorkspace.feedback.revealAnswer'),
       correctedPhrase: phrase.text.learning,
     });
     setIsStuck(false);
@@ -545,7 +548,7 @@ export const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
                     onDragLeave={() => setDropIndex(null)}
                     className="flex-grow bg-slate-700/50 p-4 rounded-lg min-h-[80px] flex flex-wrap items-center justify-start gap-2 border-2 border-dashed border-slate-600"
                   >
-                    {constructedWords.length === 0 && dropIndex === null && <p className="text-slate-500 w-full text-center">Произнесите фразу или перетащите слова сюда</p>}
+                    {constructedWords.length === 0 && dropIndex === null && <p className="text-slate-500 w-full text-center">{t('voiceWorkspace.instructions')}</p>}
                     
                     {constructedWords.map((word, index) => (
                       <React.Fragment key={word.id}>
@@ -569,7 +572,7 @@ export const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
                     onClick={handleReset}
                     disabled={isChecking || !!evaluation || constructedWords.length === 0}
                     className="p-3 self-center rounded-full bg-slate-600/50 hover:bg-slate-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                    aria-label="Очистить"
+                    aria-label={t('voiceWorkspace.actions.clear')}
                   >
                     <BackspaceIcon className="w-5 h-5 text-white" />
                   </button>
@@ -593,7 +596,7 @@ export const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
                  ) : isLoadingOptions ? (
                     <div className="flex-grow flex flex-col justify-center items-center">
                         <WordBankSkeleton />
-                        <p className="mt-4 text-slate-400">Подбираем слова...</p>
+                        <p className="mt-4 text-slate-400">{t('voiceWorkspace.loading')}</p>
                     </div>
                  ) : (
                     <div className="w-full bg-slate-900/50 flex flex-wrap items-start content-start justify-center gap-2 p-4 rounded-lg overflow-y-auto hide-scrollbar">
@@ -625,7 +628,7 @@ export const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
                             >
                                 <span className={`flex items-center transition-opacity ${isChecking ? 'opacity-0' : 'opacity-100'}`}>
                                     <CheckIcon className="w-5 h-5 mr-2" />
-                                    <span>Проверить</span>
+                                    <span>{t('voiceWorkspace.actions.check')}</span>
                                 </span>
                                 {isChecking && <div className="absolute inset-0 flex items-center justify-center"><div className="w-6 h-6 border-2 border-white/50 border-t-white rounded-full animate-spin"></div></div>}
                             </button>
@@ -640,8 +643,8 @@ export const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
                         
                         {(isStuck || showPostHintButtons) && (
                            <div className="flex items-center gap-x-2 animate-fade-in">
-                               <button onClick={handleLearn} className="flex items-center gap-x-2 px-3 py-1.5 rounded-full bg-slate-700 hover:bg-slate-600 transition-colors text-sm text-purple-300 font-medium"><BookOpenIcon className="w-4 h-4" /> Изучать с AI</button>
-                               <button onClick={handleFailureAndReveal} className="px-3 py-1.5 rounded-full bg-slate-700 hover:bg-slate-600 transition-colors text-sm text-slate-300 font-medium">Показать ответ</button>
+                               <button onClick={handleLearn} className="flex items-center gap-x-2 px-3 py-1.5 rounded-full bg-slate-700 hover:bg-slate-600 transition-colors text-sm text-purple-300 font-medium"><BookOpenIcon className="w-4 h-4" /> {t('voiceWorkspace.actions.learnWithAI')}</button>
+                               <button onClick={handleFailureAndReveal} className="px-3 py-1.5 rounded-full bg-slate-700 hover:bg-slate-600 transition-colors text-sm text-slate-300 font-medium">{t('voiceWorkspace.actions.showAnswer')}</button>
                            </div>
                         )}
                       </div>
