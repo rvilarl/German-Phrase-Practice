@@ -3,6 +3,7 @@ import ePub from 'epubjs';
 import { Book, BookRecord } from '../types';
 import * as dbService from '../services/dbService';
 import PlusIcon from '../components/icons/PlusIcon';
+import { useTranslation } from '../src/hooks/useTranslation.ts';
 
 interface LibraryPageProps {
     onOpenBook: (bookId: number) => void;
@@ -20,8 +21,8 @@ const LibraryPageSkeleton: React.FC = () => (
     </div>
 );
 
-
 const LibraryPage: React.FC<LibraryPageProps> = ({ onOpenBook }) => {
+    const { t } = useTranslation();
     const [books, setBooks] = useState<BookRecord[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isAddingBook, setIsAddingBook] = useState(false);
@@ -108,7 +109,7 @@ const LibraryPage: React.FC<LibraryPageProps> = ({ onOpenBook }) => {
 
         } catch (error) {
             console.error("Error processing EPUB file:", error);
-            alert("Не удалось обработать EPUB файл. Возможно, он поврежден или имеет неподдерживаемый формат.");
+            alert(t('library.notifications.epubProcessingFailed'));
         } finally {
             setIsAddingBook(false);
             event.target.value = ''; // Reset file input
@@ -122,11 +123,11 @@ const LibraryPage: React.FC<LibraryPageProps> = ({ onOpenBook }) => {
             ) : (
                 books.length === 0 ? (
                     <div className="text-center text-slate-400 py-16">
-                        <h2 className="text-2xl font-bold text-white mb-4">Ваша библиотека пуста</h2>
-                        <p className="mb-6">Добавьте свою первую книгу в формате EPUB, чтобы начать читать.</p>
+                        <h2 className="text-2xl font-bold text-white mb-4">{t('library.empty.title')}</h2>
+                        <p className="mb-6">{t('library.empty.description')}</p>
                         <label className="inline-flex items-center px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-md text-white font-bold transition-colors cursor-pointer">
                             <PlusIcon className="w-5 h-5 mr-2" />
-                            <span>Добавить книгу</span>
+                            <span>{t('library.empty.action')}</span>
                             <input type="file" accept=".epub" className="hidden" onChange={handleFileChange} />
                         </label>
                     </div>
@@ -135,7 +136,7 @@ const LibraryPage: React.FC<LibraryPageProps> = ({ onOpenBook }) => {
                         {books.map(book => (
                             <div key={book.id} className="cursor-pointer group" onClick={() => onOpenBook(book.id)}>
                                 <div className="aspect-[2/3] bg-slate-700 rounded-lg overflow-hidden shadow-lg transform transition-transform group-hover:scale-105">
-                                    <img src={book.coverUrl} alt={`Cover of ${book.title}`} className="w-full h-full object-cover" />
+                                    <img src={book.coverUrl} alt={t('library.alt.cover', { title: book.title })} className="w-full h-full object-cover" />
                                 </div>
                                 <h3 className="mt-2 text-sm font-semibold text-slate-100 truncate">{book.title}</h3>
                                 <p className="text-xs text-slate-400 truncate">{book.author}</p>
@@ -149,7 +150,7 @@ const LibraryPage: React.FC<LibraryPageProps> = ({ onOpenBook }) => {
                                     <div className="w-2 h-2 bg-current rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
                                 </div>
                             ) : <PlusIcon className="w-10 h-10" />}
-                            <span className="mt-2 text-sm font-semibold">{isAddingBook ? 'Добавляем...' : 'Добавить книгу'}</span>
+                            <span className="mt-2 text-sm font-semibold">{isAddingBook ? t('library.actions.adding') : t('library.cards.add')}</span>
                             <input type="file" accept=".epub" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onChange={handleFileChange} disabled={isAddingBook} />
                         </label>
                     </div>

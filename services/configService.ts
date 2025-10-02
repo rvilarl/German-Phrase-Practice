@@ -16,6 +16,8 @@ export const getLanguageProfile = (): LanguageProfile => {
         }
     } catch (e) {
         console.error("Failed to load language profile:", e);
+        // Clear invalid data from localStorage
+        localStorage.removeItem(LANGUAGE_PROFILE_KEY);
     }
     return defaultProfile;
 };

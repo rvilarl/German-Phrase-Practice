@@ -175,5 +175,25 @@
         "applying": "Applying translations"
       }
     }
+  },
+  "library": {
+    "empty": {
+      "title": "Your library is empty",
+      "description": "Upload an EPUB file to start building your reading library.",
+      "action": "Add your first book"
+    },
+    "actions": {
+      "add": "Add book",
+      "adding": "Adding..."
+    },
+    "notifications": {
+      "epubProcessingFailed": "Could not process the EPUB file. Please make sure the file is not corrupted."
+    },
+    "cards": {
+      "add": "Add a new book"
+    },
+    "alt": {
+      "cover": "Cover of {{title}}"
+    }
   }
 }
