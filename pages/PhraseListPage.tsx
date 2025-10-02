@@ -5,8 +5,11 @@ import PhraseListItem from '../components/PhraseListItem';
 import XCircleIcon from '../components/icons/XCircleIcon';
 import MicrophoneIcon from '../components/icons/MicrophoneIcon';
 import PhrasePreviewModal from '../components/PhrasePreviewModal';
-import SmartToyIcon from '../components/icons/SmartToyIcon';
+import { FiCopy, FiZap } from 'react-icons/fi';
 import CategoryFilterContextMenu from '../components/CategoryFilterContextMenu';
+import FindDuplicatesModal from '../components/FindDuplicatesModal';
+
+import * as backendService from '../services/backendService';
 
 interface PhraseListPageProps {
     phrases: Phrase[];
@@ -23,6 +26,7 @@ interface PhraseListPageProps {
     onStartPracticeWithCategory: (categoryId: PhraseCategory) => void;
     onEditCategory: (category: Category) => void;
     onOpenAssistant: (category: Category) => void;
+    backendService: typeof backendService;
 }
 
 type ListItem = 
@@ -31,12 +35,11 @@ type ListItem =
 
 
 // FIX: Changed to a named export to resolve "no default export" error in App.tsx.
-export const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, onDeletePhrase, onFindDuplicates, updateAndSavePhrases, onStartPractice, highlightedPhraseId, onClearHighlight, onOpenSmartImport, categories, onUpdatePhraseCategory, onStartPracticeWithCategory, onEditCategory, onOpenAssistant }) => {
+export const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, onDeletePhrase, onFindDuplicates, updateAndSavePhrases, onStartPractice, highlightedPhraseId, onClearHighlight, onOpenSmartImport, categories, onUpdatePhraseCategory, onStartPracticeWithCategory, onEditCategory, onOpenAssistant, backendService }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [categoryFilter, setCategoryFilter] = useState<'all' | PhraseCategory>('all');
-    const [isProcessingDuplicates, setIsProcessingDuplicates] = useState(false);
-    const [duplicateGroups, setDuplicateGroups] = useState<string[][]>([]);
     const [previewPhrase, setPreviewPhrase] = useState<Phrase | null>(null);
+    const [isFindDuplicatesModalOpen, setIsFindDuplicatesModalOpen] = useState(false);
 
     const [isListening, setIsListening] = useState(false);
     const [recognitionLang, setRecognitionLang] = useState<'ru' | 'de'>('ru');
@@ -176,18 +179,12 @@ export const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditP
     }, [searchTerm]);
 
     const filteredPhrases = useMemo(() => {
-        const allDuplicateIds = new Set(duplicateGroups.flat());
-        
         let baseList = phrases;
 
         if (categoryFilter !== 'all') {
             baseList = baseList.filter(p => p.category === categoryFilter);
         }
         
-        if (allDuplicateIds.size > 0) {
-            baseList = baseList.filter(p => allDuplicateIds.has(p.id));
-        }
-
         const lowercasedTerm = searchTerm.toLowerCase().trim();
         if (!lowercasedTerm) return baseList;
 
@@ -240,7 +237,7 @@ export const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditP
             .sort((a, b) => b.score - a.score);
 
         return scoredPhrases.map(item => item.phrase);
-    }, [phrases, searchTerm, duplicateGroups, detectedSearchLang, categoryFilter]);
+    }, [phrases, searchTerm, detectedSearchLang, categoryFilter]);
 
     const listItems = useMemo((): ListItem[] => {
         const inProgress: Phrase[] = [];
@@ -309,59 +306,6 @@ export const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditP
     }, [categoryFilter]);
 
 
-    const handleFindDuplicates = async () => {
-        setIsProcessingDuplicates(true);
-        setDuplicateGroups([]);
-        try {
-            const { duplicateGroups } = await onFindDuplicates();
-            setDuplicateGroups(duplicateGroups);
-            if (duplicateGroups.length === 0) {
-                alert('Дубликаты не найдены.');
-            }
-        } catch (error) {
-            alert(`Ошибка при поиске дубликатов: ${(error as Error).message}`);
-        } finally {
-            setIsProcessingDuplicates(false);
-        }
-    };
-
-    const handleCleanDuplicates = useCallback(() => {
-        if (duplicateGroups.length === 0) return;
-
-        if (!window.confirm(`Найдено ${duplicateGroups.length} групп дубликатов. Удалить лишние фразы, оставив в каждой группе фразу с наибольшим прогрессом?`)) {
-            return;
-        }
-
-        updateAndSavePhrases(currentPhrases => {
-            const phraseMap = new Map(currentPhrases.map(p => [p.id, p]));
-            const idsToDelete = new Set<string>();
-
-            duplicateGroups.forEach(group => {
-                const phrasesInGroup = group
-                    .map(id => phraseMap.get(id))
-                    .filter((p): p is Phrase => !!p);
-
-                if (phrasesInGroup.length < 2) {
-                    return;
-                }
-
-                // Sort by knowCount descending to find the best one
-                phrasesInGroup.sort((a, b) => b.knowCount - a.knowCount);
-
-                // The first item is the one to keep. Mark all others for deletion.
-                for (let i = 1; i < phrasesInGroup.length; i++) {
-                    idsToDelete.add(phrasesInGroup[i].id);
-                }
-            });
-
-            return currentPhrases.filter(p => p && !idsToDelete.has(p.id));
-        });
-
-        setDuplicateGroups([]);
-        alert('Дубликаты были успешно удалены.');
-    }, [duplicateGroups, updateAndSavePhrases]);
-
-    const duplicateIdSet = useMemo(() => new Set(duplicateGroups.flat()), [duplicateGroups]);
 
     return (
         <>
@@ -444,40 +388,19 @@ export const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditP
                                {filteredPhrases.length} фраз
                             </span>
                              <div className="flex items-center space-x-2">
-                                {duplicateGroups.length > 0 ? (
-                                    <div className="flex items-center space-x-2">
-                                        <button
-                                            onClick={() => setDuplicateGroups([])}
-                                            className="px-3 py-1.5 text-sm bg-slate-600 hover:bg-slate-700 text-white font-semibold rounded-md transition-colors"
-                                        >
-                                            Отмена
-                                        </button>
-                                        <button
-                                            onClick={handleCleanDuplicates}
-                                            className="px-3 py-1.5 text-sm bg-green-600 hover:bg-green-700 text-white font-semibold rounded-md transition-colors"
-                                        >
-                                            Очистить дубликаты ({duplicateGroups.length})
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <button
-                                        onClick={handleFindDuplicates}
-                                        disabled={isProcessingDuplicates}
-                                        className="relative text-sm text-slate-400 hover:text-slate-200 font-medium transition-colors disabled:opacity-50 h-[34px] flex items-center justify-center px-3 min-w-[150px]"
-                                    >
-                                        {isProcessingDuplicates ? (
-                                            <span className="animate-pulse">Поиск...</span>
-                                        ) : (
-                                            <span>Найти дубликаты</span>
-                                        )}
-                                    </button>
-                                )}
+                                <button
+                                    onClick={() => setIsFindDuplicatesModalOpen(true)}
+                                    className="flex-shrink-0 flex items-center justify-center space-x-2 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-md text-sm font-semibold transition-colors disabled:opacity-50 h-[34px] w-12 sm:w-36"
+                                >
+                                    <FiCopy className="w-5 h-5" />
+                                    <span className="hidden sm:inline">Дубликаты</span>
+                                </button>
                                 <button
                                     onClick={onOpenSmartImport}
-                                    className="flex-shrink-0 flex items-center space-x-2 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-md text-sm font-semibold transition-colors"
+                                    className="flex-shrink-0 flex items-center justify-center space-x-2 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-md text-sm font-semibold transition-colors h-[34px] w-12 sm:w-36"
                                 >
-                                    <SmartToyIcon className="w-5 h-5"/>
-                                    <span>AI Импорт</span>
+                                    <FiZap className="w-5 h-5"/>
+                                    <span className="hidden sm:inline">AI Импорт</span>
                                 </button>
                             </div>
                         </div>
@@ -501,7 +424,7 @@ export const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditP
                                        phrase={item.phrase}
                                        onEdit={onEditPhrase}
                                        onDelete={onDeletePhrase}
-                                       isDuplicate={duplicateIdSet.has(item.phrase.id)}
+                                       isDuplicate={false}
                                        isHighlighted={highlightedPhraseId === item.phrase.id}
                                        onPreview={setPreviewPhrase}
                                        onStartPractice={onStartPractice}
@@ -536,6 +459,15 @@ export const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditP
                         handleContextMenuClose();
                         onOpenAssistant(contextMenu.category);
                     }}
+                />
+            )}
+            {isFindDuplicatesModalOpen && (
+                <FindDuplicatesModal
+                    onClose={() => setIsFindDuplicatesModalOpen(false)}
+                    onFindDuplicates={onFindDuplicates}
+                    updateAndSavePhrases={updateAndSavePhrases}
+                    phrases={phrases}
+                    backendService={backendService}
                 />
             )}
         </>

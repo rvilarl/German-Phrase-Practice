@@ -1938,7 +1938,7 @@ const App: React.FC = () => {
              unmasteredCountsByCategory={unmasteredCountsByCategory}
            />;
         case 'list':
-            return <PhraseListPage 
+            return <PhraseListPage
                 phrases={allPhrases}
                 onEditPhrase={handleOpenEditModal}
                 onDeletePhrase={handleDeletePhrase}
@@ -1953,6 +1953,7 @@ const App: React.FC = () => {
                 onStartPracticeWithCategory={handleStartPracticeWithCategory}
                 onEditCategory={handleOpenCategoryFormForEdit}
                 onOpenAssistant={handleOpenCategoryAssistant}
+                backendService={backendService}
             />;
         case 'library':
             return <LibraryPage onOpenBook={handleOpenBook} />;

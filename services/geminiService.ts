@@ -1500,32 +1500,35 @@ const duplicateSchema = {
 };
 
 const findDuplicatePhrases: AiService['findDuplicatePhrases'] = async (phrases) => {
-    const api = initializeApi();
-    if (!api) throw new Error("Gemini API key not configured.");
-    if (phrases.length < 2) return { duplicateGroups: [] };
+    // Local, deterministic implementation to avoid AI hallucinations.
+    const normalizePhrase = (text: string): string => {
+        return text
+            .toLowerCase()
+            .replace(/^[аи]\s+/, '') // Remove leading 'а ' or 'и '
+            .replace(/[.,!?]/g, '')   // Remove punctuation
+            .trim();
+    };
 
-    // FIX: Use phrase.text.native
-    const prompt = `Here is a list of phrases: ${JSON.stringify(phrases.map(p => ({ id: p.id, russian: p.text.native })))}. 
-Analyze them and identify groups of phrases that are semantic duplicates. Ignore minor differences in wording, articles, capitalization, punctuation, or leading/trailing whitespace if the core meaning is identical. For example, "Я хочу пить", "а я хочу пить", and "Мне хочется пить" are all duplicates. Return a JSON object containing an array of these groups of phrase IDs. Only include groups with 2 or more phrases.`;
+    const phraseMap = new Map<string, string[]>();
 
-    try {
-        const response = await api.models.generateContent({
-            model: model,
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: duplicateSchema,
-                temperature: 0.1,
-            },
-        });
+    phrases.forEach(phrase => {
+        const normalizedNative = normalizePhrase(phrase.text.native);
+        if (normalizedNative) {
+            if (!phraseMap.has(normalizedNative)) {
+                phraseMap.set(normalizedNative, []);
+            }
+            phraseMap.get(normalizedNative)!.push(phrase.id);
+        }
+    });
 
-        const jsonText = response.text.trim();
-        const result = JSON.parse(jsonText);
-        return result.duplicateGroups ? { duplicateGroups: result.duplicateGroups.filter((g:string[]) => g.length > 1) } : { duplicateGroups: [] };
-    } catch (error) {
-        console.error("Error finding duplicate phrases with Gemini:", error);
-        throw new Error(`Failed to call the Gemini API: ${(error as any)?.message || 'Unknown error'}`);
+    const duplicateGroups: string[][] = [];
+    for (const ids of phraseMap.values()) {
+        if (ids.length > 1) {
+            duplicateGroups.push(ids);
+        }
     }
+
+    return Promise.resolve({ duplicateGroups });
 };
 
 const phraseBuilderOptionsSchema = {
