@@ -20,7 +20,7 @@ Checks the health status of the server.
 ```json
 {
   "status": "ok",
-  "timestamp": "2023-10-01T12:00:00.000Z"
+  "timestamp": "2025-10-01T12:00:00.000Z"
 }
 ```
 
@@ -55,8 +55,7 @@ Retrieves all categories and phrases with additional frontend-specific fields fo
       "knowCount": 0,
       "knowStreak": 0,
       "isMastered": false,
-      "lapses": 0,
-      "distractors": ["hallo", "tschüss"]
+      "lapses": 0
     }
   ]
 }
@@ -66,6 +65,25 @@ Retrieves all categories and phrases with additional frontend-specific fields fo
 ```json
 {
   "error": "Failed to fetch initial data",
+  "details": "Error message"
+}
+```
+
+#### POST /api/initial-data
+
+Loads initial data from a predefined JSON file into the database. This endpoint is used to populate the database with default categories and phrases.
+
+**Response (200 OK):**
+```json
+{
+  "message": "Initial data loaded successfully"
+}
+```
+
+**Error Response (500):**
+```json
+{
+  "error": "Failed to load initial data",
   "details": "Error message"
 }
 ```
@@ -187,7 +205,6 @@ Creates a new category.
 **Request Body:**
 ```json
 {
-  "id": 1,
   "name": "Verbs",
   "color": "#00ff00",
   "is_foundational": false
@@ -310,7 +327,6 @@ Deletes a category. If `migrationTargetId` is provided in the request body, asso
 - `category_id` (number): Reference to category
 - `transcription` (string, optional): Pronunciation guide
 - `context` (string, optional): Usage context
-- `distractors` (array, optional): Alternative answers for quizzes
 
 ### Category
 - `id` (number): Unique identifier

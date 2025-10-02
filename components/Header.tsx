@@ -18,8 +18,9 @@ const Header: React.FC<HeaderProps> = ({ view, onSetView, onOpenSettings }) => {
     return (
         <header className="w-full fixed top-0 left-0 p-4 flex justify-between items-center z-30 h-20 backdrop-blur-sm border-b border-slate-700/50">
             <div className="text-left">
-                <h1 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-cyan-400">{t('header.title', 'German Language Practice')}</h1>
-                <p className="text-slate-400 text-sm">{t('header.subtitle', 'Spaced Repetition System')}</p>
+                
+                <h1 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-cyan-400">{t('header.title', 'Lingoflip')}</h1>
+                {/* <p className="text-slate-400 text-sm">{t('header.subtitle', 'Spaced Repetition System')}</p> */}
             </div>
             <div className="flex items-center space-x-2">
                 {isPracticeArea ? (
