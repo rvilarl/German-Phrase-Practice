@@ -1,4 +1,4 @@
-const CACHE_NAME = 'german-srs-cache-v2';
+const CACHE_NAME = 'german-srs-cache-v3';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -34,18 +34,30 @@ self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') {
     return;
   }
-  
+
+  // For navigation requests, use a network-first strategy.
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request).catch(() => {
+        // If the network fails, serve the main page from the cache.
+        return caches.match('/');
+      })
+    );
+    return;
+  }
+
+  // For all other requests, use a cache-first strategy.
   event.respondWith(
     caches.open(CACHE_NAME).then(cache => {
       return cache.match(event.request).then(response => {
-        // Return from cache if found
+        // Return from cache if found.
         if (response) {
           return response;
         }
 
-        // Not in cache, fetch from network
+        // Not in cache, fetch from network.
         return fetch(event.request).then(networkResponse => {
-          // Check if we received a valid response
+          // Check if we received a valid response.
           if (networkResponse && networkResponse.status === 200) {
             // Clone the response because it's a stream and can only be consumed once.
             const responseToCache = networkResponse.clone();
@@ -53,8 +65,8 @@ self.addEventListener('fetch', event => {
           }
           return networkResponse;
         }).catch(error => {
-            console.error('Fetching failed:', error);
-            throw error;
+          console.error('Fetching failed:', error);
+          throw error;
         });
       });
     })
