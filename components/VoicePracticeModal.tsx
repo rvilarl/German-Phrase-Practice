@@ -69,7 +69,7 @@ const VoicePracticeModal: React.FC<VoicePracticeModalProps> = ({ isOpen, onClose
         <div className="w-full max-w-lg min-h-[24rem] flex flex-col items-center justify-between p-6" onClick={e => e.stopPropagation()}>
             <div className="text-center">
                 <p className="text-slate-300">Произнесите перевод фразы:</p>
-                <h2 className="text-3xl font-bold text-white mt-2">{phrase.russian}</h2>
+                <h2 className="text-3xl font-bold text-white mt-2">{phrase.text.native}</h2>
             </div>
 
             <button

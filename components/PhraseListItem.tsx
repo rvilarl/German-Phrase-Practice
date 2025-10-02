@@ -78,9 +78,9 @@ const PhraseListItem: React.FC<PhraseListItemProps> = React.memo(({ phrase, onEd
             )}
             <div className="flex-grow">
                 <div className="flex items-center justify-between mb-1">
-                    <p className="font-semibold text-slate-100">{phrase.russian}</p>
+                    <p className="font-semibold text-slate-100">{phrase.text.native}</p>
                 </div>
-                <p className="text-sm text-slate-400">{phrase.german}</p>
+                <p className="text-sm text-slate-400">{phrase.text.learning}</p>
                 <div className="mt-2">
                     <ProgressBar current={phrase.masteryLevel} max={srsService.MAX_MASTERY_LEVEL} />
                 </div>

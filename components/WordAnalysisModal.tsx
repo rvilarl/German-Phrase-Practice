@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import type { Phrase, WordAnalysis } from '../types';
 import CloseIcon from './icons/CloseIcon';
@@ -69,7 +70,7 @@ const WordAnalysisModal: React.FC<WordAnalysisModalProps> = ({
   const cardExists = useMemo(() => {
     const canonicalGerman = getCanonicalGerman();
     if (!canonicalGerman) return false;
-    return allPhrases.some(p => p.german.trim().toLowerCase() === canonicalGerman.trim().toLowerCase());
+    return allPhrases.some(p => p.text.learning.trim().toLowerCase() === canonicalGerman.trim().toLowerCase());
   }, [allPhrases, getCanonicalGerman]);
 
   const handleCreateCard = () => {
@@ -78,7 +79,7 @@ const WordAnalysisModal: React.FC<WordAnalysisModalProps> = ({
     
     onCreateCard({
         german: canonicalGerman,
-        russian: analysis.translation,
+        russian: analysis.nativeTranslation,
     });
     setIsCardCreated(true);
   };
@@ -86,12 +87,12 @@ const WordAnalysisModal: React.FC<WordAnalysisModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleWordClick = (contextText: string, clickedWord: string) => {
-    const proxyPhrase = { ...phrase, id: `proxy_${phrase.id}_analysis`, german: contextText };
+  const handleWordClick = (contextText: string, clickedWord: string, russianText: string) => {
+    const proxyPhrase: Phrase = { ...phrase, id: `proxy_${phrase.id}_analysis`, text: { learning: contextText, native: russianText } };
     onOpenWordAnalysis(proxyPhrase, clickedWord);
   };
   
-  const renderClickableGerman = (text: string) => {
+  const renderClickableGerman = (text: string, russian: string) => {
       if (!text) return null;
       return text.split(' ').map((word, i, arr) => (
           <span
@@ -99,7 +100,7 @@ const WordAnalysisModal: React.FC<WordAnalysisModalProps> = ({
               onClick={(e) => {
                   e.stopPropagation();
                   const cleanedWord = word.replace(/[.,!?()"“”:;]/g, '');
-                  if (cleanedWord) handleWordClick(text, cleanedWord);
+                  if (cleanedWord) handleWordClick(text, cleanedWord, russian);
               }}
               className="cursor-pointer hover:bg-white/20 px-1 py-0.5 rounded-md transition-colors"
           >
@@ -134,7 +135,7 @@ const WordAnalysisModal: React.FC<WordAnalysisModalProps> = ({
         </div>
         
         <div className="bg-slate-700/50 p-4 rounded-lg">
-            <p className="text-xl text-center text-slate-200">{analysis.translation}</p>
+            <p className="text-xl text-center text-slate-200">{analysis.nativeTranslation}</p>
         </div>
 
         {/* Details */}
@@ -166,8 +167,8 @@ const WordAnalysisModal: React.FC<WordAnalysisModalProps> = ({
              <div className="flex items-start space-x-3">
                 <AudioPlayer textToSpeak={analysis.exampleSentence} />
                 <div className="flex-1">
-                    <p className="text-slate-200 text-lg leading-relaxed">"{renderClickableGerman(analysis.exampleSentence)}"</p>
-                    <p className="text-slate-400 italic mt-1">«{analysis.exampleSentenceTranslation}»</p>
+                    <p className="text-slate-200 text-lg leading-relaxed">"{renderClickableGerman(analysis.exampleSentence, analysis.exampleSentenceNative)}"</p>
+                    <p className="text-slate-400 italic mt-1">«{analysis.exampleSentenceNative}»</p>
                 </div>
             </div>
         </div>

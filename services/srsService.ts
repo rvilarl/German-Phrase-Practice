@@ -33,10 +33,12 @@ const pronounList = ["ich", "du", "er", "sie", "es", "wir", "ihr", "sie", "mich"
  * Used for migrating phrases from older versions stored in localStorage.
  */
 export const assignInitialCategory = (phrase: Omit<Phrase, 'category' | 'id'>): PhraseCategory => {
-    const german = phrase.german.toLowerCase().replace(/[?]/g, '').trim();
+    // FIX: Updated to use the new `text.learning` property.
+    const german = phrase.text.learning.toLowerCase().replace(/[?]/g, '').trim();
     if (wFragenList.includes(german)) return 'w-fragen';
     // Check against formal 'Sie' separately to avoid conflict with 'sie' (she/they)
-    if (phrase.german.trim() === 'Sie') return 'pronouns';
+    // FIX: Updated to use the new `text.learning` property.
+    if (phrase.text.learning.trim() === 'Sie') return 'pronouns';
     if (pronounList.includes(german)) return 'pronouns';
     return 'general';
 };

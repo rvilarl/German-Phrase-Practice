@@ -25,10 +25,10 @@ const WFragenModal: React.FC<WFragenModalProps> = ({ isOpen, onClose, onOpenWord
   if (!isOpen) return null;
 
   const handleWordClick = (contextText: string, word: string, russianText: string) => {
+    // FIX: Updated proxy phrase creation to match the new `Phrase` type with a nested `text` object.
     const proxyPhrase: Omit<Phrase, 'id'> & { id?: string } = {
         id: `proxy_wfrage_${word}`,
-        german: contextText,
-        russian: russianText,
+        text: { learning: contextText, native: russianText },
         category: 'w-fragen',
         masteryLevel: 0, lastReviewedAt: null, nextReviewAt: Date.now(),
         knowCount: 0, knowStreak: 0, isMastered: false,

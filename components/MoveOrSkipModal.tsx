@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Category, Phrase, ProposedCard } from '../types';
 import FolderMoveIcon from './icons/FolderMoveIcon';
@@ -54,7 +55,7 @@ const MoveOrSkipModal: React.FC<MoveOrSkipModalProps> = ({ isOpen, onClose, revi
                 <ul className="space-y-2">
                     {duplicates.map(({ existingPhrase }, index) => (
                         <li key={index} className="text-sm text-slate-400">
-                            <span className="font-semibold text-slate-200">"{existingPhrase.german}"</span> (в категории "{getCategoryName(existingPhrase.category)}")
+                            <span className="font-semibold text-slate-200">"{existingPhrase.text.learning}"</span> (в категории "{getCategoryName(existingPhrase.category)}")
                         </li>
                     ))}
                 </ul>

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Category, Phrase } from '../types';
 import FolderMinusIcon from './icons/FolderMinusIcon';
@@ -93,8 +94,8 @@ const ConfirmDeletePhrasesModal: React.FC<ConfirmDeletePhrasesModalProps> = ({ i
                             {selectedIds.has(phrase.id) && <CheckIcon className="w-3 h-3 text-white" />}
                         </div>
                         <div>
-                            <p className="font-medium text-slate-200">{phrase.german}</p>
-                            <p className="text-sm text-slate-400">{phrase.russian}</p>
+                            <p className="font-medium text-slate-200">{phrase.text.learning}</p>
+                            <p className="text-sm text-slate-400">{phrase.text.native}</p>
                         </div>
                     </li>
                 ))}

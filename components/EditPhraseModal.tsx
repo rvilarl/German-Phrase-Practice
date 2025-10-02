@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import type { Phrase, SpeechRecognition, SpeechRecognitionErrorEvent, TranslationChatResponse, Category } from '../types';
 import CloseIcon from './icons/CloseIcon';
@@ -31,8 +32,8 @@ const useDebounce = (value: string, delay: number) => {
 };
 
 const EditPhraseModal: React.FC<EditPhraseModalProps> = ({ isOpen, onClose, phrase, onSave, onTranslate, onDiscuss, onOpenWordAnalysis, categories }) => {
-    const [russian, setRussian] = useState(phrase.russian);
-    const [german, setGerman] = useState(phrase.german);
+    const [russian, setRussian] = useState(phrase.text.native);
+    const [german, setGerman] = useState(phrase.text.learning);
     const [selectedCategory, setSelectedCategory] = useState(phrase.category);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -41,15 +42,15 @@ const EditPhraseModal: React.FC<EditPhraseModalProps> = ({ isOpen, onClose, phra
     
     const recognitionRef = useRef<SpeechRecognition | null>(null);
     const debouncedRussian = useDebounce(russian, 1000);
-    const initialRussianRef = useRef(phrase.russian);
+    const initialRussianRef = useRef(phrase.text.native);
 
     useEffect(() => {
         if (isOpen) {
-            setRussian(phrase.russian);
-            setGerman(phrase.german);
+            setRussian(phrase.text.native);
+            setGerman(phrase.text.learning);
             setSelectedCategory(phrase.category);
             setError(null);
-            initialRussianRef.current = phrase.russian;
+            initialRussianRef.current = phrase.text.native;
         }
     }, [isOpen, phrase]);
 
@@ -94,7 +95,7 @@ const EditPhraseModal: React.FC<EditPhraseModalProps> = ({ isOpen, onClose, phra
     }, [debouncedRussian, onTranslate]);
     
     const handleSave = () => {
-        onSave(phrase.id, { german, russian, category: selectedCategory });
+        onSave(phrase.id, { text: { native: russian, learning: german }, category: selectedCategory });
         onClose();
     };
 
@@ -206,7 +207,7 @@ const EditPhraseModal: React.FC<EditPhraseModalProps> = ({ isOpen, onClose, phra
             {phrase && <DiscussTranslationModal
                 isOpen={isDiscussModalOpen}
                 onClose={() => setIsDiscussModalOpen(false)}
-                originalRussian={phrase.russian}
+                originalRussian={phrase.text.native}
                 currentGerman={german}
                 onDiscuss={onDiscuss}
                 onAccept={handleDiscussionAccept}

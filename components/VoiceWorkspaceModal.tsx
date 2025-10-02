@@ -226,11 +226,11 @@ export const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
       if (constructedWords.length === 0) {
         setIsStuck(true);
       } else {
-        const correctPrefix = phrase.german.startsWith(constructedPhrase + ' ');
+        const correctPrefix = phrase.text.learning.startsWith(constructedPhrase + ' ');
         if (correctPrefix && constructedWords.length >= 2) {
           if (hintCount < 2) {
             const nextWordIndex = constructedWords.length;
-            const germanWords = phrase.german.split(' ');
+            const germanWords = phrase.text.learning.split(' ');
             if (nextWordIndex < germanWords.length) {
               const nextCorrectWord = germanWords[nextWordIndex];
               const hintedWord = availableWords.find(aw => normalizeString(aw.text) === normalizeString(nextCorrectWord));
@@ -263,7 +263,7 @@ export const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
     setSuccessTimestamp(null);
     if (thinkTimerRef.current) clearTimeout(thinkTimerRef.current);
 
-    const isCorrectLocally = normalizeString(userAttempt) === normalizeString(phrase.german);
+    const isCorrectLocally = normalizeString(userAttempt) === normalizeString(phrase.text.learning);
     const habitLearned = (habitTracker.quickBuilderNextCount || 0) >= 5;
     const shouldAutoAdvance = isCorrectLocally && settings.automation.learnNextPhraseHabit && habitLearned && !hasUserPausedInSession;
     
@@ -322,12 +322,12 @@ export const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
         return;
       }
       
-      const wordCount = phrase.german.split(' ').length;
+      const wordCount = phrase.text.learning.split(' ').length;
       if (wordCount > 3) {
         return;
       }
 
-      if (normalizeString(userAttempt) === normalizeString(phrase.german)) {
+      if (normalizeString(userAttempt) === normalizeString(phrase.text.learning)) {
         const timer = setTimeout(() => {
           if (isOpen && !isChecking && !evaluation) {
             handleCheck();
@@ -501,7 +501,7 @@ export const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
     setEvaluation({
       isCorrect: false,
       feedback: 'Вот правильный ответ. Попробуйте в следующий раз!',
-      correctedPhrase: phrase.german,
+      correctedPhrase: phrase.text.learning,
     });
     setIsStuck(false);
     setShowPostHintButtons(false);
@@ -529,7 +529,7 @@ export const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
           onClick={e => e.stopPropagation()}
         >
           <header className="flex-shrink-0 flex items-center justify-between p-4 border-b border-slate-700">
-            <h2 className="text-xl font-bold text-purple-300 text-center flex-grow">{phrase.russian}</h2>
+            <h2 className="text-xl font-bold text-purple-300 text-center flex-grow">{phrase.text.native}</h2>
             <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-700">
               <CloseIcon className="w-6 h-6 text-slate-400" />
             </button>

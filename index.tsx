@@ -1,11 +1,12 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
+import { LanguageProvider } from './src/contexts/languageContext.tsx';
 
 // PWA Service Worker Registration
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').then(registration => {
+    navigator.serviceWorker.register('./sw.js').then(registration => {
       console.log('SW registered: ', registration);
     }).catch(registrationError => {
       console.log('SW registration failed: ', registrationError);
@@ -22,6 +23,8 @@ const root = ReactDOM.createRoot(rootElement);
 root.render(
   // StrictMode removed to prevent double-rendering and duplicate API calls in useEffect.
   // <React.StrictMode>
+  <LanguageProvider>
     <App />
+  </LanguageProvider>
   // </React.StrictMode>
 );

@@ -1,6 +1,14 @@
 // FIX: Moved View type from App.tsx and exported it to be shared across components.
 export type View = 'practice' | 'list' | 'library' | 'reader';
 
+export type LanguageCode = 'ru' | 'de' | 'en'; // Can be expanded
+
+export interface LanguageProfile {
+  ui: LanguageCode;
+  native: LanguageCode;
+  learning: LanguageCode;
+}
+
 export type PhraseCategory = string;
 
 export interface Category {
@@ -13,11 +21,17 @@ export interface Category {
 
 export interface Phrase {
   id: string;
-  russian: string;
-  german: string;
+  text: {
+    native: string;
+    learning: string;
+  };
   category: PhraseCategory;
-  transcription?: string;
-  context?: string;
+  romanization?: {
+    learning?: string;
+  };
+  context?: {
+    native?: string;
+  };
   masteryLevel: number; // 0: new, higher is better
   lastReviewedAt: number | null; // timestamp
   nextReviewAt: number; // timestamp
@@ -29,21 +43,24 @@ export interface Phrase {
 }
 
 export type ProposedCard = {
-  russian: string;
-  german: string;
+  native: string;
+  learning: string;
 };
 
 export interface MovieExample {
   title: string;
-  titleRussian: string;
-  dialogue: string;
-  dialogueRussian: string;
+  // FIX: Renamed 'titleNative' to be consistent with other types.
+  titleNative: string;
+  // FIX: Renamed 'dialogueLearning' to be consistent with other types.
+  dialogueLearning: string;
+  // FIX: Renamed 'dialogueNative' to be consistent with other types.
+  dialogueNative: string;
 }
 
 export interface WordAnalysis {
   word: string;
   partOfSpeech: string;
-  translation: string;
+  nativeTranslation: string;
   baseForm?: string; // Base form for adjectives
   nounDetails?: {
     article: string;
@@ -55,13 +72,13 @@ export interface WordAnalysis {
     person: string;
   };
   exampleSentence: string;
-  exampleSentenceTranslation: string;
+  exampleSentenceNative: string;
 }
 
 export interface PronounConjugation {
     pronoun: string;
-    german: string;
-    russian: string;
+    learning: string;
+    native: string;
 }
 
 export interface TenseForms {
@@ -116,14 +133,14 @@ export interface AdjectiveDeclension {
 
 
 export interface SentenceContinuation {
-  german: string;
+  learning: string;
   continuations: string[];
 }
 
 
 export interface ExamplePair {
-  german: string;
-  russian: string;
+  learning: string;
+  native: string;
 }
 
 export interface ProactiveSuggestion {
@@ -132,6 +149,7 @@ export interface ProactiveSuggestion {
 }
 
 export interface ContentPart {
+  // FIX: Changed 'learning' to 'german' to match API response schema
   type: 'text' | 'german';
   text: string;
   translation?: string;
@@ -233,8 +251,10 @@ declare var SpeechRecognition: {
 
 // Types for translation editing flow
 export interface TranslationChatRequest {
-    originalRussian: string;
-    currentGerman: string;
+    // FIX: Renamed to use 'native'/'learning' for consistency.
+    originalNative: string;
+    // FIX: Renamed to use 'native'/'learning' for consistency.
+    currentLearning: string;
     history: ChatMessage[];
     userRequest: string;
 }
@@ -243,8 +263,8 @@ export interface TranslationChatResponse {
     role: 'model';
     contentParts: ContentPart[];
     suggestion?: {
-        russian: string;
-        german: string;
+        native: string;
+        learning: string;
     };
     promptSuggestions: string[];
 }
@@ -281,8 +301,8 @@ export interface CategoryAssistantResponse {
   responseParts: ContentPart[];
   promptSuggestions: string[];
   proposedCards?: ProposedCard[];
-  phrasesToReview?: { german: string; reason: string }[];
-  phrasesForDeletion?: { german: string; reason: string }[];
+  phrasesToReview?: { learning: string; reason: string }[];
+  phrasesForDeletion?: { learning: string; reason: string }[];
 }
 
 export type CategoryAssistantRequestType = 'initial' | 'add_similar' | 'check_homogeneity' | 'create_dialogue' | 'user_text';

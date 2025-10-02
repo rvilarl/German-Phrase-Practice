@@ -1,9 +1,8 @@
 
 
 
-
 import { GoogleGenAI, Type } from "@google/genai";
-import type { Phrase, ChatMessage, ExamplePair, ProactiveSuggestion, ContentPart, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, AdjectiveDeclension, SentenceContinuation, TranslationChatRequest, TranslationChatResponse, PhraseBuilderOptions, PhraseEvaluation, CategoryAssistantRequest, CategoryAssistantResponse, CategoryAssistantRequestType } from '../types';
+import type { Phrase, ChatMessage, ExamplePair, ProactiveSuggestion, ContentPart, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, AdjectiveDeclension, SentenceContinuation, TranslationChatRequest, TranslationChatResponse, PhraseBuilderOptions, PhraseEvaluation, CategoryAssistantRequest, CategoryAssistantResponse, CategoryAssistantRequestType, ProposedCard } from '../types';
 import { AiService } from './aiService';
 import { getGeminiApiKey } from './env';
 
@@ -19,7 +18,7 @@ const initializeApi = () => {
     return null;
 }
 
-const model = "gemini-2.5-flash-lite";
+const model = "gemini-2.5-flash";
 
 const phraseSchema = {
     type: Type.ARRAY,
@@ -285,7 +284,9 @@ Example Output Format:
         });
         
         const jsonText = response.text.trim();
-        return JSON.parse(jsonText);
+        // FIX: Map the response to the ProposedCard type
+        const parsed = JSON.parse(jsonText);
+        return parsed.map((p: { german: string; russian: string; }) => ({ learning: p.german, native: p.russian }));
 
     } catch (error) {
         console.error("Error generating cards from transcript with Gemini:", error);
@@ -367,7 +368,11 @@ Return EXCLUSIVELY the JSON object matching the provided schema.`;
             throw new Error("API did not return the expected structure with cards and categoryName.");
         }
         
-        return parsedResult;
+        // FIX: Map the response to the ProposedCard type
+        return {
+            cards: parsedResult.cards.map((c: { german: string; russian: string; }) => ({ learning: c.german, native: c.russian })),
+            categoryName: parsedResult.categoryName,
+        };
 
     } catch (error) {
         console.error("Error generating cards from image with Gemini:", error);
@@ -413,7 +418,8 @@ const generateTopicCards: AiService['generateTopicCards'] = async (topic, refine
             throw new Error("API did not return an array of cards.");
         }
         
-        return parsedCards;
+        // FIX: Map the response to the ProposedCard type
+        return parsedCards.map((card: { german: string; russian: string; }) => ({ learning: card.german, native: card.russian }));
 
     } catch (error) {
         console.error("Error generating topic cards with Gemini:", error);
@@ -568,7 +574,8 @@ const generateInitialExamples: AiService['generateInitialExamples'] = async (phr
     const api = initializeApi();
     if (!api) throw new Error("Gemini API key not configured.");
 
-    const prompt = `Пользователь изучает немецкую фразу: "${phrase.german}" (перевод: "${phrase.russian}"). 
+    // FIX: Use phrase.text.learning and phrase.text.native
+    const prompt = `Пользователь изучает немецкую фразу: "${phrase.text.learning}" (перевод: "${phrase.text.native}"). 
 1. Сгенерируй 3-5 разнообразных и практичных предложений-примеров на немецком, которые используют эту фразу. Для каждого примера предоставь русский перевод.
 2. Проанализируй фразу и предложи 1-2 уникальных, полезных совета или альтернативы. Например, для "ich hätte gern" можно предложить "ich möchte". Сделай советы краткими и по делу. ВАЖНО: Разбей содержание каждого совета на массив 'contentParts'. Каждый элемент массива должно быть объектом с 'type' и 'text'. Если часть ответа - обычный текст, используй 'type': 'text'. Если это немецкое слово или фраза, используй 'type': 'german' и ОБЯЗАТЕЛЬНО предоставь русский перевод в поле 'translation'.
 3. Сгенерируй от 2 до 4 коротких, контекстно-зависимых вопросов для продолжения диалога на русском языке, которые пользователь может задать.
@@ -591,7 +598,7 @@ const generateInitialExamples: AiService['generateInitialExamples'] = async (phr
         const jsonText = response.text.trim();
         const parsedResponse = JSON.parse(jsonText);
 
-        const examples: ExamplePair[] = parsedResponse.examples || [];
+        const examples: ExamplePair[] = (parsedResponse.examples || []).map((ex: any) => ({ learning: ex.german, native: ex.russian }));
         const suggestions: ProactiveSuggestion[] = parsedResponse.proactiveSuggestions || [];
         const promptSuggestions: string[] = parsedResponse.promptSuggestions || [];
 
@@ -647,7 +654,8 @@ const continueChat: AiService['continueChat'] = async (phrase, history, newMessa
         } else if (msg.text) {
              fullText = msg.text;
              if (msg.examples && msg.examples.length > 0) {
-                const examplesText = msg.examples.map(ex => `- ${ex.german} (${ex.russian})`).join('\n');
+                // FIX: Use `ex.learning` and `ex.native` for ExamplePair
+                const examplesText = msg.examples.map(ex => `- ${ex.learning} (${ex.native})`).join('\n');
                 fullText += '\n\nПримеры:\n' + examplesText;
             }
             if (msg.suggestions && msg.suggestions.length > 0) {
@@ -661,7 +669,8 @@ const continueChat: AiService['continueChat'] = async (phrase, history, newMessa
         };
     });
     
-    const systemInstruction = `Ты AI-помощник для изучения немецкого языка. Пользователь изучает фразу "${phrase.german}" (${phrase.russian}).
+    // FIX: Use phrase.text.learning and phrase.text.native
+    const systemInstruction = `Ты AI-помощник для изучения немецкого языка. Пользователь изучает фразу "${phrase.text.learning}" (${phrase.text.native}).
 1. Отвечай на вопросы пользователя. В своем ответе ОБЯЗАТЕЛЬНО используй предоставленную JSON-схему. Разбей свой ответ на массив 'responseParts'. Каждый элемент массива должен быть объектом с ключами 'type' и 'text'. Если часть ответа - это обычный текст на русском, используй 'type': 'text'. Если это немецкое слово или фраза, используй 'type': 'german'. Если 'type' равен 'german', ОБЯЗАТЕЛЬНО предоставь перевод в поле 'translation'. Не используй Markdown в JSON. Сохраняй форматирование с помощью переносов строк (\\n) в текстовых блоках.
 2. После ответа, сгенерируй от 2 до 4 новых, контекстно-зависимых вопросов для продолжения диалога в поле 'promptSuggestions'. Эти вопросы должны быть основаны на последнем сообщении пользователя и общем контексте диалога.
    - Предлагай "Покажи варианты с местоимениями" только если во фразе есть глагол для спряжения и это релевантно.
@@ -718,7 +727,7 @@ You have been given a list of all the German phrases the student is learning, al
 **Your primary directive is to keep the conversation within the scope of this known material.**
 
 Here is the student's learning data:
-${JSON.stringify(allPhrases.map(p => ({ g: p.german, r: p.russian, mastery: p.masteryLevel })))}
+${/* FIX: Use p.text.learning and p.text.native */ JSON.stringify(allPhrases.map(p => ({ g: p.text.learning, r: p.text.native, mastery: p.masteryLevel })))}
 
 **Conversation Rules:**
 1.  **Start the conversation:** If this is the first message (history is empty), greet the student in German, introduce yourself as Alex, and ask a simple opening question based on their known phrases (e.g., "Hallo! Wie geht es Ihnen?").
@@ -806,10 +815,11 @@ const guideToTranslation: AiService['guideToTranslation'] = async (phrase, histo
         return { role, parts: [{ text }] };
     });
 
+    // FIX: Use phrase.text.native and phrase.text.learning
     const systemInstruction = `Ты — опытный преподаватель-методист немецкого языка. Твоя задача — провести пользователя через интерактивное упражнение, чтобы он понял и запомнил перевод фразы. Используй метод наводящих вопросов и подсказок.
 
-Исходная фраза: "${phrase.russian}"
-Правильный немецкий перевод: "${phrase.german}"
+Исходная фраза: "${phrase.text.native}"
+Правильный немецкий перевод: "${phrase.text.learning}"
 
 **Твой алгоритм действий:**
 
@@ -849,7 +859,7 @@ const guideToTranslation: AiService['guideToTranslation'] = async (phrase, histo
     - **ПРАВИЛЬНО:** Если спрашиваешь про артикль, \`label\` должен быть "Склонение существительного".
     - **НЕПРАВИЛЬНО:** \`label\`: "Склонение: der Tisch".
 - **Общие правила:**
-    - **КЛЮЧЕВОЕ ПРАВИЛО:** Твоя задача — давать пошаговые подсказки, а не готовый ответ. Не включай полную немецкую фразу \`${phrase.german}\` в свой ответ (в поле \`responseParts\`) и не предлагай "примеры использования", пока пользователь не соберет фразу полностью и правильно. Устанавливай \`isCorrect: true\` только после того, как пользователь успешно предоставил ПОЛНЫЙ и ПРАВИЛЬНЫЙ перевод.
+    - **КЛЮЧЕВОЕ ПРАВИЛО:** Твоя задача — давать пошаговые подсказки, а не готовый ответ. Не включай полную немецкую фразу \`${phrase.text.learning}\` в свой ответ (в поле \`responseParts\`) и не предлагай "примеры использования", пока пользователь не соберет фразу полностью и правильно. Устанавливай \`isCorrect: true\` только после того, как пользователь успешно предоставил ПОЛНЫЙ и ПРАВИЛЬНЫЙ перевод.
     - Всегда отвечай на русском.
     - Используй JSON-формат со всеми полями из схемы. Поле \`cheatSheetOptions\` является необязательным.`;
     
@@ -908,9 +918,10 @@ const discussTranslation: AiService['discussTranslation'] = async (request) => {
     const api = initializeApi();
     if (!api) throw new Error("Gemini API key not configured.");
 
+    // FIX: Use `originalNative` and `currentLearning` from TranslationChatRequest
     const systemInstruction = `Ты AI-помощник и эксперт по немецкому языку. Пользователь недоволен переводом и хочет его улучшить.
-Исходная русская фраза: "${request.originalRussian}"
-Текущий немецкий перевод: "${request.currentGerman}"
+Исходная русская фраза: "${request.originalNative}"
+Текущий немецкий перевод: "${request.currentLearning}"
 
 Твоя задача:
 1.  Ответь на запрос пользователя, помогая ему найти лучший перевод. Общайся на русском.
@@ -952,7 +963,7 @@ const discussTranslation: AiService['discussTranslation'] = async (request) => {
             contentParts: parsedResponse.responseParts.length > 0 
                 ? parsedResponse.responseParts 
                 : [{ type: 'text', text: 'AI не предоставил текстовый ответ.' }],
-            suggestion: parsedResponse.suggestion,
+            suggestion: parsedResponse.suggestion ? { learning: parsedResponse.suggestion.german, native: parsedResponse.suggestion.russian } : undefined,
             promptSuggestions: parsedResponse.promptSuggestions || [],
         };
 
@@ -1015,7 +1026,8 @@ const generateDeepDiveAnalysis: AiService['generateDeepDiveAnalysis'] = async (p
     const api = initializeApi();
     if (!api) throw new Error("Gemini API key not configured.");
 
-    const prompt = `Ты — AI-ассистент, специализирующийся на когнитивных техниках запоминания. Пользователь изучает немецкую фразу: "${phrase.german}" (перевод: "${phrase.russian}").
+    // FIX: Use phrase.text.learning and phrase.text.native
+    const prompt = `Ты — AI-ассистент, специализирующийся на когнитивных техниках запоминания. Пользователь изучает немецкую фразу: "${phrase.text.learning}" (перевод: "${phrase.text.native}").
 Проведи глубокий когнитивный анализ этой фразы, следуя трём этапам, и верни результат в виде JSON-объекта.
 
 **Этап 1: Деконструкция (Анализ)**
@@ -1059,11 +1071,11 @@ const movieExamplesSchema = {
         type: Type.OBJECT,
         properties: {
             title: { type: Type.STRING, description: 'The original title of the movie.' },
-            titleRussian: { type: Type.STRING, description: 'The Russian translation of the movie title.' },
-            dialogue: { type: Type.STRING, description: 'The exact dialogue snippet in German containing the phrase.' },
-            dialogueRussian: { type: Type.STRING, description: 'The Russian translation of the dialogue snippet.' },
+            titleNative: { type: Type.STRING, description: 'The native (e.g., Russian) translation of the movie title.' },
+            dialogueLearning: { type: Type.STRING, description: 'The exact dialogue snippet in the learning language (German) containing the phrase.' },
+            dialogueNative: { type: Type.STRING, description: 'The native (e.g., Russian) translation of the dialogue snippet.' },
         },
-        required: ["title", "titleRussian", "dialogue", "dialogueRussian"],
+        required: ["title", "titleNative", "dialogueLearning", "dialogueNative"],
     }
 };
 
@@ -1071,11 +1083,12 @@ const generateMovieExamples: AiService['generateMovieExamples'] = async (phrase)
     const api = initializeApi();
     if (!api) throw new Error("Gemini API key not configured.");
 
-    const prompt = `Найди до 5 примеров из диалогов популярных фильмов, где используется немецкая фраза "${phrase.german}". Фильмы могут быть как немецкого производства, так и популярные международные фильмы с качественным немецким дубляжом. Для каждого примера укажи:
+    // FIX: Use phrase.text.learning
+    const prompt = `Найди до 5 примеров из диалогов популярных фильмов, где используется немецкая фраза "${phrase.text.learning}". Фильмы могут быть как немецкого производства, так и популярные международные фильмы с качественным немецким дубляжом. Для каждого примера укажи:
 1. Оригинальное название фильма ('title').
-2. Название фильма на русском языке ('titleRussian').
-3. Фрагмент диалога на немецком языке ('dialogue').
-4. Перевод этого фрагмента на русский язык ('dialogueRussian').
+2. Название фильма на русском языке ('titleNative').
+3. Фрагмент диалога на немецком языке ('dialogueLearning').
+4. Перевод этого фрагмента на русский язык ('dialogueNative').
 Верни результат в виде JSON-массива объектов, соответствующего схеме.`;
 
     try {
@@ -1099,12 +1112,13 @@ const generateMovieExamples: AiService['generateMovieExamples'] = async (phrase)
     }
 };
 
+// FIX: Update schema to match WordAnalysis type in types.ts
 const wordAnalysisSchema = {
     type: Type.OBJECT,
     properties: {
         word: { type: Type.STRING },
         partOfSpeech: { type: Type.STRING, description: 'The part of speech (e.g., "Существительное", "Глагол", "Прилагательное").' },
-        translation: { type: Type.STRING, description: 'The Russian translation of the word.' },
+        nativeTranslation: { type: Type.STRING, description: 'The Russian translation of the word.' },
         baseForm: { type: Type.STRING, description: 'The base form, especially for adjectives (e.g., "gut" for "guten").' },
         nounDetails: {
             type: Type.OBJECT,
@@ -1122,25 +1136,26 @@ const wordAnalysisSchema = {
             },
         },
         exampleSentence: { type: Type.STRING, description: 'A new example sentence in German using the word.' },
-        exampleSentenceTranslation: { type: Type.STRING, description: 'The Russian translation of the example sentence.' },
+        exampleSentenceNative: { type: Type.STRING, description: 'The Russian translation of the example sentence.' },
     },
-    required: ["word", "partOfSpeech", "translation", "exampleSentence", "exampleSentenceTranslation"],
+    required: ["word", "partOfSpeech", "nativeTranslation", "exampleSentence", "exampleSentenceNative"],
 };
 
 const analyzeWordInPhrase: AiService['analyzeWordInPhrase'] = async (phrase, word) => {
     const api = initializeApi();
     if (!api) throw new Error("Gemini API key not configured.");
 
-    const prompt = `Проведи лингвистический анализ немецкого слова "${word}" в контексте фразы "${phrase.german}".
+    // FIX: Use phrase.text.learning
+    const prompt = `Проведи лингвистический анализ немецкого слова "${word}" в контексте фразы "${phrase.text.learning}".
 Верни JSON-объект со следующей информацией:
 1.  **word**: анализируемое слово.
 2.  **partOfSpeech**: часть речи на русском (например, "Существительное", "Глагол", "Прилагательное").
-3.  **translation**: перевод слова на русский.
+3.  **nativeTranslation**: перевод слова на русский.
 4.  **baseForm**: если слово — прилагательное, укажи его базовую (словарную) форму. Например, для "guten" это будет "gut".
 5.  **nounDetails**: если слово — существительное, укажи его артикль ('article') и форму множественного числа ('plural'). Если нет, пропусти это поле.
 6.  **verbDetails**: если слово — глагол, укажи его инфинитив ('infinitive'), время ('tense') и лицо/число ('person'). Если нет, пропусти это поле.
 7.  **exampleSentence**: новое предложение-пример на немецком, использующее это слово.
-8.  **exampleSentenceTranslation**: перевод предложения-примера на русский.`;
+8.  **exampleSentenceNative**: перевод предложения-примера на русский.`;
 
     try {
         const response = await api.models.generateContent({
@@ -1382,7 +1397,7 @@ const declineAdjective: AiService['declineAdjective'] = async (adjective) => {
 2.  **Declension**: Предоставь три полные таблицы склонения (слабое - weak, смешанное - mixed, сильное - strong).
     - Каждая таблица должна включать все падежи (nominativ, akkusativ, dativ, genitiv) для всех родов (masculine, feminine, neuter) и множественного числа (plural).
     - ВАЖНО: В каждой форме прилагательного выдели окончание с помощью Markdown bold, например: "schön**en**".
-Верни результат в виде единого JSON-объекта.`;
+Верни результат в виде единого JSON-объект.`;
 
     try {
         const response = await api.models.generateContent({
@@ -1408,7 +1423,7 @@ const declineAdjective: AiService['declineAdjective'] = async (adjective) => {
 const sentenceContinuationSchema = {
     type: Type.OBJECT,
     properties: {
-        german: {
+        learning: {
             type: Type.STRING,
             description: "The correct German translation of the provided Russian phrase."
         },
@@ -1420,13 +1435,14 @@ const sentenceContinuationSchema = {
             }
         }
     },
-    required: ["german", "continuations"]
+    required: ["learning", "continuations"]
 };
 
 const generateSentenceContinuations: AiService['generateSentenceContinuations'] = async (russianPhrase) => {
     const api = initializeApi();
     if (!api) throw new Error("Gemini API key not configured.");
 
+    // FIX: This function takes a russian phrase, no need to access .native
     const prompt = `Ты — AI-помощник для изучения языка, который помогает пользователю строить фразы по частям.
 Текущая фраза пользователя на русском: "${russianPhrase}"
 
@@ -1437,7 +1453,7 @@ const generateSentenceContinuations: AiService['generateSentenceContinuations'] 
     - Если фраза "Как мне добраться до вокзала", то можно добавить **обстоятельство способа действия** (как?) или **времени** (когда?).
 
 2.  **Генерация**:
-    - **german**: Переведи текущую фразу "${russianPhrase}" на немецкий язык. Убедись, что грамматика и знаки препинания корректны.
+    - **learning**: Переведи текущую фразу "${russianPhrase}" на немецкий язык. Убедись, что грамматика и знаки препинания корректны.
     - **continuations**: Сгенерируй от 7 до 10 разнообразных и логичных вариантов продолжения для русской фразы. Варианты должны быть релевантны для взрослого человека в реальных жизненных ситуациях (работа, семья, быт, друзья, путешествия).
         - **ВАЖНО**: Варианты должны **продолжать** мысль, а не **заменять** ее часть.
         - **ПРАВИЛЬНО**: для "Как мне добраться до вокзала", предложи способы: "на метро", "пешком", "быстрее всего".
@@ -1487,7 +1503,8 @@ const findDuplicatePhrases: AiService['findDuplicatePhrases'] = async (phrases) 
     if (!api) throw new Error("Gemini API key not configured.");
     if (phrases.length < 2) return { duplicateGroups: [] };
 
-    const prompt = `Here is a list of phrases: ${JSON.stringify(phrases.map(p => ({ id: p.id, russian: p.russian })))}. 
+    // FIX: Use phrase.text.native
+    const prompt = `Here is a list of phrases: ${JSON.stringify(phrases.map(p => ({ id: p.id, russian: p.text.native })))}. 
 Analyze them and identify groups of phrases that are semantic duplicates. Ignore minor differences in wording, articles, capitalization, punctuation, or leading/trailing whitespace if the core meaning is identical. For example, "Я хочу пить", "а я хочу пить", and "Мне хочется пить" are all duplicates. Return a JSON object containing an array of these groups of phrase IDs. Only include groups with 2 or more phrases.`;
 
     try {
@@ -1526,8 +1543,9 @@ const generatePhraseBuilderOptions: AiService['generatePhraseBuilderOptions'] = 
     const api = initializeApi();
     if (!api) throw new Error("Gemini API key not configured.");
     
+    // FIX: Use phrase.text.learning and phrase.text.native
     const prompt = `Создай набор слов для упражнения "собери фразу".
-Немецкая фраза: "${phrase.german}" (Русский перевод: "${phrase.russian}").
+Немецкая фраза: "${phrase.text.learning}" (Русский перевод: "${phrase.text.native}").
 
 Правила:
 1. Включи в набор ВСЕ слова из немецкой фразы. Знаки препинания должны оставаться частью слова (например, "Hallo.").
@@ -1569,9 +1587,10 @@ const evaluatePhraseAttempt: AiService['evaluatePhraseAttempt'] = async (phrase,
     const api = initializeApi();
     if (!api) throw new Error("Gemini API key not configured.");
 
+    // FIX: Use phrase.text.native and phrase.text.learning
     const prompt = `Ты — опытный и доброжелательный преподаватель немецкого языка.
-Ученик изучает фразу: "${phrase.russian}".
-Правильный перевод: "${phrase.german}".
+Ученик изучает фразу: "${phrase.text.native}".
+Правильный перевод: "${phrase.text.learning}".
 Ответ ученика: "${userAttempt}".
 
 Твоя задача — дать обратную связь по ответу ученика.
@@ -1612,9 +1631,10 @@ const evaluateSpokenPhraseAttempt: AiService['evaluateSpokenPhraseAttempt'] = as
     const api = initializeApi();
     if (!api) throw new Error("Gemini API key not configured.");
 
+    // FIX: Use phrase.text.native and phrase.text.learning
     const prompt = `Ты — опытный и доброжелательный преподаватель немецкого языка, оценивающий УСТНЫЙ ответ ученика.
-Ученик изучает фразу: "${phrase.russian}".
-Правильный письменный перевод: "${phrase.german}".
+Ученик изучает фразу: "${phrase.text.native}".
+Правильный письменный перевод: "${phrase.text.learning}".
 Устный ответ ученика (транскрипция): "${userAttempt}".
 
 Твоя задача — дать обратную связь по устному ответу ученика.
@@ -1741,7 +1761,8 @@ const getCategoryAssistantResponse: AiService['getCategoryAssistantResponse'] = 
     const api = initializeApi();
     if (!api) throw new Error("Gemini API key not configured.");
     
-    const existingPhrasesText = existingPhrases.map(p => `"${p.german}"`).join(', ');
+    // FIX: Use p.text.learning
+    const existingPhrasesText = existingPhrases.map(p => `"${p.text.learning}"`).join(', ');
 
     const requestTextMap: Record<CategoryAssistantRequestType, string> = {
         initial: "Это первое открытие. Поприветствуй пользователя и предложи основные действия.",
@@ -1781,7 +1802,17 @@ const getCategoryAssistantResponse: AiService['getCategoryAssistantResponse'] = 
         });
         
         const jsonText = response.text.trim();
-        return JSON.parse(jsonText) as CategoryAssistantResponse;
+        const parsedResult = JSON.parse(jsonText);
+
+        // Map proposedCards to the correct type
+        const assistantResponse: CategoryAssistantResponse = {
+            ...parsedResult,
+            proposedCards: parsedResult.proposedCards?.map((c: any) => ({ native: c.russian, learning: c.german })),
+            phrasesToReview: parsedResult.phrasesToReview?.map((p: any) => ({ learning: p.german, reason: p.reason })),
+            phrasesForDeletion: parsedResult.phrasesForDeletion?.map((p: any) => ({ learning: p.german, reason: p.reason })),
+        };
+
+        return assistantResponse;
 
     } catch (error) {
         console.error("Error with Category Assistant:", error);

@@ -45,10 +45,23 @@ const feCategory = (beCategory: any): Category => ({
 
 const fePhrase = (bePhrase: any): Phrase => {
     const categoryId = bePhrase.category_id ?? bePhrase.category;
+    // FIX: Map backend's flat structure to the frontend's nested `text` object.
     return {
-        ...bePhrase,
         id: bePhrase.id.toString(),
+        text: {
+            native: bePhrase.russian,
+            learning: bePhrase.german,
+        },
         category: categoryId.toString(),
+        romanization: bePhrase.transcription ? { learning: bePhrase.transcription } : undefined,
+        context: bePhrase.context ? { native: bePhrase.context } : undefined,
+        masteryLevel: bePhrase.masteryLevel,
+        lastReviewedAt: bePhrase.lastReviewedAt,
+        nextReviewAt: bePhrase.nextReviewAt,
+        knowCount: bePhrase.knowCount,
+        knowStreak: bePhrase.knowStreak,
+        isMastered: bePhrase.isMastered,
+        lapses: bePhrase.lapses,
     };
 };
 
@@ -128,35 +141,25 @@ export const createPhrase = async (phraseData: Omit<Phrase, 'id' | 'masteryLevel
     const response = await fetchWithRetry(`${API_BASE_URL}/phrases`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        // FIX: Map frontend's nested `text` object to backend's flat properties.
         body: JSON.stringify({
-            russian: phraseData.russian,
-            german: phraseData.german,
+            russian: phraseData.text.native,
+            german: phraseData.text.learning,
             category_id: parseInt(phraseData.category, 10),
         })
     });
     const created = await handleResponse(response);
-    const now = Date.now();
-    return {
-        ...created,
-        id: created.id.toString(),
-        category: created.category_id.toString(),
-        masteryLevel: 0,
-        lastReviewedAt: null,
-        nextReviewAt: now,
-        knowCount: 0,
-        knowStreak: 0,
-        isMastered: false,
-        lapses: 0,
-    };
+    return fePhrase(created);
 };
 
 export const updatePhrase = async (phrase: Phrase): Promise<Phrase> => {
+    // FIX: Map frontend's nested object structure to the flat properties expected by the backend.
     const beData = {
-        russian: phrase.russian,
-        german: phrase.german,
+        russian: phrase.text.native,
+        german: phrase.text.learning,
         category_id: parseInt(phrase.category, 10),
-        transcription: phrase.transcription,
-        context: phrase.context,
+        transcription: phrase.romanization?.learning,
+        context: phrase.context?.native,
         masteryLevel: phrase.masteryLevel,
         lastReviewedAt: phrase.lastReviewedAt,
         nextReviewAt: phrase.nextReviewAt,

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import type { Phrase, MovieExample } from '../types';
 import CloseIcon from './icons/CloseIcon';
@@ -19,11 +20,16 @@ const HighlightedDialogue: React.FC<{
     phraseToHighlight: string;
     basePhrase: Phrase;
     onOpenWordAnalysis: (phrase: Phrase, word: string) => void;
-}> = ({ text, phraseToHighlight, basePhrase, onOpenWordAnalysis }) => {
+    dialogueNative: string;
+}> = ({ text, phraseToHighlight, basePhrase, onOpenWordAnalysis, dialogueNative }) => {
     if (!text) return null;
     
     const handleWordClick = (contextText: string, word: string) => {
-        const proxyPhrase = { ...basePhrase, id: `proxy_${basePhrase.id}_movie`, german: contextText };
+        const proxyPhrase: Phrase = { 
+            ...basePhrase, 
+            id: `proxy_${basePhrase.id}_movie`, 
+            text: { learning: contextText, native: dialogueNative }
+        };
         onOpenWordAnalysis(proxyPhrase, word);
     };
 
@@ -92,17 +98,17 @@ const MovieExamplesModal: React.FC<MovieExamplesModalProps> = ({ isOpen, onClose
             <div key={index} className="bg-slate-700/50 p-4 rounded-lg">
                 <h3 className="font-semibold text-slate-200 mb-2">
                     {example.title}
-                    {example.titleRussian && <span className="text-slate-400 font-normal"> ({example.titleRussian})</span>}
+                    {example.titleNative && <span className="text-slate-400 font-normal"> ({example.titleNative})</span>}
                 </h3>
                 <div className="flex items-start space-x-3">
-                    <AudioPlayer textToSpeak={example.dialogue} />
+                    <AudioPlayer textToSpeak={example.dialogueLearning} />
                     <div className="flex-1">
                         <p className="text-slate-300 leading-relaxed">
-                            <HighlightedDialogue text={example.dialogue} phraseToHighlight={phrase.german} basePhrase={phrase} onOpenWordAnalysis={onOpenWordAnalysis} />
+                            <HighlightedDialogue text={example.dialogueLearning} phraseToHighlight={phrase.text.learning} basePhrase={phrase} onOpenWordAnalysis={onOpenWordAnalysis} dialogueNative={example.dialogueNative} />
                         </p>
-                        {example.dialogueRussian && (
+                        {example.dialogueNative && (
                             <p className="text-slate-400 leading-relaxed italic mt-1 border-l-2 border-slate-600 pl-3">
-                                {example.dialogueRussian}
+                                {example.dialogueNative}
                             </p>
                         )}
                     </div>

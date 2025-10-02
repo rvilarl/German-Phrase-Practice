@@ -1,5 +1,7 @@
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Phrase, ChatMessage, CheatSheetOption, SpeechRecognition, SpeechRecognitionErrorEvent } from '../types';
+// FIX: Added 'ContentPart' to the import to resolve 'Cannot find name' error.
+import { Phrase, ChatMessage, CheatSheetOption, SpeechRecognition, SpeechRecognitionErrorEvent, ContentPart } from '../types';
 import CloseIcon from './icons/CloseIcon';
 import SendIcon from './icons/SendIcon';
 import SoundIcon from './icons/SoundIcon';
@@ -31,21 +33,23 @@ const ChatMessageContent: React.FC<{
 }> = ({ message, onSpeak, basePhrase, onOpenWordAnalysis }) => {
     const { contentParts } = message;
 
-    const handleWordClick = (contextText: string, word: string) => {
+    // FIX: Updated to accept russianText and construct a valid proxy Phrase.
+    const handleWordClick = (contextText: string, word: string, russianText: string) => {
         if (!onOpenWordAnalysis || !basePhrase) return;
-        const proxyPhrase = { ...basePhrase, id: `${basePhrase.id}_proxy_${contextText.slice(0, 5)}`, german: contextText };
+        const proxyPhrase: Phrase = { ...basePhrase, id: `${basePhrase.id}_proxy_${contextText.slice(0, 5)}`, text: { learning: contextText, native: russianText } };
         onOpenWordAnalysis(proxyPhrase, word);
     };
 
-    const renderClickableGerman = (text: string) => {
-        if (!text) return null;
-        return text.split(' ').map((word, i, arr) => (
+    // FIX: Updated to pass the translation to handleWordClick.
+    const renderClickableGerman = (part: ContentPart) => {
+        if (!part.text) return null;
+        return part.text.split(' ').map((word, i, arr) => (
             <span
                 key={i}
                 onClick={(e) => {
                     e.stopPropagation();
                     const cleanedWord = word.replace(/[.,!?()"“”:;]/g, '');
-                    if (cleanedWord) handleWordClick(text, cleanedWord);
+                    if (cleanedWord) handleWordClick(part.text, cleanedWord, part.translation || '');
                 }}
                 className="cursor-pointer hover:bg-white/20 px-1 py-0.5 rounded-md transition-colors"
             >
@@ -60,7 +64,7 @@ const ChatMessageContent: React.FC<{
                 {contentParts.map((part, index) =>
                     part.type === 'german' ? (
                         <span key={index} className="inline-flex items-center align-middle bg-slate-600/50 px-1.5 py-0.5 rounded-md mx-0.5">
-                            <span className="font-medium text-purple-300">{renderClickableGerman(part.text)}</span>
+                            <span className="font-medium text-purple-300">{renderClickableGerman(part)}</span>
                             <button
                                 onClick={() => onSpeak(part.text)}
                                 className="p-0.5 rounded-full hover:bg-white/20 flex-shrink-0 ml-1.5"
@@ -97,10 +101,12 @@ const LearningAssistantModal: React.FC<LearningAssistantModalProps> = ({ isOpen,
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   
   const updateMessages = useCallback((updater: (prev: ChatMessage[]) => ChatMessage[]) => {
-    const newMessages = updater(messages);
-    setMessages(newMessages);
-    setCache(prev => ({ ...prev, [phrase.id]: newMessages }));
-  }, [messages, setCache, phrase.id]);
+    setMessages(prevMessages => {
+        const newMessages = updater(prevMessages);
+        setCache(prevCache => ({ ...prevCache, [phrase.id]: newMessages }));
+        return newMessages;
+    });
+  }, [setCache, phrase.id]);
 
   const onSpeak = useCallback((text: string) => {
     if ('speechSynthesis' in window) {
@@ -152,7 +158,7 @@ const LearningAssistantModal: React.FC<LearningAssistantModalProps> = ({ isOpen,
           });
       }
     }
-  }, [isOpen, phrase, onGuide]);
+  }, [isOpen, phrase, onGuide, cache, updateMessages]);
   
   useEffect(() => {
     const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -270,27 +276,30 @@ const LearningAssistantModal: React.FC<LearningAssistantModalProps> = ({ isOpen,
       case 'wFragen':
         onOpenWFragenModal();
         break;
+      default:
+        console.warn('Unknown cheat sheet type:', option.type);
     }
   };
 
+  const handleWordOptionClick = (word: string) => {
+      setInput(prev => (prev ? prev + ' ' : '') + word);
+      setTimeout(() => textareaRef.current?.focus(), 0);
+  }
+  
   if (!isOpen) return null;
 
-  const latestMessage = messages[messages.length - 1];
-  const promptSuggestions = (latestMessage?.role === 'model' && latestMessage.promptSuggestions) || [];
-  const showOptions = (wordOptions.length > 0 || cheatSheetOptions.length > 0) && !isLoading && !isSuccess;
-
   return (
-    <div className="fixed inset-0 bg-black/60 z-50 flex justify-center items-end" onClick={() => onClose(false)}>
+    <div className="fixed inset-0 bg-black/60 z-[60] flex justify-center items-end" onClick={() => onClose()}>
       <div 
         className={`bg-slate-800 w-full max-w-2xl h-[90%] max-h-[90vh] rounded-t-2xl shadow-2xl flex flex-col transition-transform duration-300 ease-out ${isOpen ? 'translate-y-0' : 'translate-y-full'}`}
         onClick={e => e.stopPropagation()}
       >
         <header className="flex items-center justify-between p-4 border-b border-slate-700 flex-shrink-0">
           <div className="flex items-center space-x-3">
-            <BookOpenIcon className="w-7 h-7 text-purple-400"/>
-            <h2 className="text-lg font-bold text-slate-100">{phrase.russian}</h2>
+            <BookOpenIcon className="w-6 h-6 text-purple-400"/>
+            <h2 className="text-lg font-bold text-slate-100">{phrase.text.native}</h2>
           </div>
-          <button onClick={() => onClose(false)} className="p-2 rounded-full hover:bg-slate-700">
+          <button onClick={() => onClose()} className="p-2 rounded-full hover:bg-slate-700">
             <CloseIcon className="w-6 h-6 text-slate-400"/>
           </button>
         </header>
@@ -313,100 +322,62 @@ const LearningAssistantModal: React.FC<LearningAssistantModalProps> = ({ isOpen,
                     </div>
                 </div>
             )}
-            {isSuccess && (
-              <div className="flex justify-center animate-fade-in">
-                  <div className="flex items-center space-x-3 bg-green-900/50 border border-green-700 text-green-300 p-4 rounded-lg">
-                      <CheckIcon className="w-8 h-8"/>
-                      <span className="text-xl font-bold">Отлично! Всё верно!</span>
-                  </div>
-              </div>
-            )}
           </div>
           <div ref={chatEndRef} />
         </div>
 
         <div className="p-4 border-t border-slate-700 flex-shrink-0 bg-slate-800/80 backdrop-blur-sm">
-          {showOptions && (
-            <div className="pb-3 mb-3 border-b border-slate-700/50">
-              <div className="flex flex-wrap justify-center gap-2">
-                {wordOptions.map((word, index) => (
-                  <button
-                    key={index}
-                    onClick={() => handleSuggestionClick(word)}
-                    disabled={isLoading || isSuccess}
-                    className="px-4 py-2 bg-slate-700/80 hover:bg-slate-600/80 text-slate-200 text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
-                  >
-                    {word}
-                  </button>
-                ))}
-              </div>
-              {cheatSheetOptions.length > 0 && (
-                <div className="flex flex-wrap justify-center gap-2 mt-3 pt-3 border-t border-slate-700/50">
-                  {cheatSheetOptions.map((option, index) => (
-                    <button
-                      key={index}
-                      onClick={() => handleCheatSheetClick(option)}
-                      disabled={isLoading || isSuccess}
-                      className="px-3 py-1.5 bg-slate-600/50 hover:bg-slate-600/70 text-slate-300 text-xs font-medium rounded-full transition-colors disabled:opacity-50 flex items-center"
-                    >
-                      <BookOpenIcon className="w-3.5 h-3.5 mr-1.5" />
-                      {option.label}
-                    </button>
-                  ))}
+            {isSuccess ? (
+                 <div className="flex items-center justify-center h-28 bg-green-900/50 rounded-lg animate-fade-in">
+                    <CheckIcon className="w-8 h-8 text-green-400 mr-3" />
+                    <span className="text-xl font-bold text-green-300">Верно!</span>
                 </div>
-              )}
-            </div>
-          )}
-          <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(input); }} className="flex items-end space-x-2">
-            <div className="flex-grow relative">
-                <textarea
-                    ref={textareaRef}
-                    value={input}
-                    onChange={e => setInput(e.target.value)}
-                    onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                            e.preventDefault();
-                            handleSendMessage(input);
-                        }
-                    }}
+            ) : (
+            <>
+                {wordOptions.length > 0 && (
+                  <div className="flex flex-wrap justify-center gap-2 mb-3">
+                    {wordOptions.map(opt => (
+                        <button key={opt} onClick={() => handleWordOptionClick(opt)} className="px-3 py-1.5 bg-slate-700/80 hover:bg-slate-700 text-slate-300 text-sm font-medium rounded-full transition-colors">
+                            {opt}
+                        </button>
+                    ))}
+                  </div>
+                )}
+                {cheatSheetOptions.length > 0 && (
+                    <div className="flex flex-wrap justify-center gap-2 mb-3">
+                        {cheatSheetOptions.map(opt => (
+                            <button key={opt.label} onClick={() => handleCheatSheetClick(opt)} className="px-3 py-1.5 bg-slate-600/50 hover:bg-slate-600 text-slate-300 text-xs font-medium rounded-full transition-colors">
+                                {opt.label}
+                            </button>
+                        ))}
+                    </div>
+                )}
+                <div className="flex items-end space-x-2">
+                  <textarea
+                    ref={textareaRef} value={input} onChange={e => setInput(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(input); } }}
                     placeholder={isListening ? "Слушаю..." : "Ваш ответ..."}
-                    className="w-full bg-slate-700 rounded-lg p-3 pr-20 text-slate-200 resize-none max-h-32 min-h-12 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    rows={1}
-                    disabled={isLoading || isSuccess}
-                />
-                 <div className="absolute top-1/2 right-2 -translate-y-1/2 flex items-center bg-slate-700 p-0.5 rounded-full">
-                    <button 
-                        type="button"
-                        onClick={() => handleLangChange('ru')}
-                        className={`px-2 py-0.5 text-xs font-bold rounded-full transition-colors ${recognitionLang === 'ru' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:bg-slate-600'}`}
-                        disabled={isListening}
-                    >RU</button>
-                     <button 
-                        type="button"
-                        onClick={() => handleLangChange('de')}
-                        className={`px-2 py-0.5 text-xs font-bold rounded-full transition-colors ${recognitionLang === 'de' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:bg-slate-600'}`}
-                        disabled={isListening}
-                    >DE</button>
+                    className="flex-grow bg-slate-700 rounded-lg p-3 text-slate-200 resize-none max-h-32 min-h-12 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    rows={1} disabled={isLoading}
+                  />
+                  <div className="flex items-center self-stretch bg-slate-600 rounded-lg">
+                    <button type="button" onClick={() => handleLangChange('de')} className={`h-full px-2 rounded-l-lg transition-colors ${recognitionLang === 'de' ? 'bg-purple-600/50' : 'hover:bg-slate-500'}`}><span className="text-xs font-bold text-white">DE</span></button>
+                    <button type="button" onClick={() => handleLangChange('ru')} className={`h-full px-2 transition-colors ${recognitionLang === 'ru' ? 'bg-purple-600/50' : 'hover:bg-slate-500'}`}><span className="text-xs font-bold text-white">RU</span></button>
+                    <button type="button" onClick={handleMicClick} disabled={isLoading} className={`h-full px-2 rounded-r-lg transition-colors ${isListening ? 'bg-red-600' : 'hover:bg-slate-500'}`}>
+                        <MicrophoneIcon className="w-6 h-6 text-white" />
+                    </button>
+                  </div>
+                  <button type="submit" disabled={!input.trim() || isLoading} className="self-stretch p-3 bg-purple-600 rounded-lg hover:bg-purple-700 disabled:bg-slate-600 flex-shrink-0">
+                    <SendIcon className="w-6 h-6 text-white"/>
+                  </button>
                 </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={handleMicClick}
-              disabled={isLoading || isSuccess}
-              aria-label={isListening ? 'Stop listening' : 'Start listening'}
-              className={`p-3 rounded-lg transition-colors flex-shrink-0 ${isListening ? 'bg-red-600 hover:bg-red-700 animate-pulse' : 'bg-slate-600 hover:bg-slate-500'} disabled:bg-slate-600 disabled:cursor-not-allowed`}
-            >
-              <MicrophoneIcon className="w-6 h-6 text-white" />
-            </button>
-            <button type="submit" disabled={!input.trim() || isLoading || isSuccess} className="p-3 bg-purple-600 rounded-lg hover:bg-purple-700 disabled:bg-slate-600 disabled:cursor-not-allowed transition-colors flex-shrink-0">
-              <SendIcon className="w-6 h-6 text-white"/>
-            </button>
-          </form>
+            </>
+            )}
         </div>
       </div>
     </div>
   );
 };
 
+// FIX: Change to default export to resolve "no default export" error in App.tsx.
 export default LearningAssistantModal;

@@ -1,7 +1,8 @@
-import { Phrase, ChatMessage, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, AdjectiveDeclension, SentenceContinuation, TranslationChatRequest, TranslationChatResponse, PhraseBuilderOptions, PhraseEvaluation, CategoryAssistantRequest, CategoryAssistantResponse } from '../types';
+import { Phrase, ChatMessage, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, AdjectiveDeclension, SentenceContinuation, TranslationChatRequest, TranslationChatResponse, PhraseBuilderOptions, PhraseEvaluation, CategoryAssistantRequest, CategoryAssistantResponse, ProposedCard } from '../types';
 
 export interface AiService {
-  generatePhrases(prompt: string): Promise<Omit<Phrase, 'id'>[]>;
+  // FIX: Updated the return type to accurately reflect the shape of the data returned by the API call.
+  generatePhrases(prompt: string): Promise<{ german: string, russian: string }[]>;
   generateSinglePhrase(russianPhrase: string): Promise<{ german: string; russian: string; }>;
   translatePhrase(russianPhrase: string): Promise<{ german: string }>;
   translateGermanToRussian(germanPhrase: string): Promise<{ russian: string }>;
@@ -26,9 +27,10 @@ export interface AiService {
   evaluateSpokenPhraseAttempt(phrase: Phrase, userAttempt: string): Promise<PhraseEvaluation>;
   healthCheck(): Promise<boolean>;
   getProviderName(): string;
-  generateCardsFromTranscript(transcript: string, sourceLang: 'ru' | 'de'): Promise<{ russian: string; german: string; }[]>;
-  generateCardsFromImage(imageData: { mimeType: string; data: string }, refinement?: string): Promise<{ cards: { russian: string; german: string; }[], categoryName: string }>;
-  generateTopicCards(topic: string, refinement?: string, existingPhrases?: string[]): Promise<{ russian: string; german: string; }[]>;
+  // FIX: Update function signatures to return ProposedCard[] to match application types.
+  generateCardsFromTranscript(transcript: string, sourceLang: 'ru' | 'de'): Promise<ProposedCard[]>;
+  generateCardsFromImage(imageData: { mimeType: string; data: string }, refinement?: string): Promise<{ cards: ProposedCard[], categoryName: string }>;
+  generateTopicCards(topic: string, refinement?: string, existingPhrases?: string[]): Promise<ProposedCard[]>;
   classifyTopic(topic: string): Promise<{ isCategory: boolean; categoryName: string; }>;
   getCategoryAssistantResponse(categoryName: string, existingPhrases: Phrase[], request: CategoryAssistantRequest): Promise<CategoryAssistantResponse>;
 }

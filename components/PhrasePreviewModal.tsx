@@ -25,14 +25,14 @@ const PhrasePreviewModal: React.FC<PhrasePreviewModalProps> = ({ phrase, onClose
             <div className="relative w-full h-full [transform-style:preserve-3d] slow-rotate-animation">
                 {/* Front Side (Russian) */}
                 <div className="card-face bg-gradient-to-br from-slate-700 to-slate-800 border border-slate-600">
-                    <h2 className="text-3xl font-semibold text-slate-100">{phrase.russian}</h2>
-                    {phrase.context && <p className="text-slate-300 mt-3 text-base font-normal italic px-4">{phrase.context}</p>}
+                    <h2 className="text-3xl font-semibold text-slate-100">{phrase.text.native}</h2>
+                    {phrase.context?.native && <p className="text-slate-300 mt-3 text-base font-normal italic px-4">{phrase.context.native}</p>}
                 </div>
                 
                 {/* Back Side (German) */}
                 <div className="card-face [transform:rotateY(180deg)] bg-gradient-to-br from-purple-600 to-blue-600 border border-purple-500">
-                    <h2 className="text-3xl font-bold text-white">{phrase.german}</h2>
-                    {phrase.transcription && <p className="text-slate-200 mt-3 text-xl font-mono">{phrase.transcription}</p>}
+                    <h2 className="text-3xl font-bold text-white">{phrase.text.learning}</h2>
+                    {phrase.romanization?.learning && <p className="text-slate-200 mt-3 text-xl font-mono">{phrase.romanization.learning}</p>}
                 </div>
             </div>
         </div>

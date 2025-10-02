@@ -33,8 +33,8 @@ const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({ isOpen, onClose
         <p className="text-slate-400 mt-2 mb-4">Вы уверены, что хотите навсегда удалить эту фразу?</p>
         
         <div className="bg-slate-700/50 p-4 rounded-md text-center mb-4">
-            <p className="text-slate-200 font-medium text-lg">"{phrase.russian}"</p>
-            <p className="text-slate-400 mt-1">"{phrase.german}"</p>
+            <p className="text-slate-200 font-medium text-lg">"{phrase.text.native}"</p>
+            <p className="text-slate-400 mt-1">"{phrase.text.learning}"</p>
         </div>
 
         <div className="mb-6 px-2">

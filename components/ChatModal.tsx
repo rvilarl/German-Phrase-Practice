@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Phrase, ChatMessage, SpeechRecognition, SpeechRecognitionErrorEvent, WordAnalysis } from '../types';
+import { Phrase, ChatMessage, SpeechRecognition, SpeechRecognitionErrorEvent, WordAnalysis, ExamplePair } from '../types';
 import { getCache, setCache } from '../services/cacheService';
 import { ApiProviderType } from '../services/apiProvider';
 import GeminiLogo from './icons/GeminiLogo';
@@ -58,9 +59,13 @@ const ChatMessageContent: React.FC<{
         }
     };
 
-    const handleWordClick = (contextText: string, word: string) => {
+    const handleWordClick = (contextText: string, word: string, russianText: string) => {
         if (!onOpenWordAnalysis || !basePhrase) return;
-        const proxyPhrase = { ...basePhrase, id: `${basePhrase.id}_proxy_${contextText.slice(0, 5)}`, german: contextText };
+        const proxyPhrase: Phrase = { 
+            ...basePhrase, 
+            id: `${basePhrase.id}_proxy_${contextText.slice(0, 5)}`, 
+            text: { learning: contextText, native: russianText }
+        };
         onOpenWordAnalysis(proxyPhrase, word);
     };
 
@@ -72,7 +77,7 @@ const ChatMessageContent: React.FC<{
                 onClick={(e) => {
                     e.stopPropagation();
                     const cleanedWord = word.replace(/[.,!?()"“”:;]/g, '');
-                    if (cleanedWord) handleWordClick(sentence.german, cleanedWord);
+                    if (cleanedWord) handleWordClick(sentence.german, cleanedWord, sentence.russian);
                 }}
                 onPointerDown={(e) => handleWordPointerDown(e, sentence, word)}
                 onPointerUp={clearWordLongPress}
@@ -126,15 +131,15 @@ const ChatMessageContent: React.FC<{
                             <div key={`ex-${index}`}>
                                 <div className="flex items-start">
                                     <button
-                                        onClick={() => onSpeak(example.german)}
+                                        onClick={() => onSpeak(example.learning)}
                                         className="p-1 rounded-full hover:bg-white/20 flex-shrink-0 mt-0.5 mr-2"
-                                        aria-label={`Speak: ${example.german}`}
+                                        aria-label={`Speak: ${example.learning}`}
                                     >
                                         <SoundIcon className="w-4 h-4 text-slate-300" />
                                     </button>
-                                    <p className="flex-1 text-slate-100 leading-relaxed">{renderClickableGerman({ german: example.german, russian: example.russian })}</p>
+                                    <p className="flex-1 text-slate-100 leading-relaxed">{renderClickableGerman({ german: example.learning, russian: example.native })}</p>
                                 </div>
-                                <p className="pl-7 text-sm text-slate-400 italic">{example.russian}</p>
+                                <p className="pl-7 text-sm text-slate-400 italic">{example.native}</p>
                             </div>
                         ))}
                     </div>
@@ -373,7 +378,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, phrase, onGenera
         <header className="flex items-center justify-between p-4 border-b border-slate-700 flex-shrink-0">
           <div className="flex items-center space-x-3">
             {apiProviderType === 'deepseek' ? <DeepSeekLogo className="w-7 h-7" /> : <GeminiLogo className="w-7 h-7" />}
-            <h2 className="text-lg font-bold text-slate-100">{phrase.german}</h2>
+            <h2 className="text-lg font-bold text-slate-100">{phrase.text.learning}</h2>
           </div>
           <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-700">
             <CloseIcon className="w-6 h-6 text-slate-400"/>

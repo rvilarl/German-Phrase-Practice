@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Phrase, ChatMessage, SpeechRecognition, SpeechRecognitionErrorEvent, WordAnalysis } from '../types';
 import CloseIcon from './icons/CloseIcon';
@@ -16,6 +17,7 @@ interface PracticeChatModalProps {
   setHistory: (updater: React.SetStateAction<ChatMessage[]>) => void;
   onSendMessage: (history: ChatMessage[], newMessage: string) => Promise<ChatMessage>;
   allPhrases: Phrase[];
+  settings: { autoSpeak: boolean };
   onOpenWordAnalysis: (phrase: Phrase, word: string) => void;
   onCreateCard: (phraseData: { german: string; russian: string; }) => void;
   onAnalyzeWord: (phrase: Phrase, word: string) => Promise<WordAnalysis | null>;
@@ -35,10 +37,10 @@ const ChatMessageContent: React.FC<{
     const wordLongPressTimer = useRef<number | null>(null);
 
     const handleWordClick = (contextText: string, word: string, russianText: string) => {
-        const proxyPhrase = {
+        // FIX: Correctly construct the proxy Phrase with a nested text object.
+        const proxyPhrase: Phrase = {
             id: `proxy_practice_chat_${contextText.slice(0, 5)}`,
-            german: contextText,
-            russian: russianText,
+            text: { learning: contextText, native: russianText },
             category: 'general' as const, masteryLevel: 0, lastReviewedAt: null, nextReviewAt: Date.now(),
             knowCount: 0, knowStreak: 0, isMastered: false, lapses: 0,
         };
@@ -102,7 +104,7 @@ const ChatMessageContent: React.FC<{
     return text ? <p>{text}</p> : null;
 };
 
-const PracticeChatModal: React.FC<PracticeChatModalProps> = ({ isOpen, onClose, history, setHistory, onSendMessage, allPhrases, ...interactiveProps }) => {
+const PracticeChatModal: React.FC<PracticeChatModalProps> = ({ isOpen, onClose, history, setHistory, onSendMessage, allPhrases, settings, ...interactiveProps }) => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [input, setInput] = useState('');
   const [promptSuggestions, setPromptSuggestions] = useState<string[]>([]);
@@ -112,6 +114,7 @@ const PracticeChatModal: React.FC<PracticeChatModalProps> = ({ isOpen, onClose, 
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const prevIsLoadingRef = useRef(isLoading);
 
   const onSpeak = useCallback((text: string) => {
     if ('speechSynthesis' in window) {
@@ -194,7 +197,23 @@ const PracticeChatModal: React.FC<PracticeChatModalProps> = ({ isOpen, onClose, 
     }
   }, []);
 
-  useEffect(scrollToBottom, [history, isLoading]);
+  useEffect(() => {
+    scrollToBottom();
+
+    const wasLoading = prevIsLoadingRef.current;
+    const lastMessage = history.length > 0 ? history[history.length - 1] : null;
+
+    // Auto-speak on transition from loading to not loading with a new model message
+    if (wasLoading && !isLoading && lastMessage?.role === 'model' && settings.autoSpeak) {
+        const germanParts = lastMessage.contentParts?.filter(p => p.type === 'german').map(p => p.text) || [];
+        const textToSpeak = germanParts.join('. ');
+        if (textToSpeak) {
+            onSpeak(textToSpeak);
+        }
+    }
+
+    prevIsLoadingRef.current = isLoading;
+  }, [history, isLoading, settings.autoSpeak, onSpeak]);
 
   useEffect(() => {
     if (textareaRef.current) {

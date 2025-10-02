@@ -1,5 +1,4 @@
 
-
 import React, { useRef, useState, useMemo, useCallback, useEffect } from 'react';
 import type { Phrase } from '../types';
 import ChatIcon from './icons/ChatIcon';
@@ -120,11 +119,11 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
   const handleCardClick = useCallback(() => {
     setWordHint(null); // Close hint on any card interaction
     if (isFlipped) {
-      onSpeak(phrase.german, 'de-DE');
+      onSpeak(phrase.text.learning, 'de-DE');
     } else {
       onFlip();
     }
-  }, [isFlipped, phrase.german, onSpeak, onFlip]);
+  }, [isFlipped, phrase.text.learning, onSpeak, onFlip]);
   
   const handleRussianWordClick = async (e: React.MouseEvent<HTMLSpanElement>, word: string) => {
     e.stopPropagation();
@@ -149,7 +148,7 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
     setWordHint({ word, translation: null, position, isLoading: true });
     
     try {
-      const { germanTranslation } = await onGetWordTranslation(phrase.russian, phrase.german, word);
+      const { germanTranslation } = await onGetWordTranslation(phrase.text.native, phrase.text.learning, word);
       setWordHint(prev => (prev?.word === word ? { ...prev, translation: germanTranslation, isLoading: false } : prev));
     } catch (error) {
       console.error("Failed to get word translation:", error);
@@ -331,9 +330,9 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
                 <SettingsIcon className="w-5 h-5" />
             </button>
             <div className="flex-grow flex flex-col items-center justify-center w-full">
-                <RussianPhraseDisplay text={phrase.russian} as="h2" onWordClick={handleRussianWordClick} />
-                {phrase.context && (
-                  <p className="text-slate-300 mt-3 text-sm text-center font-normal italic max-w-xs">{phrase.context}</p>
+                <RussianPhraseDisplay text={phrase.text.native} as="h2" onWordClick={handleRussianWordClick} />
+                {phrase.context?.native && (
+                  <p className="text-slate-300 mt-3 text-sm text-center font-normal italic max-w-xs">{phrase.context.native}</p>
                 )}
             </div>
             {wordHint?.position && (
@@ -384,7 +383,7 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
                     <SettingsIcon className="w-5 h-5" />
                 </button>
                 <div className="text-2xl font-bold text-white flex flex-wrap justify-center items-center gap-x-1">
-                    {phrase.german.split(' ').map((word, index) => (
+                    {phrase.text.learning.split(' ').map((word, index) => (
                       <span 
                         key={index} 
                         className={`cursor-pointer hover:bg-white/20 px-1 py-0.5 rounded-md transition-colors ${isWordAnalysisLoading ? 'opacity-50 pointer-events-none' : ''}`}
@@ -397,8 +396,8 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
                       </span>
                     ))}
                 </div>
-                {phrase.transcription && (
-                  <p className="text-slate-200 mt-3 text-lg font-mono">{phrase.transcription}</p>
+                {phrase.romanization?.learning && (
+                  <p className="text-slate-200 mt-3 text-lg font-mono">{phrase.romanization.learning}</p>
                 )}
             </div>
 

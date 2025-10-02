@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import type { Phrase, SentenceContinuation } from '../types';
 import CloseIcon from './icons/CloseIcon';
 import LinkIcon from './icons/LinkIcon';
@@ -35,13 +36,14 @@ const SentenceChainModal: React.FC<SentenceChainModalProps> = ({ isOpen, onClose
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   const cacheRef = useRef<Map<string, SentenceContinuation>>(new Map());
-  const apiCacheKey = `sentence_chain_api_cache_${phrase.id}`;
-  const historyCacheKey = `sentence_chain_history_${phrase.id}`;
+  const apiCacheKey = useMemo(() => `sentence_chain_api_cache_${phrase.id}`, [phrase.id]);
+  const historyCacheKey = useMemo(() => `sentence_chain_history_${phrase.id}`, [phrase.id]);
   
   const getFullRussianPhrase = useCallback((currentHistory: string[]): string => {
-    let fullPhrase = phrase.russian;
+    let fullPhrase = phrase.text.native;
     for (const part of currentHistory) {
       if (part.match(/^[.,:;!?]/)) {
         fullPhrase += part;
@@ -50,12 +52,12 @@ const SentenceChainModal: React.FC<SentenceChainModalProps> = ({ isOpen, onClose
       }
     }
     return fullPhrase;
-  }, [phrase.russian]);
+  }, [phrase.text.native]);
 
   const fetchContinuations = useCallback(async (russianPhrase: string) => {
     if (cacheRef.current.has(russianPhrase)) {
       const cachedData = cacheRef.current.get(russianPhrase)!;
-      setCurrentGerman(cachedData.german);
+      setCurrentGerman(cachedData.learning);
       setContinuations(cachedData.continuations);
       setIsLoading(false);
       setError(null);
@@ -68,7 +70,8 @@ const SentenceChainModal: React.FC<SentenceChainModalProps> = ({ isOpen, onClose
     try {
       const result = await onGenerateContinuations(russianPhrase);
       cacheRef.current.set(russianPhrase, result);
-      setCurrentGerman(result.german);
+      // FIX: Use `result.learning` to match the `SentenceContinuation` type.
+      setCurrentGerman(result.learning);
       setContinuations(result.continuations);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
@@ -77,6 +80,7 @@ const SentenceChainModal: React.FC<SentenceChainModalProps> = ({ isOpen, onClose
     }
   }, [onGenerateContinuations]);
 
+  // Effect to handle initialization on open and saving on close.
   useEffect(() => {
     if (isOpen) {
       const storedApiCache = cacheService.getCache<[string, SentenceContinuation][]>(apiCacheKey);
@@ -84,23 +88,32 @@ const SentenceChainModal: React.FC<SentenceChainModalProps> = ({ isOpen, onClose
       
       const storedHistory = cacheService.getCache<string[]>(historyCacheKey) || [];
       setHistory(storedHistory);
-      
-      const initialRussianPhrase = getFullRussianPhrase(storedHistory);
-      fetchContinuations(initialRussianPhrase);
+      setIsInitialized(true);
     } else {
+      // Cleanup on close
+      setIsInitialized(false);
       if (cacheRef.current.size > 0) {
         cacheService.setCache(apiCacheKey, Array.from(cacheRef.current.entries()));
       }
       cacheService.setCache(historyCacheKey, history);
     }
-  }, [isOpen]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, apiCacheKey, historyCacheKey]);
+
+  // Effect to fetch data whenever history changes, but only after initialization
+  useEffect(() => {
+    if (isOpen && isInitialized) {
+      const fullRussianPhrase = getFullRussianPhrase(history);
+      fetchContinuations(fullRussianPhrase);
+    }
+  }, [history, isOpen, isInitialized, getFullRussianPhrase, fetchContinuations]);
+
 
   const handleSelectContinuation = (continuation: string) => {
     const newHistory = [...history, continuation];
     setHistory(newHistory);
-    const newRussianPhrase = getFullRussianPhrase(newHistory);
+    // The useEffect listening to `history` will trigger the fetch
     setCurrentGerman('...');
-    fetchContinuations(newRussianPhrase);
   };
   
   const handleAddContinuation = (text: string) => {
@@ -114,9 +127,8 @@ const SentenceChainModal: React.FC<SentenceChainModalProps> = ({ isOpen, onClose
     // The new history should contain elements from index 0 up to (but not including) `blockIndex - 1`.
     const newHistory = history.slice(0, Math.max(0, blockIndex - 1));
     setHistory(newHistory);
-    const newRussianPhrase = getFullRussianPhrase(newHistory);
+    // The useEffect listening to `history` will trigger the fetch
     setCurrentGerman('...');
-    fetchContinuations(newRussianPhrase);
   };
   
   const handleGoBackOneStep = () => {
@@ -129,7 +141,7 @@ const SentenceChainModal: React.FC<SentenceChainModalProps> = ({ isOpen, onClose
     e.stopPropagation();
     const cleanedWord = word.replace(/[.,!?]/g, '');
     if (cleanedWord) {
-      const proxyPhrase: Phrase = { ...phrase, german: currentGerman };
+      const proxyPhrase: Phrase = { ...phrase, text: { learning: currentGerman, native: getFullRussianPhrase(history) } };
       onWordClick(proxyPhrase, cleanedWord);
     }
   };
@@ -137,7 +149,7 @@ const SentenceChainModal: React.FC<SentenceChainModalProps> = ({ isOpen, onClose
   if (!isOpen) return null;
 
   const renderPhraseBlocks = () => {
-    const allParts = [phrase.russian, ...history];
+    const allParts = [phrase.text.native, ...history];
     return (
       <div className="flex flex-wrap items-center justify-center gap-1 leading-relaxed">
         {allParts.map((part, index) => (

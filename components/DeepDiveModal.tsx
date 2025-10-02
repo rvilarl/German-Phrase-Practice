@@ -74,7 +74,7 @@ const DeepDiveModal: React.FC<DeepDiveModalProps> = ({ isOpen, onClose, phrase, 
   if (!isOpen) return null;
   
   const handleWordClick = (contextText: string, word: string) => {
-    const proxyPhrase = { ...phrase, german: contextText };
+    const proxyPhrase: Phrase = { ...phrase, id: `proxy_deep_dive_${phrase.id}`, text: { ...phrase.text, learning: contextText } };
     onOpenWordAnalysis(proxyPhrase, word);
   };
   
@@ -166,7 +166,7 @@ const DeepDiveModal: React.FC<DeepDiveModalProps> = ({ isOpen, onClose, phrase, 
         <header className="flex items-center justify-between p-4 border-b border-slate-700 flex-shrink-0">
           <div className="flex items-center space-x-3">
             <AnalysisIcon className="w-7 h-7 text-purple-400"/>
-            <h2 className="text-lg font-bold text-slate-100">{phrase.german}</h2>
+            <h2 className="text-lg font-bold text-slate-100">{phrase.text.learning}</h2>
           </div>
           <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-700">
             <CloseIcon className="w-6 h-6 text-slate-400"/>

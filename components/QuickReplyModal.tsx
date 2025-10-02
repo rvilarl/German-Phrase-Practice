@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import type { Phrase } from '../types';
 import CheckIcon from './icons/CheckIcon';
@@ -106,7 +107,7 @@ const QuickReplyModal: React.FC<QuickReplyModalProps> = ({ isOpen, onClose, phra
         className="fixed z-50 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-slate-800/90 border border-slate-700 rounded-xl shadow-2xl p-6 w-72 animate-fade-in-center"
         onClick={e => e.stopPropagation()}
       >
-        <h2 className="text-center text-lg font-semibold text-slate-200 mb-4">{phrase.russian}</h2>
+        <h2 className="text-center text-lg font-semibold text-slate-200 mb-4">{phrase.text.native}</h2>
         {renderContent()}
       </div>
     </>

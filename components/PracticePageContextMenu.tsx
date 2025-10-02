@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import type { Phrase, WordAnalysis } from '../types';
 import ListIcon from './icons/ListIcon';
@@ -75,7 +76,7 @@ const PracticePageContextMenu: React.FC<PracticePageContextMenuProps> = ({
     setIsCreatingCard(true);
     const canonicalGerman = getCanonicalGerman();
     if (canonicalGerman) {
-      onCreateCard({ german: canonicalGerman, russian: analysis.translation });
+      onCreateCard({ german: canonicalGerman, russian: analysis.nativeTranslation });
     }
     // No need to set isCreatingCard to false, the modal will close.
     // However, if the action is quick, we can keep it for visual feedback.
@@ -105,7 +106,7 @@ const PracticePageContextMenu: React.FC<PracticePageContextMenuProps> = ({
             {isAnalysisLoading ? (
                  <div className="h-4 w-2/3 bg-slate-600 rounded animate-pulse mt-1"></div>
             ) : analysis ? (
-                <p className="text-sm text-slate-400 capitalize">{analysis.translation}</p>
+                <p className="text-sm text-slate-400 capitalize">{analysis.nativeTranslation}</p>
             ) : <p className="text-sm text-slate-400">Не удалось проанализировать</p>}
           </div>
         )}

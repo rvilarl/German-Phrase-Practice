@@ -121,10 +121,10 @@ const VerbConjugationModal: React.FC<VerbConjugationModalProps> = ({ isOpen, onC
   if (!isOpen) return null;
 
   const handleWordClick = (contextText: string, word: string) => {
+    // FIX: Updated proxy phrase creation to match the new `Phrase` type.
     const proxyPhrase: Omit<Phrase, 'id'> & { id?: string } = {
         id: `proxy_verb_${infinitive}`,
-        german: contextText,
-        russian: `Спряжение: ${infinitive}`,
+        text: { learning: contextText, native: `Спряжение: ${infinitive}` },
         category: 'general',
         masteryLevel: 0, lastReviewedAt: null, nextReviewAt: Date.now(),
         knowCount: 0, knowStreak: 0, isMastered: false,
@@ -214,10 +214,10 @@ const VerbConjugationModal: React.FC<VerbConjugationModalProps> = ({ isOpen, onC
             <div key={conj.pronoun} className="grid grid-cols-[80px_1fr_auto] items-center gap-x-3 text-sm">
                 <span className="font-mono text-purple-300 text-right">{conj.pronoun}</span>
                 <div className="min-w-0">
-                    <p className="text-slate-100 font-medium truncate">{renderClickableGerman(conj.german)}</p>
-                    <p className="text-xs text-slate-400 italic truncate">«{conj.russian}»</p>
+                    <p className="text-slate-100 font-medium truncate">{renderClickableGerman((conj as any).german)}</p>
+                    <p className="text-xs text-slate-400 italic truncate">«{(conj as any).russian}»</p>
                 </div>
-                <AudioPlayer textToSpeak={conj.german} />
+                <AudioPlayer textToSpeak={(conj as any).german} />
             </div>
           ))}
         </div>

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { SpeechRecognition, SpeechRecognitionErrorEvent, ProposedCard, Phrase, Category } from '../types';
 import CloseIcon from './icons/CloseIcon';
@@ -151,7 +152,7 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
             if(options.categoryOptions.categoryId) {
                 existingPhrases = allPhrases
                     .filter(p => p.category === options.categoryOptions?.categoryId)
-                    .map(p => p.german);
+                    .map(p => p.text.learning);
             }
             cards = await onGenerateTopicCards(topic, undefined, existingPhrases);
         }
@@ -376,7 +377,7 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
     try {
       const existingPhrases = allPhrases
         .filter(p => p.category === generationOptions?.categoryId)
-        .map(p => p.german);
+        .map(p => p.text.learning);
       const cards = await onGenerateTopicCards(currentTopic, refineText, existingPhrases);
       setProposedCards(cards);
       setSelectedIndices(new Set(cards.map((_, i) => i)));
@@ -575,8 +576,8 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
                             {selectedIndices.has(index) && <CheckIcon className="w-3 h-3 text-white" />}
                         </div>
                         <div>
-                            <p className="font-medium text-slate-200">{card.german}</p>
-                            <p className="text-sm text-slate-400">{card.russian}</p>
+                            <p className="font-medium text-slate-200">{card.learning}</p>
+                            <p className="text-sm text-slate-400">{card.native}</p>
                         </div>
                     </li>
                 ))}

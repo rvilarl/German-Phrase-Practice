@@ -1,3 +1,5 @@
+
+
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 // FIX: Import View type from shared types.ts
 import { Phrase, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, AdjectiveDeclension, SentenceContinuation, PhraseBuilderOptions, PhraseEvaluation, ChatMessage, PhraseCategory, ProposedCard, BookRecord, Category, CategoryAssistantRequest, CategoryAssistantResponse, View } from './types';
@@ -10,9 +12,10 @@ import { playCorrectSound, playIncorrectSound } from './services/soundService';
 
 import Header from './components/Header';
 import PracticePage from './pages/PracticePage';
-import PhraseListPage from './pages/PhraseListPage';
+// FIX: Changed to a named import to resolve "no default export" error.
+import { PhraseListPage } from './pages/PhraseListPage';
 import LibraryPage from './pages/LibraryPage';
-import ReaderPage from './pages/ReaderPage';
+import { ReaderPage } from './pages/ReaderPage';
 import ChatModal from './components/ChatModal';
 import SettingsModal from './components/SettingsModal';
 import DeepDiveModal from './components/DeepDiveModal';
@@ -150,8 +153,9 @@ const LeechModal: React.FC<LeechModalProps> = ({ isOpen, phrase, onImprove, onDi
         <p className="text-slate-400 mt-2 mb-4">Эта фраза дается вам с трудом. Что с ней сделать?</p>
         
         <div className="bg-slate-700/50 p-4 rounded-md text-center mb-6">
-            <p className="text-slate-200 font-medium text-lg">"{phrase.russian}"</p>
-            <p className="text-slate-400 mt-1">"{phrase.german}"</p>
+{/* FIX: Use phrase.text.native and phrase.text.learning to match the updated Phrase type */}
+            <p className="text-slate-200 font-medium text-lg">"{phrase.text.native}"</p>
+            <p className="text-slate-400 mt-1">"{phrase.text.learning}"</p>
         </div>
 
         <div className="flex flex-col space-y-3">
@@ -624,7 +628,8 @@ const App: React.FC = () => {
     setIsGenerating(true);
     if (!error?.includes("AI features are temporarily unavailable")) setError(null);
     try {
-        const existingGermanPhrases = allPhrases.map(p => p.german).join('; ');
+// FIX: Use phrase.text.learning to match the updated Phrase type
+        const existingGermanPhrases = allPhrases.map(p => p.text.learning).join('; ');
         const prompt = `Сгенерируй ${count} новых, полезных в быту немецких фраз уровня A1. Не повторяй: "${existingGermanPhrases}". Верни JSON-массив объектов с ключами 'german' и 'russian'.`;
         const newPhrasesData = await callApiWithFallback(provider => provider.generatePhrases(prompt));
         
@@ -632,7 +637,9 @@ const App: React.FC = () => {
         const defaultCategoryId = generalCategory?.id || (categories.length > 0 ? categories[0].id : '1');
         
         const phrasesToCreate = newPhrasesData.map(p => ({
-            ...p, category: defaultCategoryId
+            // FIX: Map flat structure to nested `text` object
+            text: { learning: p.german, native: p.russian },
+            category: defaultCategoryId
         }));
 
         const createdPhrases: Phrase[] = [];
@@ -975,8 +982,8 @@ const App: React.FC = () => {
 
   const handlePhraseCreated = async (newPhraseData: { german: string; russian: string }) => {
     const normalizedGerman = newPhraseData.german.trim().toLowerCase();
-    const isDuplicate = allPhrases.some(p => p.german.trim().toLowerCase() === normalizedGerman);
-    const isDuplicateInCategory = categoryToView ? allPhrases.some(p => p.category === categoryToView.id && p.german.trim().toLowerCase() === normalizedGerman) : false;
+    const isDuplicate = allPhrases.some(p => p.text.learning.trim().toLowerCase() === normalizedGerman);
+    const isDuplicateInCategory = categoryToView ? allPhrases.some(p => p.category === categoryToView.id && p.text.learning.trim().toLowerCase() === normalizedGerman) : false;
 
     if (isDuplicateInCategory) {
         showToast({ message: `Карточка "${newPhraseData.german}" уже есть в этой категории.` });
@@ -991,7 +998,8 @@ const App: React.FC = () => {
         const defaultCategoryId = (categories.length > 0 ? categories[0].id : '1');
         const categoryId = categoryToView?.id || generalCategory?.id || defaultCategoryId;
 
-        const phraseToCreate = { ...newPhraseData, category: categoryId };
+        // FIX: The Phrase type requires a nested `text` object.
+        const phraseToCreate = { text: { learning: newPhraseData.german, native: newPhraseData.russian }, category: categoryId };
         const newPhrase = await backendService.createPhrase(phraseToCreate);
         
         updateAndSavePhrases(prev => [{...newPhrase, isNew: true }, ...prev]);
@@ -1057,11 +1065,12 @@ const App: React.FC = () => {
     const newCards: ProposedCard[] = [];
     const normalizedExistingPhrases = new Map<string, Phrase>();
     allPhrases.forEach(p => {
-        normalizedExistingPhrases.set(p.german.trim().toLowerCase(), p);
+        normalizedExistingPhrases.set(p.text.learning.trim().toLowerCase(), p);
     });
     
     proposedCards.forEach(proposed => {
-        const normalizedProposed = proposed.german.trim().toLowerCase();
+        // FIX: Use `proposed.learning` instead of `proposed.german`
+        const normalizedProposed = proposed.learning.trim().toLowerCase();
         const existingPhrase = normalizedExistingPhrases.get(normalizedProposed);
         
         if (existingPhrase && existingPhrase.category !== targetCategory.id) {
@@ -1101,7 +1110,7 @@ const App: React.FC = () => {
 
 
   const handleCreateCardFromWord = useCallback(async (phraseData: { german: string; russian: string; }) => {
-    const alreadyExists = allPhrases.some(p => p.german.trim().toLowerCase() === phraseData.german.trim().toLowerCase());
+    const alreadyExists = allPhrases.some(p => p.text.learning.trim().toLowerCase() === phraseData.german.trim().toLowerCase());
     if (alreadyExists) {
         showToast({ message: `Карточка "${phraseData.german}" уже существует.` });
         return;
@@ -1112,7 +1121,8 @@ const App: React.FC = () => {
         const defaultCategoryId = (categories.length > 0 ? categories[0].id : '1');
         const categoryId = generalCategory?.id || defaultCategoryId;
 
-        const phraseToCreate = { ...phraseData, category: categoryId };
+        // FIX: The Phrase type requires a nested `text` object.
+        const phraseToCreate = { text: { learning: phraseData.german, native: phraseData.russian }, category: categoryId };
         const newPhrase = await backendService.createPhrase(phraseToCreate);
         
         updateAndSavePhrases(prev => [{...newPhrase, isNew: true }, ...prev]);
@@ -1127,7 +1137,7 @@ const App: React.FC = () => {
           showToast({ message: "AI provider not available." });
           return false;
       }
-      const alreadyExists = allPhrases.some(p => p.german.trim().toLowerCase() === germanText.trim().toLowerCase());
+      const alreadyExists = allPhrases.some(p => p.text.learning.trim().toLowerCase() === germanText.trim().toLowerCase());
       if (alreadyExists) {
           showToast({ message: `Карточка "${germanText}" уже существует.` });
           return false;
@@ -1139,7 +1149,8 @@ const App: React.FC = () => {
           const defaultCategoryId = (categories.length > 0 ? categories[0].id : '1');
           const categoryId = generalCategory?.id || defaultCategoryId;
           
-          const phraseToCreate = { german: germanText, russian, category: categoryId };
+          // FIX: The Phrase type requires a nested `text` object.
+          const phraseToCreate = { text: { learning: germanText, native: russian }, category: categoryId };
           const newPhrase = await backendService.createPhrase(phraseToCreate);
 
           updateAndSavePhrases(prev => [{...newPhrase, isNew: true}, ...prev]);
@@ -1177,7 +1188,8 @@ const App: React.FC = () => {
   const handlePhraseImproved = async (phraseId: string, newGerman: string, newRussian?: string) => {
     const originalPhrase = allPhrases.find(p => p.id === phraseId);
     if (!originalPhrase) return;
-    const updatedPhrase = { ...originalPhrase, german: newGerman, russian: newRussian ?? originalPhrase.russian };
+// FIX: Use nested text object to match Phrase type
+    const updatedPhrase = { ...originalPhrase, text: { learning: newGerman, native: newRussian ?? originalPhrase.text.native } };
     try {
         await backendService.updatePhrase(updatedPhrase);
         updateAndSavePhrases(prev => prev.map(p => (p.id === phraseId ? updatedPhrase : p)));
@@ -1459,7 +1471,8 @@ const App: React.FC = () => {
 
   const addCardsToCategory = useCallback(async (cards: ProposedCard[], targetCategory: Category): Promise<number> => {
     let addedCount = 0;
-    const phrasesToAdd = cards.map(p => ({ ...p, category: targetCategory.id }));
+    // FIX: Map ProposedCard to the correct Phrase structure before creating
+    const phrasesToAdd = cards.map(p => ({ text: { native: p.native, learning: p.learning }, category: targetCategory.id }));
     const createdPhrases: Phrase[] = [];
     
     for (const phrase of phrasesToAdd) {
@@ -1472,7 +1485,8 @@ const App: React.FC = () => {
         } catch (err) {
             const errorMessage = (err as Error).message;
             console.error("Failed to create a card during bulk add:", errorMessage);
-            showToast({message: `Не удалось добавить "${phrase.german}": ${errorMessage}`});
+            // FIX: Use `phrase.text.learning` to display the correct property in the toast message
+            showToast({message: `Не удалось добавить "${phrase.text.learning}": ${errorMessage}`});
             
             // If rate-limited, stop trying to add more cards.
             if (errorMessage.toLowerCase().includes('too many requests')) {
@@ -1497,11 +1511,12 @@ const App: React.FC = () => {
 
       const normalizedExistingPhrases = new Map<string, Phrase>();
       allPhrases.forEach(p => {
-          normalizedExistingPhrases.set(p.german.trim().toLowerCase(), p);
+          normalizedExistingPhrases.set(p.text.learning.trim().toLowerCase(), p);
       });
 
       selectedCards.forEach(proposed => {
-          const normalizedProposed = proposed.german.trim().toLowerCase();
+          // FIX: Use `proposed.learning` instead of `proposed.german`
+          const normalizedProposed = proposed.learning.trim().toLowerCase();
           const existingPhrase = normalizedExistingPhrases.get(normalizedProposed);
           
           if (existingPhrase && existingPhrase.category !== autoFillingCategory.id) {
@@ -1798,7 +1813,7 @@ const App: React.FC = () => {
   // Speak the phrase when the card is flipped to the answer side.
   useEffect(() => {
     if (isPracticeAnswerRevealed && currentPracticePhrase && settings.autoSpeak && 'speechSynthesis' in window) {
-      const utterance = new SpeechSynthesisUtterance(currentPracticePhrase.german);
+      const utterance = new SpeechSynthesisUtterance(currentPracticePhrase.text.learning);
       utterance.lang = 'de-DE';
       utterance.rate = 0.9;
       window.speechSynthesis.cancel();
@@ -2013,6 +2028,7 @@ const App: React.FC = () => {
         onOpenNounDeclension={handleOpenNounDeclension}
         onOpenAdjectiveDeclension={handleOpenAdjectiveDeclension}
         onTranslateGermanToRussian={handleTranslateGermanToRussian}
+        settings={settings}
       />}
       <SettingsModal 
         isOpen={isSettingsModalOpen} 
@@ -2203,8 +2219,8 @@ const App: React.FC = () => {
                 setIsDiscussModalOpen(false);
                 setDiscussInitialMessage(undefined);
             }}
-            originalRussian={phraseToDiscuss.russian}
-            currentGerman={phraseToDiscuss.german}
+            originalRussian={phraseToDiscuss.text.native}
+            currentGerman={phraseToDiscuss.text.learning}
             onDiscuss={handleDiscussTranslation}
             onAccept={handleDiscussionAccept}
             onOpenWordAnalysis={handleOpenWordAnalysis}

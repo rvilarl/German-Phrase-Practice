@@ -37,7 +37,7 @@ const ImprovePhraseModal: React.FC<ImprovePhraseModalProps> = ({ isOpen, onClose
   const [currentSuggestion, setCurrentSuggestion] = useState<Suggestion | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [currentGerman, setCurrentGerman] = useState(phrase.german);
+  const [currentGerman, setCurrentGerman] = useState(phrase.text.learning);
 
   useEffect(() => {
     if (isOpen) {
@@ -45,7 +45,7 @@ const ImprovePhraseModal: React.FC<ImprovePhraseModalProps> = ({ isOpen, onClose
       setCurrentSuggestion(null);
       setIsLoading(false);
       setError(null);
-      setCurrentGerman(phrase.german);
+      setCurrentGerman(phrase.text.learning);
     }
   }, [isOpen, phrase]);
 
@@ -53,7 +53,7 @@ const ImprovePhraseModal: React.FC<ImprovePhraseModalProps> = ({ isOpen, onClose
     setIsLoading(true);
     setError(null);
     try {
-      const result = await onGenerateImprovement(phrase.russian, germanToImprove);
+      const result = await onGenerateImprovement(phrase.text.native, germanToImprove);
       setCurrentSuggestion(result);
       setCurrentGerman(result.suggestedGerman); // Update current German for iterative improvement
     } catch (err) {
@@ -61,7 +61,7 @@ const ImprovePhraseModal: React.FC<ImprovePhraseModalProps> = ({ isOpen, onClose
     } finally {
       setIsLoading(false);
     }
-  }, [onGenerateImprovement, phrase.russian]);
+  }, [onGenerateImprovement, phrase.text.native]);
 
   const handleUse = () => {
     if (currentSuggestion) {
@@ -79,7 +79,7 @@ const ImprovePhraseModal: React.FC<ImprovePhraseModalProps> = ({ isOpen, onClose
   const renderInitialState = () => (
     <>
       <div className="w-full text-center">
-        <p className="text-sm text-slate-400 mb-1">{phrase.russian}</p>
+        <p className="text-sm text-slate-400 mb-1">{phrase.text.native}</p>
         <p className="text-2xl font-bold text-slate-100">{currentGerman}</p>
       </div>
       <div className="w-full flex flex-col space-y-3">

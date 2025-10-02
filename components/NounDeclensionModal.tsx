@@ -42,10 +42,10 @@ const NounDeclensionModal: React.FC<NounDeclensionModalProps> = ({ isOpen, onClo
   if (!isOpen) return null;
 
   const handleWordClick = (contextText: string, word: string) => {
+    // FIX: Updated proxy phrase creation to match the new `Phrase` type with a nested `text` object.
     const proxyPhrase: Omit<Phrase, 'id'> & { id?: string } = {
         id: `proxy_noun_${noun}`,
-        german: contextText,
-        russian: `Склонение: ${noun}`,
+        text: { learning: contextText, native: `Склонение: ${noun}` },
         category: 'general',
         masteryLevel: 0, lastReviewedAt: null, nextReviewAt: Date.now(),
         knowCount: 0, knowStreak: 0, isMastered: false,

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import type { Phrase, ChatMessage, ContentPart, TranslationChatResponse, SpeechRecognition, SpeechRecognitionErrorEvent } from '../types';
 import CloseIcon from './icons/CloseIcon';
@@ -27,7 +28,7 @@ const ChatMessageContent: React.FC<{
     const { text, contentParts } = message;
 
     const handleWordClick = (contextText: string, word: string) => {
-        const proxyPhrase = { ...basePhrase, id: `proxy_discuss_${contextText.slice(0, 5)}`, german: contextText };
+        const proxyPhrase = { ...basePhrase, id: `proxy_discuss_${contextText.slice(0, 5)}`, text: { ...basePhrase.text, learning: contextText } };
         onOpenWordAnalysis(proxyPhrase as Phrase, word);
     };
 
@@ -81,8 +82,7 @@ const DiscussTranslationModal: React.FC<DiscussTranslationModalProps> = ({ isOpe
     const isInitialMessageSent = useRef(false);
 
     const basePhrase = {
-        russian: originalRussian,
-        german: currentGerman,
+        text: { native: originalRussian, learning: currentGerman },
         category: 'general' as const,
         masteryLevel: 0, lastReviewedAt: null, nextReviewAt: Date.now(),
         knowCount: 0, knowStreak: 0, isMastered: false,
@@ -102,14 +102,14 @@ const DiscussTranslationModal: React.FC<DiscussTranslationModalProps> = ({ isOpe
 
         try {
             const response = await onDiscuss({
-                originalRussian,
-                currentGerman,
+                originalNative: originalRussian,
+                currentLearning: currentGerman,
                 history: newMessages,
                 userRequest: messageText,
             });
             setMessages(prev => [...prev, response]);
             if (response.suggestion) {
-                setLatestSuggestion(response.suggestion);
+                setLatestSuggestion({ russian: response.suggestion.native, german: response.suggestion.learning });
             }
         } catch (error) {
             setMessages(prev => [...prev, { role: 'model', contentParts: [{ type: 'text', text: `Произошла ошибка: ${(error as Error).message}` }] }]);
@@ -128,14 +128,14 @@ const DiscussTranslationModal: React.FC<DiscussTranslationModalProps> = ({ isOpe
                 setMessages([userMessage]);
 
                 onDiscuss({
-                    originalRussian,
-                    currentGerman,
+                    originalNative: originalRussian,
+                    currentLearning: currentGerman,
                     history: [userMessage],
                     userRequest: initialMessage,
                 }).then(response => {
                     setMessages(prev => [...prev, response]);
                     if (response.suggestion) {
-                        setLatestSuggestion(response.suggestion);
+                        setLatestSuggestion({ russian: response.suggestion.native, german: response.suggestion.learning });
                     }
                 }).catch(error => {
                     setMessages(prev => [...prev, { role: 'model', contentParts: [{ type: 'text', text: `Произошла ошибка: ${(error as Error).message}` }] }]);

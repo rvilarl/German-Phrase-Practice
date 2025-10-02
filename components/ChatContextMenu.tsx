@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import type { Phrase, WordAnalysis } from '../types';
 import InfoIcon from './icons/InfoIcon';
@@ -45,8 +46,7 @@ const ChatContextMenu: React.FC<ChatContextMenuProps> = ({
 
   const proxyPhrase: Phrase = {
     id: `proxy_context_${Date.now()}`,
-    german: sentence.german,
-    russian: sentence.russian,
+    text: { learning: sentence.german, native: sentence.russian },
     category: 'general',
     masteryLevel: 0,
     lastReviewedAt: null,
@@ -97,11 +97,11 @@ const ChatContextMenu: React.FC<ChatContextMenuProps> = ({
   const phraseCardExists =
     !!sentence.russian &&
     allPhrases.some(
-      (p) => p.german.trim().toLowerCase() === sentence.german.trim().toLowerCase()
+      (p) => p.text.learning.trim().toLowerCase() === sentence.german.trim().toLowerCase()
     );
 
   const wordCardExists = allPhrases.some(
-    (p) => p.german.trim().toLowerCase() === getCanonicalWordGerman().trim().toLowerCase()
+    (p) => p.text.learning.trim().toLowerCase() === getCanonicalWordGerman().trim().toLowerCase()
   );
 
   const handleAction = (e: React.MouseEvent, action: () => void) => {
@@ -118,7 +118,7 @@ const ChatContextMenu: React.FC<ChatContextMenuProps> = ({
 
   const menuItems = [
     { label: 'Сведения о слове', icon: <InfoIcon />, action: () => onOpenWordAnalysis(proxyPhrase, word), condition: !!analysis },
-    { label: 'Создать карточку для слова', icon: <PlusIcon />, action: () => { if (analysis) onCreateCard({ german: getCanonicalWordGerman(), russian: analysis.translation }); }, condition: !wordCardExists && !!analysis },
+    { label: 'Создать карточку для слова', icon: <PlusIcon />, action: () => { if (analysis) onCreateCard({ german: getCanonicalWordGerman(), russian: analysis.nativeTranslation }); }, condition: !wordCardExists && !!analysis },
     { label: 'Спряжение глагола', icon: <TableIcon />, action: () => { if (analysis?.verbDetails?.infinitive) onOpenVerbConjugation(analysis.verbDetails.infinitive); }, condition: !!analysis?.verbDetails },
     { label: 'Склонение существительного', icon: <TableIcon />, action: () => { if (analysis?.nounDetails) onOpenNounDeclension(analysis.word, analysis.nounDetails.article); }, condition: !!analysis?.nounDetails },
     { label: 'Склонение прилагательного', icon: <TableIcon />, action: () => { if (analysis) onOpenAdjectiveDeclension(analysis.baseForm || analysis.word); }, condition: analysis?.partOfSpeech === 'Прилагательное' },
@@ -170,7 +170,7 @@ const ChatContextMenu: React.FC<ChatContextMenuProps> = ({
             {isAnalysisLoading ? (
                  <div className="h-4 w-2/3 bg-slate-700 rounded animate-pulse mt-1"></div>
             ) : analysis ? (
-                <p className="text-sm text-slate-400 capitalize">{analysis.translation}</p>
+                <p className="text-sm text-slate-400 capitalize">{analysis.nativeTranslation}</p>
             ) : null}
         </div>
         

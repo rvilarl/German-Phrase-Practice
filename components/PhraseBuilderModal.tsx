@@ -248,7 +248,7 @@ const PhraseBuilderModal: React.FC<PhraseBuilderModalProps> = ({
         onClick={e => e.stopPropagation()}
       >
         <header className="flex items-center justify-between p-4 border-b border-slate-700 flex-shrink-0">
-            <h2 className="text-xl font-bold text-purple-300">{phrase.russian}</h2>
+            <h2 className="text-xl font-bold text-purple-300">{phrase.text.native}</h2>
             <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-700">
                 <CloseIcon className="w-6 h-6 text-slate-400" />
             </button>

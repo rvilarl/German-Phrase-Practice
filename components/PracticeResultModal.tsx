@@ -36,7 +36,7 @@ const PracticeResultModal: React.FC<PracticeResultModalProps> = ({ isOpen, onClo
               </div>
             </div>
             <h2 className="text-2xl font-bold text-slate-100">Отлично!</h2>
-            <p className="text-xl text-slate-200 mt-4">{phrase.german}</p>
+            <p className="text-xl text-slate-200 mt-4">{phrase.text.learning}</p>
           </>
         ) : (
           <>
@@ -52,8 +52,8 @@ const PracticeResultModal: React.FC<PracticeResultModalProps> = ({ isOpen, onClo
             <div className="bg-slate-700/50 p-3 rounded-md text-center mb-6">
               <p className="text-xs text-slate-400 text-left">Правильный ответ:</p>
               <div className="flex items-center justify-center gap-x-2 mt-1">
-                <AudioPlayer textToSpeak={evaluation?.correctedPhrase || phrase.german} />
-                <p className="text-slate-100 font-medium text-lg">{evaluation?.correctedPhrase || phrase.german}</p>
+                <AudioPlayer textToSpeak={evaluation?.correctedPhrase || phrase.text.learning} />
+                <p className="text-slate-100 font-medium text-lg">{evaluation?.correctedPhrase || phrase.text.learning}</p>
               </div>
             </div>
             <button onClick={onClose} className="w-full px-6 py-3 rounded-md bg-purple-600 hover:bg-purple-700 text-white font-semibold transition-colors">

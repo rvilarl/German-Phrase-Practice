@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -90,10 +91,9 @@ const AssistantChatMessageContent: React.FC<{
     };
     
     const handleWordClick = (contextText: string, word: string, russianText: string) => {
-        const proxyPhrase = {
+        const proxyPhrase: Phrase = {
             id: `proxy_assist_${contextText.slice(0, 5)}`,
-            german: contextText,
-            russian: russianText,
+            text: { learning: contextText, native: russianText },
             category: category.id,
             masteryLevel: 0, lastReviewedAt: null, nextReviewAt: Date.now(),
             knowCount: 0, knowStreak: 0, isMastered: false, lapses: 0,
@@ -150,8 +150,8 @@ const AssistantChatMessageContent: React.FC<{
                                 {selectedIndices.has(index) && <CheckIcon className="w-3 h-3 text-white" />}
                             </div>
                             <div>
-                                <p className="font-medium text-slate-200">{card.german}</p>
-                                <p className="text-sm text-slate-400">{card.russian}</p>
+                                <p className="font-medium text-slate-200">{card.learning}</p>
+                                <p className="text-sm text-slate-400">{card.native}</p>
                             </div>
                         </div>
                     ))}
@@ -174,7 +174,7 @@ const AssistantChatMessageContent: React.FC<{
                     <ul className="space-y-2 pt-2 border-t border-slate-600">
                         {(phrasesToReview || phrasesForDeletion)!.map((item, i) => (
                             <li key={i} className="p-2 bg-slate-800/50 rounded-md">
-                                <p className="font-medium text-amber-300">"{item.german}"</p>
+                                <p className="font-medium text-amber-300">"{item.learning}"</p>
                                 <p className="text-sm text-slate-400 italic">{item.reason}</p>
                             </li>
                         ))}
@@ -224,8 +224,8 @@ const CategoryAssistantModal: React.FC<CategoryAssistantModalProps> = (props) =>
                 setPromptSuggestions(response.promptSuggestions);
             }
             if (response?.responseType === 'phrases_to_delete' && response.phrasesForDeletion) {
-                const germanTextsToDelete = new Set(response.phrasesForDeletion.map(p => p.german.toLowerCase().trim()));
-                const phrasesToDelete = phrases.filter(p => germanTextsToDelete.has(p.german.toLowerCase().trim()));
+                const germanTextsToDelete = new Set(response.phrasesForDeletion.map(p => p.learning.toLowerCase().trim()));
+                const phrasesToDelete = phrases.filter(p => germanTextsToDelete.has(p.text.learning.toLowerCase().trim()));
                 if (phrasesToDelete.length > 0) {
                     onOpenConfirmDeletePhrases(phrasesToDelete, category);
                 }

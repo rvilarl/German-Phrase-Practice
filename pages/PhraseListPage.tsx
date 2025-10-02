@@ -1,7 +1,4 @@
 
-
-
-
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import type { Phrase, SpeechRecognition, SpeechRecognitionErrorEvent, SpeechRecognitionEvent, PhraseCategory, Category } from '../types';
 import PhraseListItem from '../components/PhraseListItem';
@@ -33,7 +30,8 @@ type ListItem =
     | { type: 'phrase'; phrase: Phrase };
 
 
-const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, onDeletePhrase, onFindDuplicates, updateAndSavePhrases, onStartPractice, highlightedPhraseId, onClearHighlight, onOpenSmartImport, categories, onUpdatePhraseCategory, onStartPracticeWithCategory, onEditCategory, onOpenAssistant }) => {
+// FIX: Changed to a named export to resolve "no default export" error in App.tsx.
+export const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, onDeletePhrase, onFindDuplicates, updateAndSavePhrases, onStartPractice, highlightedPhraseId, onClearHighlight, onOpenSmartImport, categories, onUpdatePhraseCategory, onStartPracticeWithCategory, onEditCategory, onOpenAssistant }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [categoryFilter, setCategoryFilter] = useState<'all' | PhraseCategory>('all');
     const [isProcessingDuplicates, setIsProcessingDuplicates] = useState(false);
@@ -195,7 +193,8 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
 
         const scoredPhrases = baseList
             .map(phrase => {
-                const phraseText = (detectedSearchLang === 'ru' ? phrase.russian : phrase.german).toLowerCase();
+                // FIX: Use phrase.text.native and phrase.text.learning
+                const phraseText = (detectedSearchLang === 'ru' ? phrase.text.native : phrase.text.learning).toLowerCase();
                 let score = 0;
 
                 if (!phraseText) {
@@ -475,78 +474,70 @@ const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, 
                                 )}
                                 <button
                                     onClick={onOpenSmartImport}
-                                    className="flex-shrink-0 flex items-center justify-center space-x-2 sm:px-3 px-0 text-sm bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-md transition-colors h-[34px] w-[34px] sm:w-auto"
-                                    aria-label="AI ассистент по созданию карточек"
+                                    className="flex-shrink-0 flex items-center space-x-2 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-md text-sm font-semibold transition-colors"
                                 >
-                                    <SmartToyIcon className="w-5 h-5" />
-                                    <span className="hidden sm:inline">Ассистент</span>
+                                    <SmartToyIcon className="w-5 h-5"/>
+                                    <span>AI Импорт</span>
                                 </button>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div className="flex-grow px-2 pb-6">
-                    {listItems.length > 0 ? (
-                        <ul className="space-y-2">
-                            {listItems.map((item, index) => {
-                                if (item.type === 'header') {
-                                    return (
-                                        <li key={`header-${index}`}>
-                                            <h2 className="text-lg font-bold text-slate-300 my-4 px-2 sticky top-[264px]  backdrop-blur-sm py-2 z-10">
-                                                {item.title}
-                                            </h2>
-                                        </li>
-                                    );
-                                }
-                                const category = categories.find(c => c.id === item.phrase.category);
-                                return (
-                                    <PhraseListItem
-                                        key={item.phrase.id}
-                                        phrase={item.phrase}
-                                        onEdit={onEditPhrase}
-                                        onDelete={onDeletePhrase}
-                                        isDuplicate={duplicateIdSet.has(item.phrase.id)}
-                                        isHighlighted={item.phrase.id === highlightedPhraseId}
-                                        onPreview={setPreviewPhrase}
-                                        onStartPractice={onStartPractice}
-                                        categoryInfo={category}
-                                        onCategoryClick={setCategoryFilter}
-                                        allCategories={categories}
-                                        onUpdatePhraseCategory={onUpdatePhraseCategory}
-                                    />
-                                );
-                            })}
-                        </ul>
-                    ) : (
-                         <p className="text-center text-slate-400 mt-8">
-                            {searchTerm ? 'Фразы не найдены.' : 'Список фраз пуст.'}
-                        </p>
-                    )}
+                <div className="flex-grow pt-2">
+                    <ul className="space-y-2">
+                       {listItems.map((item, index) => {
+                           if (item.type === 'header') {
+                               return (
+                                   <li key={`header-${item.title}`} className="px-4 py-1">
+                                       <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider">{item.title}</h2>
+                                   </li>
+                               );
+                           } else {
+                               const categoryInfo = categories.find(c => c.id === item.phrase.category);
+                               return (
+                                   <PhraseListItem
+                                       key={item.phrase.id}
+                                       phrase={item.phrase}
+                                       onEdit={onEditPhrase}
+                                       onDelete={onDeletePhrase}
+                                       isDuplicate={duplicateIdSet.has(item.phrase.id)}
+                                       isHighlighted={highlightedPhraseId === item.phrase.id}
+                                       onPreview={setPreviewPhrase}
+                                       onStartPractice={onStartPractice}
+                                       onCategoryClick={setCategoryFilter}
+                                       categoryInfo={categoryInfo}
+                                       allCategories={categories}
+                                       onUpdatePhraseCategory={onUpdatePhraseCategory}
+                                   />
+                               );
+                           }
+                       })}
+                    </ul>
                 </div>
             </div>
-            <PhrasePreviewModal 
-              phrase={previewPhrase} 
-              onClose={() => setPreviewPhrase(null)} 
-              onStartPractice={onStartPractice}
-            />
+            {previewPhrase && (
+                <PhrasePreviewModal 
+                    phrase={previewPhrase}
+                    onClose={() => setPreviewPhrase(null)}
+                    onStartPractice={onStartPractice}
+                />
+            )}
             {contextMenu && (
                 <CategoryFilterContextMenu
                     category={contextMenu.category}
                     position={{ x: contextMenu.x, y: contextMenu.y }}
                     onClose={handleContextMenuClose}
-                    onEdit={(category) => {
+                    onEdit={() => {
                         handleContextMenuClose();
-                        onEditCategory(category);
+                        onEditCategory(contextMenu.category);
                     }}
-                    onOpenAssistant={(category) => {
+                    onOpenAssistant={() => {
                         handleContextMenuClose();
-                        onOpenAssistant(category);
+                        onOpenAssistant(contextMenu.category);
                     }}
                 />
             )}
         </>
     );
 };
-
-export default PhraseListPage;
