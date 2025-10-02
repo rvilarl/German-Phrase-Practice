@@ -35,14 +35,24 @@ const detectBrowserLanguage = (): LanguageCode => {
 export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const isDev = import.meta.env.DEV;
   const [profile, setProfileState] = useState<LanguageProfile>(() => {
-    const initialProfile = configService.getLanguageProfile();
+    const { profile: storedProfile, source } = configService.getLanguageProfile();
+    let resolvedProfile = storedProfile;
+
+    if (source === 'default') {
+      const detected = detectBrowserLanguage();
+      resolvedProfile = { ...storedProfile, ui: detected };
+      configService.saveLanguageProfile(resolvedProfile);
+    }
+
     if (isDev) {
       const override = localStorage.getItem(DEV_OVERRIDE_KEY) as LanguageCode | null;
       if (override && SUPPORTED_LANGS.includes(override)) {
-        return { ...initialProfile, ui: override };
+        resolvedProfile = { ...resolvedProfile, ui: override };
+        configService.saveLanguageProfile(resolvedProfile);
       }
     }
-    return initialProfile;
+
+    return resolvedProfile;
   });
 
   const [currentLanguage, setCurrentLanguage] = useState<string>(i18n.language || DEFAULT_LANG);

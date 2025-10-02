@@ -356,6 +356,28 @@
     "autoFillLoading": {
       "title": "Generating cards...",
       "body": "Please wait. AI is selecting phrases for the \"{{category}}\" category."
+    },
+    "autoFillPreview": {
+      "title": "Suggestions for \"{{category}}\"",
+      "tooltip": "Suggestions for \"{{category}}\"",
+      "empty": "AI didn't suggest any cards. Try refining your request.",
+      "refine": {
+        "placeholder": "E.g. only titles, no phrases",
+        "toggle": "Refine"
+      },
+      "actions": {
+        "refine": "Refine",
+        "confirm": "Add",
+        "confirmShort": "+",
+        "confirmWithCount": "Add ({{count}})"
+      },
+      "selection": {
+        "select": "Select all",
+        "clear": "Clear all"
+      },
+      "status": {
+        "listening": "Listening..."
+      }
     }
   }
 }

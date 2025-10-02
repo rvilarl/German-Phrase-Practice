@@ -344,6 +344,28 @@
     "autoFillLoading": {
       "title": "Генерация карточек...",
       "body": "Пожалуйста, подождите. AI подбирает фразы для категории «{{category}}»."
+    },
+    "autoFillPreview": {
+      "title": "Предложения для \"{{category}}\"",
+      "tooltip": "Предложения для \"{{category}}\"",
+      "empty": "AI не предложил карточек. Попробуйте уточнить запрос.",
+      "refine": {
+        "placeholder": "Например: только названия, без фраз",
+        "toggle": "Уточнить"
+      },
+      "actions": {
+        "refine": "Уточнить",
+        "confirm": "Добавить",
+        "confirmShort": "+",
+        "confirmWithCount": "Добавить ({{count}})"
+      },
+      "selection": {
+        "select": "Выбрать все",
+        "clear": "Снять все"
+      },
+      "status": {
+        "listening": "Слушаю..."
+      }
     }
   }
 }
