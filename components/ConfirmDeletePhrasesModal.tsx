@@ -6,6 +6,7 @@ import CheckIcon from './icons/CheckIcon';
 import CloseIcon from './icons/CloseIcon';
 import TrashIcon from './icons/TrashIcon';
 import FolderMoveIcon from './icons/FolderMoveIcon';
+import { useTranslation } from '../src/hooks/useTranslation';
 
 interface ConfirmDeletePhrasesModalProps {
   isOpen: boolean;
@@ -18,6 +19,7 @@ interface ConfirmDeletePhrasesModalProps {
 }
 
 const ConfirmDeletePhrasesModal: React.FC<ConfirmDeletePhrasesModalProps> = ({ isOpen, onClose, phrases, categories, sourceCategory, onConfirmDelete, onConfirmMove }) => {
+  const { t } = useTranslation();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [targetCategoryId, setTargetCategoryId] = useState('');
 
@@ -72,19 +74,19 @@ const ConfirmDeletePhrasesModal: React.FC<ConfirmDeletePhrasesModalProps> = ({ i
             <div className="w-10 h-10 rounded-full bg-amber-900/50 flex items-center justify-center flex-shrink-0">
                 <FolderMinusIcon className="w-5 h-5 text-amber-400" />
             </div>
-            <h2 className="text-xl font-bold text-slate-100">Подтвердите действие</h2>
+            <h2 className="text-xl font-bold text-slate-100">{t('modals.confirmDeletePhrases.title')}</h2>
           </div>
           <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-700"><CloseIcon className="w-6 h-6 text-slate-400" /></button>
         </header>
         
         <div className="p-4 flex-grow overflow-y-auto hide-scrollbar">
-            <p className="text-slate-300 mb-4">AI-ассистент предлагает удалить или переместить следующие {phrases.length} {phrases.length === 1 ? 'карточку' : 'карточки'} из категории "{sourceCategory.name}".</p>
+            <p className="text-slate-300 mb-4">{t('modals.confirmDeletePhrases.body', { count: phrases.length, cards: t(`modals.confirmDeletePhrases.cards.${phrases.length === 1 ? 'one' : (phrases.length > 1 && phrases.length < 5 ? 'few' : 'many')}`) })} из категории "{sourceCategory.name}".</p>
             <div className="mb-3">
                 <label onClick={handleToggleAll} className="flex items-center cursor-pointer p-2 rounded-md hover:bg-slate-700/50 w-fit">
                     <div className={`w-5 h-5 rounded-md flex-shrink-0 flex items-center justify-center border-2 ${allSelected ? 'bg-purple-600 border-purple-500' : 'bg-slate-900 border-slate-600'}`}>
                         {allSelected && <CheckIcon className="w-3 h-3 text-white" />}
                     </div>
-                    <span className="ml-3 text-sm font-medium text-slate-200">{allSelected ? 'Снять выделение' : 'Выбрать все'}</span>
+                    <span className="ml-3 text-sm font-medium text-slate-200">{allSelected ? t('modals.confirmDeletePhrases.actions.deselectAll') : t('modals.confirmDeletePhrases.actions.selectAll')}</span>
                 </label>
             </div>
             <ul className="space-y-2">
@@ -105,13 +107,13 @@ const ConfirmDeletePhrasesModal: React.FC<ConfirmDeletePhrasesModalProps> = ({ i
         <footer className="p-4 border-t border-slate-700 flex flex-col sm:flex-row gap-3">
           <button onClick={handleConfirm} disabled={selectedIds.size === 0} className="w-full flex-1 px-4 py-3 rounded-md bg-red-600 hover:bg-red-700 text-white font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
             <TrashIcon className="w-5 h-5"/>
-            <span>Удалить ({selectedIds.size})</span>
+            <span>{t('modals.confirmDeletePhrases.actions.delete', { count: selectedIds.size })}</span>
           </button>
           {otherCategories.length > 0 && (
             <div className="w-full flex-1 flex items-center gap-2">
                 <button onClick={handleMove} disabled={selectedIds.size === 0 || !targetCategoryId} className="px-4 py-3 rounded-md bg-slate-600 hover:bg-slate-700 text-white font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
                     <FolderMoveIcon className="w-5 h-5"/>
-                    <span>Переместить ({selectedIds.size})</span>
+                    <span>{t('modals.confirmDeletePhrases.actions.move', { count: selectedIds.size })}</span>
                 </button>
                 <select value={targetCategoryId} onChange={e => setTargetCategoryId(e.target.value)} disabled={selectedIds.size === 0} className="flex-grow bg-slate-700 border border-slate-600 rounded-md p-3 text-white focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50">
                     {otherCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}

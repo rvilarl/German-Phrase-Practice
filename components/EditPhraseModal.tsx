@@ -6,6 +6,7 @@ import MicrophoneIcon from './icons/MicrophoneIcon';
 import XCircleIcon from './icons/XCircleIcon';
 import DiscussTranslationModal from './DiscussTranslationModal';
 import AudioPlayer from './AudioPlayer';
+import { useTranslation } from '../src/hooks/useTranslation';
 
 interface EditPhraseModalProps {
     isOpen: boolean;
@@ -32,6 +33,7 @@ const useDebounce = (value: string, delay: number) => {
 };
 
 const EditPhraseModal: React.FC<EditPhraseModalProps> = ({ isOpen, onClose, phrase, onSave, onTranslate, onDiscuss, onOpenWordAnalysis, categories }) => {
+    const { t } = useTranslation();
     const [russian, setRussian] = useState(phrase.text.native);
     const [german, setGerman] = useState(phrase.text.learning);
     const [selectedCategory, setSelectedCategory] = useState(phrase.category);
@@ -121,16 +123,16 @@ const EditPhraseModal: React.FC<EditPhraseModalProps> = ({ isOpen, onClose, phra
             <div className="fixed inset-0 bg-black/60 z-[80] flex justify-center items-center p-4" onClick={onClose}>
                 <div className="bg-slate-800 rounded-lg shadow-2xl w-full max-w-lg" onClick={e => e.stopPropagation()}>
                     <header className="flex items-center justify-between p-4 border-b border-slate-700">
-                        <h2 className="text-lg font-bold text-slate-100">Редактировать фразу</h2>
+                        <h2 className="text-lg font-bold text-slate-100">{t('modals.editPhrase.title')}</h2>
                         <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-700">
                             <CloseIcon className="w-6 h-6 text-slate-400" />
                         </button>
                     </header>
                     <div className="p-6 space-y-4">
-                        {error && <div className="text-center bg-red-900/50 text-red-300 p-2 rounded-md text-sm">{error}</div>}
+                        {error && <div className="text-center bg-red-900/50 text-red-300 p-2 rounded-md text-sm">{t('modals.editPhrase.errors.translation')}</div>}
                         
                         <div>
-                            <label className="block text-sm font-medium text-slate-400 mb-1">Русский</label>
+                            <label className="block text-sm font-medium text-slate-400 mb-1">{t('modals.editPhrase.fields.russian')}</label>
                             <div className="relative">
                                 <input
                                     type="text"
@@ -152,7 +154,7 @@ const EditPhraseModal: React.FC<EditPhraseModalProps> = ({ isOpen, onClose, phra
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-slate-400 mb-1">Немецкий</label>
+                            <label className="block text-sm font-medium text-slate-400 mb-1">{t('modals.editPhrase.fields.german')}</label>
                              <div className="relative">
                                 <input
                                     type="text"
@@ -173,7 +175,7 @@ const EditPhraseModal: React.FC<EditPhraseModalProps> = ({ isOpen, onClose, phra
                         </div>
 
                          <div>
-                            <label htmlFor="category-select" className="block text-sm font-medium text-slate-400 mb-1">Категория</label>
+                            <label htmlFor="category-select" className="block text-sm font-medium text-slate-400 mb-1">{t('modals.editPhrase.fields.category')}</label>
                             <select
                                 id="category-select"
                                 value={selectedCategory}
@@ -191,14 +193,14 @@ const EditPhraseModal: React.FC<EditPhraseModalProps> = ({ isOpen, onClose, phra
                                 onClick={() => setIsDiscussModalOpen(true)}
                                 className="px-4 py-2 text-sm rounded-md bg-slate-600 hover:bg-slate-700 transition-colors font-semibold text-white"
                             >
-                                Обсудить перевод
+                                {t('modals.editPhrase.actions.discuss')}
                             </button>
                             <button
                                 onClick={handleSave}
                                 disabled={!russian.trim() || !german.trim()}
                                 className="px-6 py-2 rounded-md bg-purple-600 hover:bg-purple-700 transition-colors font-semibold text-white shadow-md disabled:opacity-50"
                             >
-                                Сохранить
+                                {t('modals.editPhrase.actions.save')}
                             </button>
                         </div>
                     </div>

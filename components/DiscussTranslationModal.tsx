@@ -7,6 +7,7 @@ import MicrophoneIcon from './icons/MicrophoneIcon';
 import GeminiLogo from './icons/GeminiLogo';
 import SoundIcon from './icons/SoundIcon';
 import CheckIcon from './icons/CheckIcon';
+import { useTranslation } from '../src/hooks/useTranslation';
 
 interface DiscussTranslationModalProps {
     isOpen: boolean;
@@ -71,6 +72,7 @@ const ChatMessageContent: React.FC<{
 };
 
 const DiscussTranslationModal: React.FC<DiscussTranslationModalProps> = ({ isOpen, onClose, originalRussian, currentGerman, onDiscuss, onAccept, onOpenWordAnalysis, initialMessage }) => {
+    const { t } = useTranslation();
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [input, setInput] = useState('');
@@ -112,7 +114,7 @@ const DiscussTranslationModal: React.FC<DiscussTranslationModalProps> = ({ isOpe
                 setLatestSuggestion({ russian: response.suggestion.native, german: response.suggestion.learning });
             }
         } catch (error) {
-            setMessages(prev => [...prev, { role: 'model', contentParts: [{ type: 'text', text: `Произошла ошибка: ${(error as Error).message}` }] }]);
+            setMessages(prev => [...prev, { role: 'model', contentParts: [{ type: 'text', text: t('modals.discussTranslation.errors.generic', { message: (error as Error).message }) }] }]);
         } finally {
             setIsLoading(false);
         }
@@ -138,7 +140,7 @@ const DiscussTranslationModal: React.FC<DiscussTranslationModalProps> = ({ isOpe
                         setLatestSuggestion({ russian: response.suggestion.native, german: response.suggestion.learning });
                     }
                 }).catch(error => {
-                    setMessages(prev => [...prev, { role: 'model', contentParts: [{ type: 'text', text: `Произошла ошибка: ${(error as Error).message}` }] }]);
+                    setMessages(prev => [...prev, { role: 'model', contentParts: [{ type: 'text', text: t('modals.discussTranslation.errors.generic', { message: (error as Error).message }) }] }]);
                 }).finally(() => {
                     setIsLoading(false);
                 });
@@ -212,7 +214,7 @@ const DiscussTranslationModal: React.FC<DiscussTranslationModalProps> = ({ isOpe
                 <header className="flex items-center justify-between p-4 border-b border-slate-700 flex-shrink-0">
                     <div className="flex items-center space-x-3">
                         <GeminiLogo className="w-7 h-7" />
-                        <h2 className="text-lg font-bold text-slate-100">Обсудить перевод</h2>
+                        <h2 className="text-lg font-bold text-slate-100">{t('modals.discussTranslation.title')}</h2>
                     </div>
                     <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-700">
                         <CloseIcon className="w-6 h-6 text-slate-400" />
@@ -242,11 +244,11 @@ const DiscussTranslationModal: React.FC<DiscussTranslationModalProps> = ({ isOpe
                 <div className="p-4 border-t border-slate-700 flex-shrink-0 bg-slate-800/80 backdrop-blur-sm">
                     {latestSuggestion && (
                         <div className="bg-slate-700/50 p-3 rounded-lg mb-3">
-                            <p className="text-sm text-slate-400">Предложение AI:</p>
+                            <p className="text-sm text-slate-400">{t('modals.discussTranslation.suggestion')}:</p>
                             <p className="font-semibold text-slate-200">{latestSuggestion.russian} → {latestSuggestion.german}</p>
                             <button onClick={handleAccept} className="w-full mt-2 text-sm flex items-center justify-center py-2 bg-green-600 hover:bg-green-700 rounded-md font-bold text-white">
                                 <CheckIcon className="w-4 h-4 mr-2" />
-                                Принять этот вариант
+                                {t('modals.discussTranslation.accept')}
                             </button>
                         </div>
                     )}
@@ -255,7 +257,7 @@ const DiscussTranslationModal: React.FC<DiscussTranslationModalProps> = ({ isOpe
                             type="text"
                             value={input}
                             onChange={e => setInput(e.target.value)}
-                            placeholder={isListening ? "Слушаю..." : "Ваш комментарий..."}
+                            placeholder={isListening ? t('modals.chat.placeholders.listening') : t('modals.discussTranslation.placeholder')}
                             className="flex-grow bg-slate-700 rounded-lg p-3 text-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500"
                             disabled={isLoading}
                         />

@@ -3,6 +3,7 @@ import type { Phrase, DeepDiveAnalysis } from '../types';
 import CloseIcon from './icons/CloseIcon';
 import AnalysisIcon from './icons/AnalysisIcon';
 import Spinner from './Spinner';
+import { useTranslation } from '../src/hooks/useTranslation';
 
 interface DeepDiveModalProps {
   isOpen: boolean;
@@ -71,6 +72,8 @@ const DeepDiveSkeleton: React.FC = () => (
 
 
 const DeepDiveModal: React.FC<DeepDiveModalProps> = ({ isOpen, onClose, phrase, analysis, isLoading, error, onOpenWordAnalysis }) => {
+  const { t } = useTranslation();
+
   if (!isOpen) return null;
   
   const handleWordClick = (contextText: string, word: string) => {
@@ -101,17 +104,17 @@ const DeepDiveModal: React.FC<DeepDiveModalProps> = ({ isOpen, onClose, phrase, 
       return <DeepDiveSkeleton />;
     }
     if (error) {
-      return <div className="flex justify-center items-center h-full"><div className="text-center bg-red-900/50 border border-red-700 text-red-300 p-4 rounded-lg"><p className="font-semibold">Ошибка анализа</p><p className="text-sm">{error}</p></div></div>;
+      return <div className="flex justify-center items-center h-full"><div className="text-center bg-red-900/50 border border-red-700 text-red-300 p-4 rounded-lg"><p className="font-semibold">{t('modals.deepDive.errors.analysis')}</p><p className="text-sm">{error}</p></div></div>;
     }
     if (!analysis) {
-      return <div className="flex justify-center items-center h-full"><p className="text-slate-400">Нет данных для анализа.</p></div>;
+      return <div className="flex justify-center items-center h-full"><p className="text-slate-400">{t('modals.deepDive.errors.noData')}</p></div>;
     }
 
     return (
       <div className="space-y-8">
         {/* Stage 1: Deconstruction */}
         <section>
-          <h3 className="text-xl font-bold text-purple-300 mb-4">Этап 1: Деконструкция</h3>
+          <h3 className="text-xl font-bold text-purple-300 mb-4">{t('modals.deepDive.stages.deconstruction')}</h3>
           <div className="bg-slate-700/50 p-4 rounded-lg">
             <div className="text-lg font-semibold text-slate-100 mb-4 leading-relaxed flex flex-wrap items-center gap-x-1 gap-y-2">
               {analysis.chunks.map((chunk, index) => (
@@ -135,7 +138,7 @@ const DeepDiveModal: React.FC<DeepDiveModalProps> = ({ isOpen, onClose, phrase, 
 
         {/* Stage 2: Personalization */}
         <section>
-          <h3 className="text-xl font-bold text-green-300 mb-4">Этап 2: Персонализация</h3>
+          <h3 className="text-xl font-bold text-green-300 mb-4">{t('modals.deepDive.stages.personalization')}</h3>
           <div className="bg-slate-700/50 p-4 rounded-lg italic">
             <p className="text-slate-200">"{analysis.personalizationQuestion}"</p>
           </div>
@@ -143,7 +146,7 @@ const DeepDiveModal: React.FC<DeepDiveModalProps> = ({ isOpen, onClose, phrase, 
 
         {/* Stage 3: Encoding */}
         <section>
-          <h3 className="text-xl font-bold text-yellow-300 mb-4">Этап 3: Кодирование</h3>
+          <h3 className="text-xl font-bold text-yellow-300 mb-4">{t('modals.deepDive.stages.encoding')}</h3>
           <div className="bg-slate-700/50 p-4 rounded-lg border-l-4 border-yellow-400">
             <p className="text-slate-200 mb-4">{analysis.mnemonicImage.description}</p>
             <div className="flex flex-wrap gap-2">

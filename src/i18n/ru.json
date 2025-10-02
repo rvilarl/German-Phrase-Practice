@@ -413,6 +413,72 @@
         "cancel": "Отмена",
         "confirm": "Удалить"
       }
+    },
+    "confirmDeletePhrases": {
+      "title": "Подтвердите действие",
+      "body": "AI-ассистент предлагает удалить или переместить следующие {{count}} {{cards}}. Что с ними сделать?",
+      "cards": {
+        "one": "карточку",
+        "few": "карточки",
+        "many": "карточек",
+        "other": "карточек"
+      },
+      "actions": {
+        "selectAll": "Выбрать все",
+        "deselectAll": "Снять выделение",
+        "delete": "Удалить ({{count}})",
+        "move": "Переместить ({{count}})"
+      }
+    },
+    "deepDive": {
+      "stages": {
+        "deconstruction": "Этап 1: Деконструкция",
+        "personalization": "Этап 2: Персонализация",
+        "encoding": "Этап 3: Кодирование"
+      },
+      "errors": {
+        "analysis": "Ошибка анализа",
+        "noData": "Нет данных для анализа."
+      }
+    },
+    "discussTranslation": {
+      "title": "Обсудить перевод",
+      "suggestion": "Предложение AI:",
+      "accept": "Принять этот вариант",
+      "placeholder": "Ваш комментарий...",
+      "errors": {
+        "generic": "Произошла ошибка: {{message}}"
+      }
+    },
+    "editPhrase": {
+      "title": "Редактировать фразу",
+      "fields": {
+        "russian": "Русский",
+        "german": "Немецкий",
+        "category": "Категория"
+      },
+      "errors": {
+        "translation": "Не удалось получить перевод."
+      },
+      "actions": {
+        "discuss": "Обсудить перевод",
+        "save": "Сохранить"
+      }
+    },
+    "findDuplicates": {
+      "title": "Поиск дубликатов",
+      "processing": "Идет поиск...",
+      "found": "Найдено {{count}} групп дубликатов.",
+      "description": "Будет удалена фраза с наименьшим прогрессом в каждой группе.",
+      "actions": {
+        "cancel": "Отмена",
+        "clean": "Очистить",
+        "close": "Закрыть"
+      },
+      "noDuplicates": "Дубликаты не найдены.",
+      "errors": {
+        "search": "Ошибка при поиске дубликатов: {{message}}"
+      }
     }
   }
 }

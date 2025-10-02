@@ -425,6 +425,72 @@
         "cancel": "Cancel",
         "confirm": "Delete"
       }
+    },
+    "confirmDeletePhrases": {
+      "title": "Confirm action",
+      "body": "AI assistant suggests deleting or moving the following {{count}} {{cards}}. What to do with them?",
+      "cards": {
+        "one": "card",
+        "few": "cards",
+        "many": "cards",
+        "other": "cards"
+      },
+      "actions": {
+        "selectAll": "Select all",
+        "deselectAll": "Deselect all",
+        "delete": "Delete ({{count}})",
+        "move": "Move ({{count}})"
+      }
+    },
+    "deepDive": {
+      "stages": {
+        "deconstruction": "Stage 1: Deconstruction",
+        "personalization": "Stage 2: Personalization",
+        "encoding": "Stage 3: Encoding"
+      },
+      "errors": {
+        "analysis": "Analysis error",
+        "noData": "No data for analysis."
+      }
+    },
+    "discussTranslation": {
+      "title": "Discuss translation",
+      "suggestion": "AI suggestion:",
+      "accept": "Accept this option",
+      "placeholder": "Your comment...",
+      "errors": {
+        "generic": "An error occurred: {{message}}"
+      }
+    },
+    "editPhrase": {
+      "title": "Edit phrase",
+      "fields": {
+        "russian": "Russian",
+        "german": "German",
+        "category": "Category"
+      },
+      "errors": {
+        "translation": "Failed to get translation."
+      },
+      "actions": {
+        "discuss": "Discuss translation",
+        "save": "Save"
+      }
+    },
+    "findDuplicates": {
+      "title": "Find duplicates",
+      "processing": "Searching...",
+      "found": "Found {{count}} duplicate groups.",
+      "description": "The phrase with the least progress in each group will be deleted.",
+      "actions": {
+        "cancel": "Cancel",
+        "clean": "Clean",
+        "close": "Close"
+      },
+      "noDuplicates": "No duplicates found.",
+      "errors": {
+        "search": "Error searching for duplicates: {{message}}"
+      }
     }
   }
 }

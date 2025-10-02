@@ -3,6 +3,7 @@ import type { Phrase } from '../types';
 import Spinner from './Spinner';
 import CloseIcon from './icons/CloseIcon';
 import * as backendService from '../services/backendService';
+import { useTranslation } from '../src/hooks/useTranslation';
 
 interface FindDuplicatesModalProps {
   onClose: () => void;
@@ -13,6 +14,7 @@ interface FindDuplicatesModalProps {
 }
 
 const FindDuplicatesModal: React.FC<FindDuplicatesModalProps> = ({ onClose, onFindDuplicates, updateAndSavePhrases, phrases, backendService }) => {
+  const { t } = useTranslation();
   const [isProcessing, setIsProcessing] = useState(true);
   const [duplicateGroups, setDuplicateGroups] = useState<string[][]>([]);
   const [searchCompleted, setSearchCompleted] = useState(false);
@@ -25,7 +27,7 @@ const FindDuplicatesModal: React.FC<FindDuplicatesModalProps> = ({ onClose, onFi
       const { duplicateGroups } = await onFindDuplicates();
       setDuplicateGroups(duplicateGroups);
     } catch (error) {
-      alert(`Ошибка при поиске дубликатов: ${(error as Error).message}`);
+      alert(t('modals.findDuplicates.errors.search', { message: (error as Error).message }));
     } finally {
       setIsProcessing(false);
       setSearchCompleted(true);
@@ -88,12 +90,12 @@ const FindDuplicatesModal: React.FC<FindDuplicatesModalProps> = ({ onClose, onFi
           <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors">
             <CloseIcon className="w-6 h-6" />
           </button>
-          <h2 className="text-xl font-bold text-white mb-4">Поиск дубликатов</h2>
+          <h2 className="text-xl font-bold text-white mb-4">{t('modals.findDuplicates.title')}</h2>
 
           {isProcessing && (
             <div className="flex flex-col items-center justify-center h-32">
               <Spinner />
-              <p className="text-slate-300 mt-4 animate-pulse">Идет поиск...</p>
+              <p className="text-slate-300 mt-4 animate-pulse">{t('modals.findDuplicates.processing')}</p>
             </div>
           )}
 
@@ -102,7 +104,7 @@ const FindDuplicatesModal: React.FC<FindDuplicatesModalProps> = ({ onClose, onFi
               {duplicateGroups.length > 0 ? (
                 <div>
                   <p className="text-green-400 text-lg text-center mb-2">
-                    Найдено {duplicateGroups.length} групп дубликатов.
+                    {t('modals.findDuplicates.found', { count: duplicateGroups.length })}
                   </p>
                   <div className="max-h-60 overflow-y-auto bg-slate-900/50 rounded-lg p-3 border border-slate-700 space-y-3 my-4">
                     {duplicateGroups.map((group, index) => {
@@ -123,31 +125,31 @@ const FindDuplicatesModal: React.FC<FindDuplicatesModalProps> = ({ onClose, onFi
                     })}
                   </div>
                   <p className="text-slate-400 text-xs mb-4 text-center">
-                    Будет удалена фраза с наименьшим прогрессом в каждой группе.
+                    {t('modals.findDuplicates.description')}
                   </p>
                   <div className="flex items-center space-x-2">
                     <button
                       onClick={onClose}
                       className="w-full px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white font-semibold rounded-md transition-colors"
                     >
-                      Отмена
+                      {t('modals.findDuplicates.actions.cancel')}
                     </button>
                     <button
                       onClick={handleCleanDuplicates}
                       className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-md transition-colors"
                     >
-                      Очистить
+                      {t('modals.findDuplicates.actions.clean')}
                     </button>
                   </div>
                 </div>
               ) : (
                 <div>
-                  <p className="text-blue-400 text-lg text-center mb-6">Дубликаты не найдены.</p>
+                  <p className="text-blue-400 text-lg text-center mb-6">{t('modals.findDuplicates.noDuplicates')}</p>
                    <button
                       onClick={onClose}
                       className="w-full px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white font-semibold rounded-md transition-colors"
                     >
-                      Закрыть
+                      {t('modals.findDuplicates.actions.close')}
                     </button>
                 </div>
               )}
