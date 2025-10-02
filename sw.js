@@ -1,4 +1,4 @@
-const CACHE_NAME = 'german-srs-cache-v1';
+const CACHE_NAME = 'german-srs-cache-v2';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -26,6 +26,7 @@ self.addEventListener('install', event => {
         });
       })
   );
+  self.skipWaiting();
 });
 
 self.addEventListener('fetch', event => {
@@ -72,6 +73,6 @@ self.addEventListener('activate', event => {
           }
         })
       );
-    })
+    }).then(() => self.clients.claim())
   );
 });
