@@ -243,6 +243,27 @@
     "actions": {
       "skip": "Skip",
       "know": "I know"
+    },
+    "states": {
+      "allCategories": "Alle Kategorien",
+      "add": "Hinzufügen",
+      "manage": "Verwalten",
+      "errorOccurred": "Ein Fehler ist aufgetreten",
+      "congratulations": "Herzlichen Glückwunsch!",
+      "learnedAllSelected": "Sie haben alle Phrasen in den ausgewählten Kategorien gelernt.",
+      "excellent": "Ausgezeichnet!",
+      "foundationCompleted": "Grundkarten in der Kategorie \"{categoryName}\" abgeschlossen.",
+      "noMoreCards": "Keine weiteren Karten zum Lernen.",
+      "practiceOtherCategories": "Andere Kategorien üben",
+      "empty": "Leer",
+      "noUnlearnedInCategory": "Keine ungelernten Karten in der Kategorie \"{categoryName}\".",
+      "practiceAllCategories": "Alle Kategorien üben",
+      "allForToday": "Das ist alles für heute!",
+      "completedAllAvailable": "Sie haben alle verfügbaren Karten in dieser Kategorie abgeschlossen.",
+      "comeBackLater": "Kommen Sie später zurück, um zu wiederholen, was Sie gelernt haben.",
+      "continue": "Weiter",
+      "generateNew": "Neue generieren",
+      "generating": "Generiere..."
     }
   },
   "languages": {

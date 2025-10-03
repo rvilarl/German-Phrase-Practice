@@ -269,7 +269,9 @@
       "allForToday": "На сегодня всё!",
       "completedAllAvailable": "Вы прошли все доступные карточки в этой категории.",
       "comeBackLater": "Загляните позже, чтобы повторить изученное.",
-      "continue": "Продолжить"
+      "continue": "Продолжить",
+      "generateNew": "Сгенерировать новые",
+      "generating": "Генерация..."
     }
   },
   "languages": {
@@ -917,6 +919,27 @@
       },
       "aria": {
         "capture": "Сделать фото"
+      }
+    },
+    "phraseList": {
+      "search": {
+        "listening": "Слушаю...",
+        "placeholder": "Поиск по фразам..."
+      },
+      "filters": {
+        "all": "Все"
+      },
+      "summary": {
+        "count": "{{count}} карточек"
+      },
+      "actions": {
+        "duplicates": "Дубликаты",
+        "aiImport": "AI Импорт"
+      },
+      "sections": {
+        "new": "Новые",
+        "inProgress": "В процессе",
+        "mastered": "Изученные"
       }
     }
   }

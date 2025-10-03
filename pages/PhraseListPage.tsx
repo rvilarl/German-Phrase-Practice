@@ -10,6 +10,7 @@ import CategoryFilterContextMenu from '../components/CategoryFilterContextMenu';
 import FindDuplicatesModal from '../components/FindDuplicatesModal';
 
 import * as backendService from '../services/backendService';
+import { useTranslation } from '../src/hooks/useTranslation';
 
 interface PhraseListPageProps {
     phrases: Phrase[];
@@ -36,6 +37,7 @@ type ListItem =
 
 // FIX: Changed to a named export to resolve "no default export" error in App.tsx.
 export const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, onDeletePhrase, onFindDuplicates, updateAndSavePhrases, onStartPractice, highlightedPhraseId, onClearHighlight, onOpenSmartImport, categories, onUpdatePhraseCategory, onStartPracticeWithCategory, onEditCategory, onOpenAssistant, backendService }) => {
+    const { t } = useTranslation();
     const [searchTerm, setSearchTerm] = useState('');
     const [categoryFilter, setCategoryFilter] = useState<'all' | PhraseCategory>('all');
     const [previewPhrase, setPreviewPhrase] = useState<Phrase | null>(null);
@@ -263,7 +265,7 @@ export const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditP
         createSection(t('phraseList.sections.mastered'), mastered);
         
         return items;
-    }, [filteredPhrases]);
+    }, [filteredPhrases, t]);
 
     useEffect(() => {
         if (highlightedPhraseId) {
@@ -356,13 +358,10 @@ export const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditP
                                 className="flex space-x-2 overflow-x-auto pb-2 hide-scrollbar"
                             >
                                 <button
-                                    onPointerDown={(e) => handleButtonPointerDown(e, allCategoryOption)}
-                                    onPointerUp={handleButtonPointerUp}
-                                    onPointerLeave={handleButtonPointerUp}
-                                    onClick={() => handleButtonClick(allCategoryOption)}
+                                    onClick={() => setCategoryFilter('all')}
                                     className={`flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${categoryFilter === 'all' ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
                                 >
-                                    {allCategoryOption.name}
+                                    {t('phraseList.filters.all')}
                                 </button>
                                 {categories.map(cat => (
                                     <button

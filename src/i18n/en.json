@@ -261,7 +261,9 @@
       "allForToday": "That's all for today!",
       "completedAllAvailable": "You have completed all available cards in this category.",
       "comeBackLater": "Come back later to review what you've learned.",
-      "continue": "Continue"
+      "continue": "Continue",
+      "generateNew": "Generate new",
+      "generating": "Generating..."
     }
   },
   "languages": {
