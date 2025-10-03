@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Phrase, SpeechRecognition, SpeechRecognitionErrorEvent } from '../types';
 import MicrophoneIcon from './icons/MicrophoneIcon';
 import CloseIcon from './icons/CloseIcon';
+import { useTranslation } from '../src/hooks/useTranslation';
 
 interface VoicePracticeModalProps {
   isOpen: boolean;
@@ -11,6 +12,7 @@ interface VoicePracticeModalProps {
 }
 
 const VoicePracticeModal: React.FC<VoicePracticeModalProps> = ({ isOpen, onClose, onSubmit, phrase }) => {
+  const { t } = useTranslation();
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
   const recognitionRef = useRef<SpeechRecognition | null>(null);
@@ -68,24 +70,24 @@ const VoicePracticeModal: React.FC<VoicePracticeModalProps> = ({ isOpen, onClose
     <div className="fixed inset-0 bg-black/70 z-[60] flex justify-center items-center backdrop-blur-sm p-4" onClick={onClose}>
         <div className="w-full max-w-lg min-h-[24rem] flex flex-col items-center justify-between p-6" onClick={e => e.stopPropagation()}>
             <div className="text-center">
-                <p className="text-slate-300">Произнесите перевод фразы:</p>
+                <p className="text-slate-300">{t('modals.voicePractice.prompt')}</p>
                 <h2 className="text-3xl font-bold text-white mt-2">{phrase.text.native}</h2>
             </div>
 
             <button
                 type="button"
                 onClick={() => recognitionRef.current?.start()}
-                aria-label="Запись голоса"
+                aria-label={t('modals.voicePractice.aria.microphone')}
                 className={`w-32 h-32 rounded-full flex items-center justify-center transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-purple-500/50 ${isListening ? 'listening-glow' : 'bg-slate-700 hover:bg-slate-600'}`}
             >
                 <MicrophoneIcon className="w-14 h-14 text-white" />
             </button>
 
             <div className="h-10 text-center">
-                <p className="text-slate-200 text-lg">{transcript || (isListening ? 'Слушаю...' : ' ')}</p>
+                <p className="text-slate-200 text-lg">{transcript || (isListening ? t('modals.voicePractice.listening') : ' ')}</p>
             </div>
 
-            <button onClick={onClose} className="p-3 rounded-full bg-slate-600/50 hover:bg-slate-700 transition-colors" aria-label="Закрыть">
+            <button onClick={onClose} className="p-3 rounded-full bg-slate-600/50 hover:bg-slate-700 transition-colors" aria-label={t('modals.voicePractice.aria.close')}>
                 <CloseIcon className="w-6 h-6 text-slate-200"/>
             </button>
         </div>

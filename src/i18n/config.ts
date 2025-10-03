@@ -5,7 +5,7 @@ import { SUPPORTED_LANGUAGE_CODES } from '../../types.ts';
 
 export const SUPPORTED_LANGS = [...SUPPORTED_LANGUAGE_CODES];
 export const DEFAULT_LANG = 'en';
-export const LOCALE_SCHEMA_VERSION = 1;
+export const LOCALE_SCHEMA_VERSION = 2;
 
 const localeModules = import.meta.glob<{ default: Record<string, unknown> }>('./*.json', { eager: true });
 

@@ -3,6 +3,7 @@ import { Phrase } from '../types';
 import CloseIcon from './icons/CloseIcon';
 import QuestionMarkCircleIcon from './icons/QuestionMarkCircleIcon';
 import AudioPlayer from './AudioPlayer';
+import { useTranslation } from '../src/hooks/useTranslation';
 
 interface WFragenModalProps {
   isOpen: boolean;
@@ -22,6 +23,7 @@ const wFragen = [
 ];
 
 const WFragenModal: React.FC<WFragenModalProps> = ({ isOpen, onClose, onOpenWordAnalysis }) => {
+  const { t } = useTranslation();
   if (!isOpen) return null;
 
   const handleWordClick = (contextText: string, word: string, russianText: string) => {
@@ -64,7 +66,7 @@ const WFragenModal: React.FC<WFragenModalProps> = ({ isOpen, onClose, onOpenWord
         <header className="flex items-center justify-between p-4 border-b border-slate-700 flex-shrink-0">
           <div className="flex items-center space-x-3">
             <QuestionMarkCircleIcon className="w-6 h-6 text-purple-400"/>
-            <h2 className="text-lg font-bold text-slate-100">Вопросительные слова</h2>
+            <h2 className="text-lg font-bold text-slate-100">{t('modals.wFragen.title')}</h2>
           </div>
           <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-700">
             <CloseIcon className="w-6 h-6 text-slate-400"/>
@@ -75,9 +77,9 @@ const WFragenModal: React.FC<WFragenModalProps> = ({ isOpen, onClose, onOpenWord
                 <table className="w-full text-left">
                     <thead>
                         <tr className="border-b border-slate-600">
-                            <th className="p-3 w-1/6"><span className="sr-only">Озвучить</span></th>
-                            <th className="p-3 text-sm font-semibold text-slate-400">Немецкий</th>
-                            <th className="p-3 text-sm font-semibold text-slate-400">Русский</th>
+                            <th className="p-3 w-1/6"><span className="sr-only">{t('modals.wFragen.columns.play')}</span></th>
+                            <th className="p-3 text-sm font-semibold text-slate-400">{t('modals.wFragen.columns.german')}</th>
+                            <th className="p-3 text-sm font-semibold text-slate-400">{t('modals.wFragen.columns.translation')}</th>
                         </tr>
                     </thead>
                     <tbody>

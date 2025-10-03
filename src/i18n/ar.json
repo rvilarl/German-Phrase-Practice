@@ -179,6 +179,97 @@
       }
     }
   },
+  "library": {
+    "empty": {
+      "title": "",
+      "description": "",
+      "action": ""
+    },
+    "actions": {
+      "add": "",
+      "adding": ""
+    },
+    "notifications": {
+      "epubProcessingFailed": ""
+    },
+    "cards": {
+      "add": ""
+    },
+    "alt": {
+      "cover": ""
+    }
+  },
+  "categories": {
+    "manager": {
+      "title": "",
+      "aria": {
+        "edit": "",
+        "delete": ""
+      },
+      "add": ""
+    },
+    "form": {
+      "createTitle": "",
+      "editTitle": "",
+      "fields": {
+        "nameLabel": "",
+        "namePlaceholder": "",
+        "colorLabel": "",
+        "colorAria": ""
+      },
+      "notes": {
+        "aiHint": ""
+      },
+      "errors": {
+        "duplicate": ""
+      },
+      "submit": {
+        "create": "",
+        "save": ""
+      }
+    }
+  },
+  "practice": {
+    "chat": {
+      "title": "",
+      "placeholder": "",
+      "listeningPlaceholder": ""
+    },
+    "actions": {
+      "skip": "",
+      "know": ""
+    }
+  },
+  "languages": {
+    "names": {
+      "ru": "",
+      "de": ""
+    },
+    "prepositional": {
+      "ru": "",
+      "de": ""
+    },
+    "badge": {
+      "en": "",
+      "de": "",
+      "ru": "",
+      "fr": "",
+      "es": "",
+      "it": "",
+      "pt": "",
+      "pl": "",
+      "zh": "",
+      "ja": "",
+      "ar": ""
+    }
+  },
+  "fab": {
+    "addPhrase": "",
+    "openLibrary": "",
+    "smartImport": "",
+    "chooseLanguage": "",
+    "toggle": ""
+  },
   "modals": {
     "nounDeclension": {
       "title": "",
@@ -314,6 +405,457 @@
       "categoryNames": {
         "fromSpeech": "",
         "general": ""
+      }
+    },
+    "addContinuation": {
+      "placeholders": {
+        "text": ""
+      },
+      "aria": {
+        "microphone": "",
+        "send": "",
+        "switchToText": "",
+        "switchToVoice": ""
+      }
+    },
+    "addPhrase": {
+      "loading": "",
+      "title": "",
+      "body": {
+        "instructions": {
+          "voice": "",
+          "text": ""
+        }
+      },
+      "placeholders": {
+        "ru": "",
+        "de": ""
+      },
+      "aria": {
+        "microphone": "",
+        "textField": {
+          "ru": "",
+          "de": ""
+        },
+        "send": "",
+        "toggleToText": "",
+        "toggleToVoice": "",
+        "close": ""
+      },
+      "status": {
+        "listening": ""
+      },
+      "errors": {
+        "generic": "",
+        "network": "",
+        "permission": "",
+        "recognition": ""
+      },
+      "errorLabel": "",
+      "actions": {
+        "create": ""
+      }
+    },
+    "adjectiveDeclension": {
+      "title": "",
+      "phraseNative": "",
+      "labels": {
+        "case": "",
+        "masculine": "",
+        "feminine": "",
+        "neuter": "",
+        "plural": "",
+        "weak": "",
+        "mixed": "",
+        "strong": "",
+        "degrees": "",
+        "positive": "",
+        "comparative": "",
+        "superlative": ""
+      },
+      "sections": {
+        "grammar": "",
+        "example": ""
+      },
+      "states": {
+        "errorTitle": "",
+        "empty": "",
+        "errorMessage": ""
+      },
+      "cases": {
+        "nominativ": "",
+        "akkusativ": "",
+        "dativ": "",
+        "genitiv": ""
+      }
+    },
+    "autoFillLoading": {
+      "title": "",
+      "body": ""
+    },
+    "autoFillPreview": {
+      "title": "",
+      "tooltip": "",
+      "empty": "",
+      "refine": {
+        "placeholder": "",
+        "toggle": ""
+      },
+      "actions": {
+        "refine": "",
+        "confirm": "",
+        "confirmShort": "",
+        "confirmWithCount": ""
+      },
+      "selection": {
+        "select": "",
+        "clear": ""
+      },
+      "status": {
+        "listening": ""
+      }
+    },
+    "chat": {
+      "placeholders": {
+        "listening": "",
+        "ask": ""
+      },
+      "aria": {
+        "stopListening": "",
+        "startListening": ""
+      },
+      "errors": {
+        "generic": ""
+      }
+    },
+    "confirmCategoryFill": {
+      "title": "",
+      "body": "",
+      "actions": {
+        "cancel": "",
+        "confirm": ""
+      }
+    },
+    "confirmDeleteCategory": {
+      "title": "",
+      "body": "",
+      "phraseCount": "",
+      "cards": {
+        "one": "",
+        "few": "",
+        "many": "",
+        "other": ""
+      },
+      "actions": {
+        "move": "",
+        "delete": "",
+        "cancel": "",
+        "confirm": ""
+      }
+    },
+    "confirmDelete": {
+      "title": "",
+      "body": "",
+      "mastery": "",
+      "actions": {
+        "cancel": "",
+        "confirm": ""
+      }
+    },
+    "confirmDeletePhrases": {
+      "title": "",
+      "body": "",
+      "cards": {
+        "one": "",
+        "few": "",
+        "many": "",
+        "other": ""
+      },
+      "actions": {
+        "selectAll": "",
+        "deselectAll": "",
+        "delete": "",
+        "move": ""
+      }
+    },
+    "deepDive": {
+      "stages": {
+        "deconstruction": "",
+        "personalization": "",
+        "encoding": ""
+      },
+      "errors": {
+        "analysis": "",
+        "noData": ""
+      }
+    },
+    "discussTranslation": {
+      "title": "",
+      "suggestion": "",
+      "accept": "",
+      "placeholder": "",
+      "errors": {
+        "generic": ""
+      }
+    },
+    "editPhrase": {
+      "title": "",
+      "fields": {
+        "russian": "",
+        "german": "",
+        "category": ""
+      },
+      "errors": {
+        "translation": ""
+      },
+      "actions": {
+        "discuss": "",
+        "save": ""
+      }
+    },
+    "findDuplicates": {
+      "title": "",
+      "processing": "",
+      "found": "",
+      "description": "",
+      "actions": {
+        "cancel": "",
+        "clean": "",
+        "close": ""
+      },
+      "noDuplicates": "",
+      "errors": {
+        "search": ""
+      }
+    },
+    "improvePhrase": {
+      "actions": {
+        "suggest": "",
+        "discuss": ""
+      },
+      "reasoning": "",
+      "improve": "",
+      "errors": {
+        "generic": ""
+      }
+    },
+    "learningAssistant": {
+      "success": "",
+      "placeholder": "",
+      "errors": {
+        "generic": ""
+      }
+    },
+    "moveOrSkip": {
+      "title": "",
+      "body": "",
+      "newCards": "",
+      "question": "",
+      "actions": {
+        "move": "",
+        "addOnlyNew": "",
+        "cancel": ""
+      },
+      "cards": {
+        "one": "",
+        "few": "",
+        "many": "",
+        "other": ""
+      }
+    },
+    "movieExamples": {
+      "title": "",
+      "errors": {
+        "generic": ""
+      },
+      "noExamples": ""
+    },
+    "phraseBuilder": {
+      "loading": "",
+      "errors": {
+        "generic": "",
+        "check": ""
+      },
+      "instructions": "",
+      "aria": {
+        "clear": ""
+      },
+      "actions": {
+        "check": "",
+        "close": "",
+        "continue": ""
+      }
+    },
+    "phrasePreview": {
+      "actions": {
+        "learn": ""
+      }
+    },
+    "practiceResult": {
+      "correct": "",
+      "incorrect": "",
+      "correctAnswer": "",
+      "actions": {
+        "continue": ""
+      }
+    },
+    "fileImport": {
+      "cropper": {
+        "cancel": "",
+        "confirm": ""
+      },
+      "errors": {
+        "unsupportedType": "",
+        "tooLarge": "",
+        "cropFirst": ""
+      },
+      "instructions": "",
+      "dropzone": {
+        "text": "",
+        "subtext": ""
+      },
+      "camera": {
+        "button": "",
+        "subtext": ""
+      },
+      "preview": {
+        "alt": ""
+      },
+      "refinement": {
+        "placeholder": "",
+        "aria": ""
+      },
+      "submit": ""
+    },
+    "voiceWorkspace": {
+      "instructions": "",
+      "loading": "",
+      "actions": {
+        "check": "",
+        "learnWithAI": "",
+        "showAnswer": "",
+        "clear": "",
+        "close": "",
+        "continue": "",
+        "nextPhrase": ""
+      },
+      "feedback": {
+        "correct": "",
+        "incorrect": "",
+        "revealAnswer": ""
+      },
+      "errors": {
+        "check": "",
+        "speech": "",
+        "speechNetwork": "",
+        "microphoneDenied": "",
+        "unexpected": "",
+        "serviceUnavailable": "",
+        "apiKey": "",
+        "requestFailed": "",
+        "loadWords": ""
+      },
+      "automation": {
+        "nextPhrase": ""
+      }
+    },
+    "verbConjugation": {
+      "title": "",
+      "proxyTitle": "",
+      "errors": {
+        "simple": "",
+        "detailed": ""
+      },
+      "simple": {
+        "heading": "",
+        "button": ""
+      },
+      "tense": {
+        "present": "",
+        "past": "",
+        "future": ""
+      },
+      "forms": {
+        "statement": "",
+        "question": "",
+        "negative": ""
+      }
+    },
+    "voicePractice": {
+      "prompt": "",
+      "listening": "",
+      "aria": {
+        "microphone": "",
+        "close": ""
+      }
+    },
+    "wFragen": {
+      "title": "",
+      "columns": {
+        "play": "",
+        "german": "",
+        "translation": ""
+      },
+      "items": [
+        {
+          "german": "",
+          "translation": ""
+        },
+        {
+          "german": "",
+          "translation": ""
+        },
+        {
+          "german": "",
+          "translation": ""
+        },
+        {
+          "german": "",
+          "translation": ""
+        },
+        {
+          "german": "",
+          "translation": ""
+        },
+        {
+          "german": "",
+          "translation": ""
+        },
+        {
+          "german": "",
+          "translation": ""
+        },
+        {
+          "german": "",
+          "translation": ""
+        }
+      ]
+    },
+    "wordAnalysis": {
+      "title": "",
+      "errors": {
+        "generic": "",
+        "unknown": ""
+      },
+      "labels": {
+        "partOfSpeech": "",
+        "grammarReference": "",
+        "baseForm": "",
+        "nativeTranslation": "",
+        "article": "",
+        "plural": "",
+        "infinitive": "",
+        "tense": "",
+        "person": "",
+        "example": "",
+        "exampleTranslation": "",
+        "cardCreated": ""
+      },
+      "actions": {
+        "createCard": "",
+        "openVerb": "",
+        "openNoun": "",
+        "openAdjective": ""
       }
     }
   }

@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import type { Phrase, VerbConjugation, TenseForms, PronounConjugation } from '../types';
 import CloseIcon from './icons/CloseIcon';
 import TableIcon from './icons/TableIcon';
 import AudioPlayer from './AudioPlayer';
 import Spinner from './Spinner';
+import { useTranslation } from '../src/hooks/useTranslation';
 
 interface VerbConjugationModalProps {
   isOpen: boolean;
@@ -62,6 +63,7 @@ const VerbConjugationSkeleton: React.FC = () => (
 
 
 const VerbConjugationModal: React.FC<VerbConjugationModalProps> = ({ isOpen, onClose, infinitive, onConjugateSimple, onConjugateDetailed, onOpenWordAnalysis }) => {
+  const { t } = useTranslation();
   type SimpleConjugation = { pronoun: string; form: string };
   const [simpleData, setSimpleData] = useState<SimpleConjugation[] | null>(null);
   const [detailedData, setDetailedData] = useState<VerbConjugation | null>(null);
@@ -93,7 +95,7 @@ const VerbConjugationModal: React.FC<VerbConjugationModalProps> = ({ isOpen, onC
             const data = await onConjugateSimple(infinitive);
             setSimpleData(data);
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Не удалось загрузить простое спряжение.');
+            setError(err instanceof Error ? err.message : t('modals.verbConjugation.errors.simple'));
         } finally {
             setIsLoading(false);
         }
@@ -112,7 +114,7 @@ const VerbConjugationModal: React.FC<VerbConjugationModalProps> = ({ isOpen, onC
         const data = await onConjugateDetailed(infinitive);
         setDetailedData(data);
     } catch (err) {
-        setError(err instanceof Error ? err.message : 'Не удалось загрузить подробное спряжение.');
+        setError(err instanceof Error ? err.message : t('modals.verbConjugation.errors.detailed'));
     } finally {
         setIsLoading(false);
     }
@@ -124,7 +126,7 @@ const VerbConjugationModal: React.FC<VerbConjugationModalProps> = ({ isOpen, onC
     // FIX: Updated proxy phrase creation to match the new `Phrase` type.
     const proxyPhrase: Omit<Phrase, 'id'> & { id?: string } = {
         id: `proxy_verb_${infinitive}`,
-        text: { learning: contextText, native: `Спряжение: ${infinitive}` },
+        text: { learning: contextText, native: t('modals.verbConjugation.proxyTitle', { infinitive }) },
         category: 'general',
         masteryLevel: 0, lastReviewedAt: null, nextReviewAt: Date.now(),
         knowCount: 0, knowStreak: 0, isMastered: false,
@@ -140,7 +142,7 @@ const VerbConjugationModal: React.FC<VerbConjugationModalProps> = ({ isOpen, onC
               key={i}
               onClick={(e) => {
                   e.stopPropagation();
-                  const cleanedWord = word.replace(/[.,!?()"“”:;]/g, '');
+                  const cleanedWord = word.replace(/[.,!?()"вЂњвЂќ:;]/g, '');
                   if (cleanedWord) handleWordClick(text, cleanedWord);
               }}
               className="cursor-pointer hover:bg-white/20 px-1 py-0.5 rounded-md transition-colors"
@@ -153,7 +155,7 @@ const VerbConjugationModal: React.FC<VerbConjugationModalProps> = ({ isOpen, onC
   const renderSimpleView = () => (
     <>
       <section className="bg-slate-900/50 rounded-lg overflow-hidden border border-slate-700/50">
-        <h3 className="text-xl font-bold text-slate-100 p-4 bg-slate-800/50">Präsens (Настоящее)</h3>
+        <h3 className="text-xl font-bold text-slate-100 p-4 bg-slate-800/50">{t('modals.verbConjugation.simple.heading')}</h3>
         <div className="p-4 space-y-3">
           {simpleData!.map((conj) => (
             <div key={conj.pronoun} className="grid grid-cols-[80px_1fr_auto] items-center gap-x-3 text-sm">
@@ -170,7 +172,7 @@ const VerbConjugationModal: React.FC<VerbConjugationModalProps> = ({ isOpen, onC
             onClick={handleShowDetails}
             className="px-6 py-2 rounded-md bg-slate-600 hover:bg-slate-700 text-white font-semibold transition-colors"
         >
-            Подробнее
+            {t('modals.verbConjugation.simple.button')}
         </button>
       </div>
     </>
@@ -183,9 +185,9 @@ const VerbConjugationModal: React.FC<VerbConjugationModalProps> = ({ isOpen, onC
     if (!tenseData) return null;
 
     const forms: { key: keyof TenseForms; name: string }[] = [
-      { key: 'statement', name: 'Утверждение' },
-      { key: 'question', name: 'Вопрос' },
-      { key: 'negative', name: 'Отрицание' },
+      { key: 'statement', name: t('modals.verbConjugation.forms.statement') },
+      { key: 'question', name: t('modals.verbConjugation.forms.question') },
+      { key: 'negative', name: t('modals.verbConjugation.forms.negative') },
     ];
     
     const activeTab = activeTabs[tenseKey];
@@ -215,7 +217,7 @@ const VerbConjugationModal: React.FC<VerbConjugationModalProps> = ({ isOpen, onC
                 <span className="font-mono text-purple-300 text-right">{conj.pronoun}</span>
                 <div className="min-w-0">
                     <p className="text-slate-100 font-medium truncate">{renderClickableGerman((conj as any).german)}</p>
-                    <p className="text-xs text-slate-400 italic truncate">«{(conj as any).russian}»</p>
+                    <p className="text-xs text-slate-400 italic truncate">В«{(conj as any).russian}В»</p>
                 </div>
                 <AudioPlayer textToSpeak={(conj as any).german} />
             </div>
@@ -230,16 +232,16 @@ const VerbConjugationModal: React.FC<VerbConjugationModalProps> = ({ isOpen, onC
       if (!detailedData) return null; // Or some other state
       return (
         <div className="space-y-6">
-            {renderTenseSection('present', 'Präsens (Настоящее)')}
-            {renderTenseSection('past', 'Perfekt (Прошедшее)')}
-            {renderTenseSection('future', 'Futur I (Будущее)')}
+            {renderTenseSection('present', t('modals.verbConjugation.tense.present'))}
+            {renderTenseSection('past', t('modals.verbConjugation.tense.past'))}
+            {renderTenseSection('future', t('modals.verbConjugation.tense.future'))}
         </div>
       );
   }
 
   const renderContent = () => {
     if (isLoading && !simpleData && !detailedData) return <SimpleSkeleton />;
-    if (error) return <div className="flex justify-center items-center h-full"><div className="text-center bg-red-900/50 border border-red-700 text-red-300 p-4 rounded-lg"><p className="font-semibold">Ошибка</p><p className="text-sm">{error}</p></div></div>;
+    if (error) return <div className="flex justify-center items-center h-full"><div className="text-center bg-red-900/50 border border-red-700 text-red-300 p-4 rounded-lg"><p className="font-semibold">{t('common.labels.error')}</p><p className="text-sm">{error}</p></div></div>;
     
     if (isDetailedView) return renderDetailedView();
     if (simpleData) return renderSimpleView();
@@ -256,7 +258,7 @@ const VerbConjugationModal: React.FC<VerbConjugationModalProps> = ({ isOpen, onC
         <header className="flex items-center justify-between p-4 border-b border-slate-700 flex-shrink-0">
           <div className="flex items-center space-x-3">
             <TableIcon className="w-6 h-6 text-purple-400"/>
-            <h2 className="text-lg font-bold text-slate-100">Спряжение: {infinitive}</h2>
+            <h2 className="text-lg font-bold text-slate-100">{t('modals.verbConjugation.title', { infinitive })}</h2>
           </div>
           <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-700">
             <CloseIcon className="w-6 h-6 text-slate-400"/>
@@ -271,3 +273,4 @@ const VerbConjugationModal: React.FC<VerbConjugationModalProps> = ({ isOpen, onC
 };
 
 export default VerbConjugationModal;
+

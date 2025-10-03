@@ -156,14 +156,6 @@
       "deletedCount": "✓ {{count}} карточек удалено.",
       "movedToCategory": "✓ {{count}} карточек перемещено в \"{{category}}\".",
       "otherCategory": "другую категорию",
-      "bulkAdded_one": "✓ {{count}} карточка добавлена.",
-      "bulkAdded_few": "✓ {{count}} карточки добавлены.",
-      "bulkAdded_many": "✓ {{count}} карточек добавлено.",
-      "bulkAdded_other": "✓ {{count}} карточек добавлено.",
-      "bulkSkipped_one": "{{count}} уже существовала и была пропущена.",
-      "bulkSkipped_few": "{{count}} уже существовали и были пропущены.",
-      "bulkSkipped_many": "{{count}} уже существовали и были пропущены.",
-      "bulkSkipped_other": "{{count}} уже существовали и были пропущены.",
       "bulkAdded": "✓ {{count}} карточек добавлено.",
       "bulkAdded_plural": "✓ {{count}} карточек добавлено.",
       "bulkSkipped": "{{count}} уже существовало и было пропущено.",
@@ -609,12 +601,30 @@
         "russian": "Русский"
       },
       "pronouns": [
-        { "german": "ich", "russian": "я" },
-        { "german": "du", "russian": "ты" },
-        { "german": "er / sie / es", "russian": "он / она / оно" },
-        { "german": "wir", "russian": "мы" },
-        { "german": "ihr", "russian": "вы (неформ.)" },
-        { "german": "sie / Sie", "russian": "они / Вы (форм.)" }
+        {
+          "german": "ich",
+          "russian": "я"
+        },
+        {
+          "german": "du",
+          "russian": "ты"
+        },
+        {
+          "german": "er / sie / es",
+          "russian": "он / она / оно"
+        },
+        {
+          "german": "wir",
+          "russian": "мы"
+        },
+        {
+          "german": "ihr",
+          "russian": "вы (неформ.)"
+        },
+        {
+          "german": "sie / Sie",
+          "russian": "они / Вы (форм.)"
+        }
       ]
     },
     "sentenceChain": {
@@ -766,6 +776,105 @@
         "aria": "Голосовой ввод для уточнения"
       },
       "submit": "Создать карточки"
+    },
+    "verbConjugation": {
+      "title": "Спряжение: {{infinitive}}",
+      "proxyTitle": "Спряжение: {{infinitive}}",
+      "errors": {
+        "simple": "Не удалось загрузить простое спряжение.",
+        "detailed": "Не удалось загрузить подробное спряжение."
+      },
+      "simple": {
+        "heading": "Präsens (настоящее время)",
+        "button": "Подробнее"
+      },
+      "tense": {
+        "present": "Präsens (настоящее время)",
+        "past": "Perfekt (прошедшее время)",
+        "future": "Futur I (будущее время)"
+      },
+      "forms": {
+        "statement": "Утверждение",
+        "question": "Вопрос",
+        "negative": "Отрицание"
+      }
+    },
+    "voicePractice": {
+      "prompt": "Произнесите эту фразу:",
+      "listening": "Слушаю...",
+      "aria": {
+        "microphone": "Начать голосовой ввод",
+        "close": "Закрыть"
+      }
+    },
+    "wFragen": {
+      "title": "Вопросительные слова",
+      "columns": {
+        "play": "Озвучить",
+        "german": "Немецкий",
+        "translation": "Перевод"
+      },
+      "items": [
+        {
+          "german": "Was?",
+          "translation": "Что?"
+        },
+        {
+          "german": "Wer?",
+          "translation": "Кто?"
+        },
+        {
+          "german": "Wo?",
+          "translation": "Где?"
+        },
+        {
+          "german": "Wann?",
+          "translation": "Когда?"
+        },
+        {
+          "german": "Wie?",
+          "translation": "Как?"
+        },
+        {
+          "german": "Warum?",
+          "translation": "Почему?"
+        },
+        {
+          "german": "Woher?",
+          "translation": "Откуда?"
+        },
+        {
+          "german": "Wohin?",
+          "translation": "Куда?"
+        }
+      ]
+    },
+    "wordAnalysis": {
+      "title": "Разбор слова: {{word}}",
+      "errors": {
+        "generic": "Не удалось загрузить анализ.",
+        "unknown": "Нет данных для анализа."
+      },
+      "labels": {
+        "partOfSpeech": "Часть речи",
+        "grammarReference": "Грамматическая справка",
+        "baseForm": "Начальная форма",
+        "nativeTranslation": "Перевод",
+        "article": "Артикль",
+        "plural": "Множественное число",
+        "infinitive": "Инфинитив",
+        "tense": "Время",
+        "person": "Лицо и число",
+        "example": "Пример использования",
+        "exampleTranslation": "Перевод:",
+        "cardCreated": "Карточка создана!"
+      },
+      "actions": {
+        "createCard": "Создать карточку",
+        "openVerb": "Открыть спряжение",
+        "openNoun": "Открыть склонение",
+        "openAdjective": "Открыть склонение и степени"
+      }
     }
   }
 }

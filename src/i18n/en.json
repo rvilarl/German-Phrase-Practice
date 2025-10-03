@@ -153,7 +153,7 @@
       "otherCategory": "another category",
       "bulkAdded": "✓ {{count}} card added.",
       "bulkAdded_plural": "✓ {{count}} cards added.",
-      "bulkSkipped": "{{count}} already existed and were skipped.",
+      "bulkSkipped": "{{count}} already existed and was skipped.",
       "bulkSkipped_plural": "{{count}} already existed and were skipped."
     },
     "categories": {
@@ -601,12 +601,30 @@
         "russian": "Russian"
       },
       "pronouns": [
-        { "german": "ich", "russian": "I" },
-        { "german": "du", "russian": "you (informal)" },
-        { "german": "er / sie / es", "russian": "he / she / it" },
-        { "german": "wir", "russian": "we" },
-        { "german": "ihr", "russian": "you (plural informal)" },
-        { "german": "sie / Sie", "russian": "they / you (formal)" }
+        {
+          "german": "ich",
+          "russian": "I"
+        },
+        {
+          "german": "du",
+          "russian": "you (informal)"
+        },
+        {
+          "german": "er / sie / es",
+          "russian": "he / she / it"
+        },
+        {
+          "german": "wir",
+          "russian": "we"
+        },
+        {
+          "german": "ihr",
+          "russian": "you (plural informal)"
+        },
+        {
+          "german": "sie / Sie",
+          "russian": "they / you (formal)"
+        }
       ]
     },
     "sentenceChain": {
@@ -757,6 +775,105 @@
       },
       "automation": {
         "nextPhrase": "Next phrase"
+      }
+    },
+    "verbConjugation": {
+      "title": "Conjugation: {{infinitive}}",
+      "proxyTitle": "Conjugation: {{infinitive}}",
+      "errors": {
+        "simple": "Failed to load simple conjugation.",
+        "detailed": "Failed to load detailed conjugation."
+      },
+      "simple": {
+        "heading": "Präsens (present tense)",
+        "button": "See detailed forms"
+      },
+      "tense": {
+        "present": "Präsens (present tense)",
+        "past": "Perfekt (past tense)",
+        "future": "Futur I (future tense)"
+      },
+      "forms": {
+        "statement": "Statement",
+        "question": "Question",
+        "negative": "Negative"
+      }
+    },
+    "voicePractice": {
+      "prompt": "Speak this phrase:",
+      "listening": "Listening...",
+      "aria": {
+        "microphone": "Start voice input",
+        "close": "Close"
+      }
+    },
+    "wFragen": {
+      "title": "Question words",
+      "columns": {
+        "play": "Play",
+        "german": "German",
+        "translation": "Translation"
+      },
+      "items": [
+        {
+          "german": "Was?",
+          "translation": "What?"
+        },
+        {
+          "german": "Wer?",
+          "translation": "Who?"
+        },
+        {
+          "german": "Wo?",
+          "translation": "Where?"
+        },
+        {
+          "german": "Wann?",
+          "translation": "When?"
+        },
+        {
+          "german": "Wie?",
+          "translation": "How?"
+        },
+        {
+          "german": "Warum?",
+          "translation": "Why?"
+        },
+        {
+          "german": "Woher?",
+          "translation": "Where from?"
+        },
+        {
+          "german": "Wohin?",
+          "translation": "Where to?"
+        }
+      ]
+    },
+    "wordAnalysis": {
+      "title": "Word analysis: {{word}}",
+      "errors": {
+        "generic": "Failed to load analysis.",
+        "unknown": "No analysis available."
+      },
+      "labels": {
+        "partOfSpeech": "Part of speech",
+        "grammarReference": "Grammar reference",
+        "baseForm": "Base form",
+        "nativeTranslation": "Translation",
+        "article": "Article",
+        "plural": "Plural",
+        "infinitive": "Infinitive",
+        "tense": "Tense",
+        "person": "Person and number",
+        "example": "Example usage",
+        "exampleTranslation": "Translation:",
+        "cardCreated": "Card created!"
+      },
+      "actions": {
+        "createCard": "Create card",
+        "openVerb": "Open verb conjugation",
+        "openNoun": "Open noun declension",
+        "openAdjective": "Open adjective declension"
       }
     }
   }
