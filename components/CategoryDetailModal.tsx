@@ -64,31 +64,31 @@ const CategoryDetailModal: React.FC<CategoryDetailModalProps> = ({
                <div className="mt-6 flex justify-center items-center gap-4 py-4 border-t border-slate-700/50">
                   <button onClick={onAddPhrase} className="flex items-center gap-x-2 px-4 py-2 bg-slate-700/50 hover:bg-slate-700/80 rounded-lg transition-colors text-slate-200 font-semibold">
                       <PlusIcon className="w-5 h-5 text-purple-400"/>
-                      <span>{t('categories.detail.actions.addMore')}</span>
+                      <span>{t("categories.detail.actions.addMore")}</span>
                   </button>
                   <button onClick={() => onAIAssist(category)} className="flex items-center gap-x-2 px-4 py-2 bg-slate-700/50 hover:bg-slate-700/80 rounded-lg transition-colors text-slate-200 font-semibold">
                       <SmartToyIcon className="w-5 h-5 text-purple-400"/>
-                      <span>{t('categories.detail.actions.aiAssistant')}</span>
+                      <span>{t("categories.detail.actions.aiAssistant")}</span>
                   </button>
               </div>
             </>
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-center text-slate-400">
-              <p className="text-xl font-semibold mb-6">{t('categories.detail.empty.title')}</p>
+              <p className="text-xl font-semibold mb-6">{t("categories.detail.empty.title")}</p>
               <div className="flex flex-col sm:flex-row items-center gap-4">
                 <button
                     onClick={onAddPhrase}
                     className="w-40 h-40 bg-slate-700/50 hover:bg-slate-700/80 rounded-2xl flex flex-col items-center justify-center transition-colors"
                 >
                     <PlusIcon className="w-12 h-12 text-purple-400 mb-2"/>
-                    <span className="font-semibold text-slate-200">{t('categories.detail.actions.addPhrase')}</span>
+                    <span className="font-semibold text-slate-200">{t("categories.detail.actions.addPhrase")}</span>
                 </button>
                 <button
                     onClick={() => onAIAssist(category)}
                     className="w-40 h-40 bg-slate-700/50 hover:bg-slate-700/80 rounded-2xl flex flex-col items-center justify-center transition-colors"
                 >
                     <SmartToyIcon className="w-12 h-12 text-purple-400 mb-2"/>
-                    <span className="font-semibold text-slate-200">{t('categories.detail.actions.aiAssistant')}</span>
+                    <span className="font-semibold text-slate-200">{t("categories.detail.actions.aiAssistant")}</span>
                 </button>
               </div>
             </div>

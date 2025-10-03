@@ -200,6 +200,11 @@
     }
   },
   "categories": {
+    "detail": {
+      "actions": {
+        "addMore": "Mehr hinzufügen"
+      }
+    },
     "manager": {
       "title": "Manage categories",
       "aria": {

@@ -9,3 +9,6 @@ node_modules
 dist
 .vscode
 .idea
+lint_warnings.txt
+lint_warnings_utf8.txt
+cyrillic_components.txt

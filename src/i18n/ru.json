@@ -208,6 +208,11 @@
     }
   },
   "categories": {
+    "detail": {
+      "actions": {
+        "addMore": "Добавить ещё"
+      }
+    },
     "manager": {
       "title": "Управление категориями",
       "aria": {
