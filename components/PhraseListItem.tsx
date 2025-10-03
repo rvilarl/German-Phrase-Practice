@@ -5,6 +5,7 @@ import PencilIcon from './icons/PencilIcon';
 import TrashIcon from './icons/TrashIcon';
 import * as srsService from '../services/srsService';
 import GraduationCapIcon from './icons/GraduationCapIcon';
+import { useTranslation } from '../src/hooks/useTranslation';
 
 interface PhraseListItemProps {
     phrase: Phrase;
@@ -21,6 +22,7 @@ interface PhraseListItemProps {
 }
 
 const PhraseListItem: React.FC<PhraseListItemProps> = React.memo(({ phrase, onEdit, onDelete, isDuplicate, isHighlighted, onPreview, onStartPractice, onCategoryClick, categoryInfo, allCategories, onUpdatePhraseCategory }) => {
+    const { t } = useTranslation();
     const [isCategoryPopoverOpen, setIsCategoryPopoverOpen] = useState(false);
     const popoverRef = useRef<HTMLDivElement>(null);
     
@@ -63,7 +65,7 @@ const PhraseListItem: React.FC<PhraseListItemProps> = React.memo(({ phrase, onEd
         return '';
     }
 
-    const info = categoryInfo || { id: 'general', name: 'Общие', color: 'bg-slate-500', isFoundational: false };
+    const info = categoryInfo || { id: 'general', name: t('categories.names.general'), color: 'bg-slate-500', isFoundational: false };
 
     return (
         <li 
@@ -73,7 +75,7 @@ const PhraseListItem: React.FC<PhraseListItemProps> = React.memo(({ phrase, onEd
         >
             {phrase.isNew && (
                 <div className="absolute -top-2 -left-2 px-2 py-0.5 text-xs font-bold text-slate-800 bg-yellow-300 rounded-full shadow-lg transform -rotate-6">
-                    Новая
+                    {t('phraseList.item.badges.new')}
                 </div>
             )}
             <div className="flex-grow">
@@ -89,47 +91,45 @@ const PhraseListItem: React.FC<PhraseListItemProps> = React.memo(({ phrase, onEd
 
             <div className="flex flex-col self-stretch justify-between">
 
-                {/* Кнопки */}
                 <div className="flex-shrink-0 flex items-center space-x-1">
                     <div className="relative group">
                         <button 
                             onClick={handlePracticeClick} 
                             className="p-2 text-slate-400 hover:text-green-400 transition-colors"
-                            aria-label="Учить эту фразу"
+                            aria-label={t('phraseList.item.actions.practice')}
                         >
                             <GraduationCapIcon className="w-5 h-5" />
                         </button>
                         <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 px-3 py-1 bg-slate-900/90 backdrop-blur-sm text-white text-xs rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 truncate max-w-40">
-                            Учить эту фразу
+                            {t('phraseList.item.actions.practice')}
                         </div>
                     </div>
                     <div className="relative group">
                         <button 
                             onClick={handleEditClick} 
                             className="p-2 text-slate-400 hover:text-blue-400 transition-colors"
-                            aria-label="Редактировать"
+                            aria-label={t('phraseList.item.actions.edit')}
                         >
                             <PencilIcon className="w-5 h-5" />
                         </button>
                         <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 px-3 py-1 bg-slate-900/90 backdrop-blur-sm text-white text-xs rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 truncate max-w-40">
-                            Редактировать
+                            {t('phraseList.item.actions.edit')}
                         </div>
                     </div>
                     <div className="relative group">
                         <button 
                             onClick={handleDeleteClick} 
                             className="p-2 text-slate-400 hover:text-red-400 transition-colors"
-                            aria-label="Удалить"
+                            aria-label={t('phraseList.item.actions.delete')}
                         >
                             <TrashIcon className="w-5 h-5" />
                         </button>
                         <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 px-3 py-1 bg-slate-900/90 backdrop-blur-sm text-white text-xs rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 truncate max-w-40">
-                            Удалить
+                            {t('phraseList.item.actions.delete')}
                         </div>
                     </div>
                 </div>
 
-                {/* Маркер */}
 
                 <div className="mt-2 relative flex justify-end flex-grow items-end" ref={popoverRef}>
                     <button
@@ -138,7 +138,7 @@ const PhraseListItem: React.FC<PhraseListItemProps> = React.memo(({ phrase, onEd
                             setIsCategoryPopoverOpen(prev => !prev);
                         }}
                         className={`px-2 py-0.5 text-xs font-medium text-white rounded-full ${info.color} transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-white max-w-32 truncate whitespace-nowrap`}
-                        aria-label={`Текущая категория: ${info.name}. Нажмите, чтобы изменить.`}
+                        aria-label={t('phraseList.item.categoryButton', { name: info.name })}
                     >
                         {info.name}
                     </button>

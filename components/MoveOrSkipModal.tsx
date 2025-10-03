@@ -56,7 +56,7 @@ const MoveOrSkipModal: React.FC<MoveOrSkipModalProps> = ({ isOpen, onClose, revi
                 <ul className="space-y-2">
                     {duplicates.map(({ existingPhrase }, index) => (
                         <li key={index} className="text-sm text-slate-400">
-                            <span className="font-semibold text-slate-200">"{existingPhrase.text.learning}"</span> (в категории "{getCategoryName(existingPhrase.category)}")
+                            {t('modals.moveOrSkip.listItem', { phrase: existingPhrase.text.learning, category: getCategoryName(existingPhrase.category) })}
                         </li>
                     ))}
                 </ul>

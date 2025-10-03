@@ -80,7 +80,7 @@ const ConfirmDeletePhrasesModal: React.FC<ConfirmDeletePhrasesModalProps> = ({ i
         </header>
         
         <div className="p-4 flex-grow overflow-y-auto hide-scrollbar">
-            <p className="text-slate-300 mb-4">{t('modals.confirmDeletePhrases.body', { count: phrases.length, cards: t(`modals.confirmDeletePhrases.cards.${phrases.length === 1 ? 'one' : (phrases.length > 1 && phrases.length < 5 ? 'few' : 'many')}`) })} из категории "{sourceCategory.name}".</p>
+            <p className="text-slate-300 mb-4">{t('modals.confirmDeletePhrases.description', { count: phrases.length, cards: t(`modals.confirmDeletePhrases.cards.${phrases.length === 1 ? 'one' : (phrases.length > 1 && phrases.length < 5 ? 'few' : 'many')}`), category: sourceCategory.name })}</p>
             <div className="mb-3">
                 <label onClick={handleToggleAll} className="flex items-center cursor-pointer p-2 rounded-md hover:bg-slate-700/50 w-fit">
                     <div className={`w-5 h-5 rounded-md flex-shrink-0 flex items-center justify-center border-2 ${allSelected ? 'bg-purple-600 border-purple-500' : 'bg-slate-900 border-slate-600'}`}>

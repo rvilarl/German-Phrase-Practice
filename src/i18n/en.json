@@ -238,6 +238,25 @@
     "actions": {
       "skip": "Skip",
       "know": "I know"
+    },
+    "states": {
+      "allCategories": "All categories",
+      "add": "Add",
+      "manage": "Manage",
+      "errorOccurred": "An error occurred",
+      "congratulations": "Congratulations!",
+      "learnedAllSelected": "You have learned all phrases in the selected categories.",
+      "excellent": "Excellent!",
+      "foundationCompleted": "Fundamental cards in category \"{categoryName}\" completed.",
+      "noMoreCards": "No more cards to learn.",
+      "practiceOtherCategories": "Practice other categories",
+      "empty": "Empty",
+      "noUnlearnedInCategory": "No unlearned cards in category \"{categoryName}\".",
+      "practiceAllCategories": "Practice all categories",
+      "allForToday": "That's all for today!",
+      "completedAllAvailable": "You have completed all available cards in this category.",
+      "comeBackLater": "Come back later to review what you've learned.",
+      "continue": "Continue"
     }
   },
   "languages": {
@@ -874,6 +893,17 @@
         "openVerb": "Open verb conjugation",
         "openNoun": "Open noun declension",
         "openAdjective": "Open adjective declension"
+      }
+    },
+    "cameraCapture": {
+      "errorTitle": "Camera error",
+      "errors": {
+        "permission": "Camera access denied.",
+        "notFound": "Camera not found.",
+        "generic": "Camera access error."
+      },
+      "aria": {
+        "capture": "Take photo"
       }
     }
   }

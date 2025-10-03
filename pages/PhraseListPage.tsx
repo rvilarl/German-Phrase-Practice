@@ -258,9 +258,9 @@ export const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditP
             }
         };
         
-        createSection('Новые', newPhrases);
-        createSection('В процессе', inProgress);
-        createSection('Освоенные', mastered);
+        createSection(t('phraseList.sections.new'), newPhrases);
+        createSection(t('phraseList.sections.inProgress'), inProgress);
+        createSection(t('phraseList.sections.mastered'), mastered);
         
         return items;
     }, [filteredPhrases]);
@@ -320,7 +320,7 @@ export const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditP
                                 type="text"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                placeholder={isListening ? "Слушаю..." : "Поиск по фразам..."}
+                                placeholder={isListening ? t('phraseList.search.listening') : t('phraseList.search.placeholder')}
                                 className="w-full bg-slate-400/10 backdrop-blur-lg border border-white/20 rounded-full py-4 pl-5 pr-40 text-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
                             />
                             <div className="absolute inset-y-0 right-0 flex items-center pr-3 space-x-1 z-10">
@@ -356,13 +356,13 @@ export const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditP
                                 className="flex space-x-2 overflow-x-auto pb-2 hide-scrollbar"
                             >
                                 <button
-                                    onPointerDown={(e) => handleButtonPointerDown(e, {id: 'all', name: 'Все', color: '', isFoundational: false})}
+                                    onPointerDown={(e) => handleButtonPointerDown(e, allCategoryOption)}
                                     onPointerUp={handleButtonPointerUp}
                                     onPointerLeave={handleButtonPointerUp}
-                                    onClick={() => handleButtonClick({id: 'all', name: 'Все', color: '', isFoundational: false})}
+                                    onClick={() => handleButtonClick(allCategoryOption)}
                                     className={`flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${categoryFilter === 'all' ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
                                 >
-                                    Все
+                                    {allCategoryOption.name}
                                 </button>
                                 {categories.map(cat => (
                                     <button
@@ -385,7 +385,7 @@ export const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditP
                         */}
                         <div className="flex justify-between items-end mt-3">
                             <span className="text-sm text-slate-400 pl-2">
-                               {filteredPhrases.length} фраз
+                               {t('phraseList.summary.count', { count: filteredPhrases.length })}
                             </span>
                              <div className="flex items-center space-x-2">
                                 <button
@@ -393,14 +393,14 @@ export const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditP
                                     className="flex-shrink-0 flex items-center justify-center space-x-2 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-md text-sm font-semibold transition-colors disabled:opacity-50 h-[34px] w-12 sm:w-36"
                                 >
                                     <FiCopy className="w-5 h-5" />
-                                    <span className="hidden sm:inline">Дубликаты</span>
+                                    <span className="hidden sm:inline">{t('phraseList.actions.duplicates')}</span>
                                 </button>
                                 <button
                                     onClick={onOpenSmartImport}
                                     className="flex-shrink-0 flex items-center justify-center space-x-2 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-md text-sm font-semibold transition-colors h-[34px] w-12 sm:w-36"
                                 >
                                     <FiZap className="w-5 h-5"/>
-                                    <span className="hidden sm:inline">AI Импорт</span>
+                                    <span className="hidden sm:inline">{t('phraseList.actions.aiImport')}</span>
                                 </button>
                             </div>
                         </div>

@@ -15,6 +15,7 @@ import SoundIcon from './icons/SoundIcon';
 import CategoryAssistantContextMenu from './CategoryAssistantContextMenu';
 import ListIcon from './icons/ListIcon';
 import Spinner from './Spinner';
+import { useTranslation } from '../src/hooks/useTranslation';
 
 interface CategoryAssistantModalProps {
   isOpen: boolean;
@@ -157,15 +158,15 @@ const AssistantChatMessageContent: React.FC<{
                     ))}
                     {addedInfo ? (
                          <div className="flex items-center justify-between gap-2 pt-2">
-                            <p className="text-sm text-green-400">✓ {addedInfo.count} карт. добавлено</p>
+                            <p className="text-sm text-green-400">{t('assistant.modal.success.added', { count: addedInfo.count })}</p>
                             <button onClick={() => { onGoToList(); onClose(); }} className="px-3 py-1 text-sm bg-slate-600 hover:bg-slate-500 text-white font-semibold rounded-md flex items-center gap-2">
                                 <ListIcon className="w-4 h-4" />
-                                <span>К списку</span>
+                                <span>{t('assistant.modal.actions.goToList')}</span>
                             </button>
                         </div>
                     ) : (
                         <button onClick={handleAddSelected} disabled={selectedIndices.size === 0 || isAdding} className="w-full mt-2 py-2 text-sm bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-md disabled:opacity-50 flex items-center justify-center min-h-[36px]">
-                            {isAdding ? <Spinner className="w-5 h-5"/> : `Добавить выбранные (${selectedIndices.size})`}
+                            {isAdding ? <Spinner className="w-5 h-5"/> : t('assistant.modal.actions.addSelected', { count: selectedIndices.size })}
                         </button>
                     )}
                     </div>
@@ -187,6 +188,7 @@ const AssistantChatMessageContent: React.FC<{
 };
 
 const CategoryAssistantModal: React.FC<CategoryAssistantModalProps> = (props) => {
+    const { t } = useTranslation();
     const { isOpen, onClose, category, phrases, onGetAssistantResponse, onAddCards, onOpenConfirmDeletePhrases, cache, setCache, onGoToList, ...interactiveProps } = props;
 
     const [isLoading, setIsLoading] = useState(false);
@@ -231,7 +233,7 @@ const CategoryAssistantModal: React.FC<CategoryAssistantModalProps> = (props) =>
                 }
             }
         } catch (err) {
-            const errorMsg: ChatMessage = { role: 'model', text: `Произошла ошибка: ${(err as Error).message}` };
+            const errorMsg: ChatMessage = { role: 'model', text: t('assistant.modal.messages.error', { message: (err as Error).message }) };
             updateMessages(prev => [...prev, errorMsg]);
         } finally {
             setIsLoading(false);
@@ -294,9 +296,9 @@ const CategoryAssistantModal: React.FC<CategoryAssistantModalProps> = (props) =>
     if (!isOpen) return null;
 
     const initialActions = [
-        { label: 'Добавить похожие', icon: <WandIcon className="w-4 h-4"/>, action: () => handleRequest({ type: 'add_similar' }) },
-        { label: 'Проверить', icon: <SearchIcon className="w-4 h-4"/>, action: () => handleRequest({ type: 'check_homogeneity' }) },
-        { label: 'Диалог', icon: <ChatIcon className="w-4 h-4"/>, action: () => handleRequest({ type: 'create_dialogue' }) },
+        { label: t('assistant.modal.quickActions.addSimilar'), icon: <WandIcon className="w-4 h-4"/>, action: () => handleRequest({ type: 'add_similar' }) },
+        { label: t('assistant.modal.quickActions.checkConsistency'), icon: <SearchIcon className="w-4 h-4"/>, action: () => handleRequest({ type: 'check_homogeneity' }) },
+        { label: t('assistant.modal.quickActions.createDialogue'), icon: <ChatIcon className="w-4 h-4"/>, action: () => handleRequest({ type: 'create_dialogue' }) },
     ];
     
     const currentSuggestions = promptSuggestions.length > 0 ? promptSuggestions : (messages.length <= 1 ? initialActions.map(a => a.label) : []);
@@ -317,7 +319,7 @@ const CategoryAssistantModal: React.FC<CategoryAssistantModalProps> = (props) =>
                 <header className="flex items-center justify-between p-4 border-b border-slate-700 flex-shrink-0">
                     <div className="flex items-center space-x-3">
                         <SmartToyIcon className="w-6 h-6 text-purple-400" />
-                        <h2 className="text-lg font-bold text-slate-100">Ассистент: {category.name}</h2>
+                        <h2 className="text-lg font-bold text-slate-100">{t('assistant.modal.title', { name: category.name })}</h2>
                     </div>
                     <button onClick={() => onClose()} className="p-2 rounded-full hover:bg-slate-700">
                         <CloseIcon className="w-6 h-6 text-slate-400" />
@@ -372,7 +374,7 @@ const CategoryAssistantModal: React.FC<CategoryAssistantModalProps> = (props) =>
                             value={input}
                             onChange={e => setInput(e.target.value)}
                             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleRequest({ type: 'user_text', text: input }); }}}
-                            placeholder={isListening ? "Слушаю..." : "Ваш запрос..."}
+                            placeholder={isListening ? t('assistant.modal.input.listening') : t('assistant.modal.input.placeholder')}
                             className="w-full bg-slate-700 rounded-lg p-3 text-slate-200 resize-none max-h-32 min-h-12 focus:outline-none focus:ring-2 focus:ring-purple-500"
                             rows={1}
                             disabled={isLoading}

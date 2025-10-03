@@ -7,6 +7,7 @@ import MessageQuestionIcon from './icons/MessageQuestionIcon';
 import PlusIcon from './icons/PlusIcon';
 import InfoIcon from './icons/InfoIcon';
 import TableIcon from './icons/TableIcon';
+import { useTranslation } from '../src/hooks/useTranslation';
 
 interface PracticePageContextMenuProps {
   target: { phrase: Phrase, word?: string };
@@ -35,6 +36,7 @@ const PracticePageContextMenu: React.FC<PracticePageContextMenuProps> = ({
   onOpenNounDeclension,
   onOpenAdjectiveDeclension,
 }) => {
+  const { t } = useTranslation();
   const { phrase, word } = target;
   const [analysis, setAnalysis] = useState<WordAnalysis | null>(null);
   const [isAnalysisLoading, setIsAnalysisLoading] = useState(!!word);
@@ -85,17 +87,17 @@ const PracticePageContextMenu: React.FC<PracticePageContextMenuProps> = ({
 
   const renderMenuItems = () => {
     const wordSpecificItems = word ? [
-      { label: 'Сведения о слове', icon: <InfoIcon className="w-5 h-5 mr-3 text-slate-300" />, action: () => handleAction(() => onOpenWordAnalysis(phrase, word)), condition: !!analysis },
-      { label: 'Создать карточку', icon: <PlusIcon className="w-5 h-5 mr-3 text-slate-300" />, action: () => handleAction(handleCreateCard), condition: !!analysis, loading: isCreatingCard },
-      { label: 'Спряжение глагола', icon: <TableIcon className="w-5 h-5 mr-3 text-slate-300" />, action: () => handleAction(() => onOpenVerbConjugation(analysis!.verbDetails!.infinitive)), condition: !!analysis?.verbDetails },
-      { label: 'Склонение существительного', icon: <TableIcon className="w-5 h-5 mr-3 text-slate-300" />, action: () => handleAction(() => onOpenNounDeclension(analysis!.word, analysis!.nounDetails!.article)), condition: !!analysis?.nounDetails },
-      { label: 'Склонение прилагательного', icon: <TableIcon className="w-5 h-5 mr-3 text-slate-300" />, action: () => handleAction(() => onOpenAdjectiveDeclension(analysis!.baseForm || analysis!.word)), condition: analysis?.partOfSpeech === 'Прилагательное' },
+      { label: t('assistant.contextMenu.wordDetails'), icon: <InfoIcon className="w-5 h-5 mr-3 text-slate-300" />, action: () => handleAction(() => onOpenWordAnalysis(phrase, word)), condition: !!analysis },
+      { label: t('assistant.contextMenu.createWordCard'), icon: <PlusIcon className="w-5 h-5 mr-3 text-slate-300" />, action: () => handleAction(handleCreateCard), condition: !!analysis, loading: isCreatingCard },
+      { label: t('modals.wordAnalysis.actions.openVerb'), icon: <TableIcon className="w-5 h-5 mr-3 text-slate-300" />, action: () => handleAction(() => onOpenVerbConjugation(analysis!.verbDetails!.infinitive)), condition: !!analysis?.verbDetails },
+      { label: t('modals.wordAnalysis.actions.openNoun'), icon: <TableIcon className="w-5 h-5 mr-3 text-slate-300" />, action: () => handleAction(() => onOpenNounDeclension(analysis!.word, analysis!.nounDetails!.article)), condition: !!analysis?.nounDetails },
+      { label: t('modals.wordAnalysis.actions.openAdjective'), icon: <TableIcon className="w-5 h-5 mr-3 text-slate-300" />, action: () => handleAction(() => onOpenAdjectiveDeclension(analysis!.baseForm || analysis!.word)), condition: analysis?.partOfSpeech === 'Прилагательное' },
     ] : [];
 
     const phraseSpecificItems = [
-      { label: 'Перейти в список', icon: <ListIcon className="w-5 h-5 mr-3 text-slate-300" />, action: () => handleAction(() => onGoToList(phrase)), condition: true },
-      { label: 'Обсудить перевод', icon: <MessageQuestionIcon className="w-5 h-5 mr-3 text-slate-300" />, action: () => handleAction(() => onDiscuss(phrase)), condition: true },
-      { label: 'Удалить', icon: <TrashIcon className="w-5 h-5 mr-3" />, action: () => handleAction(() => onDelete(phrase.id)), condition: true, isDestructive: true },
+      { label: t('assistant.contextMenu.goToList'), icon: <ListIcon className="w-5 h-5 mr-3 text-slate-300" />, action: () => handleAction(() => onGoToList(phrase)), condition: true },
+      { label: t('assistant.contextMenu.discussTranslation'), icon: <MessageQuestionIcon className="w-5 h-5 mr-3 text-slate-300" />, action: () => handleAction(() => onDiscuss(phrase)), condition: true },
+      { label: t('common.actions.delete'), icon: <TrashIcon className="w-5 h-5 mr-3" />, action: () => handleAction(() => onDelete(phrase.id)), condition: true, isDestructive: true },
     ];
     
     return (
@@ -107,7 +109,7 @@ const PracticePageContextMenu: React.FC<PracticePageContextMenuProps> = ({
                  <div className="h-4 w-2/3 bg-slate-600 rounded animate-pulse mt-1"></div>
             ) : analysis ? (
                 <p className="text-sm text-slate-400 capitalize">{analysis.nativeTranslation}</p>
-            ) : <p className="text-sm text-slate-400">Не удалось проанализировать</p>}
+            ) : <p className="text-sm text-slate-400">{t('assistant.messages.analysisFailed')}</p>}
           </div>
         )}
         <div className="p-1">
@@ -118,7 +120,7 @@ const PracticePageContextMenu: React.FC<PracticePageContextMenuProps> = ({
                   <div className="w-2 h-2 bg-current rounded-full animate-pulse" style={{ animationDelay: '0.1s' }}></div>
                   <div className="w-2 h-2 bg-current rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
               </div>
-              <span>Анализ...</span>
+              <span>{t('common.status.analyzing')}</span>
             </div>
           )}
 

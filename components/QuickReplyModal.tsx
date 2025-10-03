@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import type { Phrase } from '../types';
 import CheckIcon from './icons/CheckIcon';
 import XCircleIcon from './icons/XCircleIcon';
+import { useTranslation } from '../src/hooks/useTranslation';
 
 interface QuickReplyModalProps {
   isOpen: boolean;
@@ -17,6 +18,7 @@ interface QuickReplyModalProps {
 }
 
 const QuickReplyModal: React.FC<QuickReplyModalProps> = ({ isOpen, onClose, phrase, options, correctAnswer, onCorrect, onIncorrect, isLoading, error }) => {
+  const { t } = useTranslation();
   const [selection, setSelection] = useState<{ value: string; isCorrect: boolean } | null>(null);
   
   useEffect(() => {
@@ -61,10 +63,10 @@ const QuickReplyModal: React.FC<QuickReplyModalProps> = ({ isOpen, onClose, phra
     if (error) {
       return (
         <div className="flex flex-col items-center justify-center text-center">
-          <p className="text-red-400 font-semibold">Ошибка</p>
+          <p className="text-red-400 font-semibold">{t('common.labels.error')}</p>
           <p className="text-sm text-slate-300 mt-2">{error}</p>
           <button onClick={onClose} className="mt-4 px-4 py-2 bg-slate-600 rounded-md text-white text-sm">
-            Закрыть
+            {t('common.actions.close')}
           </button>
         </div>
       );

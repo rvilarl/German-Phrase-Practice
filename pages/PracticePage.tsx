@@ -90,12 +90,13 @@ const CategoryFilter: React.FC<{
     counts: Record<string, number>;
     totalUnmastered: number;
 }> = ({ currentFilter, onFilterChange, enabledCategories, currentPhraseCategory, categories, onAddCategory, onManageCategories, counts, totalUnmastered }) => {
+    const { t } = useTranslation();
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
     const getCategoryNameById = (id: string) => categories.find(c => c.id === id)?.name || id;
 
-    const categoryName = currentFilter === 'all' 
-        ? 'Все категории' 
+    const categoryName = currentFilter === 'all'
+        ? t('practice.states.allCategories')
         : getCategoryNameById(currentFilter);
     
     useEffect(() => {
@@ -141,7 +142,7 @@ const CategoryFilter: React.FC<{
                     <ul className="p-1 max-h-60 overflow-y-auto hide-scrollbar">
                         <li>
                             <button onClick={() => handleSelect('all')} className="w-full text-left px-3 py-2 text-slate-200 hover:bg-slate-600 rounded-md transition-colors flex justify-between items-center">
-                                <span>Все категории</span>
+                                <span>{t('practice.states.allCategories')}</span>
                                 <span className="text-xs font-semibold text-slate-400 bg-slate-800/50 px-1.5 py-0.5 rounded-full">{totalUnmastered}</span>
                             </button>
                         </li>
@@ -157,11 +158,11 @@ const CategoryFilter: React.FC<{
                     <div className="p-1 border-t border-slate-600 flex-shrink-0 grid grid-cols-2 gap-1">
                          <button onClick={handleAddCategory} className="flex items-center justify-center gap-2 px-2 py-2 text-slate-300 hover:bg-slate-600 rounded-md transition-colors text-sm font-semibold">
                             <PlusIcon className="w-4 h-4" />
-                            <span>Добавить</span>
+                            <span>{t('practice.states.add')}</span>
                         </button>
                         <button onClick={handleManageCategories} className="flex items-center justify-center gap-2 px-2 py-2 text-slate-300 hover:bg-slate-600 rounded-md transition-colors text-sm font-semibold">
                             <SettingsIcon className="w-4 h-4" />
-                            <span>Управлять</span>
+                            <span>{t('practice.states.manage')}</span>
                         </button>
                     </div>
                 </div>
@@ -237,14 +238,14 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
 
   const renderContent = () => {
     if (isLoading) return <PhraseCardSkeleton />;
-    if (error) return <div className="text-center bg-red-900/50 border border-red-700 text-red-300 p-4 rounded-lg max-w-md mx-auto"><p className="font-semibold">Произошла ошибка</p><p className="text-sm">{error}</p></div>;
+    if (error) return <div className="text-center bg-red-900/50 border border-red-700 text-red-300 p-4 rounded-lg max-w-md mx-auto"><p className="font-semibold">{t('practice.states.errorOccurred')}</p><p className="text-sm">{error}</p></div>;
     
     if (!currentPhrase) {
       if (unmasteredCount === 0 && practiceCategoryFilter === 'all') {
         return (
             <div className="text-center text-slate-400 p-4">
-                <h2 className="text-2xl font-bold text-white mb-4">Поздравляем!</h2>
-                <p>Вы выучили все фразы в выбранных категориях.</p>
+                <h2 className="text-2xl font-bold text-white mb-4">{t('practice.states.congratulations')}</h2>
+                <p>{t('practice.states.learnedAllSelected')}</p>
                 <button onClick={() => fetchNewPhrases()} disabled={isGenerating || !apiProviderAvailable} className="mt-6 px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-md text-white font-bold transition-colors disabled:opacity-50">{isGenerating ? 'Генерация...' : 'Сгенерировать новые'}</button>
             </div>
         );
@@ -256,11 +257,11 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
         if (category?.isFoundational) {
             return (
                 <div className="text-center text-slate-400 p-4">
-                    <h2 className="text-2xl font-bold text-white mb-4">Отлично!</h2>
-                    <p>Фундаментальные карточки в категории "{categoryName}" пройдены.</p>
-                    <p className="mt-2 text-sm">Карточек к обучению больше нет.</p>
+                    <h2 className="text-2xl font-bold text-white mb-4">{t('practice.states.excellent')}</h2>
+                    <p>{t('practice.states.foundationCompleted', { categoryName })}</p>
+                    <p className="mt-2 text-sm">{t('practice.states.noMoreCards')}</p>
                     <button onClick={() => setPracticeCategoryFilter('all')} className="mt-6 px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-md text-white font-bold transition-colors">
-                        Практиковать другие категории
+                        {t('practice.states.practiceOtherCategories')}
                     </button>
                 </div>
             );
@@ -268,10 +269,10 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
         
         return (
             <div className="text-center text-slate-400 p-4">
-                <h2 className="text-2xl font-bold text-white mb-4">Пусто</h2>
-                <p>Нет невыученных карточек в категории "{categoryName}".</p>
+                <h2 className="text-2xl font-bold text-white mb-4">{t('practice.states.empty')}</h2>
+                <p>{t('practice.states.noUnlearnedInCategory', { categoryName })}</p>
                 <button onClick={() => setPracticeCategoryFilter('all')} className="mt-6 px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-md text-white font-bold transition-colors">
-                    Практиковать все категории
+                    {t('practice.states.practiceAllCategories')}
                 </button>
             </div>
         );
@@ -279,11 +280,11 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
         // This case means there are cards in the pool, but none are due for review right now.
         return (
             <div className="text-center text-slate-400 p-4">
-                <h2 className="text-2xl font-bold text-white mb-4">На сегодня всё!</h2>
-                <p>Вы прошли все доступные карточки в этой категории.</p>
-                <p className="mt-2 text-sm">Загляните позже, чтобы повторить изученное.</p>
+                <h2 className="text-2xl font-bold text-white mb-4">{t('practice.states.allForToday')}</h2>
+                <p>{t('practice.states.completedAllAvailable')}</p>
+                <p className="mt-2 text-sm">{t('practice.states.comeBackLater')}</p>
                 <button onClick={() => setPracticeCategoryFilter('all')} className="mt-6 px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-md text-white font-bold transition-colors">
-                    Практиковать другие категории
+                    {t('practice.states.practiceOtherCategories')}
                 </button>
             </div>
         );
@@ -375,7 +376,7 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
                             disabled={isExiting}
                             className="px-10 py-3 rounded-lg font-semibold text-white shadow-md transition-all duration-300 bg-purple-600 hover:bg-purple-700 animate-fade-in"
                         >
-                            Продолжить
+                            {t('practice.states.continue')}
                         </button>
                     )}
                 </div>

@@ -3,6 +3,7 @@ import CloseIcon from './icons/CloseIcon';
 import CameraIcon from './icons/CameraIcon';
 import RefreshIcon from './icons/RefreshIcon';
 import Spinner from './Spinner';
+import { useTranslation } from '../src/hooks/useTranslation';
 
 interface CameraCaptureModalProps {
   isOpen: boolean;
@@ -11,6 +12,7 @@ interface CameraCaptureModalProps {
 }
 
 const CameraCaptureModal: React.FC<CameraCaptureModalProps> = ({ isOpen, onClose, onCapture }) => {
+  const { t } = useTranslation();
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -44,11 +46,11 @@ const CameraCaptureModal: React.FC<CameraCaptureModalProps> = ({ isOpen, onClose
         } catch (err) {
           console.error("Error accessing camera:", err);
           if (err instanceof DOMException && (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError')) {
-              setError("Доступ к камере запрещен. Проверьте настройки браузера.");
+              setError(t('modals.cameraCapture.errors.permission'));
           } else if (err instanceof DOMException && err.name === 'NotFoundError') {
-              setError("Камера не найдена на вашем устройстве.");
+              setError(t('modals.cameraCapture.errors.notFound'));
           } else {
-              setError("Не удалось получить доступ к камере.");
+              setError(t('modals.cameraCapture.errors.generic'));
           }
           setIsLoading(false);
         }
@@ -100,10 +102,10 @@ const CameraCaptureModal: React.FC<CameraCaptureModalProps> = ({ isOpen, onClose
         )}
         {error && (
             <div className="w-full h-full bg-slate-900 rounded-lg flex flex-col items-center justify-center text-center p-4">
-                <p className="text-red-400 text-lg font-semibold mb-2">Ошибка камеры</p>
+                <p className="text-red-400 text-lg font-semibold mb-2">{t('modals.cameraCapture.errorTitle')}</p>
                 <p className="text-slate-300">{error}</p>
                  <button onClick={onClose} className="mt-6 px-6 py-2 bg-slate-700 hover:bg-slate-600 rounded-md text-white">
-                    Закрыть
+                    {t('common.actions.close')}
                 </button>
             </div>
         )}
@@ -120,7 +122,7 @@ const CameraCaptureModal: React.FC<CameraCaptureModalProps> = ({ isOpen, onClose
           <button
             onClick={handleCapture}
             className="w-20 h-20 rounded-full bg-white flex items-center justify-center ring-4 ring-white/30 hover:scale-105 transition-transform"
-            aria-label="Сделать снимок"
+            aria-label={t('modals.cameraCapture.aria.capture')}
           >
             <div className="w-16 h-16 rounded-full bg-white ring-2 ring-inset ring-black"></div>
           </button>

@@ -2,6 +2,7 @@ import React from 'react';
 import { Category } from '../types';
 import SettingsIcon from './icons/SettingsIcon';
 import SmartToyIcon from './icons/SmartToyIcon';
+import { useTranslation } from '../src/hooks/useTranslation';
 
 interface CategoryFilterContextMenuProps {
     category: Category;
@@ -14,6 +15,7 @@ interface CategoryFilterContextMenuProps {
 const CategoryFilterContextMenu: React.FC<CategoryFilterContextMenuProps> = ({
     category, position, onClose, onEdit, onOpenAssistant
 }) => {
+    const { t } = useTranslation();
     const menuStyle: React.CSSProperties = {
         top: `${position.y}px`,
         left: `${position.x}px`,
@@ -37,14 +39,14 @@ const CategoryFilterContextMenu: React.FC<CategoryFilterContextMenuProps> = ({
                         className="w-full flex items-center px-3 py-2 text-left text-sm hover:bg-slate-600/70 transition-colors rounded-md"
                     >
                         <SettingsIcon className="w-5 h-5 mr-3 text-slate-300" />
-                        <span>Настройки категории</span>
+                        <span>{t('categories.filterMenu.actions.settings')}</span>
                     </button>
                     <button
                         onClick={() => onOpenAssistant(category)}
                         className="w-full flex items-center px-3 py-2 text-left text-sm hover:bg-slate-600/70 transition-colors rounded-md"
                     >
                         <SmartToyIcon className="w-5 h-5 mr-3 text-slate-300" />
-                        <span>AI Ассистент</span>
+                        <span>{t('categories.filterMenu.actions.aiAssistant')}</span>
                     </button>
                 </div>
             </div>

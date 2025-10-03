@@ -156,8 +156,16 @@
       "deletedCount": "✓ {{count}} карточек удалено.",
       "movedToCategory": "✓ {{count}} карточек перемещено в \"{{category}}\".",
       "otherCategory": "другую категорию",
+      "bulkAdded_one": "✓ {{count}} карточка добавлена.",
+      "bulkAdded_few": "✓ {{count}} карточки добавлены.",
+      "bulkAdded_many": "✓ {{count}} карточек добавлено.",
+      "bulkAdded_other": "✓ {{count}} карточек добавлено.",
       "bulkAdded": "✓ {{count}} карточек добавлено.",
       "bulkAdded_plural": "✓ {{count}} карточек добавлено.",
+      "bulkSkipped_one": "{{count}} уже существовала и была пропущена.",
+      "bulkSkipped_few": "{{count}} уже существовали и были пропущены.",
+      "bulkSkipped_many": "{{count}} уже существовали и были пропущены.",
+      "bulkSkipped_other": "{{count}} уже существовали и были пропущены.",
       "bulkSkipped": "{{count}} уже существовало и было пропущено.",
       "bulkSkipped_plural": "{{count}} уже существовали и были пропущены."
     }
@@ -238,6 +246,25 @@
     "actions": {
       "skip": "Пропустить",
       "know": "Знаю"
+    },
+    "states": {
+      "allCategories": "Все категории",
+      "add": "Добавить",
+      "manage": "Управлять",
+      "errorOccurred": "Произошла ошибка",
+      "congratulations": "Поздравляем!",
+      "learnedAllSelected": "Вы выучили все фразы в выбранных категориях.",
+      "excellent": "Отлично!",
+      "foundationCompleted": "Фундаментальные карточки в категории \"{categoryName}\" пройдены.",
+      "noMoreCards": "Карточек к обучению больше нет.",
+      "practiceOtherCategories": "Практиковать другие категории",
+      "empty": "Пусто",
+      "noUnlearnedInCategory": "Нет невыученных карточек в категории \"{categoryName}\".",
+      "practiceAllCategories": "Практиковать все категории",
+      "allForToday": "На сегодня всё!",
+      "completedAllAvailable": "Вы прошли все доступные карточки в этой категории.",
+      "comeBackLater": "Загляните позже, чтобы повторить изученное.",
+      "continue": "Продолжить"
     }
   },
   "languages": {
@@ -874,6 +901,17 @@
         "openVerb": "Открыть спряжение",
         "openNoun": "Открыть склонение",
         "openAdjective": "Открыть склонение и степени"
+      }
+    },
+    "cameraCapture": {
+      "errorTitle": "Ошибка камеры",
+      "errors": {
+        "permission": "Доступ к камере запрещен.",
+        "notFound": "Камера не найдена.",
+        "generic": "Ошибка доступа к камере."
+      },
+      "aria": {
+        "capture": "Сделать фото"
       }
     }
   }

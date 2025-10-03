@@ -99,7 +99,6 @@ const SentenceChainModal: React.FC<SentenceChainModalProps> = ({ isOpen, onClose
       }
       cacheService.setCache(historyCacheKey, history);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, apiCacheKey, historyCacheKey]);
 
   // Effect to fetch data whenever history changes, but only after initialization

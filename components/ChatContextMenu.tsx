@@ -8,6 +8,7 @@ import WandIcon from './icons/WandIcon';
 import SoundIcon from './icons/SoundIcon';
 import TableIcon from './icons/TableIcon';
 import LanguagesIcon from './icons/LanguagesIcon';
+import { useTranslation } from '../src/hooks/useTranslation';
 
 interface ChatContextMenuProps {
   target: { sentence: { german: string; russian: string }; word: string };
@@ -38,6 +39,7 @@ const ChatContextMenu: React.FC<ChatContextMenuProps> = ({
   allPhrases,
   onTranslateGermanToRussian,
 }) => {
+  const { t } = useTranslation();
   const { sentence, word } = target;
   const [analysis, setAnalysis] = useState<WordAnalysis | null>(null);
   const [isAnalysisLoading, setIsAnalysisLoading] = useState(true);
@@ -81,7 +83,7 @@ const ChatContextMenu: React.FC<ChatContextMenuProps> = ({
       setTranslation(result.russian);
     } catch (error) {
       console.error("Translation failed", error);
-      setTranslation("Ошибка перевода");
+      setTranslation(t('assistant.common.translationError'));
     } finally {
       setIsTranslating(false);
     }
@@ -117,16 +119,16 @@ const ChatContextMenu: React.FC<ChatContextMenuProps> = ({
   };
 
   const menuItems = [
-    { label: 'Сведения о слове', icon: <InfoIcon />, action: () => onOpenWordAnalysis(proxyPhrase, word), condition: !!analysis },
-    { label: 'Создать карточку для слова', icon: <PlusIcon />, action: () => { if (analysis) onCreateCard({ german: getCanonicalWordGerman(), russian: analysis.nativeTranslation }); }, condition: !wordCardExists && !!analysis },
-    { label: 'Спряжение глагола', icon: <TableIcon />, action: () => { if (analysis?.verbDetails?.infinitive) onOpenVerbConjugation(analysis.verbDetails.infinitive); }, condition: !!analysis?.verbDetails },
-    { label: 'Склонение существительного', icon: <TableIcon />, action: () => { if (analysis?.nounDetails) onOpenNounDeclension(analysis.word, analysis.nounDetails.article); }, condition: !!analysis?.nounDetails },
-    { label: 'Склонение прилагательного', icon: <TableIcon />, action: () => { if (analysis) onOpenAdjectiveDeclension(analysis.baseForm || analysis.word); }, condition: analysis?.partOfSpeech === 'Прилагательное' },
+    { label: t('assistant.contextMenu.wordDetails'), icon: <InfoIcon />, action: () => onOpenWordAnalysis(proxyPhrase, word), condition: !!analysis },
+    { label: t('assistant.contextMenu.createWordCard'), icon: <PlusIcon />, action: () => { if (analysis) onCreateCard({ german: getCanonicalWordGerman(), russian: analysis.nativeTranslation }); }, condition: !wordCardExists && !!analysis },
+    { label: t('modals.wordAnalysis.actions.openVerb'), icon: <TableIcon />, action: () => { if (analysis?.verbDetails?.infinitive) onOpenVerbConjugation(analysis.verbDetails.infinitive); }, condition: !!analysis?.verbDetails },
+    { label: t('modals.wordAnalysis.actions.openNoun'), icon: <TableIcon />, action: () => { if (analysis?.nounDetails) onOpenNounDeclension(analysis.word, analysis.nounDetails.article); }, condition: !!analysis?.nounDetails },
+    { label: t('modals.wordAnalysis.actions.openAdjective'), icon: <TableIcon />, action: () => { if (analysis) onOpenAdjectiveDeclension(analysis.baseForm || analysis.word); }, condition: analysis?.partOfSpeech === 'Прилагательное' },
   ];
 
   const phraseMenuItems = [
-    { label: 'Создать карточку для фразы', icon: <CardPlusIcon />, action: () => onCreateCard({ german: sentence.german, russian: translation || sentence.russian }), condition: !!translation && !phraseCardExists },
-    { label: 'Сгенерировать еще такие фразы', icon: <WandIcon />, action: () => onGenerateMore(`Сгенерируй еще несколько примеров, похожих на "${sentence.german}"`), condition: true },
+    { label: t('assistant.contextMenu.createPhraseCard'), icon: <CardPlusIcon />, action: () => onCreateCard({ german: sentence.german, russian: translation || sentence.russian }), condition: !!translation && !phraseCardExists },
+    { label: t('assistant.contextMenu.generateSimilar'), icon: <WandIcon />, action: () => onGenerateMore(t('assistant.prompts.generateSimilar', { phrase: sentence.german })), condition: true },
   ];
 
 
@@ -155,7 +157,7 @@ const ChatContextMenu: React.FC<ChatContextMenuProps> = ({
                             <div className="w-1.5 h-1.5 bg-current rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
                         </div>
                     ) : <LanguagesIcon className="w-4 h-4 mr-2" />}
-                    <span>Перевести</span>
+                    <span>{isTranslating ? t('assistant.common.translating') : t('assistant.common.translate')}</span>
                 </button>
             )}
         </div>
@@ -182,7 +184,7 @@ const ChatContextMenu: React.FC<ChatContextMenuProps> = ({
                         <div className="w-2 h-2 bg-current rounded-full animate-pulse" style={{ animationDelay: '0.1s' }}></div>
                         <div className="w-2 h-2 bg-current rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
                     </div>
-                    <span>Анализ...</span>
+                    <span>{t('common.status.analyzing')}</span>
                 </div>
             ) : (
                 menuItems
