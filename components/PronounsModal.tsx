@@ -3,6 +3,7 @@ import { Phrase } from '../types';
 import CloseIcon from './icons/CloseIcon';
 import UsersIcon from './icons/UsersIcon';
 import AudioPlayer from './AudioPlayer';
+import { useTranslation } from '../src/hooks/useTranslation';
 
 interface PronounsModalProps {
   isOpen: boolean;
@@ -11,15 +12,17 @@ interface PronounsModalProps {
 }
 
 const pronouns = [
-    { german: 'ich', russian: 'я' },
-    { german: 'du', russian: 'ты' },
-    { german: 'er / sie / es', russian: 'он / она / оно' },
-    { german: 'wir', russian: 'мы' },
-    { german: 'ihr', russian: 'вы (неформ.)' },
-    { german: 'sie / Sie', russian: 'они / Вы (форм.)' },
+    { german: 'ich', russian: 'I' },
+    { german: 'du', russian: 'you (informal)' },
+    { german: 'er / sie / es', russian: 'he / she / it' },
+    { german: 'wir', russian: 'we' },
+    { german: 'ihr', russian: 'you (plural informal)' },
+    { german: 'sie / Sie', russian: 'they / you (formal)' },
 ];
 
 const PronounsModal: React.FC<PronounsModalProps> = ({ isOpen, onClose, onOpenWordAnalysis }) => {
+  const { t } = useTranslation();
+
   if (!isOpen) return null;
 
   const handleWordClick = (contextText: string, word: string, russianText: string) => {
@@ -63,22 +66,22 @@ const PronounsModal: React.FC<PronounsModalProps> = ({ isOpen, onClose, onOpenWo
         onClick={e => e.stopPropagation()}
       >
         <header className="flex items-center justify-between p-4 border-b border-slate-700 flex-shrink-0">
-          <div className="flex items-center space-x-3">
-            <UsersIcon className="w-6 h-6 text-purple-400"/>
-            <h2 className="text-lg font-bold text-slate-100">Личные местоимения</h2>
-          </div>
-          <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-700">
-            <CloseIcon className="w-6 h-6 text-slate-400"/>
-          </button>
-        </header>
+           <div className="flex items-center space-x-3">
+             <UsersIcon className="w-6 h-6 text-purple-400"/>
+             <h2 className="text-lg font-bold text-slate-100">{t('modals.pronouns.title')}</h2>
+           </div>
+           <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-700">
+             <CloseIcon className="w-6 h-6 text-slate-400"/>
+           </button>
+         </header>
         <div className="p-6 overflow-y-auto">
            <div className="bg-slate-700/50 p-4 rounded-lg">
                 <table className="w-full text-left">
                     <thead>
                         <tr className="border-b border-slate-600">
-                            <th className="p-3 w-1/6"><span className="sr-only">Озвучить</span></th>
-                            <th className="p-3 text-sm font-semibold text-slate-400">Немецкий</th>
-                            <th className="p-3 text-sm font-semibold text-slate-400">Русский</th>
+                            <th className="p-3 w-1/6"><span className="sr-only">{t('modals.pronouns.headers.speak')}</span></th>
+                            <th className="p-3 text-sm font-semibold text-slate-400">{t('modals.pronouns.headers.german')}</th>
+                            <th className="p-3 text-sm font-semibold text-slate-400">{t('modals.pronouns.headers.russian')}</th>
                         </tr>
                     </thead>
                     <tbody>

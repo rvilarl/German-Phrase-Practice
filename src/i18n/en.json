@@ -544,6 +544,24 @@
         "case": "Case",
         "singular": "Singular",
         "plural": "Plural"
+      },
+      "cases": {
+        "nominativ": {
+          "name": "Nominative",
+          "question": "(who? what?)"
+        },
+        "akkusativ": {
+          "name": "Accusative",
+          "question": "(whom? what?)"
+        },
+        "dativ": {
+          "name": "Dative",
+          "question": "(to whom? to what?)"
+        },
+        "genitiv": {
+          "name": "Genitive",
+          "question": "(whose? of what?)"
+        }
       }
     },
     "phraseBuilder": {
@@ -574,6 +592,140 @@
       "actions": {
         "continue": "Continue"
       }
+    },
+    "pronouns": {
+      "title": "Personal pronouns",
+      "headers": {
+        "speak": "Speak",
+        "german": "German",
+        "russian": "Russian"
+      },
+      "pronouns": [
+        { "german": "ich", "russian": "I" },
+        { "german": "du", "russian": "you (informal)" },
+        { "german": "er / sie / es", "russian": "he / she / it" },
+        { "german": "wir", "russian": "we" },
+        { "german": "ihr", "russian": "you (plural informal)" },
+        { "german": "sie / Sie", "russian": "they / you (formal)" }
+      ]
+    },
+    "sentenceChain": {
+      "title": "Phrase builder",
+      "aria": {
+        "goBack": "Go back one step"
+      },
+      "tooltips": {
+        "clickToRevert": "Click to revert to this stage"
+      },
+      "errors": {
+        "generic": "Error"
+      },
+      "messages": {
+        "noContinuations": "No suggestions for continuation. Try going back."
+      },
+      "actions": {
+        "addCustom": "Add your own option"
+      }
+    },
+    "smartImport": {
+      "tabs": {
+        "assistant": "Assistant",
+        "speech": "From speech",
+        "file": "From file"
+      },
+      "assistant": {
+        "title": "AI Assistant",
+        "subtitle": "Enter a topic, and AI will generate a set of cards for you.",
+        "placeholder": "E.g., 'At the airport' or 'Hand fingers'",
+        "aria": {
+          "microphone": "Voice input",
+          "generate": "Generate"
+        }
+      },
+      "speech": {
+        "title": "Import from speech or text",
+        "subtitle": "Record speech or paste text to create cards.",
+        "transcriptPlaceholder": "Transcript will appear here...",
+        "aria": {
+          "paste": "Paste from clipboard",
+          "process": "Process"
+        },
+        "errors": {
+          "pasteFailed": "Failed to paste text from clipboard. You may not have granted permission."
+        }
+      },
+      "file": {
+        "title": "Import from file"
+      },
+      "processing": {
+        "generatingCards": "AI is generating cards...",
+        "analyzingTopic": "Analyzing topic..."
+      },
+      "suggestion": {
+        "addToExisting": {
+          "title": "Add to existing category?",
+          "body": "You already have a category \"{{category}}\". Do you want to add new cards on topic \"{{topic}}\" to it?",
+          "yes": "Yes, add to \"{{category}}\"",
+          "no": "No, add to \"General\""
+        },
+        "createNew": {
+          "title": "Create new category?",
+          "body": "AI suggests creating a category with the name:",
+          "create": "Create",
+          "addToGeneral": "Add to \"General\""
+        }
+      },
+      "preview": {
+        "title": "Suggested cards",
+        "aria": {
+          "back": "Back"
+        },
+        "actions": {
+          "selectAll": "Select all",
+          "clearAll": "Clear all",
+          "refine": "Refine",
+          "add": "Add",
+          "addWithCount": "Add ({{count}})"
+        },
+        "refine": {
+          "placeholder": "Refinement, e.g., only verbs",
+          "aria": {
+            "microphone": "Voice input"
+          }
+        }
+      },
+      "categoryNames": {
+        "fromSpeech": "Cards from speech",
+        "general": "General"
+      }
+    },
+    "fileImport": {
+      "cropper": {
+        "cancel": "Cancel",
+        "confirm": "Confirm"
+      },
+      "errors": {
+        "unsupportedType": "Unsupported file type. Please select an image.",
+        "tooLarge": "File is too large. Maximum size is 10MB.",
+        "cropFirst": "Please upload and crop an image first."
+      },
+      "instructions": "Upload an image. AI will recognize text or describe objects in the photo, turning them into cards.",
+      "dropzone": {
+        "text": "Drag and drop or select a file",
+        "subtext": "Image (max. 10MB)"
+      },
+      "camera": {
+        "button": "Take a photo",
+        "subtext": "Use your camera"
+      },
+      "preview": {
+        "alt": "Cropped image preview"
+      },
+      "refinement": {
+        "placeholder": "Add a refinement (optional)...",
+        "aria": "Voice input for refinement"
+      },
+      "submit": "Create cards"
     },
     "voiceWorkspace": {
       "instructions": "Speak the phrase or drag words here",

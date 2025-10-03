@@ -532,6 +532,24 @@
         "case": "Падеж",
         "singular": "Единственное число",
         "plural": "Множественное число"
+      },
+      "cases": {
+        "nominativ": {
+          "name": "Именительный",
+          "question": "(кто? что?)"
+        },
+        "akkusativ": {
+          "name": "Винительный",
+          "question": "(кого? что?)"
+        },
+        "dativ": {
+          "name": "Дательный",
+          "question": "(кому? чему?)"
+        },
+        "genitiv": {
+          "name": "Родительный",
+          "question": "(кого? чего?)"
+        }
       }
     },
     "phraseBuilder": {
@@ -561,6 +579,112 @@
       "correctAnswer": "Правильный ответ:",
       "actions": {
         "continue": "Продолжить"
+      }
+    },
+    "pronouns": {
+      "title": "Личные местоимения",
+      "headers": {
+        "speak": "Озвучить",
+        "german": "Немецкий",
+        "russian": "Русский"
+      },
+      "pronouns": [
+        { "german": "ich", "russian": "я" },
+        { "german": "du", "russian": "ты" },
+        { "german": "er / sie / es", "russian": "он / она / оно" },
+        { "german": "wir", "russian": "мы" },
+        { "german": "ihr", "russian": "вы (неформ.)" },
+        { "german": "sie / Sie", "russian": "они / Вы (форм.)" }
+      ]
+    },
+    "sentenceChain": {
+      "title": "Конструктор фраз",
+      "aria": {
+        "goBack": "Вернуться на шаг назад"
+      },
+      "tooltips": {
+        "clickToRevert": "Нажмите, чтобы вернуться к этому этапу"
+      },
+      "errors": {
+        "generic": "Ошибка"
+      },
+      "messages": {
+        "noContinuations": "Нет предложений для продолжения. Попробуйте вернуться назад."
+      },
+      "actions": {
+        "addCustom": "Добавить свой вариант"
+      }
+    },
+    "smartImport": {
+      "tabs": {
+        "assistant": "Ассистент",
+        "speech": "Из речи",
+        "file": "Из файла"
+      },
+      "assistant": {
+        "title": "AI Ассистент",
+        "subtitle": "Введите тему, и AI сгенерирует для вас набор карточек.",
+        "placeholder": "Например, 'В аэропорту' или 'Пальцы рук'",
+        "aria": {
+          "microphone": "Голосовой ввод",
+          "generate": "Сгенерировать"
+        }
+      },
+      "speech": {
+        "title": "Импорт из речи или текста",
+        "subtitle": "Запишите речь или вставьте текст для создания карточек.",
+        "transcriptPlaceholder": "Здесь появится транскрипция...",
+        "aria": {
+          "paste": "Вставить из буфера обмена",
+          "process": "Обработать"
+        },
+        "errors": {
+          "pasteFailed": "Не удалось вставить текст из буфера обмена. Возможно, вы не предоставили разрешение."
+        }
+      },
+      "file": {
+        "title": "Импорт из файла"
+      },
+      "processing": {
+        "generatingCards": "AI генерирует карточки...",
+        "analyzingTopic": "Анализируем тему..."
+      },
+      "suggestion": {
+        "addToExisting": {
+          "title": "Дополнить категорию?",
+          "body": "У вас уже есть категория «{{category}}». Хотите добавить новые карточки по теме «{{topic}}» в нее?",
+          "yes": "Да, добавить в «{{category}}»",
+          "no": "Нет, добавить в «Общие»"
+        },
+        "createNew": {
+          "title": "Создать новую категорию?",
+          "body": "AI предлагает создать категорию с названием:",
+          "create": "Создать",
+          "addToGeneral": "Добавить в «Общие»"
+        }
+      },
+      "preview": {
+        "title": "Предложенные карточки",
+        "aria": {
+          "back": "Назад"
+        },
+        "actions": {
+          "selectAll": "Выбрать все",
+          "clearAll": "Снять все",
+          "refine": "Уточнить",
+          "add": "Добавить",
+          "addWithCount": "Добавить ({{count}})"
+        },
+        "refine": {
+          "placeholder": "Уточнение, например: только глаголы",
+          "aria": {
+            "microphone": "Голосовой ввод"
+          }
+        }
+      },
+      "categoryNames": {
+        "fromSpeech": "Карточки из речи",
+        "general": "Общие"
       }
     },
     "voiceWorkspace": {

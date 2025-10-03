@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { useTranslation } from '../src/hooks/useTranslation';
 import { SpeechRecognition, SpeechRecognitionErrorEvent } from '../types';
 import Cropper from 'cropperjs';
 import FilePlusIcon from './icons/FilePlusIcon';
@@ -18,6 +19,7 @@ interface ImageCropperModalProps {
 }
 
 const ImageCropperModal: React.FC<ImageCropperModalProps> = ({ isOpen, src, onConfirm, onCancel }) => {
+  const { t } = useTranslation();
   const imageRef = useRef<HTMLImageElement>(null);
   const cropperRef = useRef<Cropper | null>(null);
 
@@ -70,14 +72,14 @@ const ImageCropperModal: React.FC<ImageCropperModalProps> = ({ isOpen, src, onCo
           className="px-6 py-3 rounded-lg bg-slate-600 hover:bg-slate-700 text-white font-semibold transition-colors flex items-center"
         >
           <CloseIcon className="w-5 h-5 mr-2" />
-          <span>Отмена</span>
+          <span>{t('modals.fileImport.cropper.cancel')}</span>
         </button>
         <button
           onClick={handleConfirm}
           className="px-6 py-3 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-semibold transition-colors flex items-center"
         >
           <CheckIcon className="w-5 h-5 mr-2" />
-          <span>Подтвердить</span>
+          <span>{t('modals.fileImport.cropper.confirm')}</span>
         </button>
       </div>
     </div>
@@ -90,6 +92,7 @@ interface FileImportViewProps {
 }
 
 const FileImportView: React.FC<FileImportViewProps> = ({ onProcessFile }) => {
+  const { t } = useTranslation();
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -149,12 +152,12 @@ const FileImportView: React.FC<FileImportViewProps> = ({ onProcessFile }) => {
     if (!selectedFile) return;
 
     if (!selectedFile.type.startsWith('image/')) {
-      setError('Неподдерживаемый тип файла. Пожалуйста, выберите изображение.');
+      setError(t('modals.fileImport.errors.unsupportedType'));
       return;
     }
     
     if (selectedFile.size > 10 * 1024 * 1024) { // 10MB limit
-      setError('Файл слишком большой. Максимальный размер 10 МБ.');
+      setError(t('modals.fileImport.errors.tooLarge'));
       return;
     }
 
@@ -169,7 +172,7 @@ const FileImportView: React.FC<FileImportViewProps> = ({ onProcessFile }) => {
   
   const handleSubmit = async () => {
     if (!croppedImageData) {
-      setError("Пожалуйста, сначала загрузите и обрежьте изображение.");
+      setError(t('modals.fileImport.errors.cropFirst'));
       return;
     }
     onProcessFile(croppedImageData, refinement.trim() || undefined);
@@ -222,7 +225,7 @@ const FileImportView: React.FC<FileImportViewProps> = ({ onProcessFile }) => {
       <div className="flex flex-col items-center justify-center h-full text-center">
         {!croppedImageSrc ? (
           <>
-              <p className="text-slate-400 -mt-4 mb-4 max-w-md">Загрузите изображение. AI распознает текст или опишет объекты на фото, превратив их в карточки.</p>
+              <p className="text-slate-400 -mt-4 mb-4 max-w-md">{t('modals.fileImport.instructions')}</p>
               <input
                   ref={fileInputRef}
                   type="file"
@@ -241,8 +244,8 @@ const FileImportView: React.FC<FileImportViewProps> = ({ onProcessFile }) => {
                     className={`h-48 border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer transition-colors ${isDragging ? 'border-purple-500 bg-slate-700' : 'border-slate-600 hover:border-slate-500'}`}
                 >
                     <FilePlusIcon className="w-10 h-10 text-slate-500 mb-2" />
-                    <span className="font-semibold text-slate-300">Перетащите или выберите файл</span>
-                    <span className="text-xs text-slate-500 mt-1">Изображение (макс. 10МБ)</span>
+                    <span className="font-semibold text-slate-300">{t('modals.fileImport.dropzone.text')}</span>
+                    <span className="text-xs text-slate-500 mt-1">{t('modals.fileImport.dropzone.subtext')}</span>
                 </label>
                 <button
                   type="button"
@@ -250,8 +253,8 @@ const FileImportView: React.FC<FileImportViewProps> = ({ onProcessFile }) => {
                   className="h-48 border-2 border-dashed border-slate-600 hover:border-slate-500 rounded-lg flex flex-col items-center justify-center cursor-pointer transition-colors"
                 >
                   <CameraIcon className="w-10 h-10 text-slate-500 mb-2" />
-                  <span className="font-semibold text-slate-300">Сделать фото</span>
-                  <span className="text-xs text-slate-500 mt-1">Использовать камеру</span>
+                  <span className="font-semibold text-slate-300">{t('modals.fileImport.camera.button')}</span>
+                  <span className="text-xs text-slate-500 mt-1">{t('modals.fileImport.camera.subtext')}</span>
                 </button>
               </div>
           </>
@@ -263,7 +266,7 @@ const FileImportView: React.FC<FileImportViewProps> = ({ onProcessFile }) => {
                   </button>
                   <img
                       src={croppedImageSrc}
-                      alt="Предпросмотр обрезанного изображения"
+                      alt={t('modals.fileImport.preview.alt')}
                       className="max-w-full max-h-full object-contain rounded-md"
                   />
               </div>
@@ -271,7 +274,7 @@ const FileImportView: React.FC<FileImportViewProps> = ({ onProcessFile }) => {
                   <textarea
                       value={refinement}
                       onChange={(e) => setRefinement(e.target.value)}
-                      placeholder="Добавьте уточнение (необязательно)..."
+                      placeholder={t('modals.fileImport.refinement.placeholder')}
                       className="w-full bg-slate-700 border border-slate-600 rounded-lg p-3 pr-12 text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors resize-none"
                       rows={2}
                   />
@@ -279,14 +282,14 @@ const FileImportView: React.FC<FileImportViewProps> = ({ onProcessFile }) => {
                       type="button"
                       onClick={handleMicClick}
                       className="absolute top-2 right-2 p-2 text-slate-400 hover:text-white"
-                      aria-label="Голосовой ввод для уточнения"
+                      aria-label={t('modals.fileImport.refinement.aria')}
                   >
                       <MicrophoneIcon className={`w-5 h-5 ${isRefineListening ? 'text-purple-400' : ''}`} />
                   </button>
               </div>
               <button onClick={handleSubmit} disabled={!croppedImageData} className="mt-4 w-full max-w-xs px-6 py-3 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-bold transition-colors shadow-md flex items-center justify-center disabled:opacity-50">
                   <WandIcon className="w-5 h-5 mr-2" />
-                  <span>Создать карточки</span>
+                  <span>{t('modals.fileImport.submit')}</span>
               </button>
           </div>
         )}

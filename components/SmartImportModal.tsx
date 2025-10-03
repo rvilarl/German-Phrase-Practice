@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useTranslation } from '../src/hooks/useTranslation';
 import { SpeechRecognition, SpeechRecognitionErrorEvent, ProposedCard, Phrase, Category } from '../types';
 import CloseIcon from './icons/CloseIcon';
 import MicrophoneIcon from './icons/MicrophoneIcon';
@@ -33,10 +34,11 @@ interface SmartImportModalProps {
   categories: Category[];
 }
 
-const SmartImportModal: React.FC<SmartImportModalProps> = ({ 
-    isOpen, onClose, onGenerateCards, onGenerateCardsFromImage, onGenerateTopicCards, onCardsCreated, onClassifyTopic, 
-    initialTopic, allPhrases, categories 
+const SmartImportModal: React.FC<SmartImportModalProps> = ({
+    isOpen, onClose, onGenerateCards, onGenerateCardsFromImage, onGenerateTopicCards, onCardsCreated, onClassifyTopic,
+    initialTopic, allPhrases, categories
 }) => {
+  const { t } = useTranslation();
   const [view, setView] = useState<View>('assistant');
   const [speechStatus, setSpeechStatus] = useState<SpeechStatus>('idle');
   const [lang, setLang] = useState<Language>('de');
@@ -194,7 +196,7 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
             const cards = await onGenerateCards(finalTranscript, lang);
             if (cards && cards.length > 0) {
                 setPendingCards(cards);
-                const suggestionName = 'Карточки из речи';
+                const suggestionName = t('modals.smartImport.categoryNames.fromSpeech');
                 setCategorySuggestion({ name: suggestionName });
                 setEditableCategoryName(suggestionName);
                 setView('suggestion');
@@ -438,8 +440,8 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
     
     return (
         <div className="flex flex-col items-center justify-center h-full text-center">
-            <h2 className="text-xl font-bold text-slate-100">Импорт из речи или текста</h2>
-            <p className="text-slate-400 mt-1 mb-4">Запишите речь или вставьте текст для создания карточек.</p>
+            <h2 className="text-xl font-bold text-slate-100">{t('modals.smartImport.speech.title')}</h2>
+            <p className="text-slate-400 mt-1 mb-4">{t('modals.smartImport.speech.subtitle')}</p>
             
             <div className="flex items-center space-x-2 bg-slate-700/50 rounded-full p-1 mb-4">
                 <button onClick={() => setLang('de')} className={`px-4 py-1 text-sm font-bold rounded-full transition-colors ${lang === 'de' ? 'bg-purple-600 text-white' : 'text-slate-300'}`}>DE</button>
@@ -447,12 +449,12 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
             </div>
 
             <div className="w-full h-40 bg-slate-700/50 rounded-lg p-3 overflow-y-auto text-left text-slate-200 mb-4">
-                {currentTranscript || <span className="text-slate-500">Здесь появится транскрипция...</span>}
+                {currentTranscript || <span className="text-slate-500">{t('modals.smartImport.speech.transcriptPlaceholder')}</span>}
             </div>
-
+    
             <div className="flex items-center justify-center space-x-4">
                 {!isRecording && canPaste && (
-                    <button onClick={handlePasteFromClipboard} className="p-3 rounded-full bg-slate-600 hover:bg-slate-500 transition-colors text-white" aria-label="Вставить из буфера обмена">
+                    <button onClick={handlePasteFromClipboard} className="p-3 rounded-full bg-slate-600 hover:bg-slate-500 transition-colors text-white" aria-label={t('modals.smartImport.speech.aria.paste')}>
                         <ClipboardIcon className="w-6 h-6" />
                     </button>
                 )}
@@ -463,7 +465,7 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
                     <MicrophoneIcon className="w-10 h-10 text-white" />
                 </button>
                 {isStopped && (
-                    <button onClick={handleSpeechTranscript} className="p-3 rounded-full bg-green-600 hover:bg-green-700 transition-colors text-white" aria-label="Обработать">
+                    <button onClick={handleSpeechTranscript} className="p-3 rounded-full bg-green-600 hover:bg-green-700 transition-colors text-white" aria-label={t('modals.smartImport.speech.aria.process')}>
                         <CheckIcon className="w-6 h-6" />
                     </button>
                 )}
@@ -473,27 +475,27 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
   };
 
   const renderAssistantContent = () => (
-    <div className="flex flex-col items-center justify-center h-full text-center">
-        <h2 className="text-xl font-bold text-slate-100">AI Ассистент</h2>
-        <p className="text-slate-400 mt-1 mb-6">Введите тему, и AI сгенерирует для вас набор карточек.</p>
-        
-        <div className="relative w-full max-w-md">
-            <input
-                type="text"
-                value={assistantInput}
-                onChange={e => setAssistantInput(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') handleProcessAssistantRequest(); }}
-                placeholder="Например, 'В аэропорту' или 'Пальцы рук'"
-                className="w-full bg-slate-700 border border-slate-600 rounded-full py-3 pl-5 pr-24 text-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
-            />
-            <div className="absolute inset-y-0 right-0 flex items-center pr-2">
-                <button onClick={handleMicClickAssistant} className="p-2 transition-colors">
-                    <MicrophoneIcon className={`w-6 h-6 ${isListening ? 'text-purple-400' : 'text-slate-400 hover:text-white'}`} />
-                </button>
-                 <button onClick={handleProcessAssistantRequest} className="p-2 bg-purple-600 hover:bg-purple-700 rounded-full text-white" aria-label="Сгенерировать">
-                    <SendIcon className="w-5 h-5" />
-                </button>
-            </div>
+  <div className="flex flex-col items-center justify-center h-full text-center">
+      <h2 className="text-xl font-bold text-slate-100">{t('modals.smartImport.assistant.title')}</h2>
+      <p className="text-slate-400 mt-1 mb-6">{t('modals.smartImport.assistant.subtitle')}</p>
+      
+      <div className="relative w-full max-w-md">
+          <input
+              type="text"
+              value={assistantInput}
+              onChange={e => setAssistantInput(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') handleProcessAssistantRequest(); }}
+              placeholder={t('modals.smartImport.assistant.placeholder')}
+              className="w-full bg-slate-700 border border-slate-600 rounded-full py-3 pl-5 pr-24 text-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
+          />
+          <div className="absolute inset-y-0 right-0 flex items-center pr-2">
+              <button onClick={handleMicClickAssistant} className="p-2 transition-colors" aria-label={t('modals.smartImport.assistant.aria.microphone')}>
+                  <MicrophoneIcon className={`w-6 h-6 ${isListening ? 'text-purple-400' : 'text-slate-400 hover:text-white'}`} />
+              </button>
+               <button onClick={handleProcessAssistantRequest} className="p-2 bg-purple-600 hover:bg-purple-700 rounded-full text-white" aria-label={t('modals.smartImport.assistant.aria.generate')}>
+                  <SendIcon className="w-5 h-5" />
+              </button>
+          </div>
         </div>
     </div>
   );
@@ -514,20 +516,20 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
             <SmartToyIcon className="w-12 h-12 text-purple-400 mb-4" />
             {existingCategory ? (
                 <>
-                    <h2 className="text-xl font-bold text-slate-100">Дополнить категорию?</h2>
-                    <p className="text-slate-400 mt-2 mb-6 max-w-sm">У вас уже есть категория "{existingCategory.name}". Хотите добавить новые карточки по теме "{name}" в нее?</p>
+                    <h2 className="text-xl font-bold text-slate-100">{t('modals.smartImport.suggestion.addToExisting.title')}</h2>
+                    <p className="text-slate-400 mt-2 mb-6 max-w-sm">{t('modals.smartImport.suggestion.addToExisting.body', { category: existingCategory.name, topic: name })}</p>
                     <div className="flex flex-col sm:flex-row gap-3">
                         <button onClick={() => {
-                            if (pendingCards) { processPendingCards({ categoryId: existingCategory.id }); } 
+                            if (pendingCards) { processPendingCards({ categoryId: existingCategory.id }); }
                             else { generateAndPreview({ source: 'topic', categoryOptions: { categoryId: existingCategory.id } }); }
-                        }} className="px-5 py-2.5 rounded-lg bg-purple-600 hover:bg-purple-700 transition-colors text-white font-semibold">Да, добавить в "{existingCategory.name}"</button>
-                        <button onClick={handleAddToGeneral} className="px-5 py-2.5 rounded-lg bg-slate-600 hover:bg-slate-700 transition-colors text-white font-semibold">Нет, добавить в "Общие"</button>
+                        }} className="px-5 py-2.5 rounded-lg bg-purple-600 hover:bg-purple-700 transition-colors text-white font-semibold">{t('modals.smartImport.suggestion.addToExisting.yes', { category: existingCategory.name })}</button>
+                        <button onClick={handleAddToGeneral} className="px-5 py-2.5 rounded-lg bg-slate-600 hover:bg-slate-700 transition-colors text-white font-semibold">{t('modals.smartImport.suggestion.addToExisting.no')}</button>
                     </div>
                 </>
             ) : (
                 <>
-                    <h2 className="text-xl font-bold text-slate-100">Создать новую категорию?</h2>
-                    <p className="text-slate-400 mt-2 mb-4 max-w-sm">AI предлагает создать категорию с названием:</p>
+                    <h2 className="text-xl font-bold text-slate-100">{t('modals.smartImport.suggestion.createNew.title')}</h2>
+                    <p className="text-slate-400 mt-2 mb-4 max-w-sm">{t('modals.smartImport.suggestion.createNew.body')}</p>
                     <input
                         type="text"
                         value={editableCategoryName}
@@ -537,13 +539,13 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
                     <div className="flex flex-col sm:flex-row gap-3">
                         <button onClick={() => {
                             if (editableCategoryName.trim()) {
-                                if (pendingCards) { processPendingCards({ createCategoryName: editableCategoryName.trim() }); } 
+                                if (pendingCards) { processPendingCards({ createCategoryName: editableCategoryName.trim() }); }
                                 else { generateAndPreview({ source: 'topic', categoryOptions: { createCategoryName: editableCategoryName.trim() } }); }
                             }
                         }} className="px-5 py-2.5 rounded-lg bg-purple-600 hover:bg-purple-700 transition-colors text-white font-semibold disabled:opacity-50" disabled={!editableCategoryName.trim()}>
-                            Создать
+                            {t('modals.smartImport.suggestion.createNew.create')}
                         </button>
-                        <button onClick={handleAddToGeneral} className="px-5 py-2.5 rounded-lg bg-slate-600 hover:bg-slate-700 transition-colors text-white font-semibold">Добавить в "Общие"</button>
+                        <button onClick={handleAddToGeneral} className="px-5 py-2.5 rounded-lg bg-slate-600 hover:bg-slate-700 transition-colors text-white font-semibold">{t('modals.smartImport.suggestion.createNew.addToGeneral')}</button>
                     </div>
                 </>
             )}
@@ -556,13 +558,13 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
         <header className="flex-shrink-0 flex items-center justify-between pb-4">
              <div className="flex items-center min-w-0">
                 <button
-                    onClick={() => setView('assistant')}
-                    className="p-2 -ml-2 rounded-full hover:bg-slate-700/80 transition-colors text-slate-300 hover:text-white"
-                    aria-label="Назад"
-                >
-                    <ArrowLeftIcon className="w-6 h-6"/>
-                </button>
-                <h2 className="text-xl font-bold text-slate-100 ml-2 truncate">Предложенные карточки</h2>
+                   onClick={() => setView('assistant')}
+                   className="p-2 -ml-2 rounded-full hover:bg-slate-700/80 transition-colors text-slate-300 hover:text-white"
+                   aria-label={t('modals.smartImport.preview.aria.back')}
+               >
+                   <ArrowLeftIcon className="w-6 h-6"/>
+               </button>
+               <h2 className="text-xl font-bold text-slate-100 ml-2 truncate">{t('modals.smartImport.preview.title')}</h2>
             </div>
             <button onClick={onClose} className="p-2 -mr-2 rounded-full hover:bg-slate-700/80">
               <CloseIcon className="w-6 h-6 text-slate-400"/>
@@ -592,7 +594,7 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
                             value={refineText}
                             onChange={e => setRefineText(e.target.value)}
                             onKeyDown={e => { if (e.key === 'Enter' && !isRefining) { generationSource === 'image' ? handleRefineImage() : handleRefineTopic(); } }}
-                            placeholder="Уточнение, например: только глаголы"
+                            placeholder={t('modals.smartImport.preview.refine.placeholder')}
                             className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 pr-10 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                             autoFocus
                         />
@@ -600,6 +602,7 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
                           type="button"
                           onClick={handleRefineMicClick}
                           className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-white"
+                          aria-label={t('modals.smartImport.preview.refine.aria.microphone')}
                         >
                           <MicrophoneIcon className={`w-5 h-5 ${isRefineListening ? 'text-purple-400' : ''}`} />
                         </button>
@@ -611,20 +614,20 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
             )}
             <div className="flex items-center justify-between">
                 <button onClick={toggleSelectAll} className="px-2 sm:px-4 py-2 text-sm rounded-md text-slate-300 hover:bg-slate-700 transition-colors">
-                    {selectedIndices.size === proposedCards.length ? 'Снять все' : 'Выбрать все'}
+                    {selectedIndices.size === proposedCards.length ? t('modals.smartImport.preview.actions.clearAll') : t('modals.smartImport.preview.actions.selectAll')}
                 </button>
                 <div className="flex items-center space-x-2">
                     {!showRefineInput && generationSource && (
                         <button onClick={() => setShowRefineInput(true)} className="px-3 sm:px-4 py-2 rounded-md bg-slate-600 hover:bg-slate-700 text-white font-semibold transition-colors flex items-center">
                              <PencilIcon className="w-5 h-5 sm:mr-2" />
-                             <span className="hidden sm:inline">Уточнить</span>
+                             <span className="hidden sm:inline">{t('modals.smartImport.preview.actions.refine')}</span>
                         </button>
                     )}
                     <button onClick={handleAddSelected} disabled={selectedIndices.size === 0 || isAdding} className="px-4 sm:px-6 py-2 rounded-md bg-purple-600 hover:bg-purple-700 text-white font-semibold transition-colors disabled:opacity-50 flex items-center justify-center min-w-[120px]">
                         {isAdding ? <Spinner className="w-5 h-5" /> : (
                             <>
                                 <span className="sm:hidden">+</span>
-                                <span className="hidden sm:inline">Добавить</span>
+                                <span className="hidden sm:inline">{t('modals.smartImport.preview.actions.add')}</span>
                                 <span> ({selectedIndices.size})</span>
                             </>
                         )}
@@ -644,13 +647,13 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
             return (
                 <div className="flex flex-col items-center justify-center h-full">
                     <Spinner />
-                    <p className="mt-4 text-slate-300">Анализируем тему...</p>
+                    <p className="mt-4 text-slate-300">{t('modals.smartImport.processing.analyzingTopic')}</p>
                 </div>
             );
         case 'processing':
             return (
                 <div className="flex flex-col items-center justify-center h-full">
-                    <p className="mb-4 text-lg text-slate-300">AI генерирует карточки...</p>
+                    <p className="mb-4 text-lg text-slate-300">{t('modals.smartImport.processing.generatingCards')}</p>
                     <CardListSkeleton />
                 </div>
             );
@@ -671,15 +674,15 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
                  <div className="flex-shrink-0 flex items-center justify-center space-x-2 bg-slate-900/50 rounded-full p-1 self-center mb-6">
                     <button onClick={() => setView('assistant')} className={`p-3 sm:py-2 sm:px-4 text-sm font-bold rounded-full transition-colors flex items-center space-x-2 ${view === 'assistant' ? 'bg-purple-600 text-white' : 'text-slate-300'}`}>
                         <SmartToyIcon className="w-5 h-5" />
-                        <span className="hidden sm:inline">Ассистент</span>
+                        <span className="hidden sm:inline">{t('modals.smartImport.tabs.assistant')}</span>
                     </button>
                     <button onClick={() => setView('speech')} className={`p-3 sm:py-2 sm:px-4 text-sm font-bold rounded-full transition-colors flex items-center space-x-2 ${view === 'speech' ? 'bg-purple-600 text-white' : 'text-slate-300'}`}>
                        <MicrophoneIcon className="w-5 h-5" />
-                       <span className="hidden sm:inline">Из речи</span>
+                       <span className="hidden sm:inline">{t('modals.smartImport.tabs.speech')}</span>
                     </button>
                      <button onClick={() => setView('file')} className={`p-3 sm:py-2 sm:px-4 text-sm font-bold rounded-full transition-colors flex items-center space-x-2 ${view === 'file' ? 'bg-purple-600 text-white' : 'text-slate-300'}`}>
                        <ImageIcon className="w-5 h-5" />
-                       <span className="hidden sm:inline">Из файла</span>
+                       <span className="hidden sm:inline">{t('modals.smartImport.tabs.file')}</span>
                     </button>
                 </div>
             )}

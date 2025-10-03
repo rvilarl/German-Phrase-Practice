@@ -8,6 +8,7 @@ import ArrowLeftIcon from './icons/ArrowLeftIcon';
 import * as cacheService from '../services/cacheService';
 import AddContinuationModal from './AddContinuationModal';
 import PlusIcon from './icons/PlusIcon';
+import { useTranslation } from '../src/hooks/useTranslation';
 
 interface SentenceChainModalProps {
   isOpen: boolean;
@@ -30,6 +31,7 @@ const SkeletonLoader: React.FC = () => {
 
 
 const SentenceChainModal: React.FC<SentenceChainModalProps> = ({ isOpen, onClose, phrase, onGenerateContinuations, onWordClick }) => {
+  const { t } = useTranslation();
   const [history, setHistory] = useState<string[]>([]);
   const [currentGerman, setCurrentGerman] = useState('');
   const [continuations, setContinuations] = useState<string[]>([]);
@@ -157,7 +159,7 @@ const SentenceChainModal: React.FC<SentenceChainModalProps> = ({ isOpen, onClose
             key={index}
             onClick={() => handleBlockClick(index)}
             className={`${index === 0 ? 'bg-slate-600/50 hover:bg-slate-600' : 'bg-purple-600 hover:bg-purple-700'} px-2 py-1 rounded-md text-sm transition-colors group relative`}
-            title="Нажмите, чтобы вернуться к этому этапу"
+            title={t('modals.sentenceChain.tooltips.clickToRevert')}
           >
             {part}
             <span className="absolute -top-1 -right-1.5 h-4 w-4 rounded-full bg-slate-700/80 group-hover:bg-red-500 flex items-center justify-center text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity">
@@ -179,17 +181,17 @@ const SentenceChainModal: React.FC<SentenceChainModalProps> = ({ isOpen, onClose
           <header className="flex items-center justify-between p-4 border-b border-slate-700 flex-shrink-0">
             <div className="flex items-center space-x-3">
                <button
-                  onClick={handleGoBackOneStep}
-                  disabled={history.length === 0 || isLoading}
-                  className="p-2 rounded-full hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed"
-                  aria-label="Вернуться на шаг назад"
-              >
-                  <ArrowLeftIcon className="w-6 h-6 text-slate-400" />
-              </button>
-              <div className="flex items-center space-x-2">
-                   <LinkIcon className="w-6 h-6 text-purple-400"/>
-                  <h2 className="text-lg font-bold text-slate-100">Конструктор фраз</h2>
-              </div>
+                 onClick={handleGoBackOneStep}
+                 disabled={history.length === 0 || isLoading}
+                 className="p-2 rounded-full hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed"
+                 aria-label={t('modals.sentenceChain.aria.goBack')}
+             >
+                 <ArrowLeftIcon className="w-6 h-6 text-slate-400" />
+             </button>
+             <div className="flex items-center space-x-2">
+                  <LinkIcon className="w-6 h-6 text-purple-400"/>
+                 <h2 className="text-lg font-bold text-slate-100">{t('modals.sentenceChain.title')}</h2>
+             </div>
             </div>
             <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-700">
               <CloseIcon className="w-6 h-6 text-slate-400"/>
@@ -217,7 +219,7 @@ const SentenceChainModal: React.FC<SentenceChainModalProps> = ({ isOpen, onClose
               {/* Continuations Area */}
               <div className="flex flex-col justify-center items-center min-h-[120px]">
                 {isLoading && <SkeletonLoader />}
-                {error && <div className="text-center bg-red-900/50 border border-red-700 text-red-300 p-3 rounded-lg"><p className="font-semibold">Ошибка</p><p className="text-sm">{error}</p></div>}
+                {error && <div className="text-center bg-red-900/50 border border-red-700 text-red-300 p-3 rounded-lg"><p className="font-semibold">{t('modals.sentenceChain.errors.generic')}</p><p className="text-sm">{error}</p></div>}
                 {!isLoading && !error && (
                   continuations.length > 0 ? (
                       <div className="flex flex-wrap justify-center gap-2 p-1">
@@ -232,7 +234,7 @@ const SentenceChainModal: React.FC<SentenceChainModalProps> = ({ isOpen, onClose
                           ))}
                       </div>
                   ) : (
-                    <p className="text-center text-slate-400 text-sm p-4">Нет предложений для продолжения. Попробуйте вернуться назад.</p>
+                    <p className="text-center text-slate-400 text-sm p-4">{t('modals.sentenceChain.messages.noContinuations')}</p>
                   )
                 )}
               </div>
@@ -240,7 +242,7 @@ const SentenceChainModal: React.FC<SentenceChainModalProps> = ({ isOpen, onClose
           <button
             onClick={() => setIsAddModalOpen(true)}
             className="absolute bottom-6 right-6 bg-purple-600 hover:bg-purple-700 text-white rounded-full p-4 shadow-lg transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-slate-800 z-10"
-            aria-label="Добавить свой вариант"
+            aria-label={t('modals.sentenceChain.actions.addCustom')}
           >
             <PlusIcon className="w-6 h-6" />
           </button>

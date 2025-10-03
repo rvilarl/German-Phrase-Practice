@@ -88,10 +88,10 @@ const NounDeclensionModal: React.FC<NounDeclensionModalProps> = ({ isOpen, onClo
 
     const cases: CaseKey[] = ['nominativ', 'akkusativ', 'dativ', 'genitiv'];
     const caseInfo: { [key in CaseKey]: { name: string; question: string } } = {
-        nominativ: { name: 'Nominativ', question: '(кто? что?)' },
-        akkusativ: { name: 'Akkusativ', question: '(кого? что?)' },
-        dativ: { name: 'Dativ', question: '(кому? чему?)' },
-        genitiv: { name: 'Genitiv', question: '(кого? чего?)' },
+        nominativ: { name: t('modals.nounDeclension.cases.nominativ.name'), question: t('modals.nounDeclension.cases.nominativ.question') },
+        akkusativ: { name: t('modals.nounDeclension.cases.akkusativ.name'), question: t('modals.nounDeclension.cases.akkusativ.question') },
+        dativ: { name: t('modals.nounDeclension.cases.dativ.name'), question: t('modals.nounDeclension.cases.dativ.question') },
+        genitiv: { name: t('modals.nounDeclension.cases.genitiv.name'), question: t('modals.nounDeclension.cases.genitiv.question') },
     };
     
     const renderCellContent = (text: string) => (
