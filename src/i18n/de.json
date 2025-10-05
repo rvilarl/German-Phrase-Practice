@@ -202,7 +202,12 @@
   "categories": {
     "detail": {
       "actions": {
-        "addMore": "Mehr hinzufügen"
+        "addMore": "Mehr hinzufügen",
+        "addPhrase": "Phrase hinzufügen",
+        "aiAssistant": "KI-Assistent"
+      },
+      "empty": {
+        "title": "Noch keine Phrasen"
       }
     },
     "manager": {
@@ -915,24 +920,24 @@
     }
   },
   "phraseList": {
-  "search": {
-    "listening": "Höre auf Suchanfrage...",
-    "placeholder": "Phrasen suchen..."
-  },
-  "sections": {
-    "new": "Neu",
-    "inProgress": "In Bearbeitung",
-    "mastered": "Gemeistert"
-  },
-  "filters": {
-    "all": "Alle"
-  },
-  "summary": {
-    "count": "{{count}} Karten"
-  },
-  "actions": {
-    "duplicates": "Duplikate",
-    "aiImport": "KI-Import"
+    "search": {
+      "listening": "Höre auf Suchanfrage...",
+      "placeholder": "Phrasen suchen..."
+    },
+    "sections": {
+      "new": "Neu",
+      "inProgress": "In Bearbeitung",
+      "mastered": "Gemeistert"
+    },
+    "filters": {
+      "all": "Alle"
+    },
+    "summary": {
+      "count": "{{count}} Karten"
+    },
+    "actions": {
+      "duplicates": "Duplikate",
+      "aiImport": "KI-Import"
+    }
   }
-}
 }

@@ -202,7 +202,12 @@
   "categories": {
     "detail": {
       "actions": {
-        "addMore": "Add More"
+        "addMore": "Add More",
+        "addPhrase": "Add Phrase",
+        "aiAssistant": "AI Assistant"
+      },
+      "empty": {
+        "title": "No phrases yet"
       }
     },
     "manager": {

@@ -202,7 +202,12 @@
   "categories": {
     "detail": {
       "actions": {
-        "addMore": "Agregar más"
+        "addMore": "Agregar más",
+        "addPhrase": "Agregar frase",
+        "aiAssistant": "Asistente IA"
+      },
+      "empty": {
+        "title": "Aún no hay frases"
       }
     },
     "manager": {

@@ -210,7 +210,12 @@
   "categories": {
     "detail": {
       "actions": {
-        "addMore": "Добавить ещё"
+        "addMore": "Добавить ещё",
+        "addPhrase": "Добавить фразу",
+        "aiAssistant": "ИИ-Ассистент"
+      },
+      "empty": {
+        "title": "Пока нет фраз"
       }
     },
     "manager": {
@@ -944,24 +949,24 @@
     }
   },
   "phraseList": {
-  "search": {
-    "listening": "Прослушивание поискового запроса...",
-    "placeholder": "Поиск фраз..."
-  },
-  "sections": {
-    "new": "Новые",
-    "inProgress": "В процессе",
-    "mastered": "Выученные"
-  },
-  "filters": {
-    "all": "Все"
-  },
-  "summary": {
-    "count": "{{count}} карточек"
-  },
-  "actions": {
-    "duplicates": "Дубликаты",
-    "aiImport": "Импорт ИИ"
+    "search": {
+      "listening": "Прослушивание поискового запроса...",
+      "placeholder": "Поиск фраз..."
+    },
+    "sections": {
+      "new": "Новые",
+      "inProgress": "В процессе",
+      "mastered": "Выученные"
+    },
+    "filters": {
+      "all": "Все"
+    },
+    "summary": {
+      "count": "{{count}} карточек"
+    },
+    "actions": {
+      "duplicates": "Дубликаты",
+      "aiImport": "Импорт ИИ"
+    }
   }
-}
 }
