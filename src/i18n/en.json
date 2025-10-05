@@ -237,6 +237,12 @@
         "create": "Create",
         "save": "Save changes"
       }
+    },
+    "filterMenu": {
+      "actions": {
+        "settings": "Settings",
+        "aiAssistant": "AI Assistant"
+      }
     }
   },
   "practice": {

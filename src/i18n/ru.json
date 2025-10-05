@@ -245,6 +245,12 @@
         "create": "Создать",
         "save": "Сохранить изменения"
       }
+    },
+    "filterMenu": {
+      "actions": {
+        "settings": "Настройки",
+        "aiAssistant": "ИИ-Ассистент"
+      }
     }
   },
   "practice": {

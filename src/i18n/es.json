@@ -237,6 +237,12 @@
         "create": "Crear",
         "save": "Guardar cambios"
       }
+    },
+    "filterMenu": {
+      "actions": {
+        "settings": "Einstellungen",
+        "aiAssistant": "KI-Assistent"
+      }
     }
   },
   "practice": {
