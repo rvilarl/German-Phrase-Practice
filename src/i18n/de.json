@@ -303,41 +303,41 @@
   },
   "modals": {
     "nounDeclension": {
-      "title": "Declension: {{noun}}",
+      "title": "Deklination: {{noun}}",
       "errors": {
-        "generic": "Error",
-        "noData": "No data."
+        "generic": "Fehler",
+        "noData": "Keine Daten."
       },
       "headers": {
-        "case": "Case",
+        "case": "Fall",
         "singular": "Singular",
         "plural": "Plural"
       },
       "cases": {
         "nominativ": {
-          "name": "Nominative",
-          "question": "(who? what?)"
+          "name": "Nominativ",
+          "question": "(wer? was?)"
         },
         "akkusativ": {
-          "name": "Accusative",
-          "question": "(whom? what?)"
+          "name": "Akkusativ",
+          "question": "(wen? was?)"
         },
         "dativ": {
-          "name": "Dative",
-          "question": "(to whom? to what?)"
+          "name": "Dativ",
+          "question": "(wem? was?)"
         },
         "genitiv": {
-          "name": "Genitive",
-          "question": "(whose? of what?)"
+          "name": "Genitiv",
+          "question": "(wessen? wovon?)"
         }
       }
     },
     "pronouns": {
-      "title": "Personal pronouns",
+      "title": "Persönliche Pronomen",
       "headers": {
-        "speak": "Speak",
-        "german": "German",
-        "russian": "Russian"
+        "speak": "Sprechen",
+        "german": "Deutsch",
+        "russian": "Russisch"
       },
       "pronouns": [
         {
@@ -367,113 +367,113 @@
       ]
     },
     "sentenceChain": {
-      "title": "Phrase builder",
+      "title": "Satzbaukasten",
       "aria": {
-        "goBack": "Go back one step"
+        "goBack": "Einen Schritt zurückgehen"
       },
       "tooltips": {
-        "clickToRevert": "Click to revert to this stage"
+        "clickToRevert": "Klicken, um zu diesem Stadium zurückzukehren"
       },
       "errors": {
-        "generic": "Error"
+        "generic": "Fehler"
       },
       "messages": {
-        "noContinuations": "No suggestions for continuation. Try going back."
+        "noContinuations": "Keine Vorschläge für Fortsetzung. Versuche, zurückzugehen."
       },
       "actions": {
-        "addCustom": "Add your own option"
+        "addCustom": "Eigene Option hinzufügen"
       }
     },
     "smartImport": {
       "tabs": {
-        "assistant": "Assistant",
-        "speech": "From speech",
-        "file": "From file"
+        "assistant": "Assistent",
+        "speech": "Aus Sprache",
+        "file": "Aus Datei"
       },
       "assistant": {
-        "title": "AI Assistant",
-        "subtitle": "Enter a topic, and AI will generate a set of cards for you.",
-        "placeholder": "E.g., 'At the airport' or 'Hand fingers'",
+        "title": "KI-Assistent",
+        "subtitle": "Gib ein Thema ein, und KI wird einen Satz Karten für dich generieren.",
+        "placeholder": "Z.B. 'Am Flughafen' oder 'Hand Finger'",
         "aria": {
-          "microphone": "Voice input",
-          "generate": "Generate"
+          "microphone": "Spracheingabe",
+          "generate": "Generieren"
         }
       },
       "speech": {
-        "title": "Import from speech or text",
-        "subtitle": "Record speech or paste text to create cards.",
-        "transcriptPlaceholder": "Transcript will appear here...",
+        "title": "Import aus Sprache oder Text",
+        "subtitle": "Nimm Sprache auf oder füge Text ein, um Karten zu erstellen.",
+        "transcriptPlaceholder": "Transkript erscheint hier...",
         "aria": {
-          "paste": "Paste from clipboard",
-          "process": "Process"
+          "paste": "Aus Zwischenablage einfügen",
+          "process": "Verarbeiten"
         },
         "errors": {
-          "pasteFailed": "Failed to paste text from clipboard. You may not have granted permission."
+          "pasteFailed": "Text aus Zwischenablage konnte nicht eingefügt werden. Möglicherweise hast du keine Berechtigung erteilt."
         }
       },
       "file": {
-        "title": "Import from file"
+        "title": "Import aus Datei"
       },
       "processing": {
-        "generatingCards": "AI is generating cards...",
-        "analyzingTopic": "Analyzing topic..."
+        "generatingCards": "KI generiert Karten...",
+        "analyzingTopic": "Thema wird analysiert..."
       },
       "suggestion": {
         "addToExisting": {
-          "title": "Add to existing category?",
-          "body": "You already have a category \"{{category}}\". Do you want to add new cards on topic \"{{topic}}\" to it?",
-          "yes": "Yes, add to \"{{category}}\"",
-          "no": "No, add to \"General\""
+          "title": "Zu bestehender Kategorie hinzufügen?",
+          "body": "Du hast bereits eine Kategorie \"{{category}}\". Möchtest du neue Karten zum Thema \"{{topic}}\" hinzufügen?",
+          "yes": "Ja, zu \"{{category}}\" hinzufügen",
+          "no": "Nein, zu \"Allgemein\" hinzufügen"
         },
         "createNew": {
-          "title": "Create new category?",
-          "body": "AI suggests creating a category with the name:",
-          "create": "Create",
-          "addToGeneral": "Add to \"General\""
+          "title": "Neue Kategorie erstellen?",
+          "body": "KI schlägt vor, eine Kategorie mit dem Namen zu erstellen:",
+          "create": "Erstellen",
+          "addToGeneral": "Zu \"Allgemein\" hinzufügen"
         }
       },
       "preview": {
-        "title": "Suggested cards",
+        "title": "Vorgeschlagene Karten",
         "aria": {
-          "back": "Back"
+          "back": "Zurück"
         },
         "actions": {
-          "selectAll": "Select all",
-          "clearAll": "Clear all",
-          "refine": "Refine",
-          "add": "Add",
-          "addWithCount": "Add ({{count}})"
+          "selectAll": "Alle auswählen",
+          "clearAll": "Alle löschen",
+          "refine": "Verfeinern",
+          "add": "Hinzufügen",
+          "addWithCount": "Hinzufügen ({{count}})"
         },
         "refine": {
-          "placeholder": "Refinement, e.g., only verbs",
+          "placeholder": "Verfeinerung, z.B. nur Verben",
           "aria": {
-            "microphone": "Voice input"
+            "microphone": "Spracheingabe"
           }
         }
       },
       "categoryNames": {
-        "fromSpeech": "Cards from speech",
-        "general": "General"
+        "fromSpeech": "Karten aus Sprache",
+        "general": "Allgemein"
       }
     },
     "addContinuation": {
       "placeholders": {
-        "text": "Type the continuation..."
+        "text": "Fortsetzung eingeben..."
       },
       "aria": {
-        "microphone": "Voice input",
-        "send": "Send continuation",
-        "switchToText": "Switch to text input",
-        "switchToVoice": "Switch to voice input"
+        "microphone": "Spracheingabe",
+        "send": "Fortsetzung senden",
+        "switchToText": "Zu Texteingabe wechseln",
+        "switchToVoice": "Zu Spracheingabe wechseln"
       }
     },
     "addPhrase": {
-      "loading": "Creating card...",
-      "title": "Create a new phrase",
+      "loading": "Karte wird erstellt...",
+      "title": "Neue Phrase erstellen",
       "body": {
         "instructions": {
-          "voice": "Speak the phrase in {{language}}",
-          "text": "Enter the phrase in {{language}}"
+          "voice": "Sprich die Phrase auf {{language}}",
+          "text": "Gib die Phrase auf {{language}} ein"
         }
       },
       "placeholders": {
@@ -481,369 +481,369 @@
         "de": "e.g., \"Wie viel kostet das?\""
       },
       "aria": {
-        "microphone": "Voice input",
+        "microphone": "Spracheingabe",
         "textField": {
-          "ru": "Russian phrase",
-          "de": "German phrase"
+          "ru": "Russische Phrase",
+          "de": "Deutsche Phrase"
         },
-        "send": "Create phrase",
-        "toggleToText": "Switch to text input",
-        "toggleToVoice": "Switch to voice input",
-        "close": "Close"
+        "send": "Phrase erstellen",
+        "toggleToText": "Zu Texteingabe wechseln",
+        "toggleToVoice": "Zu Spracheingabe wechseln",
+        "close": "Schließen"
       },
       "status": {
-        "listening": "Listening..."
+        "listening": "Höre zu..."
       },
       "errors": {
-        "generic": "Could not create the phrase.",
-        "network": "Network error. Check your connection or type the text manually.",
-        "permission": "Microphone access is not allowed. Check settings or type the text manually.",
-        "recognition": "Speech recognition failed."
+        "generic": "Phrase konnte nicht erstellt werden.",
+        "network": "Netzwerkfehler. Überprüfe deine Verbindung oder gib den Text manuell ein.",
+        "permission": "Mikrofonzugriff ist nicht erlaubt. Überprüfe Einstellungen oder gib den Text manuell ein.",
+        "recognition": "Spracherkennung fehlgeschlagen."
       },
-      "errorLabel": "Error",
+      "errorLabel": "Fehler",
       "actions": {
-        "create": "Create"
+        "create": "Erstellen"
       }
     },
     "adjectiveDeclension": {
-      "title": "Adjective: {{adjective}}",
-      "phraseNative": "Declension: {{adjective}}",
+      "title": "Adjektiv: {{adjective}}",
+      "phraseNative": "Deklination: {{adjective}}",
       "labels": {
-        "case": "Case",
-        "masculine": "Masculine",
-        "feminine": "Feminine",
-        "neuter": "Neuter",
+        "case": "Fall",
+        "masculine": "Maskulin",
+        "feminine": "Feminin",
+        "neuter": "Neutrum",
         "plural": "Plural",
-        "weak": "Weak declension (with definite article)",
-        "mixed": "Mixed declension (with indefinite article)",
-        "strong": "Strong declension (without article)",
-        "degrees": "Degrees of comparison",
-        "positive": "Positive",
-        "comparative": "Comparative",
-        "superlative": "Superlative"
+        "weak": "Schwache Deklination (mit bestimmtem Artikel)",
+        "mixed": "Gemischte Deklination (mit unbestimmtem Artikel)",
+        "strong": "Starke Deklination (ohne Artikel)",
+        "degrees": "Steigerungsstufen",
+        "positive": "Positiv",
+        "comparative": "Komparativ",
+        "superlative": "Superlativ"
       },
       "sections": {
-        "grammar": "Grammar reference",
-        "example": "Usage example"
+        "grammar": "Grammatikreferenz",
+        "example": "Verwendungsbeispiel"
       },
       "states": {
-        "errorTitle": "Error",
-        "empty": "No data.",
-        "errorMessage": "Failed to load declension data."
+        "errorTitle": "Fehler",
+        "empty": "Keine Daten.",
+        "errorMessage": "Deklinationsdaten konnten nicht geladen werden."
       },
       "cases": {
-        "nominativ": "Nominative",
-        "akkusativ": "Accusative",
-        "dativ": "Dative",
-        "genitiv": "Genitive"
+        "nominativ": "Nominativ",
+        "akkusativ": "Akkusativ",
+        "dativ": "Dativ",
+        "genitiv": "Genitiv"
       }
     },
     "autoFillLoading": {
-      "title": "Generating cards...",
-      "body": "Please wait. AI is selecting phrases for the \"{{category}}\" category."
+      "title": "Karten werden generiert...",
+      "body": "Bitte warten. KI wählt Phrasen für die Kategorie \"{{category}}\" aus."
     },
     "autoFillPreview": {
-      "title": "Suggestions for \"{{category}}\"",
-      "tooltip": "Suggestions for \"{{category}}\"",
-      "empty": "AI didn't suggest any cards. Try refining your request.",
+      "title": "Vorschläge für \"{{category}}\"",
+      "tooltip": "Vorschläge für \"{{category}}\"",
+      "empty": "KI hat keine Karten vorgeschlagen. Versuche, deine Anfrage zu verfeinern.",
       "refine": {
-        "placeholder": "E.g. only titles, no phrases",
-        "toggle": "Refine"
+        "placeholder": "Z.B. nur Titel, keine Phrasen",
+        "toggle": "Verfeinern"
       },
       "actions": {
-        "refine": "Refine",
-        "confirm": "Add",
+        "refine": "Verfeinern",
+        "confirm": "Hinzufügen",
         "confirmShort": "+",
-        "confirmWithCount": "Add ({{count}})"
+        "confirmWithCount": "Hinzufügen ({{count}})"
       },
       "selection": {
-        "select": "Select all",
-        "clear": "Clear all"
+        "select": "Alle auswählen",
+        "clear": "Alle löschen"
       },
       "status": {
-        "listening": "Listening..."
+        "listening": "Höre zu..."
       }
     },
     "chat": {
       "placeholders": {
-        "listening": "Listening...",
-        "ask": "Ask something..."
+        "listening": "Höre zu...",
+        "ask": "Etwas fragen..."
       },
       "aria": {
-        "stopListening": "Stop listening",
-        "startListening": "Start listening"
+        "stopListening": "Aufhören zu hören",
+        "startListening": "Beginnen zu hören"
       },
       "errors": {
-        "generic": "An error occurred: {{message}}"
+        "generic": "Ein Fehler ist aufgetreten: {{message}}"
       }
     },
     "confirmCategoryFill": {
-      "title": "Fill category?",
-      "body": "Do you want to immediately fill the category \"{{category}}\" with AI?",
+      "title": "Kategorie füllen?",
+      "body": "Möchtest du die Kategorie \"{{category}}\" sofort mit KI füllen?",
       "actions": {
-        "cancel": "Later",
-        "confirm": "Yes, fill"
+        "cancel": "Später",
+        "confirm": "Ja, füllen"
       }
     },
     "confirmDeleteCategory": {
-      "title": "Delete category?",
-      "body": "You are about to delete the category:",
-      "phraseCount": "This category contains {{count}} {{cards}}. What to do with them?",
+      "title": "Kategorie löschen?",
+      "body": "Du bist dabei, die Kategorie zu löschen:",
+      "phraseCount": "Diese Kategorie enthält {{count}} {{cards}}. Was soll mit ihnen geschehen?",
       "cards": {
-        "one": "card",
-        "few": "cards",
-        "many": "cards",
-        "other": "cards"
+        "one": "Karte",
+        "few": "Karten",
+        "many": "Karten",
+        "other": "Karten"
       },
       "actions": {
-        "move": "Move to",
-        "delete": "Delete all cards",
-        "cancel": "Cancel",
-        "confirm": "Delete"
+        "move": "Verschieben nach",
+        "delete": "Alle Karten löschen",
+        "cancel": "Abbrechen",
+        "confirm": "Löschen"
       }
     },
     "confirmDelete": {
-      "title": "Confirm deletion",
-      "body": "Are you sure you want to permanently delete this phrase?",
-      "mastery": "Mastery level:",
+      "title": "Löschung bestätigen",
+      "body": "Bist du sicher, dass du diese Phrase dauerhaft löschen möchtest?",
+      "mastery": "Beherrschungsgrad:",
       "actions": {
-        "cancel": "Cancel",
-        "confirm": "Delete"
+        "cancel": "Abbrechen",
+        "confirm": "Löschen"
       }
     },
     "confirmDeletePhrases": {
-      "title": "Confirm action",
-      "body": "AI assistant suggests deleting or moving the following {{count}} {{cards}}. What to do with them?",
+      "title": "Aktion bestätigen",
+      "body": "KI-Assistent schlägt vor, die folgenden {{count}} {{cards}} zu löschen oder zu verschieben. Was soll mit ihnen geschehen?",
       "cards": {
-        "one": "card",
-        "few": "cards",
-        "many": "cards",
-        "other": "cards"
+        "one": "Karte",
+        "few": "Karten",
+        "many": "Karten",
+        "other": "Karten"
       },
       "actions": {
-        "selectAll": "Select all",
-        "deselectAll": "Deselect all",
-        "delete": "Delete ({{count}})",
-        "move": "Move ({{count}})"
+        "selectAll": "Alle auswählen",
+        "deselectAll": "Alle abwählen",
+        "delete": "Löschen ({{count}})",
+        "move": "Verschieben ({{count}})"
       }
     },
     "deepDive": {
       "stages": {
-        "deconstruction": "Stage 1: Deconstruction",
-        "personalization": "Stage 2: Personalization",
-        "encoding": "Stage 3: Encoding"
+        "deconstruction": "Stufe 1: Dekonstruktion",
+        "personalization": "Stufe 2: Personalisierung",
+        "encoding": "Stufe 3: Kodierung"
       },
       "errors": {
-        "analysis": "Analysis error",
-        "noData": "No data for analysis."
+        "analysis": "Analysefehler",
+        "noData": "Keine Daten für Analyse."
       }
     },
     "discussTranslation": {
-      "title": "Discuss translation",
-      "suggestion": "AI suggestion:",
-      "accept": "Accept this option",
-      "placeholder": "Your comment...",
+      "title": "Übersetzung diskutieren",
+      "suggestion": "KI-Vorschlag:",
+      "accept": "Diese Option akzeptieren",
+      "placeholder": "Dein Kommentar...",
       "errors": {
-        "generic": "An error occurred: {{message}}"
+        "generic": "Ein Fehler ist aufgetreten: {{message}}"
       }
     },
     "editPhrase": {
-      "title": "Edit phrase",
+      "title": "Phrase bearbeiten",
       "fields": {
-        "russian": "Russian",
-        "german": "German",
-        "category": "Category"
+        "russian": "Russisch",
+        "german": "Deutsch",
+        "category": "Kategorie"
       },
       "errors": {
-        "translation": "Failed to get translation."
+        "translation": "Übersetzung konnte nicht abgerufen werden."
       },
       "actions": {
-        "discuss": "Discuss translation",
-        "save": "Save"
+        "discuss": "Übersetzung diskutieren",
+        "save": "Speichern"
       }
     },
     "findDuplicates": {
-      "title": "Find duplicates",
-      "processing": "Searching...",
-      "found": "Found {{count}} duplicate groups.",
-      "description": "The phrase with the least progress in each group will be deleted.",
+      "title": "Duplikate finden",
+      "processing": "Suche läuft...",
+      "found": "{{count}} Duplikatgruppen gefunden.",
+      "description": "Die Phrase mit dem geringsten Fortschritt in jeder Gruppe wird gelöscht.",
       "actions": {
-        "cancel": "Cancel",
-        "clean": "Clean",
-        "close": "Close"
+        "cancel": "Abbrechen",
+        "clean": "Bereinigen",
+        "close": "Schließen"
       },
-      "noDuplicates": "No duplicates found.",
+      "noDuplicates": "Keine Duplikate gefunden.",
       "errors": {
-        "search": "Error searching for duplicates: {{message}}"
+        "search": "Fehler beim Suchen nach Duplikaten: {{message}}"
       }
     },
     "improvePhrase": {
       "actions": {
-        "suggest": "Suggest correct option",
-        "discuss": "Discuss with AI"
+        "suggest": "Korrekte Option vorschlagen",
+        "discuss": "Mit KI diskutieren"
       },
-      "reasoning": "Reasoning:",
-      "improve": "Improve",
+      "reasoning": "Begründung:",
+      "improve": "Verbessern",
       "errors": {
-        "generic": "Failed to get improvement."
+        "generic": "Verbesserung konnte nicht abgerufen werden."
       }
     },
     "learningAssistant": {
-      "success": "Correct!",
-      "placeholder": "Your answer...",
+      "success": "Richtig!",
+      "placeholder": "Deine Antwort...",
       "errors": {
-        "generic": "An error occurred: {{message}}"
+        "generic": "Ein Fehler ist aufgetreten: {{message}}"
       }
     },
     "moveOrSkip": {
-      "title": "Duplicates found",
-      "body": "Found {{count}} {{cards}} that already exist in other categories.{{newCards}}",
-      "newCards": " Also {{count}} new will be added.",
-      "question": "What do you want to do?",
+      "title": "Duplikate gefunden",
+      "body": "{{count}} {{cards}} gefunden, die bereits in anderen Kategorien existieren.{{newCards}}",
+      "newCards": " Außerdem werden {{count}} neue hinzugefügt.",
+      "question": "Was möchtest du tun?",
       "actions": {
-        "move": "Move {{count}} to \"{{category}}\"",
-        "addOnlyNew": "Add only {{count}} new",
-        "cancel": "Cancel"
+        "move": "{{count}} zu \"{{category}}\" verschieben",
+        "addOnlyNew": "Nur {{count}} neue hinzufügen",
+        "cancel": "Abbrechen"
       },
       "cards": {
-        "one": "card",
-        "few": "cards",
-        "many": "cards",
-        "other": "cards"
+        "one": "Karte",
+        "few": "Karten",
+        "many": "Karten",
+        "other": "Karten"
       }
     },
     "movieExamples": {
-      "title": "Movie examples",
+      "title": "Filmbeispiele",
       "errors": {
-        "generic": "Error"
+        "generic": "Fehler"
       },
-      "noExamples": "Could not find movie examples for this phrase."
+      "noExamples": "Filmbeispiele für diese Phrase konnten nicht gefunden werden."
     },
     "phraseBuilder": {
-      "loading": "Selecting words...",
+      "loading": "Wörter werden ausgewählt...",
       "errors": {
-        "generic": "Error",
-        "check": "An error occurred while checking."
+        "generic": "Fehler",
+        "check": "Beim Überprüfen ist ein Fehler aufgetreten."
       },
-      "instructions": "Click on the words below to build the phrase",
+      "instructions": "Klicke auf die Wörter unten, um die Phrase zu bilden",
       "aria": {
-        "clear": "Clear"
+        "clear": "Löschen"
       },
       "actions": {
-        "check": "Check",
-        "close": "Close",
-        "continue": "Continue"
+        "check": "Überprüfen",
+        "close": "Schließen",
+        "continue": "Weiter"
       }
     },
     "phrasePreview": {
       "actions": {
-        "learn": "Learn this phrase"
+        "learn": "Diese Phrase lernen"
       }
     },
     "practiceResult": {
-      "correct": "Excellent!",
-      "incorrect": "Incorrect",
-      "correctAnswer": "Correct answer:",
+      "correct": "Ausgezeichnet!",
+      "incorrect": "Falsch",
+      "correctAnswer": "Korrekte Antwort:",
       "actions": {
-        "continue": "Continue"
+        "continue": "Weiter"
       }
     },
     "fileImport": {
       "cropper": {
-        "cancel": "Cancel",
-        "confirm": "Confirm"
+        "cancel": "Abbrechen",
+        "confirm": "Bestätigen"
       },
       "errors": {
-        "unsupportedType": "Unsupported file type. Please select an image.",
-        "tooLarge": "File is too large. Maximum size is 10MB.",
-        "cropFirst": "Please upload and crop an image first."
+        "unsupportedType": "Nicht unterstützter Dateityp. Bitte wähle ein Bild aus.",
+        "tooLarge": "Datei ist zu groß. Maximale Größe ist 10MB.",
+        "cropFirst": "Bitte lade zuerst ein Bild hoch und schneide es zu."
       },
-      "instructions": "Upload an image. AI will recognize text or describe objects in the photo, turning them into cards.",
+      "instructions": "Lade ein Bild hoch. KI wird Text erkennen oder Objekte im Foto beschreiben und daraus Karten erstellen.",
       "dropzone": {
-        "text": "Drag and drop or select a file",
-        "subtext": "Image (max. 10MB)"
+        "text": "Ziehen und ablegen oder Datei auswählen",
+        "subtext": "Bild (max. 10MB)"
       },
       "camera": {
-        "button": "Take a photo",
-        "subtext": "Use your camera"
+        "button": "Foto aufnehmen",
+        "subtext": "Kamera verwenden"
       },
       "preview": {
-        "alt": "Cropped image preview"
+        "alt": "Vorschau des zugeschnittenen Bildes"
       },
       "refinement": {
-        "placeholder": "Add a refinement (optional)...",
-        "aria": "Voice input for refinement"
+        "placeholder": "Verfeinerung hinzufügen (optional)...",
+        "aria": "Spracheingabe für Verfeinerung"
       },
-      "submit": "Create cards"
+      "submit": "Karten erstellen"
     },
     "voiceWorkspace": {
-      "instructions": "Speak the phrase or drag words here",
-      "loading": "Selecting words...",
+      "instructions": "Sprich die Phrase oder ziehe Wörter hierher",
+      "loading": "Wörter werden ausgewählt...",
       "actions": {
-        "check": "Check",
-        "learnWithAI": "Learn with AI",
-        "showAnswer": "Show answer",
-        "clear": "Clear",
-        "close": "Close",
-        "continue": "Continue",
-        "nextPhrase": "Next phrase"
+        "check": "Überprüfen",
+        "learnWithAI": "Mit KI lernen",
+        "showAnswer": "Antwort zeigen",
+        "clear": "Löschen",
+        "close": "Schließen",
+        "continue": "Weiter",
+        "nextPhrase": "Nächste Phrase"
       },
       "feedback": {
-        "correct": "Excellent! That's correct.",
-        "incorrect": "Unfortunately, that's incorrect. Try again.",
-        "revealAnswer": "Here's the correct answer. Try again next time!"
+        "correct": "Ausgezeichnet! Das ist richtig.",
+        "incorrect": "Leider ist das falsch. Versuche es nochmal.",
+        "revealAnswer": "Hier ist die korrekte Antwort. Versuche es beim nächsten Mal!"
       },
       "errors": {
-        "check": "An error occurred while checking.",
-        "speech": "Speech recognition error occurred.",
-        "speechNetwork": "Network error during speech recognition.",
-        "microphoneDenied": "Microphone access is not allowed.",
-        "unexpected": "An unexpected error occurred.",
-        "serviceUnavailable": "Service temporarily unavailable (error 500).",
-        "apiKey": "API key configuration error.",
-        "requestFailed": "Failed to execute request.",
-        "loadWords": "Failed to load word options."
+        "check": "Beim Überprüfen ist ein Fehler aufgetreten.",
+        "speech": "Spracherkennungsfehler aufgetreten.",
+        "speechNetwork": "Netzwerkfehler während der Spracherkennung.",
+        "microphoneDenied": "Mikrofonzugriff ist nicht erlaubt.",
+        "unexpected": "Ein unerwarteter Fehler ist aufgetreten.",
+        "serviceUnavailable": "Dienst vorübergehend nicht verfügbar (Fehler 500).",
+        "apiKey": "API-Schlüssel-Konfigurationsfehler.",
+        "requestFailed": "Anfrageausführung fehlgeschlagen.",
+        "loadWords": "Wortoptionen konnten nicht geladen werden."
       },
       "automation": {
-        "nextPhrase": "Next phrase"
+        "nextPhrase": "Nächste Phrase"
       }
     },
     "verbConjugation": {
-      "title": "Conjugation: {{infinitive}}",
-      "proxyTitle": "Conjugation: {{infinitive}}",
+      "title": "Konjugation: {{infinitive}}",
+      "proxyTitle": "Konjugation: {{infinitive}}",
       "errors": {
-        "simple": "Failed to load simple conjugation.",
-        "detailed": "Failed to load detailed conjugation."
+        "simple": "Einfache Konjugation konnte nicht geladen werden.",
+        "detailed": "Detaillierte Konjugation konnte nicht geladen werden."
       },
       "simple": {
-        "heading": "Präsens (present tense)",
-        "button": "See detailed forms"
+        "heading": "Präsens (Gegenwart)",
+        "button": "Detaillierte Formen anzeigen"
       },
       "tense": {
-        "present": "Präsens (present tense)",
-        "past": "Perfekt (past tense)",
-        "future": "Futur I (future tense)"
+        "present": "Präsens (Gegenwart)",
+        "past": "Perfekt (Vergangenheit)",
+        "future": "Futur I (Zukunft)"
       },
       "forms": {
-        "statement": "Statement",
-        "question": "Question",
-        "negative": "Negative"
+        "statement": "Aussage",
+        "question": "Frage",
+        "negative": "Negation"
       }
     },
     "voicePractice": {
-      "prompt": "Speak this phrase:",
-      "listening": "Listening...",
+      "prompt": "Sprich diese Phrase:",
+      "listening": "Höre zu...",
       "aria": {
-        "microphone": "Start voice input",
-        "close": "Close"
+        "microphone": "Spracheingabe starten",
+        "close": "Schließen"
       }
     },
     "wFragen": {
-      "title": "Question words",
+      "title": "Fragewörter",
       "columns": {
-        "play": "Play",
-        "german": "German",
-        "translation": "Translation"
+        "play": "Abspielen",
+        "german": "Deutsch",
+        "translation": "Übersetzung"
       },
       "items": [
         {
@@ -881,30 +881,30 @@
       ]
     },
     "wordAnalysis": {
-      "title": "Word analysis: {{word}}",
+      "title": "Wortanalyse: {{word}}",
       "errors": {
-        "generic": "Failed to load analysis.",
-        "unknown": "No analysis available."
+        "generic": "Analyse konnte nicht geladen werden.",
+        "unknown": "Keine Analyse verfügbar."
       },
       "labels": {
-        "partOfSpeech": "Part of speech",
-        "grammarReference": "Grammar reference",
-        "baseForm": "Base form",
-        "nativeTranslation": "Translation",
-        "article": "Article",
+        "partOfSpeech": "Wortart",
+        "grammarReference": "Grammatikreferenz",
+        "baseForm": "Grundform",
+        "nativeTranslation": "Übersetzung",
+        "article": "Artikel",
         "plural": "Plural",
-        "infinitive": "Infinitive",
-        "tense": "Tense",
-        "person": "Person and number",
-        "example": "Example usage",
-        "exampleTranslation": "Translation:",
-        "cardCreated": "Card created!"
+        "infinitive": "Infinitiv",
+        "tense": "Zeitform",
+        "person": "Person und Zahl",
+        "example": "Verwendungsbeispiel",
+        "exampleTranslation": "Übersetzung:",
+        "cardCreated": "Karte erstellt!"
       },
       "actions": {
-        "createCard": "Create card",
-        "openVerb": "Open verb conjugation",
-        "openNoun": "Open noun declension",
-        "openAdjective": "Open adjective declension"
+        "createCard": "Karte erstellen",
+        "openVerb": "Verbkonjugation öffnen",
+        "openNoun": "Substantivdeklination öffnen",
+        "openAdjective": "Adjektivdeklination öffnen"
       }
     },
     "cameraCapture": {
