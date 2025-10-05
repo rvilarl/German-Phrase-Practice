@@ -247,7 +247,7 @@
     },
     "actions": {
       "skip": "Überspringen",
-      "know": "Ich weiß es"
+      "know": "Ich weiß"
     },
     "states": {
       "allCategories": "Alle Kategorien",
@@ -920,6 +920,17 @@
     }
   },
   "phraseList": {
+    "item": {
+      "badges": {
+        "new": "Neu"
+      },
+      "actions": {
+        "practice": "Üben",
+        "edit": "Bearbeiten",
+        "delete": "Löschen"
+      },
+      "categoryButton": "Kategorie: {{name}}"
+    },
     "search": {
       "listening": "Höre auf Suchanfrage...",
       "placeholder": "Phrasen suchen..."

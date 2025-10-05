@@ -949,6 +949,17 @@
     }
   },
   "phraseList": {
+    "item": {
+      "badges": {
+        "new": "Новое"
+      },
+      "actions": {
+        "practice": "Тренироваться",
+        "edit": "Редактировать",
+        "delete": "Удалить"
+      },
+      "categoryButton": "Категория: {{name}}"
+    },
     "search": {
       "listening": "Прослушивание поискового запроса...",
       "placeholder": "Поиск фраз..."

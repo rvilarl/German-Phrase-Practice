@@ -920,6 +920,17 @@
     }
   },
   "phraseList": {
+    "item": {
+      "badges": {
+        "new": "Nuevo"
+      },
+      "actions": {
+        "practice": "Practicar",
+        "edit": "Editar",
+        "delete": "Eliminar"
+      },
+      "categoryButton": "Categoría: {{name}}"
+    },
     "search": {
       "listening": "Escuchando la consulta de búsqueda...",
       "placeholder": "Buscar frases..."
