@@ -1943,6 +1943,7 @@ const App: React.FC = () => {
              onAddCategory={handleAddCategoryFromPractice}
              onOpenCategoryManager={() => setIsCategoryManagerModalOpen(true)}
              unmasteredCountsByCategory={unmasteredCountsByCategory}
+             onOpenSmartImport={() => setIsSmartImportModalOpen(true)}
            />;
         case 'list':
             return <PhraseListPage

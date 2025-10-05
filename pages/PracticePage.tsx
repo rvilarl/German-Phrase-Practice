@@ -77,6 +77,7 @@ interface PracticePageProps {
   onAddCategory: () => void;
   onOpenCategoryManager: () => void;
   unmasteredCountsByCategory: Record<string, number>;
+  onOpenSmartImport: () => void;
 }
 
 const CategoryFilter: React.FC<{
@@ -184,7 +185,7 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
     settings, masteryButtonUsage, allPhrases, onCreateCard, onAnalyzeWord,
     isWordAnalysisLoading, cardActionUsage, onLogCardActionUsage,
     cardHistoryLength, practiceCategoryFilter, setPracticeCategoryFilter, onMarkPhraseAsSeen,
-    categories, onAddCategory, onOpenCategoryManager, unmasteredCountsByCategory
+    categories, onAddCategory, onOpenCategoryManager, unmasteredCountsByCategory, onOpenSmartImport
   } = props;
   const { t } = useTranslation();
 
@@ -246,7 +247,7 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
             <div className="text-center text-slate-400 p-4">
                 <h2 className="text-2xl font-bold text-white mb-4">{t('practice.states.congratulations')}</h2>
                 <p>{t('practice.states.learnedAllSelected')}</p>
-                <button onClick={() => fetchNewPhrases()} disabled={isGenerating || !apiProviderAvailable} className="mt-6 px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-md text-white font-bold transition-colors disabled:opacity-50">{isGenerating ? t('practice.states.generating') : t('practice.states.generateNew')}</button>
+                <button onClick={onOpenSmartImport} disabled={!apiProviderAvailable} className="mt-6 px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-md text-white font-bold transition-colors disabled:opacity-50">{t('fab.smartImport')}</button>
             </div>
         );
       }

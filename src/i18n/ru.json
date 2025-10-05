@@ -942,5 +942,26 @@
         "mastered": "Изученные"
       }
     }
+  },
+  "phraseList": {
+  "search": {
+    "listening": "Прослушивание поискового запроса...",
+    "placeholder": "Поиск фраз..."
+  },
+  "sections": {
+    "new": "Новые",
+    "inProgress": "В процессе",
+    "mastered": "Выученные"
+  },
+  "filters": {
+    "all": "Все"
+  },
+  "summary": {
+    "count": "{{count}} карточек"
+  },
+  "actions": {
+    "duplicates": "Дубликаты",
+    "aiImport": "Импорт ИИ"
   }
+}
 }

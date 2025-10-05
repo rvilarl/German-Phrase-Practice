@@ -913,5 +913,26 @@
         "capture": "Take photo"
       }
     }
+  },
+  "phraseList": {
+    "search": {
+      "listening": "Listening for search query...",
+      "placeholder": "Search phrases..."
+    },
+    "sections": {
+      "new": "New",
+      "inProgress": "In Progress",
+      "mastered": "Mastered"
+    },
+    "filters": {
+      "all": "All"
+    },
+    "summary": {
+      "count": "{{count}} cards"
+    },
+    "actions": {
+      "duplicates": "Duplicates",
+      "aiImport": "AI Import"
+    }
   }
 }

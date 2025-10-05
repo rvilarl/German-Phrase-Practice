@@ -913,5 +913,26 @@
         "capture": "Tomar foto"
       }
     }
+  },
+  "phraseList": {
+    "search": {
+      "listening": "Escuchando la consulta de búsqueda...",
+      "placeholder": "Buscar frases..."
+    },
+    "sections": {
+      "new": "Nuevas",
+      "inProgress": "En progreso",
+      "mastered": "Dominadas"
+    },
+    "filters": {
+      "all": "Todas"
+    },
+    "summary": {
+      "count": "{{count}} tarjetas"
+    },
+    "actions": {
+      "duplicates": "Duplicados",
+      "aiImport": "Importación IA"
+    }
   }
 }
