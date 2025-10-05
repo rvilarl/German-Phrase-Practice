@@ -1,7 +1,7 @@
 {
   "header": {
     "title": "Lingopo",
-    "subtitle": "Sistema de Repetición Espaciada",
+    "subtitle": "Sistema de repetición espaciada",
     "actions": {
       "openList": "Abrir lista",
       "openPractice": "Abrir práctica",
@@ -15,7 +15,7 @@
   },
   "common": {
     "field": {
-      "email": "Correo electrónico"
+      "email": "Email"
     },
     "placeholder": {
       "email": "tu@ejemplo.com"

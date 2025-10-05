@@ -1,202 +1,202 @@
 {
   "header": {
     "title": "Lingopo",
-    "subtitle": "Spaced Repetition System",
+    "subtitle": "System der verteilten Wiederholung",
     "actions": {
-      "openList": "Open list",
-      "openPractice": "Open practice",
-      "openSettings": "Open settings",
-      "signOut": "Sign out",
-      "signingOut": "Signing out..."
+      "openList": "Liste öffnen",
+      "openPractice": "Übung öffnen",
+      "openSettings": "Einstellungen öffnen",
+      "signOut": "Abmelden",
+      "signingOut": "Wird abgemeldet..."
     },
     "errors": {
-      "signOutFailed": "Sign out failed"
+      "signOutFailed": "Abmeldung fehlgeschlagen"
     }
   },
   "common": {
     "field": {
-      "email": "Email"
+      "email": "E-mail"
     },
     "placeholder": {
       "email": "you@example.com"
     },
     "labels": {
-      "error": "Error"
+      "error": "Fehler"
     }
   },
   "auth": {
     "errors": {
-      "ensureUserData": "Failed to ensure user data is initialized.",
-      "sessionExpired": "Session expired. Please sign in again.",
-      "supabaseSignOut": "Failed to sign out from Supabase after 401.",
-      "restoreSession": "Failed to restore authentication session.",
-      "subscribeAuth": "Failed to subscribe to auth state changes.",
-      "noSessionAfterSignIn": "Unable to obtain session after sign-in.",
-      "noSessionAfterSignUp": "Unable to obtain session after sign-up."
+      "ensureUserData": "Benutzerdaten konnten nicht initialisiert werden.",
+      "sessionExpired": "Sitzung ist abgelaufen. Bitte melde dich erneut an.",
+      "supabaseSignOut": "Abmeldung von Supabase nach Fehler 401 fehlgeschlagen.",
+      "restoreSession": "Wiederherstellung der Authentifizierungssitzung fehlgeschlagen.",
+      "subscribeAuth": "Fehler beim Abonnieren von Authentifizierungsänderungen.",
+      "noSessionAfterSignIn": "Sitzung nach Anmeldung konnte nicht abgerufen werden.",
+      "noSessionAfterSignUp": "Sitzung nach Registrierung konnte nicht abgerufen werden."
     },
     "loading": {
-      "preparingData": "Preparing your data..."
+      "preparingData": "Daten werden vorbereitet..."
     },
     "login": {
       "validation": {
-        "missingCredentials": "Enter your email and password."
+        "missingCredentials": "Bitte E-Mail und Passwort eingeben."
       },
-      "title": "Sign in",
-      "subtitle": "Sign in to continue practicing phrases.",
+      "title": "Anmelden",
+      "subtitle": "Melde dich an, um mit dem Üben fortzufahren.",
       "field": {
-        "passwordLabel": "Password",
+        "passwordLabel": "Passwort",
         "passwordPlaceholder": "********"
       },
       "submit": {
         "state": {
-          "loading": "Signing in..."
+          "loading": "Anmeldung läuft..."
         },
-        "label": "Sign in"
+        "label": "Anmelden"
       },
       "switch": {
-        "prompt": "Don't have an account?",
-        "cta": "Create account"
+        "prompt": "Noch kein Konto?",
+        "cta": "Konto erstellen"
       }
     },
     "signup": {
       "validation": {
-        "missingFields": "Fill in all fields.",
-        "passwordMismatch": "Passwords do not match."
+        "missingFields": "Bitte alle Felder ausfüllen.",
+        "passwordMismatch": "Passwörter stimmen nicht überein."
       },
-      "title": "Create account",
-      "subtitle": "Create an account to sync your phrases.",
+      "title": "Konto erstellen",
+      "subtitle": "Erstelle ein Konto, um deine Phrasen zu synchronisieren.",
       "field": {
-        "passwordLabel": "Password",
-        "passwordPlaceholder": "At least 6 characters",
-        "confirmLabel": "Confirm password",
-        "confirmPlaceholder": "Repeat your password"
+        "passwordLabel": "Passwort",
+        "passwordPlaceholder": "Mindestens 6 Zeichen",
+        "confirmLabel": "Passwort bestätigen",
+        "confirmPlaceholder": "Passwort wiederholen"
       },
       "submit": {
         "state": {
-          "loading": "Creating account..."
+          "loading": "Konto wird erstellt..."
         },
-        "label": "Sign up"
+        "label": "Registrieren"
       },
       "switch": {
-        "prompt": "Already have an account?",
-        "cta": "Sign in"
+        "prompt": "Bereits ein Konto?",
+        "cta": "Anmelden"
       }
     }
   },
   "settings": {
     "views": {
-      "main": "Settings",
-      "general": "General",
-      "automation": "Automation (AI)",
-      "categories": "Practice categories"
+      "main": "Einstellungen",
+      "general": "Allgemein",
+      "automation": "Automatisierung (KI)",
+      "categories": "Übungskategorien"
     },
     "general": {
-      "legend": "General settings",
+      "legend": "Allgemeine Einstellungen",
       "autoSpeak": {
-        "label": "Automatic pronunciation"
+        "label": "Automatische Aussprache"
       },
       "soundEffects": {
-        "label": "Sound effects"
+        "label": "Soundeffekte"
       }
     },
     "automation": {
-      "legend": "Automation settings",
+      "legend": "Automatisierungseinstellungen",
       "autoCheckShortPhrases": {
-        "label": "Auto-check short phrases",
-        "description": "Instantly check when the phrase is assembled correctly."
+        "label": "Kurze Phrasen automatisch überprüfen",
+        "description": "Überprüft sofort, wenn die Phrase korrekt zusammengesetzt ist."
       },
       "learnNextPhraseHabit": {
-        "label": "Next phrase habit",
-        "description": "Auto-advance after a quick streak of correct answers."
+        "label": "Nächste-Phrase-Gewohnheit",
+        "description": "Automatisches Fortfahren nach einer kurzen Serie richtiger Antworten."
       }
     },
     "categories": {
-      "manageButton": "Manage categories"
+      "manageButton": "Kategorien verwalten"
     }
   },
   "notifications": {
     "sync": {
-      "synced": "✓ Data synced with the server.",
-      "loaded": "✓ Data loaded from the server.",
-      "error": "Sync error: {{message}}"
+      "synced": "✓ Daten mit dem Server synchronisiert.",
+      "loaded": "✓ Daten vom Server geladen.",
+      "error": "Synchronisierungsfehler: {{message}}"
     },
     "phrases": {
-      "existsInCategory": "Card \"{{phrase}}\" is already in this category.",
-      "existsInOtherCategory": "Card \"{{phrase}}\" already exists in another category.",
-      "createError": "Failed to create phrase: {{message}}",
-      "exists": "Card \"{{phrase}}\" already exists.",
-      "created": "Card for \"{{phrase}}\" created.",
-      "createCardError": "Failed to create card: {{message}}",
-      "createCardGenericError": "Could not create the card."
+      "existsInCategory": "Karte \"{{phrase}}\" befindet sich bereits in dieser Kategorie.",
+      "existsInOtherCategory": "Karte \"{{phrase}}\" existiert bereits in einer anderen Kategorie.",
+      "createError": "Fehler beim Erstellen der Phrase: {{message}}",
+      "exists": "Karte \"{{phrase}}\" existiert bereits.",
+      "created": "Karte für \"{{phrase}}\" wurde erstellt.",
+      "createCardError": "Fehler beim Erstellen der Karte: {{message}}",
+      "createCardGenericError": "Karte konnte nicht erstellt werden."
     },
     "ai": {
-      "providerUnavailable": "AI provider not available."
+      "providerUnavailable": "KI-Anbieter nicht verfügbar."
     },
-    "updateError": "Update error: {{message}}",
-    "saveError": "Save error: {{message}}",
-    "deleteError": "Delete error: {{message}}",
-    "moveError": "Move error: {{message}}",
-    "genericError": "Error: {{message}}",
+    "updateError": "Aktualisierungsfehler: {{message}}",
+    "saveError": "Speicherfehler: {{message}}",
+    "deleteError": "Löschfehler: {{message}}",
+    "moveError": "Verschiebefehler: {{message}}",
+    "genericError": "Fehler: {{message}}",
     "cards": {
-      "moving": "Moving {{count}} cards...",
-      "moveSuccess": "✓ Cards moved.",
-      "deleting": "Deleting {{count}} cards...",
-      "deleteSuccess": "✓ Cards deleted.",
-      "generateError": "Failed to generate cards.",
-      "addFailed": "Could not add \"{{phrase}}\": {{error}}",
-      "rateLimit": "Rate limit exceeded. Try adding fewer cards at once.",
-      "addedToCategory": "✓ {{count}} cards added to \"{{category}}\".",
-      "movedAndAdded": "✓ {{moved}} cards moved and {{added}} added to \"{{category}}\".",
-      "addedWithDuplicatesSkipped": "✓ {{count}} cards added to \"{{category}}\". Duplicates were skipped.",
-      "deletedCount": "✓ {{count}} cards deleted.",
-      "movedToCategory": "✓ {{count}} cards moved to \"{{category}}\".",
-      "otherCategory": "another category",
-      "bulkAdded": "✓ {{count}} card added.",
-      "bulkAdded_plural": "✓ {{count}} cards added.",
-      "bulkSkipped": "{{count}} already existed and was skipped.",
-      "bulkSkipped_plural": "{{count}} already existed and were skipped."
+      "moving": "{{count}} Karten werden verschoben...",
+      "moveSuccess": "✓ Karten verschoben.",
+      "deleting": "{{count}} Karten werden gelöscht...",
+      "deleteSuccess": "✓ Karten gelöscht.",
+      "generateError": "Fehler beim Generieren der Karten.",
+      "addFailed": "\"{{phrase}}\" konnte nicht hinzugefügt werden: {{error}}",
+      "rateLimit": "Ratenlimit überschritten. Versuche, weniger Karten gleichzeitig hinzuzufügen.",
+      "addedToCategory": "✓ {{count}} Karten zu \"{{category}}\" hinzugefügt.",
+      "movedAndAdded": "✓ {{moved}} Karten verschoben und {{added}} zu \"{{category}}\" hinzugefügt.",
+      "addedWithDuplicatesSkipped": "✓ {{count}} Karten zu \"{{category}}\" hinzugefügt. Duplikate wurden übersprungen.",
+      "deletedCount": "✓ {{count}} Karten gelöscht.",
+      "movedToCategory": "✓ {{count}} Karten in \"{{category}}\" verschoben.",
+      "otherCategory": "andere Kategorie",
+      "bulkAdded": "✓ {{count}} Karte hinzugefügt.",
+      "bulkAdded_plural": "✓ {{count}} Karten hinzugefügt.",
+      "bulkSkipped": "{{count}} existierte bereits und wurde übersprungen.",
+      "bulkSkipped_plural": "{{count}} existierten bereits und wurden übersprungen."
     },
     "categories": {
-      "createError": "Failed to create category: {{message}}",
-      "saveError": "Failed to save category: {{message}}",
-      "deleteSuccess": "✓ Category \"{{name}}\" deleted."
+      "createError": "Fehler beim Erstellen der Kategorie: {{message}}",
+      "saveError": "Fehler beim Speichern der Kategorie: {{message}}",
+      "deleteSuccess": "✓ Kategorie \"{{name}}\" gelöscht."
     }
   },
   "localization": {
     "overlay": {
-      "heading": "Localization",
-      "title": "Preparing interface in {{language}}",
-      "subtitle": "Localizing UI strings to {{language}}.",
-      "fallbackDescription": "Something went wrong while translating. Fallback language will be used.",
-      "currentStepHint": "In progress…",
-      "fallbackMessage": "Using English until the {{language}} translation is ready.",
+      "heading": "Lokalisierung",
+      "title": "Oberfläche wird auf {{language}} vorbereitet",
+      "subtitle": "UI-Texte werden in {{language}} lokalisiert.",
+      "fallbackDescription": "Beim Übersetzen ist ein Fehler aufgetreten. Es wird die Ersatzsprache verwendet.",
+      "currentStepHint": "In Arbeit…",
+      "fallbackMessage": "Englisch wird verwendet, bis die Übersetzung für {{language}} bereit ist.",
       "steps": {
-        "checkingStatic": "Checking built-in translations",
-        "loadingCache": "Loading cached translations",
-        "requestingAI": "Requesting AI translation",
-        "validating": "Validating translation structure",
-        "applying": "Applying translations"
+        "checkingStatic": "Eingebaute Übersetzungen werden überprüft",
+        "loadingCache": "Zwischengespeicherte Übersetzungen werden geladen",
+        "requestingAI": "KI-Übersetzung wird angefordert",
+        "validating": "Übersetzungsstruktur wird überprüft",
+        "applying": "Übersetzungen werden angewendet"
       }
     }
   },
   "library": {
     "empty": {
-      "title": "Your library is empty",
-      "description": "Upload an EPUB file to start building your reading library.",
-      "action": "Add your first book"
+      "title": "Deine Bibliothek ist leer",
+      "description": "Lade eine EPUB-Datei hoch, um deine Lesebibliothek aufzubauen.",
+      "action": "Füge dein erstes Buch hinzu"
     },
     "actions": {
-      "add": "Add book",
-      "adding": "Adding..."
+      "add": "Buch hinzufügen",
+      "adding": "Wird hinzugefügt..."
     },
     "notifications": {
-      "epubProcessingFailed": "Could not process the EPUB file. Please make sure the file is not corrupted."
+      "epubProcessingFailed": "Die EPUB-Datei konnte nicht verarbeitet werden. Bitte stelle sicher, dass die Datei nicht beschädigt ist."
     },
     "cards": {
-      "add": "Add a new book"
+      "add": "Ein neues Buch hinzufügen"
     },
     "alt": {
-      "cover": "Cover of {{title}}"
+      "cover": "Umschlag von {{title}}"
     }
   },
   "categories": {
@@ -211,43 +211,43 @@
       }
     },
     "manager": {
-      "title": "Manage categories",
+      "title": "Kategorien verwalten",
       "aria": {
-        "edit": "Edit {{name}}",
-        "delete": "Delete {{name}}"
+        "edit": "{{name}} bearbeiten",
+        "delete": "{{name}} löschen"
       },
-      "add": "Add new category"
+      "add": "Neue Kategorie hinzufügen"
     },
     "form": {
-      "createTitle": "Create category",
-      "editTitle": "Edit category",
+      "createTitle": "Kategorie erstellen",
+      "editTitle": "Kategorie bearbeiten",
       "fields": {
-        "nameLabel": "Category name",
-        "namePlaceholder": "E.g. Travel, Work, or Conversation",
-        "colorLabel": "Color",
-        "colorAria": "Select color {{color}}"
+        "nameLabel": "Kategoriename",
+        "namePlaceholder": "z. B. Reisen, Arbeit oder Unterhaltung",
+        "colorLabel": "Farbe",
+        "colorAria": "Farbe auswählen {{color}}"
       },
       "notes": {
-        "aiHint": "Tip: Use descriptive names without '!' or hyphen so AI automations can categorize phrases correctly."
+        "aiHint": "Tipp: Verwende beschreibende Namen ohne '!' oder Bindestrich, damit KI-Automatisierungen die Phrasen korrekt zuordnen können."
       },
       "errors": {
-        "duplicate": "A category with this name already exists."
+        "duplicate": "Eine Kategorie mit diesem Namen existiert bereits."
       },
       "submit": {
-        "create": "Create",
-        "save": "Save changes"
+        "create": "Erstellen",
+        "save": "Änderungen speichern"
       }
     }
   },
   "practice": {
     "chat": {
-      "title": "Practice with AI",
-      "placeholder": "Type your message...",
-      "listeningPlaceholder": "Listening..."
+      "title": "Mit KI üben",
+      "placeholder": "Nachricht eingeben...",
+      "listeningPlaceholder": "Höre zu..."
     },
     "actions": {
-      "skip": "Skip",
-      "know": "I know"
+      "skip": "Überspringen",
+      "know": "Ich weiß es"
     },
     "states": {
       "allCategories": "Alle Kategorien",
@@ -255,7 +255,7 @@
       "manage": "Verwalten",
       "errorOccurred": "Ein Fehler ist aufgetreten",
       "congratulations": "Herzlichen Glückwunsch!",
-      "learnedAllSelected": "Sie haben alle Phrasen in den ausgewählten Kategorien gelernt.",
+      "learnedAllSelected": "Du hast alle Phrasen in den ausgewählten Kategorien gelernt.",
       "excellent": "Ausgezeichnet!",
       "foundationCompleted": "Grundkarten in der Kategorie \"{categoryName}\" abgeschlossen.",
       "noMoreCards": "Keine weiteren Karten zum Lernen.",
@@ -263,12 +263,12 @@
       "empty": "Leer",
       "noUnlearnedInCategory": "Keine ungelernten Karten in der Kategorie \"{categoryName}\".",
       "practiceAllCategories": "Alle Kategorien üben",
-      "allForToday": "Das ist alles für heute!",
-      "completedAllAvailable": "Sie haben alle verfügbaren Karten in dieser Kategorie abgeschlossen.",
-      "comeBackLater": "Kommen Sie später zurück, um zu wiederholen, was Sie gelernt haben.",
+      "allForToday": "Das war’s für heute!",
+      "completedAllAvailable": "Du hast alle verfügbaren Karten in dieser Kategorie abgeschlossen.",
+      "comeBackLater": "Komm später wieder, um zu wiederholen, was du gelernt hast.",
       "continue": "Weiter",
       "generateNew": "Neue generieren",
-      "generating": "Generiere..."
+      "generating": "Wird generiert..."
     }
   },
   "languages": {
@@ -295,11 +295,11 @@
     }
   },
   "fab": {
-    "addPhrase": "Add phrase in {{language}}",
-    "openLibrary": "Open library",
-    "smartImport": "Smart import",
-    "chooseLanguage": "Choose phrase language",
-    "toggle": "Add phrase"
+    "addPhrase": "Phrase auf {{language}} hinzufügen",
+    "openLibrary": "Bibliothek öffnen",
+    "smartImport": "Intelligenter Import",
+    "chooseLanguage": "Phrasensprache auswählen",
+    "toggle": "Phrase hinzufügen"
   },
   "modals": {
     "nounDeclension": {
