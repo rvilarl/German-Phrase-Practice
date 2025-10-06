@@ -137,6 +137,20 @@ const fetchWithRetry = async (url: RequestInfo, options: RequestInit = {}, retri
 
 
 export const fetchInitialData = async (): Promise<{ categories: Category[], phrases: Phrase[] }> => {
+    // Логирование токена для диагностики
+    const token = getAccessToken();
+    console.log('Token:', token);
+
+    // Декодирование токена для получения user_id
+    if (token) {
+        try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            console.log('User ID from token:', payload.sub);
+        } catch (e) {
+            console.error('Failed to decode token:', e);
+        }
+    }
+
     let response = await fetchWithRetry(`${API_BASE_URL}/initial-data`);
 
     if (response.status === 404) {
@@ -145,6 +159,8 @@ export const fetchInitialData = async (): Promise<{ categories: Category[], phra
     }
 
     const data = await handleResponse(response);
+    console.log('Response from /initial-data:', data);
+
     return {
         categories: data.categories.map(feCategory),
         phrases: data.phrases.map(fePhrase),
