@@ -45,16 +45,22 @@ const sanitizeJsonResponse = (raw: string) => {
 
 
 export const translateLocaleTemplate = async (template: TranslationRecord, targetLanguage: LanguageCode): Promise<TranslationRecord> => {
+  console.log(`[Gemini] Starting locale translation for ${targetLanguage}`);
+
   const api = initializeApi();
   if (!api) {
+    console.error(`[Gemini] API key not configured for ${targetLanguage}`);
     throw new Error('Gemini API key not configured.');
   }
 
   const templateJson = JSON.stringify(template, null, 2);
+  console.log(`[Gemini] Template size for ${targetLanguage}: ${templateJson.length} characters`);
+
   const prompt = buildLocalePrompt(targetLanguage);
   prompt[0].parts.push({ text: templateJson });
 
   try {
+    console.log(`[Gemini] Sending request to Gemini API for ${targetLanguage}`);
     const response = await api.models.generateContent({
       model,
       contents: prompt,
@@ -64,19 +70,47 @@ export const translateLocaleTemplate = async (template: TranslationRecord, targe
       },
     });
 
+    console.log(`[Gemini] Received response for ${targetLanguage}`);
     const raw = (response?.text ?? '').toString();
-    const sanitized = sanitizeJsonResponse(raw);
-    if (!sanitized) {
+    console.log(`[Gemini] Raw response length for ${targetLanguage}: ${raw.length} characters`);
+
+    if (!raw || raw.trim().length === 0) {
+      console.error(`[Gemini] Empty response received for ${targetLanguage}`);
       throw new Error('Received empty translation response.');
     }
 
+    const sanitized = sanitizeJsonResponse(raw);
+    console.log(`[Gemini] Sanitized response length for ${targetLanguage}: ${sanitized.length} characters`);
+
+    if (!sanitized) {
+      console.error(`[Gemini] Sanitization resulted in empty string for ${targetLanguage}`);
+      throw new Error('Received empty translation response.');
+    }
+
+    console.log(`[Gemini] Parsing JSON response for ${targetLanguage}`);
     const parsed = JSON.parse(sanitized);
+
     if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+      console.error(`[Gemini] Invalid JSON structure for ${targetLanguage}:`, typeof parsed, Array.isArray(parsed));
       throw new Error('Translated locale must be a JSON object.');
     }
+
+    console.log(`[Gemini] Successfully parsed locale for ${targetLanguage}`);
     return parsed as TranslationRecord;
   } catch (error) {
-    console.error('Error translating locale with Gemini:', error);
+    console.error(`[Gemini] Error translating locale for ${targetLanguage}:`, error);
+
+    // Add more specific error information
+    if (error instanceof Error) {
+      if (error.message.includes('JSON')) {
+        console.error(`[Gemini] JSON parsing error for ${targetLanguage}:`, error.message);
+      } else if (error.message.includes('API')) {
+        console.error(`[Gemini] API error for ${targetLanguage}:`, error.message);
+      } else {
+        console.error(`[Gemini] General error for ${targetLanguage}:`, error.message);
+      }
+    }
+
     throw error instanceof Error ? error : new Error('Failed to translate locale via Gemini.');
   }
 };

@@ -140,13 +140,19 @@ export const loadLocaleResources = async (lang: LanguageCode, options: LoadLocal
   const { onPhase, signal } = options;
   const resolvedLang = resolveLanguage(lang);
 
+  console.log(`[Localization] Starting localization for language: ${resolvedLang}`);
+
   if (signal?.aborted) {
     throw new DOMException('Localization aborted', 'AbortError');
   }
 
   notify(onPhase, 'checkingStatic');
   const staticLocale = getStaticLocale(resolvedLang);
+  const staticAssessment = assessLocale(staticLocale);
+  console.log(`[Localization] Static locale assessment - Missing: ${staticAssessment.missingKeys.length}, Empty: ${staticAssessment.emptyKeys.length}, Placeholder mismatches: ${staticAssessment.placeholderMismatches.length}`);
+
   if (validateLocaleShape(staticLocale)) {
+    console.log(`[Localization] Using static locale for ${resolvedLang}`);
     notify(onPhase, 'completed');
     return { lang: resolvedLang, resources: staticLocale, source: 'static' };
   }
@@ -158,31 +164,54 @@ export const loadLocaleResources = async (lang: LanguageCode, options: LoadLocal
   notify(onPhase, 'loadingCache');
   try {
     const cached = await readLocaleCache(resolvedLang, LOCALE_SCHEMA_VERSION);
-    if (cached && validateLocaleShape(cached)) {
-      notify(onPhase, 'completed');
-      return { lang: resolvedLang, resources: cached, source: 'cache' };
+    if (cached) {
+      const cacheAssessment = assessLocale(cached);
+      console.log(`[Localization] Cache assessment - Missing: ${cacheAssessment.missingKeys.length}, Empty: ${cacheAssessment.emptyKeys.length}, Placeholder mismatches: ${cacheAssessment.placeholderMismatches.length}`);
+
+      if (validateLocaleShape(cached)) {
+        console.log(`[Localization] Using cached locale for ${resolvedLang}`);
+        notify(onPhase, 'completed');
+        return { lang: resolvedLang, resources: cached, source: 'cache' };
+      } else {
+        console.warn(`[Localization] Cached locale for ${resolvedLang} is invalid, will try AI generation`);
+      }
+    } else {
+      console.log(`[Localization] No cached locale found for ${resolvedLang}`);
     }
   } catch (cacheError) {
-    console.warn('Failed to read locale cache:', cacheError);
+    console.warn(`[Localization] Failed to read locale cache for ${resolvedLang}:`, cacheError);
   }
 
   if (signal?.aborted) {
     throw new DOMException('Localization aborted', 'AbortError');
   }
 
+  console.log(`[Localization] Starting AI generation for ${resolvedLang}`);
   notify(onPhase, 'requestingAI');
   let generationPromise = generationPromises.get(resolvedLang);
   if (!generationPromise) {
     generationPromise = (async () => {
-      const generated = await translateLocaleTemplate(baseTemplate, resolvedLang as LanguageCode);
-      return generated;
+      try {
+        console.log(`[Localization] Calling translateLocaleTemplate for ${resolvedLang}`);
+        const generated = await translateLocaleTemplate(baseTemplate, resolvedLang as LanguageCode);
+        console.log(`[Localization] AI generation completed for ${resolvedLang}`);
+        return generated;
+      } catch (aiError) {
+        console.error(`[Localization] AI generation failed for ${resolvedLang}:`, aiError);
+        throw aiError;
+      }
     })();
     generationPromises.set(resolvedLang, generationPromise);
+  } else {
+    console.log(`[Localization] Reusing existing AI generation promise for ${resolvedLang}`);
   }
 
   let generatedLocale: TranslationRecord;
   try {
     generatedLocale = await generationPromise;
+  } catch (generationError) {
+    console.error(`[Localization] AI generation promise failed for ${resolvedLang}:`, generationError);
+    throw generationError;
   } finally {
     generationPromises.delete(resolvedLang);
   }
@@ -193,18 +222,33 @@ export const loadLocaleResources = async (lang: LanguageCode, options: LoadLocal
 
   notify(onPhase, 'validating');
   const assessment = assessLocale(generatedLocale);
+  console.log(`[Localization] Generated locale assessment - Missing: ${assessment.missingKeys.length}, Empty: ${assessment.emptyKeys.length}, Placeholder mismatches: ${assessment.placeholderMismatches.length}`);
+
   if (assessment.missingKeys.length > 0 || assessment.emptyKeys.length > 0 || assessment.placeholderMismatches.length > 0) {
+    console.error(`[Localization] Generated locale is invalid for ${resolvedLang}`);
+    if (assessment.missingKeys.length > 0) {
+      console.error(`[Localization] Missing keys (${assessment.missingKeys.length}):`, assessment.missingKeys.slice(0, 5));
+    }
+    if (assessment.emptyKeys.length > 0) {
+      console.error(`[Localization] Empty keys (${assessment.emptyKeys.length}):`, assessment.emptyKeys.slice(0, 5));
+    }
+    if (assessment.placeholderMismatches.length > 0) {
+      console.error(`[Localization] Placeholder mismatches (${assessment.placeholderMismatches.length}):`, assessment.placeholderMismatches.slice(0, 5));
+    }
     throw new Error(`Generated locale is invalid. Missing: ${assessment.missingKeys.length}, Empty: ${assessment.emptyKeys.length}, Placeholder mismatches: ${assessment.placeholderMismatches.length}`);
   }
 
+  console.log(`[Localization] Generated locale is valid for ${resolvedLang}`);
   notify(onPhase, 'applying');
   try {
     await writeLocaleCache(resolvedLang, LOCALE_SCHEMA_VERSION, generatedLocale);
+    console.log(`[Localization] Successfully cached generated locale for ${resolvedLang}`);
   } catch (cacheError) {
-    console.warn('Failed to write locale cache:', cacheError);
+    console.warn(`[Localization] Failed to write locale cache for ${resolvedLang}:`, cacheError);
   }
 
   notify(onPhase, 'completed');
+  console.log(`[Localization] Localization completed successfully for ${resolvedLang}`);
   return { lang: resolvedLang, resources: generatedLocale, source: 'ai' };
 };
 

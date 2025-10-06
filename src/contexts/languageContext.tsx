@@ -51,6 +51,73 @@ const detectBrowserLanguage = (): LanguageCode => {
 
 export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const isDev = import.meta.env.DEV;
+
+  // Add test function to window for debugging AI generation
+  if (isDev && typeof window !== 'undefined') {
+    (window as any).testAIGeneration = async () => {
+      console.log('Testing AI generation...');
+
+      try {
+        const { translateLocaleTemplate } = await import('../../services/geminiService.ts');
+        const { STATIC_RESOURCES } = await import('../i18n/config.ts');
+
+        const baseTemplate = STATIC_RESOURCES.en?.translation;
+        if (!baseTemplate) {
+          throw new Error('Could not load base template');
+        }
+
+        console.log(`Base template has ${Object.keys(baseTemplate).length} top-level keys`);
+
+        const testLang = 'fr';
+        console.log(`Testing AI generation for ${testLang}...`);
+
+        const startTime = Date.now();
+        const generated = await translateLocaleTemplate(baseTemplate, testLang);
+        const endTime = Date.now();
+
+        console.log(`AI generation completed in ${(endTime - startTime) / 1000} seconds`);
+
+        if (typeof generated !== 'object' || generated === null || Array.isArray(generated)) {
+          throw new Error('Generated locale is not a valid object');
+        }
+
+        console.log(`Generated locale has ${Object.keys(generated).length} top-level keys`);
+
+        let translatedCount = 0;
+        let emptyCount = 0;
+
+        function countTranslations(obj: any, path = '') {
+          Object.entries(obj).forEach(([key, value]) => {
+            if (typeof value === 'string') {
+              if (value.trim().length > 0) {
+                translatedCount++;
+              } else {
+                emptyCount++;
+              }
+            } else if (value && typeof value === 'object' && !Array.isArray(value)) {
+              countTranslations(value, `${path}.${key}`);
+            }
+          });
+        }
+
+        countTranslations(generated);
+        console.log(`Generated locale has ${translatedCount} translated strings and ${emptyCount} empty strings`);
+
+        if (translatedCount > 0) {
+          console.log('✅ AI generation test PASSED - generated some translations');
+          return { success: true, translatedCount, emptyCount, generated };
+        } else {
+          console.log('❌ AI generation test FAILED - generated only empty strings');
+          return { success: false, translatedCount, emptyCount, generated };
+        }
+
+      } catch (error) {
+        console.error('❌ AI generation test FAILED with error:', error);
+        return { success: false, error: error.message };
+      }
+    };
+  }
+
   const [profile, setProfileState] = useState<LanguageProfile>(() => {
     const { profile: storedProfile, source } = configService.getLanguageProfile();
     const meta = configService.getLanguageProfileMeta();
@@ -199,9 +266,19 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
         if (controller.signal.aborted) {
           return;
         }
-        console.error('Failed to localize UI', error);
+        console.error('Failed to localize UI for language:', targetLang, error);
         finalPhase = 'fallback';
         setLocalizationPhase('fallback');
+
+        // Log more details about the failure
+        if (error instanceof Error) {
+          console.error('Localization error details:', {
+            message: error.message,
+            name: error.name,
+            stack: error.stack
+          });
+        }
+
         i18n.changeLanguage(DEFAULT_LANG).catch((changeError) => {
           console.error('Failed to revert to default language', changeError);
         });
