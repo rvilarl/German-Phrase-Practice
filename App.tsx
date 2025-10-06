@@ -413,8 +413,17 @@ const App: React.FC = () => {
         dataLoaded = true;
         showToast({ message: t('notifications.sync.loaded') });
       } catch (fetchError) {
-        console.error("Critical error during data initialization:", (fetchError as Error).message);
-        setError(`Не удалось загрузить данные с сервера: ${(fetchError as Error).message}. Попробуйте обновить страницу.`);
+        console.error("Server not available, initializing with empty data:", (fetchError as Error).message);
+        // Initialize with empty data if server is not available
+        const defaultCategories = [{ id: '1', name: 'Общие', color: 'bg-slate-500', isFoundational: true }];
+        const defaultPhrases: Phrase[] = [];
+
+        localStorage.setItem(CATEGORIES_STORAGE_KEY, JSON.stringify(defaultCategories));
+        localStorage.setItem(PHRASES_STORAGE_KEY, JSON.stringify(defaultPhrases));
+        setCategories(defaultCategories);
+        setAllPhrases(defaultPhrases);
+        dataLoaded = true;
+        showToast({ message: 'Инициализация с пустыми данными' });
       }
     }
 
