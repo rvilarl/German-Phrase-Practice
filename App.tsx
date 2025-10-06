@@ -55,6 +55,7 @@ import ConfirmDeletePhrasesModal from './components/ConfirmDeletePhrasesModal';
 import PracticeChatFab from './components/PracticeChatFab';
 import PracticeChatModal from './components/PracticeChatModal';
 import { useTranslation } from './src/hooks/useTranslation.ts';
+import { useAuth } from './src/contexts/authContext.tsx';
 
 
 const PHRASES_STORAGE_KEY = 'germanPhrases';
@@ -189,6 +190,7 @@ const LeechModal: React.FC<LeechModalProps> = ({ isOpen, phrase, onImprove, onDi
 
 const App: React.FC = () => {
   const { t } = useTranslation();
+  const { userChanged, resetUserChanged } = useAuth();
   const [allPhrases, setAllPhrases] = useState<Phrase[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -332,7 +334,7 @@ const App: React.FC = () => {
   const [isAccountDrawerOpen, setIsAccountDrawerOpen] = useState(false);
 
   const isPrefetchingRef = useRef(false);
-  
+
   const showToast = useCallback((config: { message: string; type?: ToastType }) => {
     setToast({ message: config.message, type: config.type || 'default', id: Date.now() });
   }, []);
@@ -346,7 +348,109 @@ const App: React.FC = () => {
         return newPhrases;
     });
   }, []);
-  
+
+  const loadUserData = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+
+    // --- AI Provider Setup ---
+    const providerList = getProviderPriorityList();
+    let activeProvider: AiService | null = null;
+    let activeProviderType: ApiProviderType | null = null;
+    if (providerList.length > 0) {
+      for (const providerInfo of providerList) {
+        if (await providerInfo.provider.healthCheck()) {
+          activeProvider = providerInfo.provider;
+          activeProviderType = providerInfo.type;
+          break;
+        }
+      }
+    }
+    if (activeProvider) {
+      setApiProvider(activeProvider);
+      setApiProviderType(activeProviderType);
+    } else {
+      setError(providerList.length === 0 ? "No AI provider configured." : "AI features are temporarily unavailable.");
+    }
+
+    // --- Data Loading (Categories & Phrases) ---
+    const storedCategories = localStorage.getItem(CATEGORIES_STORAGE_KEY);
+    const storedPhrases = localStorage.getItem(PHRASES_STORAGE_KEY);
+    let dataLoaded = false;
+
+    if (storedCategories && storedPhrases) {
+      console.log("Loading data from localStorage cache...");
+      const loadedCategories = JSON.parse(storedCategories);
+      let loadedPhrases: Phrase[] = JSON.parse(storedPhrases);
+      loadedPhrases = loadedPhrases.map(p => ({...p, isMastered: srsService.isPhraseMastered(p, loadedCategories)}));
+      setCategories(loadedCategories);
+      setAllPhrases(loadedPhrases);
+      dataLoaded = true;
+
+      // Background sync with server
+      backendService.fetchInitialData()
+        .then(serverData => {
+          console.log("Syncing with server in background...");
+          const { loadedCategories: serverCategories, loadedPhrases: serverPhrases } = processInitialServerData(serverData);
+          localStorage.setItem(CATEGORIES_STORAGE_KEY, JSON.stringify(serverCategories));
+          updateAndSavePhrases(serverPhrases);
+          setCategories(serverCategories);
+          showToast({ message: t('notifications.sync.synced') });
+        })
+        .catch(syncError => {
+          console.warn("Background sync failed:", (syncError as Error).message);
+        });
+    } else {
+      console.log("No local data, fetching from server...");
+      try {
+        const serverData = await backendService.fetchInitialData();
+        const { loadedCategories, loadedPhrases } = processInitialServerData(serverData);
+
+        localStorage.setItem(CATEGORIES_STORAGE_KEY, JSON.stringify(loadedCategories));
+        localStorage.setItem(PHRASES_STORAGE_KEY, JSON.stringify(loadedPhrases));
+        setCategories(loadedCategories);
+        setAllPhrases(loadedPhrases);
+        dataLoaded = true;
+        showToast({ message: t('notifications.sync.loaded') });
+      } catch (fetchError) {
+        console.error("Critical error during data initialization:", (fetchError as Error).message);
+        setError(`Не удалось загрузить данные с сервера: ${(fetchError as Error).message}. Попробуйте обновить страницу.`);
+      }
+    }
+
+    if (dataLoaded) {
+        try {
+          const loadedCategories = JSON.parse(localStorage.getItem(CATEGORIES_STORAGE_KEY) || '[]');
+          const storedSettings = localStorage.getItem(SETTINGS_STORAGE_KEY);
+          const defaultEnabledCategories = loadedCategories.reduce((acc: any, cat: Category) => ({ ...acc, [cat.id]: true }), {} as Record<PhraseCategory, boolean>);
+
+          if (storedSettings) {
+            const parsedSettings = JSON.parse(storedSettings);
+            const enabledCategories = { ...defaultEnabledCategories, ...parsedSettings.enabledCategories };
+            loadedCategories.forEach((cat: Category) => { if (!(cat.id in enabledCategories)) enabledCategories[cat.id] = true; });
+            setSettings({ ...defaultSettings, ...parsedSettings, enabledCategories });
+          } else {
+            setSettings({ ...defaultSettings, enabledCategories: defaultEnabledCategories });
+          }
+
+          const storedUsage = localStorage.getItem(BUTTON_USAGE_STORAGE_KEY);
+          if (storedUsage) setButtonUsage(JSON.parse(storedUsage));
+          const storedMasteryUsage = localStorage.getItem(MASTERY_BUTTON_USAGE_STORAGE_KEY);
+          if (storedMasteryUsage) setMasteryButtonUsage(JSON.parse(storedMasteryUsage));
+          const storedCardActionUsage = localStorage.getItem(CARD_ACTION_USAGE_STORAGE_KEY);
+          if (storedCardActionUsage) setCardActionUsage(JSON.parse(storedCardActionUsage));
+          const storedHabitTracker = localStorage.getItem(HABIT_TRACKER_STORAGE_KEY);
+          if (storedHabitTracker) setHabitTracker(JSON.parse(storedHabitTracker));
+
+          const storedPracticeChat = localStorage.getItem(PRACTICE_CHAT_HISTORY_KEY);
+          if (storedPracticeChat) setPracticeChatHistory(JSON.parse(storedPracticeChat));
+
+        } catch (e) { console.error("Failed to load settings or trackers", e); }
+    }
+
+    setIsLoading(false);
+  }, [showToast, updateAndSavePhrases]);
+
   const processInitialServerData = (serverData: { categories: Category[], phrases: Phrase[] }) => {
     let loadedPhrases = serverData.phrases.map(p => ({
         ...p,
@@ -355,111 +459,31 @@ const App: React.FC = () => {
     return { loadedCategories: serverData.categories, loadedPhrases };
   };
 
+
   useEffect(() => {
-    const initializeApp = async () => {
+    loadUserData();
+  }, [loadUserData]);
+
+  // Handle user change - reload data for new user
+  useEffect(() => {
+    if (userChanged) {
+      console.log('User changed, reloading data...');
+      // Clear current state
+      setAllPhrases([]);
+      setCategories([]);
+      setCurrentPracticePhrase(null);
       setIsLoading(true);
       setError(null);
 
-      // --- AI Provider Setup ---
-      const providerList = getProviderPriorityList();
-      let activeProvider: AiService | null = null;
-      let activeProviderType: ApiProviderType | null = null;
-      if (providerList.length > 0) {
-        for (const providerInfo of providerList) {
-          if (await providerInfo.provider.healthCheck()) {
-            activeProvider = providerInfo.provider;
-            activeProviderType = providerInfo.type;
-            break;
-          }
-        }
-      }
-      if (activeProvider) {
-        setApiProvider(activeProvider);
-        setApiProviderType(activeProviderType);
-      } else {
-        setError(providerList.length === 0 ? "No AI provider configured." : "AI features are temporarily unavailable.");
-      }
+      // Clear localStorage for user data
+      localStorage.removeItem(PHRASES_STORAGE_KEY);
+      localStorage.removeItem(CATEGORIES_STORAGE_KEY);
 
-      // --- Data Loading (Categories & Phrases) ---
-      const storedCategories = localStorage.getItem(CATEGORIES_STORAGE_KEY);
-      const storedPhrases = localStorage.getItem(PHRASES_STORAGE_KEY);
-      let dataLoaded = false;
-
-      if (storedCategories && storedPhrases) {
-        console.log("Loading data from localStorage cache...");
-        const loadedCategories = JSON.parse(storedCategories);
-        let loadedPhrases: Phrase[] = JSON.parse(storedPhrases);
-        loadedPhrases = loadedPhrases.map(p => ({...p, isMastered: srsService.isPhraseMastered(p, loadedCategories)}));
-        setCategories(loadedCategories);
-        setAllPhrases(loadedPhrases);
-        dataLoaded = true;
-
-        // Background sync with server
-        backendService.fetchInitialData()
-          .then(serverData => {
-            console.log("Syncing with server in background...");
-            const { loadedCategories: serverCategories, loadedPhrases: serverPhrases } = processInitialServerData(serverData);
-            localStorage.setItem(CATEGORIES_STORAGE_KEY, JSON.stringify(serverCategories));
-            updateAndSavePhrases(serverPhrases);
-            setCategories(serverCategories);
-            showToast({ message: t('notifications.sync.synced') });
-          })
-          .catch(syncError => {
-            console.warn("Background sync failed:", (syncError as Error).message);
-          });
-      } else {
-        console.log("No local data, fetching from server...");
-        try {
-          const serverData = await backendService.fetchInitialData();
-          const { loadedCategories, loadedPhrases } = processInitialServerData(serverData);
-
-          localStorage.setItem(CATEGORIES_STORAGE_KEY, JSON.stringify(loadedCategories));
-          localStorage.setItem(PHRASES_STORAGE_KEY, JSON.stringify(loadedPhrases));
-          setCategories(loadedCategories);
-          setAllPhrases(loadedPhrases);
-          dataLoaded = true;
-          showToast({ message: t('notifications.sync.loaded') });
-        } catch (fetchError) {
-          console.error("Critical error during data initialization:", (fetchError as Error).message);
-          setError(`Не удалось загрузить данные с сервера: ${(fetchError as Error).message}. Попробуйте обновить страницу.`);
-        }
-      }
-      
-      if (dataLoaded) {
-          try {
-            const loadedCategories = JSON.parse(localStorage.getItem(CATEGORIES_STORAGE_KEY) || '[]');
-            const storedSettings = localStorage.getItem(SETTINGS_STORAGE_KEY);
-            const defaultEnabledCategories = loadedCategories.reduce((acc: any, cat: Category) => ({ ...acc, [cat.id]: true }), {} as Record<PhraseCategory, boolean>);
-    
-            if (storedSettings) {
-              const parsedSettings = JSON.parse(storedSettings);
-              const enabledCategories = { ...defaultEnabledCategories, ...parsedSettings.enabledCategories };
-              loadedCategories.forEach((cat: Category) => { if (!(cat.id in enabledCategories)) enabledCategories[cat.id] = true; });
-              setSettings({ ...defaultSettings, ...parsedSettings, enabledCategories });
-            } else {
-              setSettings({ ...defaultSettings, enabledCategories: defaultEnabledCategories });
-            }
-    
-            const storedUsage = localStorage.getItem(BUTTON_USAGE_STORAGE_KEY);
-            if (storedUsage) setButtonUsage(JSON.parse(storedUsage));
-            const storedMasteryUsage = localStorage.getItem(MASTERY_BUTTON_USAGE_STORAGE_KEY);
-            if (storedMasteryUsage) setMasteryButtonUsage(JSON.parse(storedMasteryUsage));
-            const storedCardActionUsage = localStorage.getItem(CARD_ACTION_USAGE_STORAGE_KEY);
-            if (storedCardActionUsage) setCardActionUsage(JSON.parse(storedCardActionUsage));
-            const storedHabitTracker = localStorage.getItem(HABIT_TRACKER_STORAGE_KEY);
-            if (storedHabitTracker) setHabitTracker(JSON.parse(storedHabitTracker));
-    
-            const storedPracticeChat = localStorage.getItem(PRACTICE_CHAT_HISTORY_KEY);
-            if (storedPracticeChat) setPracticeChatHistory(JSON.parse(storedPracticeChat));
-
-          } catch (e) { console.error("Failed to load settings or trackers", e); }
-      }
-      
-      setIsLoading(false);
-    };
-
-    initializeApp();
-  }, [showToast, updateAndSavePhrases]);
+      // Reload data from server
+      loadUserData();
+      resetUserChanged();
+    }
+  }, [userChanged, resetUserChanged, loadUserData]);
 
   const callApiWithFallback = useCallback(async <T,>(
     apiCall: (provider: AiService) => Promise<T>

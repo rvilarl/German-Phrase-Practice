@@ -28,6 +28,8 @@ interface AuthContextValue {
   signUp: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   refreshSession: () => Promise<void>;
+  userChanged: boolean;
+  resetUserChanged: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -60,6 +62,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [initializing, setInitializing] = useState<boolean>(true);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [userChanged, setUserChanged] = useState<boolean>(false);
 
   const ensureUserDataInitialized = useCallback(async () => {
     try {
@@ -157,6 +160,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         if (!previousUserId || nextSession.user?.id !== previousUserId) {
           clearAppCaches();
+          setUserChanged(true);
         }
         applySession(nextSession);
         await ensureUserDataInitialized();
@@ -214,6 +218,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const resetUserChanged = useCallback(() => {
+    setUserChanged(false);
+  }, []);
+
   const value = useMemo<AuthContextValue>(() => ({
     user,
     session,
@@ -225,7 +233,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signUp,
     signOut,
     refreshSession,
-  }), [user, session, token, loading, initializing, error]);
+    userChanged,
+    resetUserChanged,
+  }), [user, session, token, loading, initializing, error, userChanged, resetUserChanged]);
 
   return (
     <AuthContext.Provider value={value}>

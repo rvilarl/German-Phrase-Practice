@@ -12,6 +12,9 @@
 export const clearAppCaches = (): void => {
   try {
     CACHE_KEYS.forEach((key) => localStorage.removeItem(key));
+    // Also clear main user data
+    localStorage.removeItem('germanPhrases');
+    localStorage.removeItem('germanAppCategories');
   } catch (error) {
     console.error('Не удалось очистить кеш приложения', error);
   }
