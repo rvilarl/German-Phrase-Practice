@@ -1,880 +1,960 @@
 {
   "header": {
-    "title": "Lingopo",
-    "subtitle": "Spaced Repetition System",
+    "title": "",
+    "subtitle": "",
     "actions": {
-      "openList": "Open list",
-      "openPractice": "Open practice",
-      "openSettings": "Open settings",
-      "signOut": "Sign out",
-      "signingOut": "Signing out..."
+      "openList": "",
+      "openPractice": "",
+      "openSettings": "",
+      "signOut": "",
+      "signingOut": ""
     },
     "errors": {
-      "signOutFailed": "Sign out failed"
+      "signOutFailed": ""
     }
   },
   "common": {
     "field": {
-      "email": "Email"
+      "email": ""
     },
     "placeholder": {
-      "email": "you@example.com"
+      "email": ""
     },
     "labels": {
-      "error": "Error"
+      "error": ""
     }
   },
   "auth": {
     "errors": {
-      "ensureUserData": "Failed to ensure user data is initialized.",
-      "sessionExpired": "Session expired. Please sign in again.",
-      "supabaseSignOut": "Failed to sign out from Supabase after 401.",
-      "restoreSession": "Failed to restore authentication session.",
-      "subscribeAuth": "Failed to subscribe to auth state changes.",
-      "noSessionAfterSignIn": "Unable to obtain session after sign-in.",
-      "noSessionAfterSignUp": "Unable to obtain session after sign-up."
+      "ensureUserData": "",
+      "sessionExpired": "",
+      "supabaseSignOut": "",
+      "restoreSession": "",
+      "subscribeAuth": "",
+      "noSessionAfterSignIn": "",
+      "noSessionAfterSignUp": ""
     },
     "loading": {
-      "preparingData": "Preparing your data..."
+      "preparingData": ""
     },
     "login": {
       "validation": {
-        "missingCredentials": "Enter your email and password."
+        "missingCredentials": ""
       },
-      "title": "Sign in",
-      "subtitle": "Sign in to continue practicing phrases.",
+      "title": "",
+      "subtitle": "",
       "field": {
-        "passwordLabel": "Password",
-        "passwordPlaceholder": "********"
+        "passwordLabel": "",
+        "passwordPlaceholder": ""
       },
       "submit": {
         "state": {
-          "loading": "Signing in..."
+          "loading": ""
         },
-        "label": "Sign in"
+        "label": ""
       },
       "switch": {
-        "prompt": "Don't have an account?",
-        "cta": "Create account"
+        "prompt": "",
+        "cta": ""
       }
     },
     "signup": {
       "validation": {
-        "missingFields": "Fill in all fields.",
-        "passwordMismatch": "Passwords do not match."
+        "missingFields": "",
+        "passwordMismatch": ""
       },
-      "title": "Create account",
-      "subtitle": "Create an account to sync your phrases.",
+      "title": "",
+      "subtitle": "",
       "field": {
-        "passwordLabel": "Password",
-        "passwordPlaceholder": "At least 6 characters",
-        "confirmLabel": "Confirm password",
-        "confirmPlaceholder": "Repeat your password"
+        "passwordLabel": "",
+        "passwordPlaceholder": "",
+        "confirmLabel": "",
+        "confirmPlaceholder": ""
       },
       "submit": {
         "state": {
-          "loading": "Creating account..."
+          "loading": ""
         },
-        "label": "Sign up"
+        "label": ""
       },
       "switch": {
-        "prompt": "Already have an account?",
-        "cta": "Sign in"
+        "prompt": "",
+        "cta": ""
       }
     }
   },
   "settings": {
     "views": {
-      "main": "Settings",
-      "general": "General",
-      "automation": "Automation (AI)",
-      "categories": "Practice categories"
+      "main": "",
+      "general": "",
+      "automation": "",
+      "categories": ""
     },
     "general": {
-      "legend": "General settings",
+      "legend": "",
       "autoSpeak": {
-        "label": "Automatic pronunciation"
+        "label": ""
       },
       "soundEffects": {
-        "label": "Sound effects"
+        "label": ""
       }
     },
     "automation": {
-      "legend": "Automation settings",
+      "legend": "",
       "autoCheckShortPhrases": {
-        "label": "Auto-check short phrases",
-        "description": "Instantly check when the phrase is assembled correctly."
+        "label": "",
+        "description": ""
       },
       "learnNextPhraseHabit": {
-        "label": "Next phrase habit",
-        "description": "Auto-advance after a quick streak of correct answers."
+        "label": "",
+        "description": ""
       }
     },
     "categories": {
-      "manageButton": "Manage categories"
+      "manageButton": ""
     }
   },
   "notifications": {
     "sync": {
-      "synced": "✓ Data synced with the server.",
-      "loaded": "✓ Data loaded from the server.",
-      "error": "Sync error: {{message}}"
+      "synced": "",
+      "loaded": "",
+      "error": ""
     },
     "phrases": {
-      "existsInCategory": "Card \"{{phrase}}\" is already in this category.",
-      "existsInOtherCategory": "Card \"{{phrase}}\" already exists in another category.",
-      "createError": "Failed to create phrase: {{message}}",
-      "exists": "Card \"{{phrase}}\" already exists.",
-      "created": "Card for \"{{phrase}}\" created.",
-      "createCardError": "Failed to create card: {{message}}",
-      "createCardGenericError": "Could not create the card."
+      "existsInCategory": "",
+      "existsInOtherCategory": "",
+      "createError": "",
+      "exists": "",
+      "created": "",
+      "createCardError": "",
+      "createCardGenericError": ""
     },
     "ai": {
-      "providerUnavailable": "AI provider not available."
+      "providerUnavailable": ""
     },
-    "updateError": "Update error: {{message}}",
-    "saveError": "Save error: {{message}}",
-    "deleteError": "Delete error: {{message}}",
-    "moveError": "Move error: {{message}}",
-    "genericError": "Error: {{message}}",
+    "updateError": "",
+    "saveError": "",
+    "deleteError": "",
+    "moveError": "",
+    "genericError": "",
     "cards": {
-      "moving": "Moving {{count}} cards...",
-      "moveSuccess": "✓ Cards moved.",
-      "deleting": "Deleting {{count}} cards...",
-      "deleteSuccess": "✓ Cards deleted.",
-      "generateError": "Failed to generate cards.",
-      "addFailed": "Could not add \"{{phrase}}\": {{error}}",
-      "rateLimit": "Rate limit exceeded. Try adding fewer cards at once.",
-      "addedToCategory": "✓ {{count}} cards added to \"{{category}}\".",
-      "movedAndAdded": "✓ {{moved}} cards moved and {{added}} added to \"{{category}}\".",
-      "addedWithDuplicatesSkipped": "✓ {{count}} cards added to \"{{category}}\". Duplicates were skipped.",
-      "deletedCount": "✓ {{count}} cards deleted.",
-      "movedToCategory": "✓ {{count}} cards moved to \"{{category}}\".",
-      "otherCategory": "another category",
-      "bulkAdded": "✓ {{count}} card added.",
-      "bulkAdded_plural": "✓ {{count}} cards added.",
-      "bulkSkipped": "{{count}} already existed and was skipped.",
-      "bulkSkipped_plural": "{{count}} already existed and were skipped."
+      "moving": "",
+      "moveSuccess": "",
+      "deleting": "",
+      "deleteSuccess": "",
+      "generateError": "",
+      "addFailed": "",
+      "rateLimit": "",
+      "addedToCategory": "",
+      "movedAndAdded": "",
+      "addedWithDuplicatesSkipped": "",
+      "deletedCount": "",
+      "movedToCategory": "",
+      "otherCategory": "",
+      "bulkAdded": "",
+      "bulkAdded_plural": "",
+      "bulkSkipped": "",
+      "bulkSkipped_plural": ""
     },
     "categories": {
-      "createError": "Failed to create category: {{message}}",
-      "saveError": "Failed to save category: {{message}}",
-      "deleteSuccess": "✓ Category \"{{name}}\" deleted."
+      "createError": "",
+      "saveError": "",
+      "deleteSuccess": ""
     }
   },
   "localization": {
     "overlay": {
-      "heading": "Localization",
-      "title": "Preparing interface in {{language}}",
-      "subtitle": "Localizing UI strings to {{language}}.",
-      "fallbackDescription": "Something went wrong while translating. Fallback language will be used.",
-      "currentStepHint": "In progress…",
-      "fallbackMessage": "Using English until the {{language}} translation is ready.",
+      "heading": "",
+      "title": "",
+      "subtitle": "",
+      "fallbackDescription": "",
+      "currentStepHint": "",
+      "fallbackMessage": "",
       "steps": {
-        "checkingStatic": "Checking built-in translations",
-        "loadingCache": "Loading cached translations",
-        "requestingAI": "Requesting AI translation",
-        "validating": "Validating translation structure",
-        "applying": "Applying translations"
+        "checkingStatic": "",
+        "loadingCache": "",
+        "requestingAI": "",
+        "validating": "",
+        "applying": ""
       }
     }
   },
   "library": {
     "empty": {
-      "title": "Your library is empty",
-      "description": "Upload an EPUB file to start building your reading library.",
-      "action": "Add your first book"
+      "title": "",
+      "description": "",
+      "action": ""
     },
     "actions": {
-      "add": "Add book",
-      "adding": "Adding..."
+      "add": "",
+      "adding": ""
     },
     "notifications": {
-      "epubProcessingFailed": "Could not process the EPUB file. Please make sure the file is not corrupted."
+      "epubProcessingFailed": ""
     },
     "cards": {
-      "add": "Add a new book"
+      "add": ""
     },
     "alt": {
-      "cover": "Cover of {{title}}"
+      "cover": ""
     }
   },
   "categories": {
     "manager": {
-      "title": "Manage categories",
+      "title": "",
       "aria": {
-        "edit": "Edit {{name}}",
-        "delete": "Delete {{name}}"
+        "edit": "",
+        "delete": ""
       },
-      "add": "Add new category"
+      "add": ""
     },
     "form": {
-      "createTitle": "Create category",
-      "editTitle": "Edit category",
+      "createTitle": "",
+      "editTitle": "",
       "fields": {
-        "nameLabel": "Category name",
-        "namePlaceholder": "E.g. Travel, Work, or Conversation",
-        "colorLabel": "Color",
-        "colorAria": "Select color {{color}}"
+        "nameLabel": "",
+        "namePlaceholder": "",
+        "colorLabel": "",
+        "colorAria": ""
       },
       "notes": {
-        "aiHint": "Tip: Use descriptive names without '!' or hyphen so AI automations can categorize phrases correctly."
+        "aiHint": ""
       },
       "errors": {
-        "duplicate": "A category with this name already exists."
+        "duplicate": ""
       },
       "submit": {
-        "create": "Create",
-        "save": "Save changes"
+        "create": "",
+        "save": ""
+      }
+    },
+    "detail": {
+      "actions": {
+        "addMore": "",
+        "addPhrase": "",
+        "aiAssistant": ""
+      },
+      "empty": {
+        "title": ""
+      }
+    },
+    "filterMenu": {
+      "actions": {
+        "settings": "",
+        "aiAssistant": ""
       }
     }
   },
   "practice": {
     "chat": {
-      "title": "Practice with AI",
-      "placeholder": "Type your message...",
-      "listeningPlaceholder": "Listening..."
+      "title": "",
+      "placeholder": "",
+      "listeningPlaceholder": ""
     },
     "actions": {
-      "skip": "Skip",
-      "know": "I know"
+      "skip": "",
+      "know": ""
+    },
+    "states": {
+      "allCategories": "",
+      "add": "",
+      "manage": "",
+      "errorOccurred": "",
+      "congratulations": "",
+      "learnedAllSelected": "",
+      "excellent": "",
+      "foundationCompleted": "",
+      "noMoreCards": "",
+      "practiceOtherCategories": "",
+      "empty": "",
+      "noUnlearnedInCategory": "",
+      "practiceAllCategories": "",
+      "allForToday": "",
+      "completedAllAvailable": "",
+      "comeBackLater": "",
+      "continue": "",
+      "generateNew": "",
+      "generating": ""
     }
   },
   "languages": {
     "names": {
-      "ru": "Russian",
-      "de": "German"
+      "ru": "",
+      "de": ""
     },
     "prepositional": {
-      "ru": "Russian",
-      "de": "German"
+      "ru": "",
+      "de": ""
     },
     "badge": {
-      "en": "EN",
-      "de": "DE",
-      "ru": "RU",
-      "fr": "FR",
-      "es": "ES",
-      "it": "IT",
-      "pt": "PT",
-      "pl": "PL",
-      "zh": "中文",
-      "ja": "日本",
-      "ar": "AR"
+      "en": "",
+      "de": "",
+      "ru": "",
+      "fr": "",
+      "es": "",
+      "it": "",
+      "pt": "",
+      "pl": "",
+      "zh": "",
+      "ja": "",
+      "ar": ""
     }
   },
   "fab": {
-    "addPhrase": "Add phrase in {{language}}",
-    "openLibrary": "Open library",
-    "smartImport": "Smart import",
-    "chooseLanguage": "Choose phrase language",
-    "toggle": "Add phrase"
+    "addPhrase": "",
+    "openLibrary": "",
+    "smartImport": "",
+    "chooseLanguage": "",
+    "toggle": ""
   },
   "modals": {
     "nounDeclension": {
-      "title": "Declension: {{noun}}",
+      "title": "",
       "errors": {
-        "generic": "Error",
-        "noData": "No data."
+        "generic": "",
+        "noData": ""
       },
       "headers": {
-        "case": "Case",
-        "singular": "Singular",
-        "plural": "Plural"
+        "case": "",
+        "singular": "",
+        "plural": ""
       },
       "cases": {
         "nominativ": {
-          "name": "Nominative",
-          "question": "(who? what?)"
+          "name": "",
+          "question": ""
         },
         "akkusativ": {
-          "name": "Accusative",
-          "question": "(whom? what?)"
+          "name": "",
+          "question": ""
         },
         "dativ": {
-          "name": "Dative",
-          "question": "(to whom? to what?)"
+          "name": "",
+          "question": ""
         },
         "genitiv": {
-          "name": "Genitive",
-          "question": "(whose? of what?)"
+          "name": "",
+          "question": ""
         }
       }
     },
     "pronouns": {
-      "title": "Personal pronouns",
+      "title": "",
       "headers": {
-        "speak": "Speak",
-        "german": "German",
-        "russian": "Russian"
+        "speak": "",
+        "german": "",
+        "russian": ""
       },
       "pronouns": [
         {
-          "german": "ich",
-          "russian": "I"
+          "german": "",
+          "russian": ""
         },
         {
-          "german": "du",
-          "russian": "you (informal)"
+          "german": "",
+          "russian": ""
         },
         {
-          "german": "er / sie / es",
-          "russian": "he / she / it"
+          "german": "",
+          "russian": ""
         },
         {
-          "german": "wir",
-          "russian": "we"
+          "german": "",
+          "russian": ""
         },
         {
-          "german": "ihr",
-          "russian": "you (plural informal)"
+          "german": "",
+          "russian": ""
         },
         {
-          "german": "sie / Sie",
-          "russian": "they / you (formal)"
+          "german": "",
+          "russian": ""
         }
       ]
     },
     "sentenceChain": {
-      "title": "Phrase builder",
+      "title": "",
       "aria": {
-        "goBack": "Go back one step"
+        "goBack": ""
       },
       "tooltips": {
-        "clickToRevert": "Click to revert to this stage"
+        "clickToRevert": ""
       },
       "errors": {
-        "generic": "Error"
+        "generic": ""
       },
       "messages": {
-        "noContinuations": "No suggestions for continuation. Try going back."
+        "noContinuations": ""
       },
       "actions": {
-        "addCustom": "Add your own option"
+        "addCustom": ""
       }
     },
     "smartImport": {
       "tabs": {
-        "assistant": "Assistant",
-        "speech": "From speech",
-        "file": "From file"
+        "assistant": "",
+        "speech": "",
+        "file": ""
       },
       "assistant": {
-        "title": "AI Assistant",
-        "subtitle": "Enter a topic, and AI will generate a set of cards for you.",
-        "placeholder": "E.g., 'At the airport' or 'Hand fingers'",
+        "title": "",
+        "subtitle": "",
+        "placeholder": "",
         "aria": {
-          "microphone": "Voice input",
-          "generate": "Generate"
+          "microphone": "",
+          "generate": ""
         }
       },
       "speech": {
-        "title": "Import from speech or text",
-        "subtitle": "Record speech or paste text to create cards.",
-        "transcriptPlaceholder": "Transcript will appear here...",
+        "title": "",
+        "subtitle": "",
+        "transcriptPlaceholder": "",
         "aria": {
-          "paste": "Paste from clipboard",
-          "process": "Process"
+          "paste": "",
+          "process": ""
         },
         "errors": {
-          "pasteFailed": "Failed to paste text from clipboard. You may not have granted permission."
+          "pasteFailed": ""
         }
       },
       "file": {
-        "title": "Import from file"
+        "title": ""
       },
       "processing": {
-        "generatingCards": "AI is generating cards...",
-        "analyzingTopic": "Analyzing topic..."
+        "generatingCards": "",
+        "analyzingTopic": ""
       },
       "suggestion": {
         "addToExisting": {
-          "title": "Add to existing category?",
-          "body": "You already have a category \"{{category}}\". Do you want to add new cards on topic \"{{topic}}\" to it?",
-          "yes": "Yes, add to \"{{category}}\"",
-          "no": "No, add to \"General\""
+          "title": "",
+          "body": "",
+          "yes": "",
+          "no": ""
         },
         "createNew": {
-          "title": "Create new category?",
-          "body": "AI suggests creating a category with the name:",
-          "create": "Create",
-          "addToGeneral": "Add to \"General\""
+          "title": "",
+          "body": "",
+          "create": "",
+          "addToGeneral": ""
         }
       },
       "preview": {
-        "title": "Suggested cards",
+        "title": "",
         "aria": {
-          "back": "Back"
+          "back": ""
         },
         "actions": {
-          "selectAll": "Select all",
-          "clearAll": "Clear all",
-          "refine": "Refine",
-          "add": "Add",
-          "addWithCount": "Add ({{count}})"
+          "selectAll": "",
+          "clearAll": "",
+          "refine": "",
+          "add": "",
+          "addWithCount": ""
         },
         "refine": {
-          "placeholder": "Refinement, e.g., only verbs",
+          "placeholder": "",
           "aria": {
-            "microphone": "Voice input"
+            "microphone": ""
           }
         }
       },
       "categoryNames": {
-        "fromSpeech": "Cards from speech",
-        "general": "General"
+        "fromSpeech": "",
+        "general": ""
       }
     },
     "addContinuation": {
       "placeholders": {
-        "text": "Type the continuation..."
+        "text": ""
       },
       "aria": {
-        "microphone": "Voice input",
-        "send": "Send continuation",
-        "switchToText": "Switch to text input",
-        "switchToVoice": "Switch to voice input"
+        "microphone": "",
+        "send": "",
+        "switchToText": "",
+        "switchToVoice": ""
       }
     },
     "addPhrase": {
-      "loading": "Creating card...",
-      "title": "Create a new phrase",
+      "loading": "",
+      "title": "",
       "body": {
         "instructions": {
-          "voice": "Speak the phrase in {{language}}",
-          "text": "Enter the phrase in {{language}}"
+          "voice": "",
+          "text": ""
         }
       },
       "placeholders": {
-        "ru": "e.g., \"Сколько это стоит?\"",
-        "de": "e.g., \"Wie viel kostet das?\""
+        "ru": "",
+        "de": ""
       },
       "aria": {
-        "microphone": "Voice input",
+        "microphone": "",
         "textField": {
-          "ru": "Russian phrase",
-          "de": "German phrase"
+          "ru": "",
+          "de": ""
         },
-        "send": "Create phrase",
-        "toggleToText": "Switch to text input",
-        "toggleToVoice": "Switch to voice input",
-        "close": "Close"
+        "send": "",
+        "toggleToText": "",
+        "toggleToVoice": "",
+        "close": ""
       },
       "status": {
-        "listening": "Listening..."
+        "listening": ""
       },
       "errors": {
-        "generic": "Could not create the phrase.",
-        "network": "Network error. Check your connection or type the text manually.",
-        "permission": "Microphone access is not allowed. Check settings or type the text manually.",
-        "recognition": "Speech recognition failed."
+        "generic": "",
+        "network": "",
+        "permission": "",
+        "recognition": ""
       },
-      "errorLabel": "Error",
+      "errorLabel": "",
       "actions": {
-        "create": "Create"
+        "create": ""
       }
     },
     "adjectiveDeclension": {
-      "title": "Adjective: {{adjective}}",
-      "phraseNative": "Declension: {{adjective}}",
+      "title": "",
+      "phraseNative": "",
       "labels": {
-        "case": "Case",
-        "masculine": "Masculine",
-        "feminine": "Feminine",
-        "neuter": "Neuter",
-        "plural": "Plural",
-        "weak": "Weak declension (with definite article)",
-        "mixed": "Mixed declension (with indefinite article)",
-        "strong": "Strong declension (without article)",
-        "degrees": "Degrees of comparison",
-        "positive": "Positive",
-        "comparative": "Comparative",
-        "superlative": "Superlative"
+        "case": "",
+        "masculine": "",
+        "feminine": "",
+        "neuter": "",
+        "plural": "",
+        "weak": "",
+        "mixed": "",
+        "strong": "",
+        "degrees": "",
+        "positive": "",
+        "comparative": "",
+        "superlative": ""
       },
       "sections": {
-        "grammar": "Grammar reference",
-        "example": "Usage example"
+        "grammar": "",
+        "example": ""
       },
       "states": {
-        "errorTitle": "Error",
-        "empty": "No data.",
-        "errorMessage": "Failed to load declension data."
+        "errorTitle": "",
+        "empty": "",
+        "errorMessage": ""
       },
       "cases": {
-        "nominativ": "Nominative",
-        "akkusativ": "Accusative",
-        "dativ": "Dative",
-        "genitiv": "Genitive"
+        "nominativ": "",
+        "akkusativ": "",
+        "dativ": "",
+        "genitiv": ""
       }
     },
     "autoFillLoading": {
-      "title": "Generating cards...",
-      "body": "Please wait. AI is selecting phrases for the \"{{category}}\" category."
+      "title": "",
+      "body": ""
     },
     "autoFillPreview": {
-      "title": "Suggestions for \"{{category}}\"",
-      "tooltip": "Suggestions for \"{{category}}\"",
-      "empty": "AI didn't suggest any cards. Try refining your request.",
+      "title": "",
+      "tooltip": "",
+      "empty": "",
       "refine": {
-        "placeholder": "E.g. only titles, no phrases",
-        "toggle": "Refine"
+        "placeholder": "",
+        "toggle": ""
       },
       "actions": {
-        "refine": "Refine",
-        "confirm": "Add",
-        "confirmShort": "+",
-        "confirmWithCount": "Add ({{count}})"
+        "refine": "",
+        "confirm": "",
+        "confirmShort": "",
+        "confirmWithCount": ""
       },
       "selection": {
-        "select": "Select all",
-        "clear": "Clear all"
+        "select": "",
+        "clear": ""
       },
       "status": {
-        "listening": "Listening..."
+        "listening": ""
       }
     },
     "chat": {
       "placeholders": {
-        "listening": "Listening...",
-        "ask": "Ask something..."
+        "listening": "",
+        "ask": ""
       },
       "aria": {
-        "stopListening": "Stop listening",
-        "startListening": "Start listening"
+        "stopListening": "",
+        "startListening": ""
       },
       "errors": {
-        "generic": "An error occurred: {{message}}"
+        "generic": ""
       }
     },
     "confirmCategoryFill": {
-      "title": "Fill category?",
-      "body": "Do you want to immediately fill the category \"{{category}}\" with AI?",
+      "title": "",
+      "body": "",
       "actions": {
-        "cancel": "Later",
-        "confirm": "Yes, fill"
+        "cancel": "",
+        "confirm": ""
       }
     },
     "confirmDeleteCategory": {
-      "title": "Delete category?",
-      "body": "You are about to delete the category:",
-      "phraseCount": "This category contains {{count}} {{cards}}. What to do with them?",
+      "title": "",
+      "body": "",
+      "phraseCount": "",
       "cards": {
-        "one": "card",
-        "few": "cards",
-        "many": "cards",
-        "other": "cards"
+        "one": "",
+        "few": "",
+        "many": "",
+        "other": ""
       },
       "actions": {
-        "move": "Move to",
-        "delete": "Delete all cards",
-        "cancel": "Cancel",
-        "confirm": "Delete"
+        "move": "",
+        "delete": "",
+        "cancel": "",
+        "confirm": ""
       }
     },
     "confirmDelete": {
-      "title": "Confirm deletion",
-      "body": "Are you sure you want to permanently delete this phrase?",
-      "mastery": "Mastery level:",
+      "title": "",
+      "body": "",
+      "mastery": "",
       "actions": {
-        "cancel": "Cancel",
-        "confirm": "Delete"
+        "cancel": "",
+        "confirm": ""
       }
     },
     "confirmDeletePhrases": {
-      "title": "Confirm action",
-      "body": "AI assistant suggests deleting or moving the following {{count}} {{cards}}. What to do with them?",
+      "title": "",
+      "body": "",
       "cards": {
-        "one": "card",
-        "few": "cards",
-        "many": "cards",
-        "other": "cards"
+        "one": "",
+        "few": "",
+        "many": "",
+        "other": ""
       },
       "actions": {
-        "selectAll": "Select all",
-        "deselectAll": "Deselect all",
-        "delete": "Delete ({{count}})",
-        "move": "Move ({{count}})"
+        "selectAll": "",
+        "deselectAll": "",
+        "delete": "",
+        "move": ""
       }
     },
     "deepDive": {
       "stages": {
-        "deconstruction": "Stage 1: Deconstruction",
-        "personalization": "Stage 2: Personalization",
-        "encoding": "Stage 3: Encoding"
+        "deconstruction": "",
+        "personalization": "",
+        "encoding": ""
       },
       "errors": {
-        "analysis": "Analysis error",
-        "noData": "No data for analysis."
+        "analysis": "",
+        "noData": ""
       }
     },
     "discussTranslation": {
-      "title": "Discuss translation",
-      "suggestion": "AI suggestion:",
-      "accept": "Accept this option",
-      "placeholder": "Your comment...",
+      "title": "",
+      "suggestion": "",
+      "accept": "",
+      "placeholder": "",
       "errors": {
-        "generic": "An error occurred: {{message}}"
+        "generic": ""
       }
     },
     "editPhrase": {
-      "title": "Edit phrase",
+      "title": "",
       "fields": {
-        "russian": "Russian",
-        "german": "German",
-        "category": "Category"
+        "russian": "",
+        "german": "",
+        "category": ""
       },
       "errors": {
-        "translation": "Failed to get translation."
+        "translation": ""
       },
       "actions": {
-        "discuss": "Discuss translation",
-        "save": "Save"
+        "discuss": "",
+        "save": ""
       }
     },
     "findDuplicates": {
-      "title": "Find duplicates",
-      "processing": "Searching...",
-      "found": "Found {{count}} duplicate groups.",
-      "description": "The phrase with the least progress in each group will be deleted.",
+      "title": "",
+      "processing": "",
+      "found": "",
+      "description": "",
       "actions": {
-        "cancel": "Cancel",
-        "clean": "Clean",
-        "close": "Close"
+        "cancel": "",
+        "clean": "",
+        "close": ""
       },
-      "noDuplicates": "No duplicates found.",
+      "noDuplicates": "",
       "errors": {
-        "search": "Error searching for duplicates: {{message}}"
+        "search": ""
       }
     },
     "improvePhrase": {
       "actions": {
-        "suggest": "Suggest correct option",
-        "discuss": "Discuss with AI"
+        "suggest": "",
+        "discuss": ""
       },
-      "reasoning": "Reasoning:",
-      "improve": "Improve",
+      "reasoning": "",
+      "improve": "",
       "errors": {
-        "generic": "Failed to get improvement."
+        "generic": ""
       }
     },
     "learningAssistant": {
-      "success": "Correct!",
-      "placeholder": "Your answer...",
+      "success": "",
+      "placeholder": "",
       "errors": {
-        "generic": "An error occurred: {{message}}"
+        "generic": ""
       }
     },
     "moveOrSkip": {
-      "title": "Duplicates found",
-      "body": "Found {{count}} {{cards}} that already exist in other categories.{{newCards}}",
-      "newCards": " Also {{count}} new will be added.",
-      "question": "What do you want to do?",
+      "title": "",
+      "body": "",
+      "newCards": "",
+      "question": "",
       "actions": {
-        "move": "Move {{count}} to \"{{category}}\"",
-        "addOnlyNew": "Add only {{count}} new",
-        "cancel": "Cancel"
+        "move": "",
+        "addOnlyNew": "",
+        "cancel": ""
       },
       "cards": {
-        "one": "card",
-        "few": "cards",
-        "many": "cards",
-        "other": "cards"
+        "one": "",
+        "few": "",
+        "many": "",
+        "other": ""
       }
     },
     "movieExamples": {
-      "title": "Movie examples",
+      "title": "",
       "errors": {
-        "generic": "Error"
+        "generic": ""
       },
-      "noExamples": "Could not find movie examples for this phrase."
+      "noExamples": ""
     },
     "phraseBuilder": {
-      "loading": "Selecting words...",
+      "loading": "",
       "errors": {
-        "generic": "Error",
-        "check": "An error occurred while checking."
+        "generic": "",
+        "check": ""
       },
-      "instructions": "Click on the words below to build the phrase",
+      "instructions": "",
       "aria": {
-        "clear": "Clear"
+        "clear": ""
       },
       "actions": {
-        "check": "Check",
-        "close": "Close",
-        "continue": "Continue"
+        "check": "",
+        "close": "",
+        "continue": ""
       }
     },
     "phrasePreview": {
       "actions": {
-        "learn": "Learn this phrase"
+        "learn": ""
       }
     },
     "practiceResult": {
-      "correct": "Excellent!",
-      "incorrect": "Incorrect",
-      "correctAnswer": "Correct answer:",
+      "correct": "",
+      "incorrect": "",
+      "correctAnswer": "",
       "actions": {
-        "continue": "Continue"
+        "continue": ""
       }
     },
     "fileImport": {
       "cropper": {
-        "cancel": "Cancel",
-        "confirm": "Confirm"
+        "cancel": "",
+        "confirm": ""
       },
       "errors": {
-        "unsupportedType": "Unsupported file type. Please select an image.",
-        "tooLarge": "File is too large. Maximum size is 10MB.",
-        "cropFirst": "Please upload and crop an image first."
+        "unsupportedType": "",
+        "tooLarge": "",
+        "cropFirst": ""
       },
-      "instructions": "Upload an image. AI will recognize text or describe objects in the photo, turning them into cards.",
+      "instructions": "",
       "dropzone": {
-        "text": "Drag and drop or select a file",
-        "subtext": "Image (max. 10MB)"
+        "text": "",
+        "subtext": ""
       },
       "camera": {
-        "button": "Take a photo",
-        "subtext": "Use your camera"
+        "button": "",
+        "subtext": ""
       },
       "preview": {
-        "alt": "Cropped image preview"
+        "alt": ""
       },
       "refinement": {
-        "placeholder": "Add a refinement (optional)...",
-        "aria": "Voice input for refinement"
+        "placeholder": "",
+        "aria": ""
       },
-      "submit": "Create cards"
+      "submit": ""
     },
     "voiceWorkspace": {
-      "instructions": "Speak the phrase or drag words here",
-      "loading": "Selecting words...",
+      "instructions": "",
+      "loading": "",
       "actions": {
-        "check": "Check",
-        "learnWithAI": "Learn with AI",
-        "showAnswer": "Show answer",
-        "clear": "Clear",
-        "close": "Close",
-        "continue": "Continue",
-        "nextPhrase": "Next phrase"
+        "check": "",
+        "learnWithAI": "",
+        "showAnswer": "",
+        "clear": "",
+        "close": "",
+        "continue": "",
+        "nextPhrase": ""
       },
       "feedback": {
-        "correct": "Excellent! That's correct.",
-        "incorrect": "Unfortunately, that's incorrect. Try again.",
-        "revealAnswer": "Here's the correct answer. Try again next time!"
+        "correct": "",
+        "incorrect": "",
+        "revealAnswer": ""
       },
       "errors": {
-        "check": "An error occurred while checking.",
-        "speech": "Speech recognition error occurred.",
-        "speechNetwork": "Network error during speech recognition.",
-        "microphoneDenied": "Microphone access is not allowed.",
-        "unexpected": "An unexpected error occurred.",
-        "serviceUnavailable": "Service temporarily unavailable (error 500).",
-        "apiKey": "API key configuration error.",
-        "requestFailed": "Failed to execute request.",
-        "loadWords": "Failed to load word options."
+        "check": "",
+        "speech": "",
+        "speechNetwork": "",
+        "microphoneDenied": "",
+        "unexpected": "",
+        "serviceUnavailable": "",
+        "apiKey": "",
+        "requestFailed": "",
+        "loadWords": ""
       },
       "automation": {
-        "nextPhrase": "Next phrase"
+        "nextPhrase": ""
       }
     },
     "verbConjugation": {
-      "title": "Conjugation: {{infinitive}}",
-      "proxyTitle": "Conjugation: {{infinitive}}",
+      "title": "",
+      "proxyTitle": "",
       "errors": {
-        "simple": "Failed to load simple conjugation.",
-        "detailed": "Failed to load detailed conjugation."
+        "simple": "",
+        "detailed": ""
       },
       "simple": {
-        "heading": "Präsens (present tense)",
-        "button": "See detailed forms"
+        "heading": "",
+        "button": ""
       },
       "tense": {
-        "present": "Präsens (present tense)",
-        "past": "Perfekt (past tense)",
-        "future": "Futur I (future tense)"
+        "present": "",
+        "past": "",
+        "future": ""
       },
       "forms": {
-        "statement": "Statement",
-        "question": "Question",
-        "negative": "Negative"
+        "statement": "",
+        "question": "",
+        "negative": ""
       }
     },
     "voicePractice": {
-      "prompt": "Speak this phrase:",
-      "listening": "Listening...",
+      "prompt": "",
+      "listening": "",
       "aria": {
-        "microphone": "Start voice input",
-        "close": "Close"
+        "microphone": "",
+        "close": ""
       }
     },
     "wFragen": {
-      "title": "Question words",
+      "title": "",
       "columns": {
-        "play": "Play",
-        "german": "German",
-        "translation": "Translation"
+        "play": "",
+        "german": "",
+        "translation": ""
       },
       "items": [
         {
-          "german": "Was?",
-          "translation": "What?"
+          "german": "",
+          "translation": ""
         },
         {
-          "german": "Wer?",
-          "translation": "Who?"
+          "german": "",
+          "translation": ""
         },
         {
-          "german": "Wo?",
-          "translation": "Where?"
+          "german": "",
+          "translation": ""
         },
         {
-          "german": "Wann?",
-          "translation": "When?"
+          "german": "",
+          "translation": ""
         },
         {
-          "german": "Wie?",
-          "translation": "How?"
+          "german": "",
+          "translation": ""
         },
         {
-          "german": "Warum?",
-          "translation": "Why?"
+          "german": "",
+          "translation": ""
         },
         {
-          "german": "Woher?",
-          "translation": "Where from?"
+          "german": "",
+          "translation": ""
         },
         {
-          "german": "Wohin?",
-          "translation": "Where to?"
+          "german": "",
+          "translation": ""
         }
       ]
     },
     "wordAnalysis": {
-      "title": "Word analysis: {{word}}",
+      "title": "",
       "errors": {
-        "generic": "Failed to load analysis.",
-        "unknown": "No analysis available."
+        "generic": "",
+        "unknown": ""
       },
       "labels": {
-        "partOfSpeech": "Part of speech",
-        "grammarReference": "Grammar reference",
-        "baseForm": "Base form",
-        "nativeTranslation": "Translation",
-        "article": "Article",
-        "plural": "Plural",
-        "infinitive": "Infinitive",
-        "tense": "Tense",
-        "person": "Person and number",
-        "example": "Example usage",
-        "exampleTranslation": "Translation:",
-        "cardCreated": "Card created!"
+        "partOfSpeech": "",
+        "grammarReference": "",
+        "baseForm": "",
+        "nativeTranslation": "",
+        "article": "",
+        "plural": "",
+        "infinitive": "",
+        "tense": "",
+        "person": "",
+        "example": "",
+        "exampleTranslation": "",
+        "cardCreated": ""
       },
       "actions": {
-        "createCard": "Create card",
-        "openVerb": "Open verb conjugation",
-        "openNoun": "Open noun declension",
-        "openAdjective": "Open adjective declension"
+        "createCard": "",
+        "openVerb": "",
+        "openNoun": "",
+        "openAdjective": ""
       }
+    },
+    "cameraCapture": {
+      "errorTitle": "",
+      "errors": {
+        "permission": "",
+        "notFound": "",
+        "generic": ""
+      },
+      "aria": {
+        "capture": ""
+      }
+    }
+  },
+  "phraseList": {
+    "item": {
+      "badges": {
+        "new": ""
+      },
+      "actions": {
+        "practice": "",
+        "edit": "",
+        "delete": ""
+      },
+      "categoryButton": ""
+    },
+    "search": {
+      "listening": "",
+      "placeholder": ""
+    },
+    "sections": {
+      "new": "",
+      "inProgress": "",
+      "mastered": ""
+    },
+    "filters": {
+      "all": ""
+    },
+    "summary": {
+      "count": ""
+    },
+    "actions": {
+      "duplicates": "",
+      "aiImport": ""
     }
   }
 }
