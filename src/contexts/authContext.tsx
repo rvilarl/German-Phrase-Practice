@@ -195,7 +195,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setError(null);
     try {
       await withLoading(async () => {
-        await authService.signOut();
+        if (session) {
+          await authService.signOut();
+        }
         clearAppCaches();
         applySession(null);
       });
