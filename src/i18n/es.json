@@ -22,6 +22,9 @@
     },
     "labels": {
       "error": "Error"
+    },
+    "actions": {
+      "delete": "Eliminar"
     }
   },
   "auth": {
@@ -240,8 +243,8 @@
     },
     "filterMenu": {
       "actions": {
-        "settings": "Einstellungen",
-        "aiAssistant": "KI-Assistent"
+        "settings": "Configuración",
+        "aiAssistant": "Asistente IA"
       }
     }
   },
@@ -955,6 +958,24 @@
     "actions": {
       "duplicates": "Duplicados",
       "aiImport": "Importación IA"
+    }
+  },
+  "assistant": {
+    "contextMenu": {
+      "wordDetails": "Wortdetails",
+      "createWordCard": "Wortkarte erstellen",
+      "createPhraseCard": "Satzkarte erstellen",
+      "generateSimilar": "Ähnliche generieren",
+      "goToList": "Ir a la lista",
+      "discussTranslation": "Discutir la traducción"
+    },
+    "common": {
+      "translationError": "Übersetzungsfehler",
+      "translating": "Übersetze...",
+      "translate": "Übersetzen"
+    },
+    "prompts": {
+      "generateSimilar": "Ähnliche Phrasen generieren für: {phrase}"
     }
   }
 }

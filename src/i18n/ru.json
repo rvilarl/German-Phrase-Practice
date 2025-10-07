@@ -22,6 +22,9 @@
     },
     "labels": {
       "error": "Ошибка"
+    },
+    "actions": {
+      "delete": "Удалить"
     }
   },
   "auth": {
@@ -984,6 +987,24 @@
     "actions": {
       "duplicates": "Дубликаты",
       "aiImport": "Импорт ИИ"
+    }
+  },
+  "assistant": {
+    "contextMenu": {
+      "wordDetails": "Детали слова",
+      "createWordCard": "Создать карточку слова",
+      "createPhraseCard": "Создать карточку фразы",
+      "generateSimilar": "Сгенерировать похожие",
+      "goToList": "Перейти к списку дел",
+      "discussTranslation": "Обсудить перевод"
+    },
+    "common": {
+      "translationError": "Ошибка перевода",
+      "translating": "Перевод...",
+      "translate": "Перевести"
+    },
+    "prompts": {
+      "generateSimilar": "Сгенерировать похожие фразы для: {phrase}"
     }
   }
 }

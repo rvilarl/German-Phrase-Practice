@@ -22,6 +22,9 @@
     },
     "labels": {
       "error": "Fehler"
+    },
+    "actions": {
+      "delete": "Löschen"
     }
   },
   "auth": {
@@ -955,6 +958,24 @@
     "actions": {
       "duplicates": "Duplikate",
       "aiImport": "KI-Import"
+    }
+  },
+  "assistant": {
+    "contextMenu": {
+      "wordDetails": "Wortdetails",
+      "createWordCard": "Wortkarte erstellen",
+      "createPhraseCard": "Satzkarte erstellen",
+      "generateSimilar": "Ähnliche generieren",
+      "goToList": "Zur Liste gehen",
+      "discussTranslation": "Übersetzung besprechen"
+    },
+    "common": {
+      "translationError": "Übersetzungsfehler",
+      "translating": "Übersetze...",
+      "translate": "Übersetzen"
+    },
+    "prompts": {
+      "generateSimilar": "Ähnliche Phrasen generieren für: {phrase}"
     }
   }
 }

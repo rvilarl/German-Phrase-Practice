@@ -22,6 +22,9 @@
     },
     "labels": {
       "error": "Error"
+    },
+    "actions": {
+      "delete": "Delete"
     }
   },
   "auth": {
@@ -955,6 +958,24 @@
     "actions": {
       "duplicates": "Duplicates",
       "aiImport": "AI Import"
+    }
+  },
+  "assistant": {
+    "contextMenu": {
+      "wordDetails": "Word details",
+      "createWordCard": "Create word card",
+      "createPhraseCard": "Create phrase card",
+      "generateSimilar": "Generate similar",
+      "goToList": "Go to list",
+      "discussTranslation": "Discuss translation"
+    },
+    "common": {
+      "translationError": "Translation error",
+      "translating": "Translating",
+      "translate": "Translate"
+    },
+    "prompts": {
+      "generateSimilar": "Generate similar phrases for: {phrase}"
     }
   }
 }
