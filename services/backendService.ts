@@ -42,12 +42,12 @@ const feCategory = (beCategory: any): Category => ({
 
 const fePhrase = (bePhrase: any): Phrase => {
     const categoryId = bePhrase.category_id ?? bePhrase.category;
-    // FIX: Map backend's flat structure to the frontend's nested `text` object.
+    // Map backend's flat structure to the frontend's nested `text` object.
     return {
         id: bePhrase.id.toString(),
         text: {
-            native: bePhrase.russian,
-            learning: bePhrase.german,
+            native: bePhrase.native || bePhrase.native_text,
+            learning: bePhrase.learning || bePhrase.learning_text,
         },
         category: categoryId.toString(),
         romanization: bePhrase.transcription ? { learning: bePhrase.transcription } : undefined,
@@ -171,11 +171,13 @@ export const createPhrase = async (phraseData: Omit<Phrase, 'id' | 'masteryLevel
     const response = await fetchWithRetry(`${API_BASE_URL}/phrases`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        // FIX: Map frontend's nested `text` object to backend's flat properties.
+        // Map frontend's nested `text` object to backend's flat properties.
         body: JSON.stringify({
-            russian: phraseData.text.native,
-            german: phraseData.text.learning,
+            native_text: phraseData.text.native,
+            learning_text: phraseData.text.learning,
             category_id: parseInt(phraseData.category, 10),
+            transcription: phraseData.romanization?.learning,
+            context: phraseData.context?.native,
         })
     });
     const created = await handleResponse(response);
@@ -183,10 +185,10 @@ export const createPhrase = async (phraseData: Omit<Phrase, 'id' | 'masteryLevel
 };
 
 export const updatePhrase = async (phrase: Phrase): Promise<Phrase> => {
-    // FIX: Map frontend's nested object structure to the flat properties expected by the backend.
+    // Map frontend's nested object structure to the flat properties expected by the backend.
     const beData = {
-        russian: phrase.text.native,
-        german: phrase.text.learning,
+        native_text: phrase.text.native,
+        learning_text: phrase.text.learning,
         category_id: parseInt(phrase.category, 10),
         transcription: phrase.romanization?.learning,
         context: phrase.context?.native,
@@ -268,6 +270,42 @@ export const loadInitialData = async (): Promise<void> => {
     await handleResponse(response);
 };
 
+// --- User Profile API ---
+import type { LanguageProfile } from '../types';
 
+export const getUserProfile = async (): Promise<LanguageProfile> => {
+    const response = await fetchWithRetry(`${API_BASE_URL}/user-profile`);
+    const data = await handleResponse(response);
 
+    return {
+        ui: data.ui_language,
+        native: data.native_language,
+        learning: data.learning_language,
+    };
+};
 
+export const updateUserProfile = async (profile: LanguageProfile): Promise<void> => {
+    const response = await fetchWithRetry(`${API_BASE_URL}/user-profile`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            ui_language: profile.ui,
+            native_language: profile.native,
+            learning_language: profile.learning,
+        }),
+    });
+    await handleResponse(response);
+};
+
+export const upsertUserProfile = async (profile: LanguageProfile): Promise<void> => {
+    const response = await fetchWithRetry(`${API_BASE_URL}/user-profile`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            ui_language: profile.ui,
+            native_language: profile.native,
+            learning_language: profile.learning,
+        }),
+    });
+    await handleResponse(response);
+};

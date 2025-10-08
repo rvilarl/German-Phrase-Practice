@@ -7,7 +7,6 @@
   useState,
 } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
-import { useTranslation } from '../hooks/useTranslation.ts';
 import * as authService from '../../services/authService.ts';
 import * as backendService from '../../services/backendService.ts';
 import {
@@ -57,38 +56,31 @@ const useApplySession = () => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { t } = useTranslation();
+  // Note: Cannot use useTranslation here as it creates circular dependency with LanguageProvider
+  // LanguageProvider needs AuthProvider (for useAuth), and AuthProvider would need LanguageProvider (for useTranslation)
   const { session, user, token, applySession } = useApplySession();
   const [initializing, setInitializing] = useState<boolean>(true);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [userChanged, setUserChanged] = useState<boolean>(false);
 
-  const ensureUserDataInitialized = useCallback(async () => {
-    try {
-      const data = await backendService.fetchInitialData();
-      if (!data.categories || data.categories.length === 0) {
-        await backendService.loadInitialData();
-      }
-    } catch (initError) {
-      console.error(t('auth.errors.ensureUserData'), initError);
-    }
-  }, [t]);
+  // Note: Removed automatic data initialization - onboarding flow handles this now
+  // New users will see language selection modal before data generation
 
   useEffect(() => {
     setUnauthorizedHandler(() => {
       applySession(null);
       clearAppCaches();
-      setError(t('auth.errors.sessionExpired'));
+      setError('Session expired');
       authService.signOut().catch((signOutError) => {
-        console.error(t('auth.errors.supabaseSignOut'), signOutError);
+        console.error('Error signing out from Supabase', signOutError);
       });
     });
 
     return () => {
       setUnauthorizedHandler(null);
     };
-  }, [applySession, t]);
+  }, [applySession]);
 
   useEffect(() => {
     let isMounted = true;
@@ -102,7 +94,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         applySession(existingSession);
       } catch (bootstrapError) {
-        console.error(t('auth.errors.restoreSession'), bootstrapError);
+        console.error('Failed to restore session', bootstrapError);
         if (isMounted) {
           setError((bootstrapError as Error).message);
         }
@@ -127,7 +119,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       });
     } catch (subscriptionError) {
-      console.error(t('auth.errors.subscribeAuth'), subscriptionError);
+      console.error('Failed to subscribe to auth state changes', subscriptionError);
       if (isMounted) {
         setError((subscriptionError as Error).message);
         setInitializing(false);
@@ -138,7 +130,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isMounted = false;
       subscription?.unsubscribe();
     };
-  }, [applySession, t]);
+  }, [applySession]);
 
   const withLoading = async <T,>(fn: () => Promise<T>): Promise<T> => {
     setLoading(true);
@@ -156,14 +148,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const previousUserId = session?.user?.id;
         const { session: nextSession } = await authService.signIn(email, password);
         if (!nextSession) {
-          throw new Error(t('auth.errors.noSessionAfterSignIn'));
+          throw new Error('No session returned after sign in');
         }
         if (!previousUserId || nextSession.user?.id !== previousUserId) {
           clearAppCaches();
           setUserChanged(true);
         }
         applySession(nextSession);
-        await ensureUserDataInitialized();
+        // Data initialization handled by onboarding flow
       });
     } catch (signInError) {
       setError((signInError as Error).message);
@@ -178,12 +170,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const { session: nextSession } = await authService.signUp(email, password);
 
         if (!nextSession) {
-          throw new Error(t('auth.errors.noSessionAfterSignUp'));
+          throw new Error('No session returned after sign up');
         }
 
         clearAppCaches();
         applySession(nextSession);
-        await ensureUserDataInitialized();
+        // Data initialization handled by onboarding flow
       });
     } catch (signUpError) {
       setError((signUpError as Error).message);

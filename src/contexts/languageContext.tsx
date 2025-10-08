@@ -10,7 +10,9 @@
 import { I18nextProvider } from 'react-i18next';
 import i18n, { DEFAULT_LANG, LOCALE_SCHEMA_VERSION, SUPPORTED_LANGS } from '../i18n/config.ts';
 import * as configService from '../../services/configService.ts';
+import * as backendService from '../../services/backendService.ts';
 import type { LanguageProfile, LanguageCode } from '../../types.ts';
+import { useAuth } from './authContext.tsx';
 import {
   hasLocaleGaps,
   loadLocaleResources,
@@ -51,6 +53,8 @@ const detectBrowserLanguage = (): LanguageCode => {
 
 export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const isDev = import.meta.env.DEV;
+  const { user } = useAuth();
+  const isAuthenticated = !!user;
 
   // Add test function to window for debugging AI generation
   if (isDev && typeof window !== 'undefined') {
@@ -310,6 +314,47 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
     };
   }, [profile.ui, isDev, showDevSelector]);
 
+  // Sync language profile with database when user is authenticated
+  useEffect(() => {
+    if (!isAuthenticated) {
+      return;
+    }
+
+    const syncProfileWithDatabase = async () => {
+      try {
+        // Try to load profile from database
+        const dbProfile = await backendService.getUserProfile();
+        console.log('[LanguageContext] Loaded profile from database:', dbProfile);
+
+        // Update local profile if database has different values
+        if (dbProfile.native !== profile.native || dbProfile.learning !== profile.learning) {
+          console.log('[LanguageContext] Syncing profile from database');
+          setProfileState(prev => ({
+            ...prev,
+            native: dbProfile.native,
+            learning: dbProfile.learning,
+          }));
+          configService.saveLanguageProfile({
+            ...profile,
+            native: dbProfile.native,
+            learning: dbProfile.learning,
+          });
+        }
+      } catch (error) {
+        console.warn('[LanguageContext] Could not load profile from database, using local:', error);
+        // If database profile doesn't exist, create it with current profile
+        try {
+          await backendService.upsertUserProfile(profile);
+          console.log('[LanguageContext] Created profile in database');
+        } catch (upsertError) {
+          console.error('[LanguageContext] Failed to create profile in database:', upsertError);
+        }
+      }
+    };
+
+    syncProfileWithDatabase();
+  }, [isAuthenticated]); // Only run when auth status changes
+
   const setProfile = useCallback(
     (update: ProfileUpdater, options: SetProfileOptions = {}) => {
       const { lockUi = true } = options;
@@ -321,10 +366,22 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
           uiLocked: lockUi,
           lastDetected: detected,
         });
+
+        // Sync with database if authenticated
+        if (isAuthenticated) {
+          backendService.upsertUserProfile(next)
+            .then(() => {
+              console.log('[LanguageContext] Profile synced to database');
+            })
+            .catch((error) => {
+              console.error('[LanguageContext] Failed to sync profile to database:', error);
+            });
+        }
+
         return next;
       });
     },
-    []
+    [isAuthenticated]
   );
 
   const handleDevLanguageSelect = useCallback(
@@ -389,5 +446,13 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
       </I18nextProvider>
     </LanguageContext.Provider>
   );
+};
+
+export const useLanguage = () => {
+  const context = React.useContext(LanguageContext);
+  if (context === undefined) {
+    throw new Error('useLanguage must be used within a LanguageProvider');
+  }
+  return context;
 };
 

@@ -6,6 +6,8 @@ import type { Phrase, ChatMessage, ExamplePair, ProactiveSuggestion, ContentPart
 import { AiService } from './aiService';
 import { getGeminiApiKey } from './env';
 import type { TranslationRecord } from '../src/services/languageService.ts';
+import { currentLanguageProfile } from './currentLanguageProfile';
+import { getLanguageName } from './languageNames';
 
 let ai: GoogleGenAI | null = null;
 
@@ -21,6 +23,19 @@ const initializeApi = () => {
 
 const model = "gemini-2.5-flash-lite-preview-09-2025";
 // const model = "gemini-2.5-flash";
+
+/**
+ * Helper functions for getting language names in prompts
+ */
+const getLang = () => {
+    const profile = currentLanguageProfile.getProfile();
+    return {
+        native: getLanguageName(profile.native),
+        learning: getLanguageName(profile.learning),
+        nativeCode: profile.native,
+        learningCode: profile.learning,
+    };
+};
 
 const buildLocalePrompt = (languageLabel: string) => [
   {
@@ -115,27 +130,31 @@ export const translateLocaleTemplate = async (template: TranslationRecord, targe
   }
 };
 
-const phraseSchema = {
-    type: Type.ARRAY,
-    items: {
-      type: Type.OBJECT,
-      properties: {
-        german: {
-          type: Type.STRING,
-          description: 'The phrase in German.',
+const phraseSchema = () => {
+    const lang = getLang();
+    return {
+        type: Type.ARRAY,
+        items: {
+            type: Type.OBJECT,
+            properties: {
+                [lang.learningCode]: {
+                    type: Type.STRING,
+                    description: `The phrase in ${lang.learning}.`,
+                },
+                [lang.nativeCode]: {
+                    type: Type.STRING,
+                    description: `The phrase in ${lang.native}.`,
+                },
+            },
+            required: [lang.learningCode, lang.nativeCode],
         },
-        russian: {
-          type: Type.STRING,
-          description: 'The phrase in Russian.',
-        },
-      },
-      required: ["german", "russian"],
-    },
+    };
 };
 
 const generatePhrases: AiService['generatePhrases'] = async (prompt) => {
     const api = initializeApi();
     if (!api) throw new Error("Gemini API key not configured.");
+    const lang = getLang();
 
     try {
         const response = await api.models.generateContent({
@@ -143,7 +162,7 @@ const generatePhrases: AiService['generatePhrases'] = async (prompt) => {
             contents: prompt,
             config: {
                 responseMimeType: "application/json",
-                responseSchema: phraseSchema,
+                responseSchema: phraseSchema(),
                 temperature: 0.7,
             },
         });
@@ -155,16 +174,20 @@ const generatePhrases: AiService['generatePhrases'] = async (prompt) => {
             throw new Error("API did not return an array of phrases.");
         }
 
-        const isValid = parsedPhrases.every(p => 
+        const isValid = parsedPhrases.every(p =>
             typeof p === 'object' && p !== null &&
-            'german' in p && 'russian' in p &&
-            typeof p.german === 'string' && typeof p.russian === 'string'
+            lang.learningCode in p && lang.nativeCode in p &&
+            typeof p[lang.learningCode] === 'string' && typeof p[lang.nativeCode] === 'string'
         );
 
         if (!isValid) {
             throw new Error("Received malformed phrase data from API.");
         }
-        return parsedPhrases;
+        
+        return parsedPhrases.map((p: any) => ({
+            german: p[lang.learningCode],
+            russian: p[lang.nativeCode],
+        }));
     } catch (error) {
         console.error("Error generating phrases with Gemini:", error);
         if (error instanceof Error && error.message.includes('JSON')) {
@@ -175,22 +198,26 @@ const generatePhrases: AiService['generatePhrases'] = async (prompt) => {
     }
 };
 
-const singlePhraseSchema = {
-    type: Type.OBJECT,
-    properties: {
-      german: {
-        type: Type.STRING,
-        description: 'The translated phrase in German.',
-      },
-    },
-    required: ["german"],
+const singlePhraseSchema = () => {
+    const lang = getLang();
+    return {
+        type: Type.OBJECT,
+        properties: {
+            [lang.learningCode]: {
+                type: Type.STRING,
+                description: `The translated phrase in ${lang.learning}.`,
+            },
+        },
+        required: [lang.learningCode],
+    };
 };
 
 const generateSinglePhrase: AiService['generateSinglePhrase'] = async (russianPhrase) => {
     const api = initializeApi();
     if (!api) throw new Error("Gemini API key not configured.");
 
-    const prompt = `Translate the following Russian phrase into a common, natural-sounding German phrase: "${russianPhrase}". Return a single JSON object with one key: "german" for the translation.`;
+    const lang = getLang();
+    const prompt = `Translate the following ${lang.native} phrase into a common, natural-sounding ${lang.learning} phrase: "${russianPhrase}". Return a single JSON object with one key: "${lang.learningCode}" for the translation.`;
 
     try {
         const response = await api.models.generateContent({
@@ -198,20 +225,20 @@ const generateSinglePhrase: AiService['generateSinglePhrase'] = async (russianPh
             contents: prompt,
             config: {
                 responseMimeType: "application/json",
-                responseSchema: singlePhraseSchema,
+                responseSchema: singlePhraseSchema(),
                 temperature: 0.5,
             },
         });
-        
+
         const jsonText = response.text.trim();
         const parsedResult = JSON.parse(jsonText);
 
-        if (typeof parsedResult !== 'object' || parsedResult === null || !('german' in parsedResult) || typeof parsedResult.german !== 'string') {
+        if (typeof parsedResult !== 'object' || parsedResult === null || !(lang.learningCode in parsedResult) || typeof parsedResult[lang.learningCode] !== 'string') {
              throw new Error("Received malformed translation data from API.");
         }
-        
+
         return {
-            german: parsedResult.german,
+            german: parsedResult[lang.learningCode],
             russian: russianPhrase,
         };
     } catch (error) {
@@ -225,7 +252,9 @@ const translatePhrase: AiService['translatePhrase'] = async (russianPhrase) => {
     const api = initializeApi();
     if (!api) throw new Error("Gemini API key not configured.");
 
-    const prompt = `Translate this Russian phrase to German: "${russianPhrase}"`;
+    const lang = getLang();
+
+    const prompt = `Translate this ${lang.native} phrase to ${lang.learning}: "${russianPhrase}"`;
 
     try {
         const response = await api.models.generateContent({
@@ -233,35 +262,39 @@ const translatePhrase: AiService['translatePhrase'] = async (russianPhrase) => {
             contents: prompt,
             config: {
                 responseMimeType: "application/json",
-                responseSchema: singlePhraseSchema,
+                responseSchema: singlePhraseSchema(),
                 temperature: 0.2,
             },
         });
         const jsonText = response.text.trim();
         const parsedResult = JSON.parse(jsonText);
-        return { german: parsedResult.german };
+        return { german: parsedResult[lang.learningCode] };
     } catch (error) {
         console.error("Error translating phrase with Gemini:", error);
         throw new Error(`Failed to call the Gemini API: ${(error as any)?.message || 'Unknown error'}`);
     }
 };
 
-const russianSinglePhraseSchema = {
-    type: Type.OBJECT,
-    properties: {
-      russian: {
-        type: Type.STRING,
-        description: 'The translated phrase in Russian.',
-      },
-    },
-    required: ["russian"],
+const russianSinglePhraseSchema = () => {
+    const lang = getLang();
+    return {
+        type: Type.OBJECT,
+        properties: {
+            [lang.nativeCode]: {
+                type: Type.STRING,
+                description: `The translated phrase in ${lang.native}.`,
+            },
+        },
+        required: [lang.nativeCode],
+    };
 };
 
 const translateGermanToRussian: AiService['translateGermanToRussian'] = async (germanPhrase) => {
     const api = initializeApi();
     if (!api) throw new Error("Gemini API key not configured.");
+    const lang = getLang();
 
-    const prompt = `Translate this German phrase to Russian: "${germanPhrase}"`;
+    const prompt = `Translate this ${lang.learning} phrase to ${lang.native}: "${germanPhrase}"`;
 
     try {
         const response = await api.models.generateContent({
@@ -269,37 +302,41 @@ const translateGermanToRussian: AiService['translateGermanToRussian'] = async (g
             contents: prompt,
             config: {
                 responseMimeType: "application/json",
-                responseSchema: russianSinglePhraseSchema,
+                responseSchema: russianSinglePhraseSchema(),
                 temperature: 0.2,
             },
         });
         const jsonText = response.text.trim();
         const parsedResult = JSON.parse(jsonText);
-        return { russian: parsedResult.russian };
+        return { russian: parsedResult[lang.nativeCode] };
     } catch (error) {
         console.error("Error translating German phrase with Gemini:", error);
         throw new Error(`Failed to call the Gemini API: ${(error as any)?.message || 'Unknown error'}`);
     }
 };
 
-const wordTranslationSchema = {
-    type: Type.OBJECT,
-    properties: {
-        germanTranslation: {
-            type: Type.STRING,
-            description: 'The German word(s) that correspond to the given Russian word in the context of the full phrase.'
+const wordTranslationSchema = () => {
+    const lang = getLang();
+    return {
+        type: Type.OBJECT,
+        properties: {
+            germanTranslation: { // This key remains for backward compatibility
+                type: Type.STRING,
+                description: `The ${lang.learning} word(s) that correspond to the given ${lang.native} word in the context of the full phrase.`
+            },
         },
-    },
-    required: ["germanTranslation"],
+        required: ["germanTranslation"],
+    };
 };
 
 const getWordTranslation: AiService['getWordTranslation'] = async (russianPhrase, germanPhrase, russianWord) => {
     const api = initializeApi();
     if (!api) throw new Error("Gemini API key not configured.");
+    const lang = getLang();
 
-    const prompt = `Дана русская фраза: "${russianPhrase}".
-Ее немецкий перевод: "${germanPhrase}".
-Каков точный перевод русского слова "${russianWord}" в этом конкретном контексте?
+    const prompt = `Дана ${lang.native} фраза: "${russianPhrase}".
+Ее ${lang.learning} перевод: "${germanPhrase}".
+Каков точный перевод ${lang.native} слова "${russianWord}" в этом конкретном контексте?
 Верни ТОЛЬКО JSON-объект с одним ключом "germanTranslation".`;
 
     try {
@@ -308,45 +345,53 @@ const getWordTranslation: AiService['getWordTranslation'] = async (russianPhrase
             contents: prompt,
             config: {
                 responseMimeType: "application/json",
-                responseSchema: wordTranslationSchema,
+                responseSchema: wordTranslationSchema(),
                 temperature: 0.1,
             },
         });
         const jsonText = response.text.trim();
-        return JSON.parse(jsonText);
+        const parsedResult = JSON.parse(jsonText);
+        // The key "germanTranslation" is kept for backward compatibility.
+        // The value will be the learning language translation.
+        return { germanTranslation: parsedResult.germanTranslation };
     } catch (error) {
         console.error("Error getting word translation with Gemini:", error);
         throw new Error(`Failed to call the Gemini API: ${(error as any)?.message || 'Unknown error'}`);
     }
 };
 
-const cardsFromTranscriptSchema = {
-    type: Type.ARRAY,
-    items: {
-      type: Type.OBJECT,
-      properties: {
-        german: {
-          type: Type.STRING,
-          description: 'The phrase in German.',
+const cardsFromTranscriptSchema = () => {
+    const lang = getLang();
+    return {
+        type: Type.ARRAY,
+        items: {
+            type: Type.OBJECT,
+            properties: {
+                [lang.learningCode]: {
+                    type: Type.STRING,
+                    description: `The phrase in ${lang.learning}.`,
+                },
+                [lang.nativeCode]: {
+                    type: Type.STRING,
+                    description: `The phrase in ${lang.native}.`,
+                },
+            },
+            required: [lang.learningCode, lang.nativeCode],
         },
-        russian: {
-          type: Type.STRING,
-          description: 'The phrase in Russian.',
-        },
-      },
-      required: ["german", "russian"],
-    },
+    };
 };
 
 const generateCardsFromTranscript: AiService['generateCardsFromTranscript'] = async (transcript, sourceLang) => {
     const api = initializeApi();
     if (!api) throw new Error("Gemini API key not configured.");
+    const lang = getLang();
     
-    const targetLang = sourceLang === 'ru' ? 'German' : 'Russian';
+    const sourceLanguageName = sourceLang === lang.nativeCode ? lang.native : lang.learning;
+    const targetLanguageName = sourceLang === lang.nativeCode ? lang.learning : lang.native;
 
     const prompt = `You are an expert linguist and a methodologist for creating language learning materials. Your task is to analyze a provided text transcript of spoken language and break it down into high-quality, logically complete flashcards for Spaced Repetition System (SRS) learning.
 
-Analyze the following text, which is a transcript of ${sourceLang === 'ru' ? 'Russian' : 'German'} speech:
+Analyze the following text, which is a transcript of ${sourceLanguageName} speech:
 """
 ${transcript}
 """
@@ -358,13 +403,13 @@ Instructions:
     *   For example, if you see the sentence: "I'll go home because I have a very bad headache and I also need to make dinner", you should split it into cards like: "I'll go home", "because I have a very bad headache", "I need to make dinner".
     *   Clean up filler words and repetitions to make the phrases natural and useful.
 3.  **Translation and Formatting:**
-    *   For each extracted phrase, generate an accurate and natural translation into ${targetLang}.
-    *   Return the result ONLY as a JSON array of objects. Each object must have two keys: 'russian' and 'german'.
+    *   For each extracted phrase, generate an accurate and natural translation into ${targetLanguageName}.
+    *   Return the result ONLY as a JSON array of objects. Each object must have two keys: '${lang.nativeCode}' and '${lang.learningCode}'.
 
 Example Output Format:
 [
-  { "russian": "я пойду домой", "german": "ich gehe nach Hause" },
-  { "russian": "потому что у меня сильно болит голова", "german": "weil ich starke Kopfschmerzen habe" }
+  { "${lang.nativeCode}": "я пойду домой", "${lang.learningCode}": "ich gehe nach Hause" },
+  { "${lang.nativeCode}": "потому что у меня сильно болит голова", "${lang.learningCode}": "weil ich starke Kopfschmerzen habe" }
 ]`;
 
     try {
@@ -373,15 +418,14 @@ Example Output Format:
             contents: prompt,
             config: {
                 responseMimeType: "application/json",
-                responseSchema: cardsFromTranscriptSchema,
+                responseSchema: cardsFromTranscriptSchema(),
                 temperature: 0.6,
             },
         });
         
         const jsonText = response.text.trim();
-        // FIX: Map the response to the ProposedCard type
         const parsed = JSON.parse(jsonText);
-        return parsed.map((p: { german: string; russian: string; }) => ({ learning: p.german, native: p.russian }));
+        return parsed.map((p: any) => ({ learning: p[lang.learningCode], native: p[lang.nativeCode] }));
 
     } catch (error) {
         console.error("Error generating cards from transcript with Gemini:", error);
@@ -389,35 +433,39 @@ Example Output Format:
     }
 };
 
-const imageCardsWithCategorySchema = {
-    type: Type.OBJECT,
-    properties: {
-        cards: {
-            type: Type.ARRAY,
-            description: "An array of generated flashcards.",
-            items: {
-                type: Type.OBJECT,
-                properties: {
-                    german: { type: Type.STRING, description: 'The phrase in German.' },
-                    russian: { type: Type.STRING, description: 'The phrase in Russian.' },
+const imageCardsWithCategorySchema = () => {
+    const lang = getLang();
+    return {
+        type: Type.OBJECT,
+        properties: {
+            cards: {
+                type: Type.ARRAY,
+                description: "An array of generated flashcards.",
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        [lang.learningCode]: { type: Type.STRING, description: `The phrase in ${lang.learning}.` },
+                        [lang.nativeCode]: { type: Type.STRING, description: `The phrase in ${lang.native}.` },
+                    },
+                    required: [lang.learningCode, lang.nativeCode],
                 },
-                required: ["german", "russian"],
             },
+            categoryName: {
+                type: Type.STRING,
+                description: `A short, relevant category name in ${lang.native} for these cards based on the image content and user request.`
+            }
         },
-        categoryName: {
-            type: Type.STRING,
-            description: "A short, relevant category name in Russian for these cards based on the image content and user request."
-        }
-    },
-    required: ["cards", "categoryName"],
+        required: ["cards", "categoryName"],
+    };
 };
 
 
 const generateCardsFromImage: AiService['generateCardsFromImage'] = async (imageData, refinement) => {
     const api = initializeApi();
     if (!api) throw new Error("Gemini API key not configured.");
+    const lang = getLang();
 
-    const prompt = `You are an AI assistant for learning German. Your task is to create flashcards from an image.
+    const prompt = `You are an AI assistant for learning ${lang.learning}. Your task is to create flashcards from an image.
 
 **1. HIGHEST PRIORITY: User's Refinement**
 First, check if the user provided a specific instruction. If they did, YOU MUST FOLLOW IT EXACTLY. It overrides all other rules.
@@ -429,13 +477,13 @@ ${refinement ? `User's instruction: "${refinement}"` : "No specific instruction 
 
 **2. FALLBACK TASK (If no user instruction is given):**
 If the user did not provide an instruction, analyze the image content:
-- **If Text is present:** Use OCR to extract all German text. Break it into logical, useful phrases for flashcards and provide Russian translations.
-- **If No Text (Objects/Scene):** Identify the main objects. Generate a list of German nouns (WITH articles, e.g., "das Bett"), verbs, and simple descriptive phrases. Provide Russian translations.
+- **If Text is present:** Use OCR to extract all ${lang.learning} text. Break it into logical, useful phrases for flashcards and provide ${lang.native} translations.
+- **If No Text (Objects/Scene):** Identify the main objects. Generate a list of ${lang.learning} nouns (WITH articles, e.g., "das Bett"), verbs, and simple descriptive phrases. Provide ${lang.native} translations.
 
 **3. OUTPUT REQUIREMENTS (Applies to ALL cases):**
 You must return a single JSON object with two keys:
-- **"cards"**: A JSON array of objects. Each object must have "german" and "russian" keys. If you cannot find any relevant content, return an empty array.
-- **"categoryName"**: A short, suitable category name in Russian that accurately describes the content of the generated cards. Examples: "Задание 3a: Существительные", "Объекты в комнате", "Надписи на улице".
+- **"cards"**: A JSON array of objects. Each object must have "${lang.learningCode}" and "${lang.nativeCode}" keys. If you cannot find any relevant content, return an empty array.
+- **"categoryName"**: A short, suitable category name in ${lang.native} that accurately describes the content of the generated cards. Examples: "Задание 3a: Существительные", "Объекты в комнате", "Надписи на улице".
 
 Return EXCLUSIVELY the JSON object matching the provided schema.`;
 
@@ -451,7 +499,7 @@ Return EXCLUSIVELY the JSON object matching the provided schema.`;
             },
             config: {
                 responseMimeType: "application/json",
-                responseSchema: imageCardsWithCategorySchema,
+                responseSchema: imageCardsWithCategorySchema(),
                 temperature: 0.5,
             },
         });
@@ -463,9 +511,8 @@ Return EXCLUSIVELY the JSON object matching the provided schema.`;
             throw new Error("API did not return the expected structure with cards and categoryName.");
         }
         
-        // FIX: Map the response to the ProposedCard type
         return {
-            cards: parsedResult.cards.map((c: { german: string; russian: string; }) => ({ learning: c.german, native: c.russian })),
+            cards: parsedResult.cards.map((c: any) => ({ learning: c[lang.learningCode], native: c[lang.nativeCode] })),
             categoryName: parsedResult.categoryName,
         };
 
@@ -478,6 +525,7 @@ Return EXCLUSIVELY the JSON object matching the provided schema.`;
 const generateTopicCards: AiService['generateTopicCards'] = async (topic, refinement, existingPhrases) => {
     const api = initializeApi();
     if (!api) throw new Error("Gemini API key not configured.");
+    const lang = getLang();
 
     const refinementPrompt = refinement
         ? `\n\nПользователь был не удовлетворен предыдущими результатами и дал следующее уточнение: "${refinement}". Пожалуйста, сгенерируй новый список, строго следуя этому уточнению.`
@@ -487,13 +535,13 @@ const generateTopicCards: AiService['generateTopicCards'] = async (topic, refine
         ? `\n\nВажно: В категории уже есть следующие фразы: "${existingPhrases.join('; ')}". Не повторяй их. Придумай новые, уникальные и полезные слова/фразы по этой теме.`
         : '';
 
-    const prompt = `Ты — AI-ассистент для изучения немецкого языка. Пользователь хочет получить набор карточек на определенную тему.
+    const prompt = `Ты — AI-ассистент для изучения ${lang.learning} языка. Пользователь хочет получить набор карточек на определенную тему.
 Тема запроса: "${topic}"${refinementPrompt}${existingPhrasesPrompt}
 
 Твоя задача:
 1.  Проанализируй запрос пользователя.
-2.  Сгенерируй список из 10-15 полезных, разнообразных немецких слов и фраз с русским переводом по этой теме. Фразы должны быть естественными и часто употребимыми.
-3.  Верни результат ТОЛЬКО как JSON-массив объектов. Каждый объект должен иметь два ключа: 'russian' и 'german'.`;
+2.  Сгенерируй список из 10-15 полезных, разнообразных ${lang.learning} слов и фраз с ${lang.native} переводом по этой теме. Фразы должны быть естественными и часто употребимыми.
+3.  Верни результат ТОЛЬКО как JSON-массив объектов. Каждый объект должен иметь два ключа: '${lang.nativeCode}' и '${lang.learningCode}'.`;
 
     try {
         const response = await api.models.generateContent({
@@ -501,7 +549,7 @@ const generateTopicCards: AiService['generateTopicCards'] = async (topic, refine
             contents: prompt,
             config: {
                 responseMimeType: "application/json",
-                responseSchema: phraseSchema,
+                responseSchema: phraseSchema(),
                 temperature: 0.6,
             },
         });
@@ -513,8 +561,7 @@ const generateTopicCards: AiService['generateTopicCards'] = async (topic, refine
             throw new Error("API did not return an array of cards.");
         }
         
-        // FIX: Map the response to the ProposedCard type
-        return parsedCards.map((card: { german: string; russian: string; }) => ({ learning: card.german, native: card.russian }));
+        return parsedCards.map((card: any) => ({ learning: card[lang.learningCode], native: card[lang.nativeCode] }));
 
     } catch (error) {
         console.error("Error generating topic cards with Gemini:", error);
@@ -562,33 +609,37 @@ const classifyTopic: AiService['classifyTopic'] = async (topic) => {
 };
 
 
-const improvePhraseSchema = {
-    type: Type.OBJECT,
-    properties: {
-      suggestedGerman: {
-        type: Type.STRING,
-        description: 'The improved, more natural, or grammatically correct German phrase.',
-      },
-      explanation: {
-        type: Type.STRING,
-        description: 'A concise explanation in Russian about why the suggestion is better, or why the original was already correct.',
-      },
-    },
-    required: ["suggestedGerman", "explanation"],
+const improvePhraseSchema = () => {
+    const lang = getLang();
+    return {
+        type: Type.OBJECT,
+        properties: {
+            suggestedGerman: { // Backward compatibility: key remains 'suggestedGerman'
+                type: Type.STRING,
+                description: `The improved, more natural, or grammatically correct ${lang.learning} phrase.`,
+            },
+            explanation: {
+                type: Type.STRING,
+                description: `A concise explanation in ${lang.native} about why the suggestion is better, or why the original was already correct.`,
+            },
+        },
+        required: ["suggestedGerman", "explanation"],
+    };
 };
 
 const improvePhrase: AiService['improvePhrase'] = async (originalRussian, currentGerman) => {
     const api = initializeApi();
     if (!api) throw new Error("Gemini API key not configured.");
+    const lang = getLang();
 
-    const prompt = `Ты — эксперт по немецкому языку. Пользователь хочет выучить правильный и естественный немецкий.
-Исходная фраза на русском: "${originalRussian}"
-Текущий перевод на немецкий: "${currentGerman}"
+    const prompt = `Ты — эксперт по ${lang.learning} языку. Пользователь хочет выучить правильный и естественный ${lang.learning}.
+Исходная фраза на ${lang.native}: "${originalRussian}"
+Текущий перевод на ${lang.learning}: "${currentGerman}"
 
-Твоя задача: 
-1. Проанализируй немецкий перевод на грамматическую правильность, естественность звучания и идиоматичность.
+Твоя задача:
+1. Проанализируй ${lang.learning} перевод на грамматическую правильность, естественность звучания и идиоматичность.
 2. Если перевод можно улучшить, предложи лучший вариант. "Лучший" означает более правильный, более употребительный или более естественный для носителя языка.
-3. Дай краткое и ясное объяснение на русском языке, почему твой вариант лучше. Например, "В данном контексте предлог 'auf' подходит лучше, чем 'in', потому что..." или "Эта формулировка более вежливая".
+3. Дай краткое и ясное объяснение на ${lang.native} языке, почему твой вариант лучше. Например, "В данном контексте предлог 'auf' подходит лучше, чем 'in', потому что..." или "Эта формулировка более вежливая".
 4. Если текущий перевод уже идеален, верни его же в 'suggestedGerman' и объясни, почему он является наилучшим вариантом.
 
 Верни результат в виде JSON-объекта.`;
@@ -599,13 +650,18 @@ const improvePhrase: AiService['improvePhrase'] = async (originalRussian, curren
             contents: prompt,
             config: {
                 responseMimeType: "application/json",
-                responseSchema: improvePhraseSchema,
+                responseSchema: improvePhraseSchema(),
                 temperature: 0.4,
             },
         });
         
         const jsonText = response.text.trim();
-        return JSON.parse(jsonText);
+        const parsedResult = JSON.parse(jsonText);
+        // The key "suggestedGerman" is kept for backward compatibility.
+        return {
+            suggestedGerman: parsedResult.suggestedGerman,
+            explanation: parsedResult.explanation,
+        };
     } catch (error) {
         console.error("Error improving phrase with Gemini:", error);
         const errorMessage = (error as any)?.message || 'Unknown error';
@@ -614,66 +670,69 @@ const improvePhrase: AiService['improvePhrase'] = async (originalRussian, curren
 };
 
 
-const initialResponseSchema = {
-    type: Type.OBJECT,
-    properties: {
-        examples: {
-            type: Type.ARRAY,
-            description: "List of 3-5 practical example sentences using the phrase.",
-            items: {
-                type: Type.OBJECT,
-                properties: {
-                    german: { type: Type.STRING, description: 'The example sentence in German.' },
-                    russian: { type: Type.STRING, description: 'The Russian translation.' },
+const initialResponseSchema = () => {
+    const lang = getLang();
+    return {
+        type: Type.OBJECT,
+        properties: {
+            examples: {
+                type: Type.ARRAY,
+                description: "List of 3-5 practical example sentences using the phrase.",
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        [lang.learningCode]: { type: Type.STRING, description: `The example sentence in ${lang.learning}.` },
+                        [lang.nativeCode]: { type: Type.STRING, description: `The ${lang.native} translation.` },
+                    },
+                    required: [lang.learningCode, lang.nativeCode],
                 },
-                required: ["german", "russian"],
             },
-        },
-        proactiveSuggestions: {
-            type: Type.ARRAY,
-            description: "List of 1-2 proactive, unique suggestions for the user based on the phrase's context, like alternative phrasings or common related questions.",
-            items: {
-                type: Type.OBJECT,
-                properties: {
-                    title: { type: Type.STRING, description: "A short, engaging title for the suggestion." },
-                    contentParts: {
-                        type: Type.ARRAY,
-                        description: "The suggestion content, broken into segments of plain text and German text.",
-                        items: {
-                            type: Type.OBJECT,
-                            properties: {
-                                type: { type: Type.STRING, enum: ['text', 'german'], description: "Should be 'text' for plain Russian text or 'german' for a German word/phrase." },
-                                text: { type: Type.STRING, description: "The segment of text. Do not use Markdown here." },
-                                translation: { type: Type.STRING, description: "Russian translation of the text, ONLY if type is 'german'." }
-                            },
-                            required: ["type", "text"]
+            proactiveSuggestions: {
+                type: Type.ARRAY,
+                description: "List of 1-2 proactive, unique suggestions for the user based on the phrase's context, like alternative phrasings or common related questions.",
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        title: { type: Type.STRING, description: "A short, engaging title for the suggestion." },
+                        contentParts: {
+                            type: Type.ARRAY,
+                            description: `The suggestion content, broken into segments of plain text and ${lang.learning} text.`,
+                            items: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    type: { type: Type.STRING, enum: ['text', 'german'], description: `Should be 'text' for plain ${lang.native} text or 'german' for a ${lang.learning} word/phrase.` },
+                                    text: { type: Type.STRING, description: "The segment of text. Do not use Markdown here." },
+                                    translation: { type: Type.STRING, description: `${lang.native} translation of the text, ONLY if type is 'german'.` }
+                                },
+                                required: ["type", "text"]
+                            }
                         }
-                    }
-                },
-                required: ["title", "contentParts"]
+                    },
+                    required: ["title", "contentParts"]
+                }
+            },
+            promptSuggestions: {
+                type: Type.ARRAY,
+                description: `A list of 2-4 short, context-aware follow-up questions in ${lang.native} that the user might ask. Only suggest pronoun variations if there's a verb. Only suggest asking a question if the phrase isn't one already.`,
+                items: {
+                    type: Type.STRING
+                }
             }
         },
-        promptSuggestions: {
-            type: Type.ARRAY,
-            description: "A list of 2-4 short, context-aware follow-up questions in Russian that the user might ask. Only suggest pronoun variations if there's a verb. Only suggest asking a question if the phrase isn't one already.",
-            items: {
-                type: Type.STRING
-            }
-        }
-    },
-    required: ["examples", "proactiveSuggestions", "promptSuggestions"]
+        required: ["examples", "proactiveSuggestions", "promptSuggestions"]
+    };
 };
 
 
 const generateInitialExamples: AiService['generateInitialExamples'] = async (phrase) => {
     const api = initializeApi();
     if (!api) throw new Error("Gemini API key not configured.");
+    const lang = getLang();
 
-    // FIX: Use phrase.text.learning and phrase.text.native
-    const prompt = `Пользователь изучает немецкую фразу: "${phrase.text.learning}" (перевод: "${phrase.text.native}"). 
-1. Сгенерируй 3-5 разнообразных и практичных предложений-примеров на немецком, которые используют эту фразу. Для каждого примера предоставь русский перевод.
-2. Проанализируй фразу и предложи 1-2 уникальных, полезных совета или альтернативы. Например, для "ich hätte gern" можно предложить "ich möchte". Сделай советы краткими и по делу. ВАЖНО: Разбей содержание каждого совета на массив 'contentParts'. Каждый элемент массива должно быть объектом с 'type' и 'text'. Если часть ответа - обычный текст, используй 'type': 'text'. Если это немецкое слово или фраза, используй 'type': 'german' и ОБЯЗАТЕЛЬНО предоставь русский перевод в поле 'translation'.
-3. Сгенерируй от 2 до 4 коротких, контекстно-зависимых вопросов для продолжения диалога на русском языке, которые пользователь может задать.
+    const prompt = `Пользователь изучает ${lang.learning} фразу: "${phrase.text.learning}" (перевод: "${phrase.text.native}").
+1. Сгенерируй 3-5 разнообразных и практичных предложений-примеров на ${lang.learning}, которые используют эту фразу. Для каждого примера предоставь ${lang.native} перевод.
+2. Проанализируй фразу и предложи 1-2 уникальных, полезных совета или альтернативы. Например, для "ich hätte gern" можно предложить "ich möchte". Сделай советы краткими и по делу. ВАЖНО: Разбей содержание каждого совета на массив 'contentParts'. Каждый элемент массива должно быть объектом с 'type' и 'text'. Если часть ответа - обычный текст, используй 'type': 'text'. Если это ${lang.learning} слово или фраза, используй 'type': 'german' и ОБЯЗАТЕЛЬНО предоставь ${lang.native} перевод в поле 'translation'.
+3. Сгенерируй от 2 до 4 коротких, контекстно-зависимых вопросов для продолжения диалога на ${lang.native} языке, которые пользователь может задать.
    - Предлагай "Покажи варианты с местоимениями" только если во фразе есть глагол для спряжения.
    - Предлагай "Как это использовать в вопросе?" только если фраза не является вопросом.
    - Всегда рассматривай общие полезные вопросы, такие как "Объясни грамматику" или "Предложи стратегию запоминания".
@@ -685,7 +744,7 @@ const generateInitialExamples: AiService['generateInitialExamples'] = async (phr
             contents: prompt,
             config: {
                 responseMimeType: "application/json",
-                responseSchema: initialResponseSchema,
+                responseSchema: initialResponseSchema(),
                 temperature: 0.7,
             },
         });
@@ -693,12 +752,12 @@ const generateInitialExamples: AiService['generateInitialExamples'] = async (phr
         const jsonText = response.text.trim();
         const parsedResponse = JSON.parse(jsonText);
 
-        const examples: ExamplePair[] = (parsedResponse.examples || []).map((ex: any) => ({ learning: ex.german, native: ex.russian }));
+        const examples: ExamplePair[] = (parsedResponse.examples || []).map((ex: any) => ({ learning: ex[lang.learningCode], native: ex[lang.nativeCode] }));
         const suggestions: ProactiveSuggestion[] = parsedResponse.proactiveSuggestions || [];
         const promptSuggestions: string[] = parsedResponse.promptSuggestions || [];
 
-        return { 
-            role: 'model', 
+        return {
+            role: 'model',
             text: 'Вот несколько примеров и советов, которые помогут вам лучше понять эту фразу:',
             examples,
             suggestions,
@@ -711,36 +770,40 @@ const generateInitialExamples: AiService['generateInitialExamples'] = async (phr
     }
 }
 
-const chatResponseSchema = {
-    type: Type.OBJECT,
-    properties: {
-        responseParts: {
-            type: Type.ARRAY,
-            description: "The response broken down into segments of plain text and German text.",
-            items: {
-                type: Type.OBJECT,
-                properties: {
-                    type: { type: Type.STRING, enum: ['text', 'german'], description: "Should be 'text' for plain Russian text or 'german' for a German word/phrase." },
-                    text: { type: Type.STRING, description: "The segment of text. Do not use Markdown here." },
-                    translation: { type: Type.STRING, description: "Russian translation of the text, ONLY if type is 'german'." }
-                },
-                required: ["type", "text"],
+const chatResponseSchema = () => {
+    const lang = getLang();
+    return {
+        type: Type.OBJECT,
+        properties: {
+            responseParts: {
+                type: Type.ARRAY,
+                description: `The response broken down into segments of plain text and ${lang.learning} text.`,
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        type: { type: Type.STRING, enum: ['text', 'german'], description: `Should be 'text' for plain ${lang.native} text or 'german' for a ${lang.learning} word/phrase.` },
+                        text: { type: Type.STRING, description: "The segment of text. Do not use Markdown here." },
+                        translation: { type: Type.STRING, description: `${lang.native} translation of the text, ONLY if type is 'german'.` }
+                    },
+                    required: ["type", "text"],
+                }
+            },
+            promptSuggestions: {
+                type: Type.ARRAY,
+                description: `A list of 2-4 new, context-aware follow-up questions in ${lang.native} that the user might ask next, based on the current conversation. Only suggest pronoun variations if there's a verb. Only suggest asking a question if the phrase isn't one already.`,
+                items: {
+                    type: Type.STRING
+                }
             }
         },
-        promptSuggestions: {
-            type: Type.ARRAY,
-            description: "A list of 2-4 new, context-aware follow-up questions in Russian that the user might ask next, based on the current conversation. Only suggest pronoun variations if there's a verb. Only suggest asking a question if the phrase isn't one already.",
-            items: {
-                type: Type.STRING
-            }
-        }
-    },
-    required: ["responseParts", "promptSuggestions"]
+        required: ["responseParts", "promptSuggestions"]
+    };
 };
 
 const continueChat: AiService['continueChat'] = async (phrase, history, newMessage) => {
     const api = initializeApi();
     if (!api) throw new Error("Gemini API key not configured.");
+    const lang = getLang();
 
     const formattedHistory = history.map(msg => {
         let fullText = '';
@@ -749,7 +812,6 @@ const continueChat: AiService['continueChat'] = async (phrase, history, newMessa
         } else if (msg.text) {
              fullText = msg.text;
              if (msg.examples && msg.examples.length > 0) {
-                // FIX: Use `ex.learning` and `ex.native` for ExamplePair
                 const examplesText = msg.examples.map(ex => `- ${ex.learning} (${ex.native})`).join('\n');
                 fullText += '\n\nПримеры:\n' + examplesText;
             }
@@ -764,9 +826,8 @@ const continueChat: AiService['continueChat'] = async (phrase, history, newMessa
         };
     });
     
-    // FIX: Use phrase.text.learning and phrase.text.native
-    const systemInstruction = `Ты AI-помощник для изучения немецкого языка. Пользователь изучает фразу "${phrase.text.learning}" (${phrase.text.native}).
-1. Отвечай на вопросы пользователя. В своем ответе ОБЯЗАТЕЛЬНО используй предоставленную JSON-схему. Разбей свой ответ на массив 'responseParts'. Каждый элемент массива должен быть объектом с ключами 'type' и 'text'. Если часть ответа - это обычный текст на русском, используй 'type': 'text'. Если это немецкое слово или фраза, используй 'type': 'german'. Если 'type' равен 'german', ОБЯЗАТЕЛЬНО предоставь перевод в поле 'translation'. Не используй Markdown в JSON. Сохраняй форматирование с помощью переносов строк (\\n) в текстовых блоках.
+    const systemInstruction = `Ты AI-помощник для изучения ${lang.learning} языка. Пользователь изучает фразу "${phrase.text.learning}" (${phrase.text.native}).
+1. Отвечай на вопросы пользователя. В своем ответе ОБЯЗАТЕЛЬНО используй предоставленную JSON-схему. Разбей свой ответ на массив 'responseParts'. Каждый элемент массива должен быть объектом с ключами 'type' и 'text'. Если часть ответа - это обычный текст на ${lang.native}, используй 'type': 'text'. Если это ${lang.learning} слово или фраза, используй 'type': 'german'. Если 'type' равен 'german', ОБЯЗАТЕЛЬНО предоставь перевод в поле 'translation'. Не используй Markdown в JSON. Сохраняй форматирование с помощью переносов строк (\\n) в текстовых блоках.
 2. После ответа, сгенерируй от 2 до 4 новых, контекстно-зависимых вопросов для продолжения диалога в поле 'promptSuggestions'. Эти вопросы должны быть основаны на последнем сообщении пользователя и общем контексте диалога.
    - Предлагай "Покажи варианты с местоимениями" только если во фразе есть глагол для спряжения и это релевантно.
    - Предлагай "Как это использовать в вопросе?" только если фраза не является вопросом и это релевантно.
@@ -779,7 +840,7 @@ const continueChat: AiService['continueChat'] = async (phrase, history, newMessa
             config: {
                 systemInstruction,
                 responseMimeType: "application/json",
-                responseSchema: chatResponseSchema,
+                responseSchema: chatResponseSchema(),
                 temperature: 0.5,
             },
         });
@@ -815,27 +876,28 @@ const practiceConversation: AiService['practiceConversation'] = async (history, 
         parts: [{ text: msg.text || msg.contentParts?.map(p => p.text).join('') || '' }]
     }));
     
-    const systemInstruction = `You are a friendly and patient German language tutor named 'Alex'. Your goal is to have a practical, spoken-style conversation with a student in German to help them practice.
+    const lang = getLang();
+    const systemInstruction = `You are a friendly and patient ${lang.learning} language tutor named 'Alex'. Your goal is to have a practical, spoken-style conversation with a student in ${lang.learning} to help them practice.
 
-You have been given a list of all the German phrases the student is learning, along with their progress (masteryLevel from 0-6). This is the student's entire known vocabulary and grammar.
+You have been given a list of all the ${lang.learning} phrases the student is learning, along with their progress (masteryLevel from 0-6). This is the student's entire known vocabulary and grammar.
 
 **Your primary directive is to keep the conversation within the scope of this known material.**
 
 Here is the student's learning data:
-${/* FIX: Use p.text.learning and p.text.native */ JSON.stringify(allPhrases.map(p => ({ g: p.text.learning, r: p.text.native, mastery: p.masteryLevel })))}
+${JSON.stringify(allPhrases.map(p => ({ g: p.text.learning, r: p.text.native, mastery: p.masteryLevel })))}
 
 **Conversation Rules:**
-1.  **Start the conversation:** If this is the first message (history is empty), greet the student in German, introduce yourself as Alex, and ask a simple opening question based on their known phrases (e.g., "Hallo! Wie geht es Ihnen?").
+1.  **Start the conversation:** If this is the first message (history is empty), greet the student in ${lang.learning}, introduce yourself as Alex, and ask a simple opening question based on their known phrases (e.g., "Hallo! Wie geht es Ihnen?").
 2.  **Stay Relevant:** Build the conversation around the themes present in the student's phrases (e.g., greetings, in a cafe, asking for directions, personal information).
 3.  **Use Their Words:** Primarily use the vocabulary and grammatical structures from the provided list. Try to naturally incorporate phrases they are struggling with (low mastery level) to give them practice.
-4.  **Correct Mistakes:** If the student's German has errors, you MUST correct them. Your correction should be gentle and encouraging. First, provide the corrected German sentence. Then, give a very short and simple explanation for the correction **in Russian**.
+4.  **Correct Mistakes:** If the student's ${lang.learning} has errors, you MUST correct them. Your correction should be gentle and encouraging. First, provide the corrected ${lang.learning} sentence. Then, give a very short and simple explanation for the correction **in ${lang.native}**.
 5.  **Be a Conversation Partner:** Ask questions, react to their answers, and keep the conversation flowing naturally. You can propose simple scenarios like "Stellen wir uns vor, wir sind in einem Café. Was möchten Sie bestellen?" (Let's imagine we're in a cafe. What would you like to order?).
-6.  **Keep it German:** Your main conversational responses should be in German. Only use Russian for explanations of corrections.
+6.  **Keep it ${lang.learning}:** Your main conversational responses should be in ${lang.learning}. Only use ${lang.native} for explanations of corrections.
 
 **Response Format:**
 Your entire response MUST be a single JSON object matching the provided schema.
-- \`responseParts\`: An array of objects. Each object has a \`type\` ('text' for Russian explanations, 'german' for your German conversational response) and \`text\`. Use this to mix your German response with Russian explanations of corrections.
-- \`promptSuggestions\`: An array of 2-3 short, relevant German phrases the user could say next. This helps them continue the conversation.`;
+- \`responseParts\`: An array of objects. Each object has a \`type\` ('text' for ${lang.native} explanations, 'german' for your ${lang.learning} conversational response) and \`text\`. Use this to mix your ${lang.learning} response with ${lang.native} explanations of corrections.
+- \`promptSuggestions\`: An array of 2-3 short, relevant ${lang.learning} phrases the user could say next. This helps them continue the conversation.`;
 
     const userMessage = { role: 'user', parts: [{ text: newMessage || '(Start the conversation)' }] };
 
@@ -871,7 +933,7 @@ Your entire response MUST be a single JSON object matching the provided schema.
 const learningAssistantResponseSchema = {
     type: Type.OBJECT,
     properties: {
-        ...chatResponseSchema.properties,
+        ...chatResponseSchema().properties,
         isCorrect: {
             type: Type.BOOLEAN,
             description: "Set to true ONLY if the user's answer is a correct and complete translation of the target phrase."
@@ -911,20 +973,21 @@ const guideToTranslation: AiService['guideToTranslation'] = async (phrase, histo
     });
 
     // FIX: Use phrase.text.native and phrase.text.learning
-    const systemInstruction = `Ты — опытный преподаватель-методист немецкого языка. Твоя задача — провести пользователя через интерактивное упражнение, чтобы он понял и запомнил перевод фразы. Используй метод наводящих вопросов и подсказок.
+    const lang = getLang();
+    const systemInstruction = `Ты — опытный преподаватель-методист ${lang.learning} языка. Твоя задача — провести пользователя через интерактивное упражнение, чтобы он понял и запомнил перевод фразы. Используй метод наводящих вопросов и подсказок.
 
 Исходная фраза: "${phrase.text.native}"
-Правильный немецкий перевод: "${phrase.text.learning}"
+Правильный ${lang.learning} перевод: "${phrase.text.learning}"
 
 **Твой алгоритм действий:**
 
 **Шаг 1: Анализ фразы (внутренний).**
-- Разбей правильный немецкий перевод на **семантические блоки (чанки)**. Блок — это одно слово или **устойчивое словосочетание**, которое не следует разделять (например, "hätte gern", "es gibt", "zum Beispiel", "ich möchte").
+- Разбей правильный ${lang.learning} перевод на **семантические блоки (чанки)**. Блок — это одно слово или **устойчивое словосочетание**, которое не следует разделять (например, "hätte gern", "es gibt", "zum Beispiel", "ich möchte").
 - **КЛЮЧЕВОЕ ПРАВИЛО:** Не разбивай фразу просто на отдельные слова. Ищи словосочетания, которые несут единый смысл.
 
 **Шаг 2: Первая подсказка (первое сообщение пользователю).**
 1.  Начни с первого **блока**.
-2.  Задай наводящий вопрос, который поможет пользователю угадать этот блок. Пример для "Ich hätte gern einen Kaffee": "Начнем с вежливой просьбы. Какое устойчивое выражение в немецком используется для 'я бы хотел' или 'мне бы хотелось'?"
+2.  Задай наводящий вопрос, который поможет пользователю угадать этот блок. Пример для "Ich hätte gern einen Kaffee": "Начнем с вежливой просьбы. Какое устойчивое выражение в ${lang.learning} используется для 'я бы хотел' или 'мне бы хотелось'?"
 3.  Сформируй \`wordOptions\`, включив в них правильный блок ("hätte gern") и несколько отвлекающих вариантов (отдельные слова "hätte", "gern", "möchte", "will").
 
 **Шаг 3: Последующие шаги.**
@@ -954,8 +1017,8 @@ const guideToTranslation: AiService['guideToTranslation'] = async (phrase, histo
     - **ПРАВИЛЬНО:** Если спрашиваешь про артикль, \`label\` должен быть "Склонение существительного".
     - **НЕПРАВИЛЬНО:** \`label\`: "Склонение: der Tisch".
 - **Общие правила:**
-    - **КЛЮЧЕВОЕ ПРАВИЛО:** Твоя задача — давать пошаговые подсказки, а не готовый ответ. Не включай полную немецкую фразу \`${phrase.text.learning}\` в свой ответ (в поле \`responseParts\`) и не предлагай "примеры использования", пока пользователь не соберет фразу полностью и правильно. Устанавливай \`isCorrect: true\` только после того, как пользователь успешно предоставил ПОЛНЫЙ и ПРАВИЛЬНЫЙ перевод.
-    - Всегда отвечай на русском.
+    - **КЛЮЧЕВОЕ ПРАВИЛО:** Твоя задача — давать пошаговые подсказки, а не готовый ответ. Не включай полную ${lang.learning} фразу \`${phrase.text.learning}\` в свой ответ (в поле \`responseParts\`) и не предлагай "примеры использования", пока пользователь не соберет фразу полностью и правильно. Устанавливай \`isCorrect: true\` только после того, как пользователь успешно предоставил ПОЛНЫЙ и ПРАВИЛЬНЫЙ перевод.
+    - Всегда отвечай на ${lang.native}.
     - Используй JSON-формат со всеми полями из схемы. Поле \`cheatSheetOptions\` является необязательным.`;
     
     const userMessage = userAnswer || "(Начало сессии, дай первую подсказку)";
@@ -991,36 +1054,39 @@ const guideToTranslation: AiService['guideToTranslation'] = async (phrase, histo
     }
 };
 
-const translationChatResponseSchema = {
-    type: Type.OBJECT,
-    properties: {
-        ...chatResponseSchema.properties, // Inherit responseParts and promptSuggestions
-        suggestion: {
-            type: Type.OBJECT,
-            description: "An optional suggested improvement for the Russian and German phrases.",
-            properties: {
-                russian: { type: Type.STRING, description: "The suggested new Russian phrase." },
-                german: { type: Type.STRING, description: "The suggested new German phrase." }
-            },
-            required: ["russian", "german"]
-        }
-    },
-    required: ["responseParts", "promptSuggestions"]
+const translationChatResponseSchema = () => {
+    const lang = getLang();
+    return {
+        type: Type.OBJECT,
+        properties: {
+            ...chatResponseSchema().properties, // Inherit responseParts and promptSuggestions
+            suggestion: {
+                type: Type.OBJECT,
+                description: `An optional suggested improvement for the ${lang.native} and ${lang.learning} phrases.`,
+                properties: {
+                    [lang.nativeCode]: { type: Type.STRING, description: `The suggested new ${lang.native} phrase.` },
+                    [lang.learningCode]: { type: Type.STRING, description: `The suggested new ${lang.learning} phrase.` }
+                },
+                required: [lang.nativeCode, lang.learningCode]
+            }
+        },
+        required: ["responseParts", "promptSuggestions"]
+    };
 };
 
 
 const discussTranslation: AiService['discussTranslation'] = async (request) => {
     const api = initializeApi();
     if (!api) throw new Error("Gemini API key not configured.");
+    const lang = getLang();
 
-    // FIX: Use `originalNative` and `currentLearning` from TranslationChatRequest
-    const systemInstruction = `Ты AI-помощник и эксперт по немецкому языку. Пользователь недоволен переводом и хочет его улучшить.
-Исходная русская фраза: "${request.originalNative}"
-Текущий немецкий перевод: "${request.currentLearning}"
+    const systemInstruction = `Ты AI-помощник и эксперт по ${lang.learning} языку. Пользователь недоволен переводом и хочет его улучшить.
+Исходная ${lang.native} фраза: "${request.originalNative}"
+Текущий ${lang.learning} перевод: "${request.currentLearning}"
 
 Твоя задача:
-1.  Ответь на запрос пользователя, помогая ему найти лучший перевод. Общайся на русском.
-2.  Если в ходе диалога ты приходишь к выводу, что фразу можно улучшить, ОБЯЗАТЕЛЬНО включи в свой JSON-ответ поле \`suggestion\`. Это поле должно содержать объект с ключами \`russian\` и \`german\` с финальным, улучшенным вариантом. Возможно, для лучшего перевода придется немного изменить и русскую фразу.
+1.  Ответь на запрос пользователя, помогая ему найти лучший перевод. Общайся на ${lang.native}.
+2.  Если в ходе диалога ты приходишь к выводу, что фразу можно улучшить, ОБЯЗАТЕЛЬНО включи в свой JSON-ответ поле \`suggestion\`. Это поле должно содержать объект с ключами \`${lang.nativeCode}\` и \`${lang.learningCode}\` с финальным, улучшенным вариантом. Возможно, для лучшего перевода придется немного изменить и ${lang.native} фразу.
 3.  Если ты не предлагаешь конкретного изменения, НЕ включай поле \`suggestion\`.
 4.  Твой ответ ДОЛЖЕН быть ТОЛЬКО в формате JSON, строго соответствующем предоставленной схеме. Не добавляй никакого текста до или после JSON. Всегда разбивай свой текстовый ответ на массив \`responseParts\` и предлагай новые вопросы в \`promptSuggestions\`.
 5.  Будь краток и по делу.`;
@@ -1037,7 +1103,7 @@ const discussTranslation: AiService['discussTranslation'] = async (request) => {
             config: {
                 systemInstruction,
                 responseMimeType: "application/json",
-                responseSchema: translationChatResponseSchema,
+                responseSchema: translationChatResponseSchema(),
                 temperature: 0.6,
             },
         });
@@ -1047,18 +1113,18 @@ const discussTranslation: AiService['discussTranslation'] = async (request) => {
 
         if (!parsedResponse || !Array.isArray(parsedResponse.responseParts) || !Array.isArray(parsedResponse.promptSuggestions)) {
             console.error("Invalid response structure from Gemini discussTranslation:", parsedResponse);
-            const textFallback = (parsedResponse && typeof parsedResponse === 'object') 
-                ? JSON.stringify(parsedResponse) 
+            const textFallback = (parsedResponse && typeof parsedResponse === 'object')
+                ? JSON.stringify(parsedResponse)
                 : 'Invalid response';
             throw new Error(`AI returned an unexpected response format. Raw: ${textFallback}`);
         }
 
         return {
             role: 'model',
-            contentParts: parsedResponse.responseParts.length > 0 
-                ? parsedResponse.responseParts 
+            contentParts: parsedResponse.responseParts.length > 0
+                ? parsedResponse.responseParts
                 : [{ type: 'text', text: 'AI не предоставил текстовый ответ.' }],
-            suggestion: parsedResponse.suggestion ? { learning: parsedResponse.suggestion.german, native: parsedResponse.suggestion.russian } : undefined,
+            suggestion: parsedResponse.suggestion ? { learning: parsedResponse.suggestion[lang.learningCode], native: parsedResponse.suggestion[lang.nativeCode] } : undefined,
             promptSuggestions: parsedResponse.promptSuggestions || [],
         };
 
@@ -1072,69 +1138,72 @@ const discussTranslation: AiService['discussTranslation'] = async (request) => {
 };
 
 
-const deepDiveAnalysisSchema = {
-    type: Type.OBJECT,
-    properties: {
-        chunks: {
-            type: Type.ARRAY,
-            description: "The German phrase broken down into grammatical chunks.",
-            items: {
-                type: Type.OBJECT,
-                properties: {
-                    text: { type: Type.STRING },
-                    type: { type: Type.STRING, description: "Grammatical type, e.g., 'Noun', 'Verb', 'Article', 'Adjective', 'Adverb', 'Preposition', 'Pronoun', 'Conjunction', 'Particle'." },
-                    explanation: { type: Type.STRING, description: "A brief explanation of the chunk's role in Russian." },
-                },
-                required: ["text", "type", "explanation"]
-            }
-        },
-        keyConcepts: {
-            type: Type.ARRAY,
-            description: "A list of key semantic concepts within the phrase.",
-            items: {
-                type: Type.OBJECT,
-                properties: {
-                    concept: { type: Type.STRING, description: "The key concept in German." },
-                    explanation: { type: Type.STRING, description: "A brief explanation in Russian." },
-                },
-                required: ["concept", "explanation"]
-            }
-        },
-        personalizationQuestion: {
-            type: Type.STRING,
-            description: "A thought-provoking question in Russian to help the user connect the phrase to their own life (Self-Reference Effect)."
-        },
-        mnemonicImage: {
-            type: Type.OBJECT,
-            description: "A vivid, memorable, and slightly absurd mnemonic image to help encode the phrase.",
-            properties: {
-                description: { type: Type.STRING, description: "A detailed description of the memorable scene in Russian." },
-                keywords: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Keywords from the scene." }
+const deepDiveAnalysisSchema = () => {
+    const lang = getLang();
+    return {
+        type: Type.OBJECT,
+        properties: {
+            chunks: {
+                type: Type.ARRAY,
+                description: `The ${lang.learning} phrase broken down into grammatical chunks.`,
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        text: { type: Type.STRING },
+                        type: { type: Type.STRING, description: "Grammatical type, e.g., 'Noun', 'Verb', 'Article', 'Adjective', 'Adverb', 'Preposition', 'Pronoun', 'Conjunction', 'Particle'." },
+                        explanation: { type: Type.STRING, description: `A brief explanation of the chunk's role in ${lang.native}.` },
+                    },
+                    required: ["text", "type", "explanation"]
+                }
             },
-            required: ["description", "keywords"]
-        }
-    },
-    required: ["chunks", "keyConcepts", "personalizationQuestion", "mnemonicImage"]
+            keyConcepts: {
+                type: Type.ARRAY,
+                description: "A list of key semantic concepts within the phrase.",
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        concept: { type: Type.STRING, description: `The key concept in ${lang.learning}.` },
+                        explanation: { type: Type.STRING, description: `A brief explanation in ${lang.native}.` },
+                    },
+                    required: ["concept", "explanation"]
+                }
+            },
+            personalizationQuestion: {
+                type: Type.STRING,
+                description: `A thought-provoking question in ${lang.native} to help the user connect the phrase to their own life (Self-Reference Effect).`
+            },
+            mnemonicImage: {
+                type: Type.OBJECT,
+                description: "A vivid, memorable, and slightly absurd mnemonic image to help encode the phrase.",
+                properties: {
+                    description: { type: Type.STRING, description: `A detailed description of the memorable scene in ${lang.native}.` },
+                    keywords: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Keywords from the scene." }
+                },
+                required: ["description", "keywords"]
+            }
+        },
+        required: ["chunks", "keyConcepts", "personalizationQuestion", "mnemonicImage"]
+    };
 };
 
 const generateDeepDiveAnalysis: AiService['generateDeepDiveAnalysis'] = async (phrase) => {
     const api = initializeApi();
     if (!api) throw new Error("Gemini API key not configured.");
+    const lang = getLang();
 
-    // FIX: Use phrase.text.learning and phrase.text.native
-    const prompt = `Ты — AI-ассистент, специализирующийся на когнитивных техниках запоминания. Пользователь изучает немецкую фразу: "${phrase.text.learning}" (перевод: "${phrase.text.native}").
+    const prompt = `Ты — AI-ассистент, специализирующийся на когнитивных техниках запоминания. Пользователь изучает ${lang.learning} фразу: "${phrase.text.learning}" (перевод: "${phrase.text.native}").
 Проведи глубокий когнитивный анализ этой фразы, следуя трём этапам, и верни результат в виде JSON-объекта.
 
 **Этап 1: Деконструкция (Анализ)**
-- **chunks**: Разбей немецкую фразу на грамматические чанки (отдельные слова или небольшие группы). Для каждого чанка укажи его тип (например, 'Noun', 'Verb', 'Adjective', 'Preposition') и краткое объяснение его роли на русском языке.
-- **keyConcepts**: Выдели 1-3 ключевых семантических понятия во фразе и дай им краткое объяснение на русском.
+- **chunks**: Разбей ${lang.learning} фразу на грамматические чанки (отдельные слова или небольшие группы). Для каждого чанка укажи его тип (например, 'Noun', 'Verb', 'Adjective', 'Preposition') и краткое объяснение его роли на ${lang.native} языке.
+- **keyConcepts**: Выдели 1-3 ключевых семантических понятия во фразе и дай им краткое объяснение на ${lang.native}.
 
 **Этап 2: Персонализация (Углубление)**
-- **personalizationQuestion**: Сформулируй один наводящий вопрос на русском, который поможет пользователю связать фразу с его личным опытом, чувствами или воспоминаниями. Это должно активировать эффект самореференции. Вопрос должен быть открытым и поощрять воображение.
+- **personalizationQuestion**: Сформулируй один наводящий вопрос на ${lang.native}, который поможет пользователю связать фразу с его личным опытом, чувствами или воспоминаниями. Это должно активировать эффект самореференции. Вопрос должен быть открытым и поощрять воображение.
 
 **Этап 3: Кодирование (Мнемоника)**
 - **mnemonicImage**: Создай яркий, запоминающийся, мультисенсорный и, возможно, абсурдный мнемонический образ или короткую сцену, которая кодирует смысл всей фразы.
-  - **description**: Подробно опиши эту сцену на русском языке.
+  - **description**: Подробно опиши эту сцену на ${lang.native} языке.
   - **keywords**: Укажи 2-4 ключевых слова из этого образа.
 
 Верни только JSON-объект, соответствующий предоставленной схеме.`;
@@ -1145,7 +1214,7 @@ const generateDeepDiveAnalysis: AiService['generateDeepDiveAnalysis'] = async (p
             contents: prompt,
             config: {
                 responseMimeType: "application/json",
-                responseSchema: deepDiveAnalysisSchema,
+                responseSchema: deepDiveAnalysisSchema(),
                 temperature: 0.8,
             },
         });
@@ -1160,30 +1229,33 @@ const generateDeepDiveAnalysis: AiService['generateDeepDiveAnalysis'] = async (p
     }
 };
 
-const movieExamplesSchema = {
-    type: Type.ARRAY,
-    items: {
-        type: Type.OBJECT,
-        properties: {
-            title: { type: Type.STRING, description: 'The original title of the movie.' },
-            titleNative: { type: Type.STRING, description: 'The native (e.g., Russian) translation of the movie title.' },
-            dialogueLearning: { type: Type.STRING, description: 'The exact dialogue snippet in the learning language (German) containing the phrase.' },
-            dialogueNative: { type: Type.STRING, description: 'The native (e.g., Russian) translation of the dialogue snippet.' },
-        },
-        required: ["title", "titleNative", "dialogueLearning", "dialogueNative"],
-    }
+const movieExamplesSchema = () => {
+    const lang = getLang();
+    return {
+        type: Type.ARRAY,
+        items: {
+            type: Type.OBJECT,
+            properties: {
+                title: { type: Type.STRING, description: 'The original title of the movie.' },
+                titleNative: { type: Type.STRING, description: `The ${lang.native} translation of the movie title.` },
+                dialogueLearning: { type: Type.STRING, description: `The exact dialogue snippet in the ${lang.learning} language containing the phrase.` },
+                dialogueNative: { type: Type.STRING, description: `The ${lang.native} translation of the dialogue snippet.` },
+            },
+            required: ["title", "titleNative", "dialogueLearning", "dialogueNative"],
+        }
+    };
 };
 
 const generateMovieExamples: AiService['generateMovieExamples'] = async (phrase) => {
     const api = initializeApi();
     if (!api) throw new Error("Gemini API key not configured.");
+    const lang = getLang();
 
-    // FIX: Use phrase.text.learning
-    const prompt = `Найди до 5 примеров из диалогов популярных фильмов, где используется немецкая фраза "${phrase.text.learning}". Фильмы могут быть как немецкого производства, так и популярные международные фильмы с качественным немецким дубляжом. Для каждого примера укажи:
+    const prompt = `Найди до 5 примеров из диалогов популярных фильмов, где используется ${lang.learning} фраза "${phrase.text.learning}". Фильмы могут быть как ${lang.learning} производства, так и популярные международные фильмы с качественным ${lang.learning} дубляжом. Для каждого примера укажи:
 1. Оригинальное название фильма ('title').
-2. Название фильма на русском языке ('titleNative').
-3. Фрагмент диалога на немецком языке ('dialogueLearning').
-4. Перевод этого фрагмента на русский язык ('dialogueNative').
+2. Название фильма на ${lang.native} языке ('titleNative').
+3. Фрагмент диалога на ${lang.learning} языке ('dialogueLearning').
+4. Перевод этого фрагмента на ${lang.native} язык ('dialogueNative').
 Верни результат в виде JSON-массива объектов, соответствующего схеме.`;
 
     try {
@@ -1192,7 +1264,7 @@ const generateMovieExamples: AiService['generateMovieExamples'] = async (phrase)
             contents: prompt,
             config: {
                 responseMimeType: "application/json",
-                responseSchema: movieExamplesSchema,
+                responseSchema: movieExamplesSchema(),
                 temperature: 0.7,
             },
         });
@@ -1208,49 +1280,52 @@ const generateMovieExamples: AiService['generateMovieExamples'] = async (phrase)
 };
 
 // FIX: Update schema to match WordAnalysis type in types.ts
-const wordAnalysisSchema = {
-    type: Type.OBJECT,
-    properties: {
-        word: { type: Type.STRING },
-        partOfSpeech: { type: Type.STRING, description: 'The part of speech (e.g., "Существительное", "Глагол", "Прилагательное").' },
-        nativeTranslation: { type: Type.STRING, description: 'The Russian translation of the word.' },
-        baseForm: { type: Type.STRING, description: 'The base form, especially for adjectives (e.g., "gut" for "guten").' },
-        nounDetails: {
-            type: Type.OBJECT,
-            properties: {
-                article: { type: Type.STRING, description: 'The article (der, die, das).' },
-                plural: { type: Type.STRING, description: 'The plural form.' },
+const wordAnalysisSchema = () => {
+    const lang = getLang();
+    return {
+        type: Type.OBJECT,
+        properties: {
+            word: { type: Type.STRING },
+            partOfSpeech: { type: Type.STRING, description: `The part of speech (e.g., "Существительное", "Глагол", "Прилагательное") in ${lang.native}.` },
+            nativeTranslation: { type: Type.STRING, description: `The ${lang.native} translation of the word.` },
+            baseForm: { type: Type.STRING, description: 'The base form, especially for adjectives (e.g., "gut" for "guten").' },
+            nounDetails: {
+                type: Type.OBJECT,
+                properties: {
+                    article: { type: Type.STRING, description: 'The article (der, die, das).' },
+                    plural: { type: Type.STRING, description: 'The plural form.' },
+                },
             },
-        },
-        verbDetails: {
-            type: Type.OBJECT,
-            properties: {
-                infinitive: { type: Type.STRING, description: 'The infinitive form.' },
-                tense: { type: Type.STRING, description: 'The tense (e.g., "Präsens").' },
-                person: { type: Type.STRING, description: 'The person and number (e.g., "1-е лицо, ед.ч.").' },
+            verbDetails: {
+                type: Type.OBJECT,
+                properties: {
+                    infinitive: { type: Type.STRING, description: 'The infinitive form.' },
+                    tense: { type: Type.STRING, description: 'The tense (e.g., "Präsens").' },
+                    person: { type: Type.STRING, description: `The person and number (e.g., "1-е лицо, ед.ч.") in ${lang.native}.` },
+                },
             },
+            exampleSentence: { type: Type.STRING, description: `A new example sentence in ${lang.learning} using the word.` },
+            exampleSentenceNative: { type: Type.STRING, description: `The ${lang.native} translation of the example sentence.` },
         },
-        exampleSentence: { type: Type.STRING, description: 'A new example sentence in German using the word.' },
-        exampleSentenceNative: { type: Type.STRING, description: 'The Russian translation of the example sentence.' },
-    },
-    required: ["word", "partOfSpeech", "nativeTranslation", "exampleSentence", "exampleSentenceNative"],
+        required: ["word", "partOfSpeech", "nativeTranslation", "exampleSentence", "exampleSentenceNative"],
+    };
 };
 
 const analyzeWordInPhrase: AiService['analyzeWordInPhrase'] = async (phrase, word) => {
     const api = initializeApi();
     if (!api) throw new Error("Gemini API key not configured.");
+    const lang = getLang();
 
-    // FIX: Use phrase.text.learning
-    const prompt = `Проведи лингвистический анализ немецкого слова "${word}" в контексте фразы "${phrase.text.learning}".
+    const prompt = `Проведи лингвистический анализ ${lang.learning} слова "${word}" в контексте фразы "${phrase.text.learning}".
 Верни JSON-объект со следующей информацией:
 1.  **word**: анализируемое слово.
-2.  **partOfSpeech**: часть речи на русском (например, "Существительное", "Глагол", "Прилагательное").
-3.  **nativeTranslation**: перевод слова на русский.
+2.  **partOfSpeech**: часть речи на ${lang.native} (например, "Существительное", "Глагол", "Прилагательное").
+3.  **nativeTranslation**: перевод слова на ${lang.native}.
 4.  **baseForm**: если слово — прилагательное, укажи его базовую (словарную) форму. Например, для "guten" это будет "gut".
 5.  **nounDetails**: если слово — существительное, укажи его артикль ('article') и форму множественного числа ('plural'). Если нет, пропусти это поле.
 6.  **verbDetails**: если слово — глагол, укажи его инфинитив ('infinitive'), время ('tense') и лицо/число ('person'). Если нет, пропусти это поле.
-7.  **exampleSentence**: новое предложение-пример на немецком, использующее это слово.
-8.  **exampleSentenceNative**: перевод предложения-примера на русский.`;
+7.  **exampleSentence**: новое предложение-пример на ${lang.learning}, использующее это слово.
+8.  **exampleSentenceNative**: перевод предложения-примера на ${lang.native}.`;
 
     try {
         const response = await api.models.generateContent({
@@ -1258,7 +1333,7 @@ const analyzeWordInPhrase: AiService['analyzeWordInPhrase'] = async (phrase, wor
             contents: prompt,
             config: {
                 responseMimeType: "application/json",
-                responseSchema: wordAnalysisSchema,
+                responseSchema: wordAnalysisSchema(),
                 temperature: 0.5,
             },
         });
@@ -1273,22 +1348,25 @@ const analyzeWordInPhrase: AiService['analyzeWordInPhrase'] = async (phrase, wor
     }
 };
 
-const pronounConjugationSchema = {
-    type: Type.OBJECT,
-    properties: {
-        pronoun: { type: Type.STRING, description: 'The personal pronoun (e.g., "ich", "du", "er/sie/es").' },
-        german: { type: Type.STRING, description: 'The full example sentence in German for this pronoun.' },
-        russian: { type: Type.STRING, description: 'The Russian translation of the German sentence.' },
-    },
-    required: ["pronoun", "german", "russian"],
+const pronounConjugationSchema = () => {
+    const lang = getLang();
+    return {
+        type: Type.OBJECT,
+        properties: {
+            pronoun: { type: Type.STRING, description: 'The personal pronoun (e.g., "ich", "du", "er/sie/es").' },
+            [lang.learningCode]: { type: Type.STRING, description: `The full example sentence in ${lang.learning} for this pronoun.` },
+            [lang.nativeCode]: { type: Type.STRING, description: `The ${lang.native} translation of the ${lang.learning} sentence.` },
+        },
+        required: ["pronoun", lang.learningCode, lang.nativeCode],
+    };
 };
 
 const tenseFormsSchema = {
     type: Type.OBJECT,
     properties: {
-        statement: { type: Type.ARRAY, items: pronounConjugationSchema, description: "An array of declarative statements for all pronouns." },
-        question: { type: Type.ARRAY, items: pronounConjugationSchema, description: "An array of interrogative sentences for all pronouns." },
-        negative: { type: Type.ARRAY, items: pronounConjugationSchema, description: "An array of negative sentences for all pronouns." },
+        statement: { type: Type.ARRAY, items: pronounConjugationSchema(), description: "An array of declarative statements for all pronouns." },
+        question: { type: Type.ARRAY, items: pronounConjugationSchema(), description: "An array of interrogative sentences for all pronouns." },
+        negative: { type: Type.ARRAY, items: pronounConjugationSchema(), description: "An array of negative sentences for all pronouns." },
     },
     required: ["statement", "question", "negative"],
 };
@@ -1308,7 +1386,8 @@ const conjugateVerb: AiService['conjugateVerb'] = async (infinitive) => {
     const api = initializeApi();
     if (!api) throw new Error("Gemini API key not configured.");
 
-    const prompt = `Ты — эксперт по грамматике немецкого языка. Предоставь полную матрицу спряжения для глагола "${infinitive}".
+    const lang = getLang();
+    const prompt = `Ты — эксперт по грамматике ${lang.learning} языка. Предоставь полную матрицу спряжения для глагола "${infinitive}".
 
 Матрица должна включать три времени (прошедшее, настоящее, будущее) и три формы (утвердительная, вопросительная, отрицательная).
 
@@ -1317,8 +1396,8 @@ const conjugateVerb: AiService['conjugateVerb'] = async (infinitive) => {
 Правила:
 1.  Для каждого местоимения в каждой ячейке предоставь:
     - 'pronoun': само местоимение (например, "ich", "du"). Для 'er/sie/es' и 'sie/Sie' используй именно такую запись.
-    - 'german': полный, грамматически верный пример предложения.
-    - 'russian': точный перевод этого предложения на русский.
+    - '${lang.learningCode}': полный, грамматически верный пример предложения.
+    - '${lang.nativeCode}': точный перевод этого предложения на ${lang.native}.
 2.  Для прошедшего времени используй Perfekt (например, "ich habe gesagt").
 3.  Для будущего времени используй Futur I (например, "ich werde sagen").
 4.  Отрицание строй с помощью "nicht" в правильной позиции.
@@ -1338,7 +1417,28 @@ const conjugateVerb: AiService['conjugateVerb'] = async (infinitive) => {
         });
         
         const jsonText = response.text.trim();
-        return JSON.parse(jsonText) as VerbConjugation;
+        const parsed = JSON.parse(jsonText);
+
+        // Mapper function to convert dynamic keys back to static keys
+        const mapConjugation = (item: any) => ({
+            pronoun: item.pronoun,
+            german: item[lang.learningCode],
+            russian: item[lang.nativeCode],
+        });
+
+        const mapTenseForms = (tense: any) => ({
+            statement: tense.statement.map(mapConjugation),
+            question: tense.question.map(mapConjugation),
+            negative: tense.negative.map(mapConjugation),
+        });
+
+        return {
+            infinitive: parsed.infinitive,
+            past: mapTenseForms(parsed.past),
+            present: mapTenseForms(parsed.present),
+            future: mapTenseForms(parsed.future),
+        } as VerbConjugation;
+
 
     } catch (error) {
         console.error("Error conjugating verb with Gemini:", error);
@@ -1418,7 +1518,8 @@ const declineNoun: AiService['declineNoun'] = async (noun, article) => {
     const api = initializeApi();
     if (!api) throw new Error("Gemini API key not configured.");
 
-    const prompt = `Предоставь склонение немецкого существительного "${noun}" с артиклем "${article}" по всем 4 падежам (Nominativ, Akkusativ, Dativ, Genitiv) для единственного (singular) и множественного (plural) числа. Включи определенный артикль в каждую форму. Верни JSON-объект.`;
+    const lang = getLang();
+    const prompt = `Предоставь склонение ${lang.learning} существительного "${noun}" с артиклем "${article}" по всем 4 падежам (Nominativ, Akkusativ, Dativ, Genitiv) для единственного (singular) и множественного (plural) числа. Включи определенный артикль в каждую форму. Верни JSON-объект.`;
 
     try {
         const response = await api.models.generateContent({
@@ -1487,7 +1588,8 @@ const declineAdjective: AiService['declineAdjective'] = async (adjective) => {
     const api = initializeApi();
     if (!api) throw new Error("Gemini API key not configured.");
 
-    const prompt = `Ты — эксперт по грамматике немецкого языка. Предоставь полную информацию о прилагательном "${adjective}".
+    const lang = getLang();
+    const prompt = `Ты — эксперт по грамматике ${lang.learning} языка. Предоставь полную информацию о прилагательном "${adjective}".
 1.  **Comparison**: Укажи три степени сравнения: положительную (positive), сравнительную (comparative) и превосходную (superlative).
 2.  **Declension**: Предоставь три полные таблицы склонения (слабое - weak, смешанное - mixed, сильное - strong).
     - Каждая таблица должна включать все падежи (nominativ, akkusativ, dativ, genitiv) для всех родов (masculine, feminine, neuter) и множественного числа (plural).
@@ -1515,31 +1617,34 @@ const declineAdjective: AiService['declineAdjective'] = async (adjective) => {
     }
 };
 
-const sentenceContinuationSchema = {
-    type: Type.OBJECT,
-    properties: {
-        learning: {
-            type: Type.STRING,
-            description: "The correct German translation of the provided Russian phrase."
-        },
-        continuations: {
-            type: Type.ARRAY,
-            description: "An array of 7 to 10 short, logical, and diverse continuation options in Russian. These should be clean words or phrases without any leading punctuation or connectors.",
-            items: {
-                type: Type.STRING
+const sentenceContinuationSchema = () => {
+    const lang = getLang();
+    return {
+        type: Type.OBJECT,
+        properties: {
+            learning: {
+                type: Type.STRING,
+                description: `The correct ${lang.learning} translation of the provided ${lang.native} phrase.`
+            },
+            continuations: {
+                type: Type.ARRAY,
+                description: `An array of 7 to 10 short, logical, and diverse continuation options in ${lang.native}. These should be clean words or phrases without any leading punctuation or connectors.`,
+                items: {
+                    type: Type.STRING
+                }
             }
-        }
-    },
-    required: ["learning", "continuations"]
+        },
+        required: ["learning", "continuations"]
+    };
 };
 
 const generateSentenceContinuations: AiService['generateSentenceContinuations'] = async (russianPhrase) => {
     const api = initializeApi();
     if (!api) throw new Error("Gemini API key not configured.");
+    const lang = getLang();
 
-    // FIX: This function takes a russian phrase, no need to access .native
     const prompt = `Ты — AI-помощник для изучения языка, который помогает пользователю строить фразы по частям.
-Текущая фраза пользователя на русском: "${russianPhrase}"
+Текущая фраза пользователя на ${lang.native}: "${russianPhrase}"
 
 Твоя задача — проанализировать фразу и предложить логичные продолжения.
 
@@ -1548,12 +1653,12 @@ const generateSentenceContinuations: AiService['generateSentenceContinuations'] 
     - Если фраза "Как мне добраться до вокзала", то можно добавить **обстоятельство способа действия** (как?) или **времени** (когда?).
 
 2.  **Генерация**:
-    - **learning**: Переведи текущую фразу "${russianPhrase}" на немецкий язык. Убедись, что грамматика и знаки препинания корректны.
-    - **continuations**: Сгенерируй от 7 до 10 разнообразных и логичных вариантов продолжения для русской фразы. Варианты должны быть релевантны для взрослого человека в реальных жизненных ситуациях (работа, семья, быт, друзья, путешествия).
+    - **learning**: Переведи текущую фразу "${russianPhrase}" на ${lang.learning} язык. Убедись, что грамматика и знаки препинания корректны.
+    - **continuations**: Сгенерируй от 7 до 10 разнообразных и логичных вариантов продолжения для ${lang.native} фразы. Варианты должны быть релевантны для взрослого человека в реальных жизненных ситуациях (работа, семья, быт, друзья, путешествия).
         - **ВАЖНО**: Варианты должны **продолжать** мысль, а не **заменять** ее часть.
         - **ПРАВИЛЬНО**: для "Как мне добраться до вокзала", предложи способы: "на метро", "пешком", "быстрее всего".
         - **НЕПРАВИЛЬНО**: для "Как мне добраться до вокзала", предлагать "до аэропорта" или "до музея". Фраза уже содержит место назначения.
-        - Варианты должны быть короткими, "чистыми" словами или фразами на русском без знаков препинания в начале.
+        - Варианты должны быть короткими, "чистыми" словами или фразами на ${lang.native} без знаков препинания в начале.
 
 Верни результат в виде JSON-объекта, соответствующего схеме.`;
 
@@ -1563,7 +1668,7 @@ const generateSentenceContinuations: AiService['generateSentenceContinuations'] 
             contents: prompt,
             config: {
                 responseMimeType: "application/json",
-                responseSchema: sentenceContinuationSchema,
+                responseSchema: sentenceContinuationSchema(),
                 temperature: 0.8,
             },
         });
@@ -1642,11 +1747,12 @@ const generatePhraseBuilderOptions: AiService['generatePhraseBuilderOptions'] = 
     if (!api) throw new Error("Gemini API key not configured.");
     
     // FIX: Use phrase.text.learning and phrase.text.native
+    const lang = getLang();
     const prompt = `Создай набор слов для упражнения "собери фразу".
-Немецкая фраза: "${phrase.text.learning}" (Русский перевод: "${phrase.text.native}").
+${lang.learning} фраза: "${phrase.text.learning}" (${lang.native} перевод: "${phrase.text.native}").
 
 Правила:
-1. Включи в набор ВСЕ слова из немецкой фразы. Знаки препинания должны оставаться частью слова (например, "Hallo.").
+1. Включи в набор ВСЕ слова из ${lang.learning} фразы. Знаки препинания должны оставаться частью слова (например, "Hallo.").
 2. Добавь 5-7 подходящих, но неверных "отвлекающих" слов (например, неправильные грамматические формы, синонимы не по контексту, лишние артикли).
 3. Перемешай все слова случайным образом.
 4. Верни JSON-объект с одним ключом "words", который содержит массив всех слов.`;
@@ -1671,29 +1777,32 @@ const generatePhraseBuilderOptions: AiService['generatePhraseBuilderOptions'] = 
 };
 
 
-const phraseEvaluationSchema = {
-    type: Type.OBJECT,
-    properties: {
-        isCorrect: { type: Type.BOOLEAN },
-        feedback: { type: Type.STRING, description: "Constructive feedback in Russian." },
-        correctedPhrase: { type: Type.STRING, description: "The correct phrase, if the user's attempt was wrong." }
-    },
-    required: ["isCorrect", "feedback"]
+const phraseEvaluationSchema = () => {
+    const lang = getLang();
+    return {
+        type: Type.OBJECT,
+        properties: {
+            isCorrect: { type: Type.BOOLEAN },
+            feedback: { type: Type.STRING, description: `Constructive feedback in ${lang.native}.` },
+            correctedPhrase: { type: Type.STRING, description: "The correct phrase, if the user's attempt was wrong." }
+        },
+        required: ["isCorrect", "feedback"]
+    };
 };
 
 const evaluatePhraseAttempt: AiService['evaluatePhraseAttempt'] = async (phrase, userAttempt) => {
     const api = initializeApi();
     if (!api) throw new Error("Gemini API key not configured.");
+    const lang = getLang();
 
-    // FIX: Use phrase.text.native and phrase.text.learning
-    const prompt = `Ты — опытный и доброжелательный преподаватель немецкого языка.
+    const prompt = `Ты — опытный и доброжелательный преподаватель ${lang.learning} языка.
 Ученик изучает фразу: "${phrase.text.native}".
 Правильный перевод: "${phrase.text.learning}".
 Ответ ученика: "${userAttempt}".
 
 Твоя задача — дать обратную связь по ответу ученика.
 1.  **Сравнение**: Сравнивай ответ ученика с правильным переводом, ИГНОРИРУЯ следующие незначительные расхождения:
-    - **Регистр букв**: "Hallo" и "hallo" следует считать одинаковыми. Единственное исключение — существительные в немецком всегда пишутся с большой буквы. Если ученик написал существительное с маленькой, это ошибка.
+    - **Регистр букв**: "Hallo" и "hallo" следует считать одинаковыми. Единственное исключение — существительные в ${lang.learning} всегда пишутся с большой буквы. Если ученик написал существительное с маленькой, это ошибка.
     - **Знаки препинания в конце**: Отсутствие точки или вопросительного знака в конце не является ошибкой.
     - **Лишние пробелы** в начале или в конце.
 2.  **Если ответ правильный (с учетом допущений выше)**: Установи \`isCorrect: true\`. Похвали ученика. Можно добавить короткий комментарий, почему именно эта формулировка хороша.
@@ -1702,7 +1811,7 @@ const evaluatePhraseAttempt: AiService['evaluatePhraseAttempt'] = async (phrase,
     - Объясни, **почему** это ошибка (например, "Порядок слов здесь немного другой..." или "Существительное 'Tisch' мужского рода, поэтому нужен артикль 'der'").
     - Обязательно приведи правильный вариант в поле \`correctedPhrase\`.
 4.  Твой тон должен быть позитивным, ободряющим и педагогичным.
-5.  Отвечай на русском языке.
+5.  Отвечай на ${lang.native} языке.
 
 Верни JSON-объект.`;
 
@@ -1712,7 +1821,7 @@ const evaluatePhraseAttempt: AiService['evaluatePhraseAttempt'] = async (phrase,
             contents: prompt,
             config: {
                 responseMimeType: "application/json",
-                responseSchema: phraseEvaluationSchema,
+                responseSchema: phraseEvaluationSchema(),
                 temperature: 0.5,
             },
         });
@@ -1730,7 +1839,8 @@ const evaluateSpokenPhraseAttempt: AiService['evaluateSpokenPhraseAttempt'] = as
     if (!api) throw new Error("Gemini API key not configured.");
 
     // FIX: Use phrase.text.native and phrase.text.learning
-    const prompt = `Ты — опытный и доброжелательный преподаватель немецкого языка, оценивающий УСТНЫЙ ответ ученика.
+    const lang = getLang();
+    const prompt = `Ты — опытный и доброжелательный преподаватель ${lang.learning} языка, оценивающий УСТНЫЙ ответ ученика.
 Ученик изучает фразу: "${phrase.text.native}".
 Правильный письменный перевод: "${phrase.text.learning}".
 Устный ответ ученика (транскрипция): "${userAttempt}".
@@ -1753,7 +1863,7 @@ const evaluateSpokenPhraseAttempt: AiService['evaluateSpokenPhraseAttempt'] = as
     - Объясни, **почему** это ошибка (например, "Порядок слов здесь немного другой..." или "Существительное 'Tisch' мужского рода, поэтому нужен артикль 'der'").
     - ОБЯЗАТЕЛЬНО приведи правильный вариант в поле \`correctedPhrase\`.
 4.  Твой тон должен быть позитивным и педагогичным.
-5.  Отвечай на русском языке.
+5.  Отвечай на ${lang.native} языке.
 
 Верни JSON-объект.`;
 
@@ -1763,7 +1873,7 @@ const evaluateSpokenPhraseAttempt: AiService['evaluateSpokenPhraseAttempt'] = as
             contents: prompt,
             config: {
                 responseMimeType: "application/json",
-                responseSchema: phraseEvaluationSchema,
+                responseSchema: phraseEvaluationSchema(),
                 temperature: 0.4,
             },
         });
@@ -1790,87 +1900,90 @@ const healthCheck: AiService['healthCheck'] = async () => {
     }
 };
 
-const categoryAssistantResponseSchema = {
-    type: Type.OBJECT,
-    properties: {
-        responseType: { type: Type.STRING, enum: ['text', 'proposed_cards', 'phrases_to_review', 'phrases_to_delete'] },
-        responseParts: {
-            type: Type.ARRAY,
-            description: "The main text response, broken into segments of plain text and German text. Use Markdown for formatting like lists or bold text within 'text' type parts. Format dialogues using Markdown like '**Person A:** '.",
-            items: {
-                type: Type.OBJECT,
-                properties: {
-                    type: { type: Type.STRING, enum: ['text', 'german'] },
-                    text: { type: Type.STRING },
-                    translation: { type: Type.STRING, description: "Russian translation ONLY if type is 'german'." }
-                },
-                required: ["type", "text"],
-            }
+const categoryAssistantResponseSchema = () => {
+    const lang = getLang();
+    return {
+        type: Type.OBJECT,
+        properties: {
+            responseType: { type: Type.STRING, enum: ['text', 'proposed_cards', 'phrases_to_review', 'phrases_to_delete'] },
+            responseParts: {
+                type: Type.ARRAY,
+                description: `The main text response, broken into segments of plain text and ${lang.learning} text. Use Markdown for formatting like lists or bold text within 'text' type parts. Format dialogues using Markdown like '**Person A:** '.`,
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        type: { type: Type.STRING, enum: ['text', 'german'] },
+                        text: { type: Type.STRING },
+                        translation: { type: Type.STRING, description: `${lang.native} translation ONLY if type is 'german'.` }
+                    },
+                    required: ["type", "text"],
+                }
+            },
+            promptSuggestions: {
+                type: Type.ARRAY,
+                description: `A list of 2-4 new, context-aware follow-up questions in ${lang.native} that the user might ask next.`,
+                items: {
+                    type: Type.STRING
+                }
+            },
+            proposedCards: {
+                type: Type.ARRAY,
+                description: 'A list of new cards. Only for responseType "proposed_cards".',
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        [lang.learningCode]: { type: Type.STRING },
+                        [lang.nativeCode]: { type: Type.STRING }
+                    },
+                    required: [lang.learningCode, lang.nativeCode]
+                }
+            },
+            phrasesToReview: {
+                type: Type.ARRAY,
+                description: 'A list of inconsistent phrases. Only for responseType "phrases_to_review".',
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        [lang.learningCode]: { type: Type.STRING },
+                        reason: { type: Type.STRING, description: `Reason in ${lang.native}.` }
+                    },
+                    required: [lang.learningCode, 'reason']
+                }
+            },
+            phrasesForDeletion: {
+                type: Type.ARRAY,
+                description: 'A list of phrases to delete. Only for responseType "phrases_to_delete".',
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        [lang.learningCode]: { type: Type.STRING },
+                        reason: { type: Type.STRING, description: `Reason in ${lang.native}.` }
+                    },
+                    required: [lang.learningCode, 'reason']
+                }
+            },
         },
-        promptSuggestions: {
-            type: Type.ARRAY,
-            description: "A list of 2-4 new, context-aware follow-up questions in Russian that the user might ask next.",
-            items: {
-                type: Type.STRING
-            }
-        },
-        proposedCards: {
-            type: Type.ARRAY,
-            description: 'A list of new cards. Only for responseType "proposed_cards".',
-            items: {
-                type: Type.OBJECT,
-                properties: {
-                    german: { type: Type.STRING },
-                    russian: { type: Type.STRING }
-                },
-                required: ['german', 'russian']
-            }
-        },
-        phrasesToReview: {
-            type: Type.ARRAY,
-            description: 'A list of inconsistent phrases. Only for responseType "phrases_to_review".',
-            items: {
-                type: Type.OBJECT,
-                properties: {
-                    german: { type: Type.STRING },
-                    reason: { type: Type.STRING, description: 'Reason in Russian.' }
-                },
-                required: ['german', 'reason']
-            }
-        },
-        phrasesForDeletion: {
-            type: Type.ARRAY,
-            description: 'A list of phrases to delete. Only for responseType "phrases_to_delete".',
-            items: {
-                type: Type.OBJECT,
-                properties: {
-                    german: { type: Type.STRING },
-                    reason: { type: Type.STRING, description: 'Reason in Russian.' }
-                },
-                required: ['german', 'reason']
-            }
-        },
-    },
-    required: ['responseType', 'responseParts', 'promptSuggestions']
+        required: ['responseType', 'responseParts', 'promptSuggestions']
+    };
 };
 
 
 const getCategoryAssistantResponse: AiService['getCategoryAssistantResponse'] = async (categoryName, existingPhrases, request) => {
     const api = initializeApi();
     if (!api) throw new Error("Gemini API key not configured.");
+    const lang = getLang();
     
-    // FIX: Use p.text.learning
     const existingPhrasesText = existingPhrases.map(p => `"${p.text.learning}"`).join(', ');
 
     const requestTextMap: Record<CategoryAssistantRequestType, string> = {
         initial: "Это первое открытие. Поприветствуй пользователя и предложи основные действия.",
         add_similar: "Проанализируй существующие фразы и сгенерируй 10 новых, похожих по теме. Не повторяй существующие.",
         check_homogeneity: "Проанализируй все фразы на тематическое единство. Укажи те, что не подходят, и объясни почему. Если все хорошо, так и скажи.",
-        create_dialogue: "Создай короткий диалог, используя как можно больше фраз из списка. Предоставь немецкий вариант с переводом в скобках после каждой реплики и отформатируй его с помощью Markdown.",
+        create_dialogue: `Создай короткий диалог, используя как можно больше фраз из списка. Предоставь ${lang.learning} вариант с переводом в скобках после каждой реплики и отформатируй его с помощью Markdown.`,
         user_text: `Пользователь написал: "${request.text}". Ответь на его запрос.`
     };
 
-    const prompt = `Ты — AI-ассистент в приложении для изучения немецкого. Ты находишься внутри категории "${categoryName}".
+    const prompt = `Ты — AI-ассистент в приложении для изучения ${lang.learning}. Ты находишься внутри категории "${categoryName}".
 Существующие фразы в категории: ${existingPhrasesText || "пока нет"}.
 
 Запрос пользователя: ${requestTextMap[request.type]}
@@ -1879,13 +1992,13 @@ const getCategoryAssistantResponse: AiService['getCategoryAssistantResponse'] = 
 
 **ПРАВИЛА:**
 - **responseType**: Тип ответа ('text', 'proposed_cards', 'phrases_to_review', 'phrases_to_delete').
-- **responseParts**: Твой основной текстовый ответ, разбитый на части. Используй 'type':'german' для немецких слов с переводом. Для диалогов используй Markdown-форматирование (например, \`**Собеседник А:** ...\`) внутри частей с 'type':'text'.
+- **responseParts**: Твой основной текстовый ответ, разбитый на части. Используй 'type':'german' для ${lang.learning} слов с переводом. Для диалогов используй Markdown-форматирование (например, \`**Собеседник А:** ...\`) внутри частей с 'type':'text'.
 - **promptSuggestions**: ВСЕГДА предлагай 3-4 релевантных вопроса для продолжения диалога.
 - **proposedCards / phrasesToReview**: Заполняй эти поля только если тип ответа соответствующий.
 - **УДАЛЕНИЕ ФРАЗ**: Если пользователь просит удалить, убрать, очистить фразы (например, "удали половину", "оставь только времена года"), выполни следующие действия:
   1. Определи, какие именно фразы из списка существующих нужно удалить.
   2. Установи \`responseType: 'phrases_to_delete'\`.
-  3. В поле \`phrasesForDeletion\` верни массив объектов с ключами \`german\` (точный текст фразы для удаления) и \`reason\` (краткое объяснение на русском, почему эта фраза удаляется).
+  3. В поле \`phrasesForDeletion\` верни массив объектов с ключами \`${lang.learningCode}\` (точный текст фразы для удаления) и \`reason\` (краткое объяснение на ${lang.native}, почему эта фраза удаляется).
   4. В \`responseParts\` напиши сопроводительное сообщение, например: "Хорошо, я предлагаю удалить следующие фразы, так как они не соответствуют вашему запросу:".`;
     
     try {
@@ -1894,7 +2007,7 @@ const getCategoryAssistantResponse: AiService['getCategoryAssistantResponse'] = 
             contents: prompt,
             config: {
                 responseMimeType: "application/json",
-                responseSchema: categoryAssistantResponseSchema,
+                responseSchema: categoryAssistantResponseSchema(),
                 temperature: 0.7,
             },
         });
@@ -1902,12 +2015,11 @@ const getCategoryAssistantResponse: AiService['getCategoryAssistantResponse'] = 
         const jsonText = response.text.trim();
         const parsedResult = JSON.parse(jsonText);
 
-        // Map proposedCards to the correct type
         const assistantResponse: CategoryAssistantResponse = {
             ...parsedResult,
-            proposedCards: parsedResult.proposedCards?.map((c: any) => ({ native: c.russian, learning: c.german })),
-            phrasesToReview: parsedResult.phrasesToReview?.map((p: any) => ({ learning: p.german, reason: p.reason })),
-            phrasesForDeletion: parsedResult.phrasesForDeletion?.map((p: any) => ({ learning: p.german, reason: p.reason })),
+            proposedCards: parsedResult.proposedCards?.map((c: any) => ({ native: c[lang.nativeCode], learning: c[lang.learningCode] })),
+            phrasesToReview: parsedResult.phrasesToReview?.map((p: any) => ({ learning: p[lang.learningCode], reason: p.reason })),
+            phrasesForDeletion: parsedResult.phrasesForDeletion?.map((p: any) => ({ learning: p[lang.learningCode], reason: p.reason })),
         };
 
         return assistantResponse;

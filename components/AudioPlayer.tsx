@@ -1,20 +1,40 @@
 import React, { useState, useEffect } from 'react';
 import SoundIcon from './icons/SoundIcon';
+import { useLanguage } from '../src/contexts/languageContext';
 
 interface AudioPlayerProps {
   textToSpeak: string;
 }
 
+// Map language codes to speech synthesis locale codes
+const SPEECH_LOCALE_MAP: Record<string, string> = {
+  'en': 'en-US',
+  'de': 'de-DE',
+  'ru': 'ru-RU',
+  'fr': 'fr-FR',
+  'es': 'es-ES',
+  'it': 'it-IT',
+  'pt': 'pt-PT',
+  'pl': 'pl-PL',
+  'zh': 'zh-CN',
+  'ja': 'ja-JP',
+  'ar': 'ar-SA',
+  'hi': 'hi-IN',
+};
+
 const AudioPlayer: React.FC<AudioPlayerProps> = ({ textToSpeak }) => {
   const [isPlaying, setIsPlaying] = useState(false);
+  const { profile } = useLanguage();
 
   const utteranceRef = React.useRef<SpeechSynthesisUtterance | null>(null);
-  
+
   const isDisabled = !textToSpeak || textToSpeak.trim().length === 0;
 
   useEffect(() => {
     const utterance = new SpeechSynthesisUtterance(textToSpeak);
-    utterance.lang = 'de-DE';
+    // Use learning language from profile
+    const learningLang = profile.learning || 'de';
+    utterance.lang = SPEECH_LOCALE_MAP[learningLang] || 'de-DE';
     utterance.rate = 0.9;
     
     const handleEnd = () => setIsPlaying(false);
@@ -29,7 +49,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ textToSpeak }) => {
       utterance.removeEventListener('error', handleEnd);
       window.speechSynthesis.cancel();
     };
-  }, [textToSpeak]);
+  }, [textToSpeak, profile.learning]);
 
   const handlePlay = () => {
     if (!utteranceRef.current || isDisabled) return;

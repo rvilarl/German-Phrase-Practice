@@ -56,16 +56,35 @@ import PracticeChatFab from './components/PracticeChatFab';
 import PracticeChatModal from './components/PracticeChatModal';
 import { useTranslation } from './src/hooks/useTranslation.ts';
 import { useAuth } from './src/contexts/authContext.tsx';
+import { useLanguage } from './src/contexts/languageContext.tsx';
+import { setCurrentLanguageProfile } from './services/languageAwareAiService';
+import { useLanguageOnboarding } from './src/hooks/useLanguageOnboarding';
+import LanguageOnboardingModal from './components/LanguageOnboardingModal';
 
 
-const PHRASES_STORAGE_KEY = 'germanPhrases';
-const SETTINGS_STORAGE_KEY = 'germanAppSettings';
-const CATEGORIES_STORAGE_KEY = 'germanAppCategories';
-const BUTTON_USAGE_STORAGE_KEY = 'germanAppButtonUsage';
-const MASTERY_BUTTON_USAGE_STORAGE_KEY = 'germanAppMasteryButtonUsage';
-const HABIT_TRACKER_STORAGE_KEY = 'germanAppHabitTracker';
-const CARD_ACTION_USAGE_STORAGE_KEY = 'germanAppCardActionUsage';
-const PRACTICE_CHAT_HISTORY_KEY = 'germanAppPracticeChatHistory';
+// Legacy keys (for migration)
+const LEGACY_PHRASES_KEY = 'germanPhrases';
+const LEGACY_CATEGORIES_KEY = 'germanAppCategories';
+
+// Helper function to create user-aware and language-aware storage keys
+const getStorageKey = (baseKey: string, userId?: string, languageProfile?: { native: string; learning: string }): string => {
+  if (!userId) return baseKey; // Fallback to base key if no user
+  if (!languageProfile) return `${baseKey}_${userId}`; // User-aware only
+  return `${baseKey}_${userId}_${languageProfile.native}_${languageProfile.learning}`; // Full isolation
+};
+
+// Storage key generators
+const PHRASES_KEY = (userId?: string, langProfile?: { native: string; learning: string }) =>
+  getStorageKey('userPhrases', userId, langProfile);
+const CATEGORIES_KEY = (userId?: string, langProfile?: { native: string; learning: string }) =>
+  getStorageKey('userCategories', userId, langProfile);
+const SETTINGS_KEY = (userId?: string) => getStorageKey('userSettings', userId);
+const BUTTON_USAGE_KEY = (userId?: string) => getStorageKey('userButtonUsage', userId);
+const MASTERY_BUTTON_USAGE_KEY = (userId?: string) => getStorageKey('userMasteryButtonUsage', userId);
+const HABIT_TRACKER_KEY = (userId?: string) => getStorageKey('userHabitTracker', userId);
+const CARD_ACTION_USAGE_KEY = (userId?: string) => getStorageKey('userCardActionUsage', userId);
+const PRACTICE_CHAT_HISTORY_KEY = (userId?: string, langProfile?: { native: string; learning: string }) =>
+  getStorageKey('userPracticeChatHistory', userId, langProfile);
 
 // FIX: Removed local View type definition. It's now imported from types.ts
 type AnimationDirection = 'left' | 'right';
@@ -188,9 +207,37 @@ const LeechModal: React.FC<LeechModalProps> = ({ isOpen, phrase, onImprove, onDi
 };
 
 
+/**
+ * Migrate legacy localStorage data to new user+language aware keys
+ */
+const migrateLegacyStorage = (userId: string, languageProfile: { native: string; learning: string }) => {
+  console.log('[Migration] Checking for legacy data...');
+
+  // Migrate phrases
+  const legacyPhrases = localStorage.getItem(LEGACY_PHRASES_KEY);
+  if (legacyPhrases && !localStorage.getItem(PHRASES_KEY(userId, languageProfile))) {
+    console.log('[Migration] Migrating legacy phrases...');
+    localStorage.setItem(PHRASES_KEY(userId, languageProfile), legacyPhrases);
+    localStorage.removeItem(LEGACY_PHRASES_KEY);
+    console.log('[Migration] Phrases migrated successfully');
+  }
+
+  // Migrate categories
+  const legacyCategories = localStorage.getItem(LEGACY_CATEGORIES_KEY);
+  if (legacyCategories && !localStorage.getItem(CATEGORIES_KEY(userId, languageProfile))) {
+    console.log('[Migration] Migrating legacy categories...');
+    localStorage.setItem(CATEGORIES_KEY(userId, languageProfile), legacyCategories);
+    localStorage.removeItem(LEGACY_CATEGORIES_KEY);
+    console.log('[Migration] Categories migrated successfully');
+  }
+};
+
 const App: React.FC = () => {
   const { t } = useTranslation();
-  const { userChanged, resetUserChanged } = useAuth();
+  const { userChanged, resetUserChanged, user } = useAuth();
+  const userId = user?.id;
+  const { profile: languageProfile } = useLanguage();
+  const { needsOnboarding, isLoading: isOnboardingLoading, isGeneratingData, detectedLanguage, completeOnboarding } = useLanguageOnboarding(userId || null);
   const [allPhrases, setAllPhrases] = useState<Phrase[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -335,6 +382,14 @@ const App: React.FC = () => {
 
   const isPrefetchingRef = useRef(false);
 
+  // Migrate legacy data on mount
+  useEffect(() => {
+    if (userId && languageProfile) {
+      migrateLegacyStorage(userId, languageProfile);
+    }
+  }, [userId, languageProfile]);
+
+
   const showToast = useCallback((config: { message: string; type?: ToastType }) => {
     setToast({ message: config.message, type: config.type || 'default', id: Date.now() });
   }, []);
@@ -343,11 +398,11 @@ const App: React.FC = () => {
     setAllPhrases(prevPhrases => {
         const newPhrases = typeof updater === 'function' ? updater(prevPhrases) : updater;
         try {
-            localStorage.setItem(PHRASES_STORAGE_KEY, JSON.stringify(newPhrases));
+            localStorage.setItem(PHRASES_KEY(userId, languageProfile), JSON.stringify(newPhrases));
         } catch (e) { console.error("Failed to save phrases to storage", e); }
         return newPhrases;
     });
-  }, []);
+  }, [userId, languageProfile]);
 
   const loadUserData = useCallback(async () => {
     setIsLoading(true);
@@ -374,8 +429,8 @@ const App: React.FC = () => {
     }
 
     // --- Data Loading (Categories & Phrases) ---
-    const storedCategories = localStorage.getItem(CATEGORIES_STORAGE_KEY);
-    const storedPhrases = localStorage.getItem(PHRASES_STORAGE_KEY);
+    const storedCategories = localStorage.getItem(CATEGORIES_KEY(userId, languageProfile));
+    const storedPhrases = localStorage.getItem(PHRASES_KEY(userId, languageProfile));
     let dataLoaded = false;
 
     if (storedCategories && storedPhrases) {
@@ -392,7 +447,7 @@ const App: React.FC = () => {
         .then(serverData => {
           console.log("Syncing with server in background...");
           const { loadedCategories: serverCategories, loadedPhrases: serverPhrases } = processInitialServerData(serverData);
-          localStorage.setItem(CATEGORIES_STORAGE_KEY, JSON.stringify(serverCategories));
+          localStorage.setItem(CATEGORIES_KEY(userId, languageProfile), JSON.stringify(serverCategories));
           updateAndSavePhrases(serverPhrases);
           setCategories(serverCategories);
           showToast({ message: t('notifications.sync.synced') });
@@ -406,8 +461,8 @@ const App: React.FC = () => {
         const serverData = await backendService.fetchInitialData();
         const { loadedCategories, loadedPhrases } = processInitialServerData(serverData);
 
-        localStorage.setItem(CATEGORIES_STORAGE_KEY, JSON.stringify(loadedCategories));
-        localStorage.setItem(PHRASES_STORAGE_KEY, JSON.stringify(loadedPhrases));
+        localStorage.setItem(CATEGORIES_KEY(userId, languageProfile), JSON.stringify(loadedCategories));
+        localStorage.setItem(PHRASES_KEY(userId, languageProfile), JSON.stringify(loadedPhrases));
         setCategories(loadedCategories);
         setAllPhrases(loadedPhrases);
         dataLoaded = true;
@@ -418,8 +473,8 @@ const App: React.FC = () => {
         const defaultCategories = [{ id: '1', name: 'Общие', color: 'bg-slate-500', isFoundational: true }];
         const defaultPhrases: Phrase[] = [];
 
-        localStorage.setItem(CATEGORIES_STORAGE_KEY, JSON.stringify(defaultCategories));
-        localStorage.setItem(PHRASES_STORAGE_KEY, JSON.stringify(defaultPhrases));
+        localStorage.setItem(CATEGORIES_KEY(userId, languageProfile), JSON.stringify(defaultCategories));
+        localStorage.setItem(PHRASES_KEY(userId, languageProfile), JSON.stringify(defaultPhrases));
         setCategories(defaultCategories);
         setAllPhrases(defaultPhrases);
         dataLoaded = true;
@@ -429,8 +484,8 @@ const App: React.FC = () => {
 
     if (dataLoaded) {
         try {
-          const loadedCategories = JSON.parse(localStorage.getItem(CATEGORIES_STORAGE_KEY) || '[]');
-          const storedSettings = localStorage.getItem(SETTINGS_STORAGE_KEY);
+          const loadedCategories = JSON.parse(localStorage.getItem(CATEGORIES_KEY(userId, languageProfile)) || '[]');
+          const storedSettings = localStorage.getItem(SETTINGS_KEY(userId));
           const defaultEnabledCategories = loadedCategories.reduce((acc: any, cat: Category) => ({ ...acc, [cat.id]: true }), {} as Record<PhraseCategory, boolean>);
 
           if (storedSettings) {
@@ -442,23 +497,23 @@ const App: React.FC = () => {
             setSettings({ ...defaultSettings, enabledCategories: defaultEnabledCategories });
           }
 
-          const storedUsage = localStorage.getItem(BUTTON_USAGE_STORAGE_KEY);
+          const storedUsage = localStorage.getItem(BUTTON_USAGE_KEY(userId));
           if (storedUsage) setButtonUsage(JSON.parse(storedUsage));
-          const storedMasteryUsage = localStorage.getItem(MASTERY_BUTTON_USAGE_STORAGE_KEY);
+          const storedMasteryUsage = localStorage.getItem(MASTERY_BUTTON_USAGE_KEY(userId));
           if (storedMasteryUsage) setMasteryButtonUsage(JSON.parse(storedMasteryUsage));
-          const storedCardActionUsage = localStorage.getItem(CARD_ACTION_USAGE_STORAGE_KEY);
+          const storedCardActionUsage = localStorage.getItem(CARD_ACTION_USAGE_KEY(userId));
           if (storedCardActionUsage) setCardActionUsage(JSON.parse(storedCardActionUsage));
-          const storedHabitTracker = localStorage.getItem(HABIT_TRACKER_STORAGE_KEY);
+          const storedHabitTracker = localStorage.getItem(HABIT_TRACKER_KEY(userId));
           if (storedHabitTracker) setHabitTracker(JSON.parse(storedHabitTracker));
 
-          const storedPracticeChat = localStorage.getItem(PRACTICE_CHAT_HISTORY_KEY);
+          const storedPracticeChat = localStorage.getItem(PRACTICE_CHAT_HISTORY_KEY(userId, languageProfile));
           if (storedPracticeChat) setPracticeChatHistory(JSON.parse(storedPracticeChat));
 
         } catch (e) { console.error("Failed to load settings or trackers", e); }
     }
 
     setIsLoading(false);
-  }, [showToast, updateAndSavePhrases]);
+  }, [showToast, updateAndSavePhrases, userId, languageProfile, t]);
 
   const processInitialServerData = (serverData: { categories: Category[], phrases: Phrase[] }) => {
     let loadedPhrases = serverData.phrases.map(p => ({
@@ -468,6 +523,12 @@ const App: React.FC = () => {
     return { loadedCategories: serverData.categories, loadedPhrases };
   };
 
+
+  // Sync language profile with AI service
+  useEffect(() => {
+    setCurrentLanguageProfile(languageProfile);
+    console.log('[App] Language profile updated for AI services:', languageProfile);
+  }, [languageProfile]);
 
   useEffect(() => {
     loadUserData();
@@ -485,8 +546,8 @@ const App: React.FC = () => {
       setError(null);
 
       // Clear localStorage for user data
-      localStorage.removeItem(PHRASES_STORAGE_KEY);
-      localStorage.removeItem(CATEGORIES_STORAGE_KEY);
+      localStorage.removeItem(PHRASES_KEY(userId, languageProfile));
+      localStorage.removeItem(CATEGORIES_KEY(userId, languageProfile));
 
       // Reload data from server
       loadUserData();
@@ -585,15 +646,15 @@ const App: React.FC = () => {
   const updateAndSaveCategories = useCallback((updater: React.SetStateAction<Category[]>) => {
     setCategories(prev => {
         const newCategories = typeof updater === 'function' ? updater(prev) : updater;
-        localStorage.setItem(CATEGORIES_STORAGE_KEY, JSON.stringify(newCategories));
+        localStorage.setItem(CATEGORIES_KEY(userId, languageProfile), JSON.stringify(newCategories));
         return newCategories;
     });
-  }, []);
+  }, [userId, languageProfile]);
   
   const handleSettingsChange = (newSettings: Partial<Settings>) => {
     setSettings(prev => {
         const updated = { ...prev, ...newSettings };
-        localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(updated));
+        localStorage.setItem(SETTINGS_KEY(userId), JSON.stringify(updated));
         return updated;
     });
   }
@@ -601,18 +662,18 @@ const App: React.FC = () => {
   const handlePracticeChatHistoryChange = useCallback((updater: React.SetStateAction<ChatMessage[]>) => {
     setPracticeChatHistory(prev => {
         const newHistory = typeof updater === 'function' ? updater(prev) : updater;
-        localStorage.setItem(PRACTICE_CHAT_HISTORY_KEY, JSON.stringify(newHistory));
+        localStorage.setItem(PRACTICE_CHAT_HISTORY_KEY(userId, languageProfile), JSON.stringify(newHistory));
         return newHistory;
     });
-  }, []);
+  }, [userId, languageProfile]);
 
   const handleHabitTrackerChange = useCallback((updater: React.SetStateAction<typeof habitTracker>) => {
     setHabitTracker(prev => {
         const newTracker = typeof updater === 'function' ? updater(prev) : updater;
-        localStorage.setItem(HABIT_TRACKER_STORAGE_KEY, JSON.stringify(newTracker));
+        localStorage.setItem(HABIT_TRACKER_KEY(userId), JSON.stringify(newTracker));
         return newTracker;
     });
-  }, []);
+  }, [userId]);
 
   const handleLogButtonUsage = useCallback((button: 'close' | 'continue' | 'next') => {
     const DECAY_FACTOR = 0.95;
@@ -624,10 +685,10 @@ const App: React.FC = () => {
             next: prev.next * DECAY_FACTOR,
         };
         newUsage[button] += INCREMENT;
-        localStorage.setItem(BUTTON_USAGE_STORAGE_KEY, JSON.stringify(newUsage));
+        localStorage.setItem(BUTTON_USAGE_KEY(userId), JSON.stringify(newUsage));
         return newUsage;
     });
-  }, []);
+  }, [userId]);
 
   const handleLogMasteryButtonUsage = useCallback((button: 'know' | 'forgot' | 'dont_know') => {
     const DECAY_FACTOR = 0.95;
@@ -639,10 +700,10 @@ const App: React.FC = () => {
             dont_know: prev.dont_know * DECAY_FACTOR,
         };
         newUsage[button] += INCREMENT;
-        localStorage.setItem(MASTERY_BUTTON_USAGE_STORAGE_KEY, JSON.stringify(newUsage));
+        localStorage.setItem(MASTERY_BUTTON_USAGE_KEY(userId), JSON.stringify(newUsage));
         return newUsage;
     });
-  }, []);
+  }, [userId]);
 
   const handleLogCardActionUsage = useCallback((button: keyof typeof cardActionUsage) => {
     const DECAY_FACTOR = 0.95;
@@ -653,10 +714,10 @@ const App: React.FC = () => {
             (newUsage as any)[key] *= DECAY_FACTOR;
         }
         newUsage[button] += INCREMENT;
-        localStorage.setItem(CARD_ACTION_USAGE_STORAGE_KEY, JSON.stringify(newUsage));
+        localStorage.setItem(CARD_ACTION_USAGE_KEY(userId), JSON.stringify(newUsage));
         return newUsage;
     });
-  }, []);
+  }, [userId]);
   
   const fetchNewPhrases = useCallback(async (count: number = 5) => {
     if (isGenerating || !apiProvider) {
@@ -2395,6 +2456,12 @@ const App: React.FC = () => {
         <AccountDrawer
           isOpen={isAccountDrawerOpen}
           onClose={() => setIsAccountDrawerOpen(false)}
+        />
+        <LanguageOnboardingModal
+          isOpen={needsOnboarding && !isOnboardingLoading}
+          detectedBrowserLanguage={detectedLanguage}
+          isGeneratingData={isGeneratingData}
+          onComplete={completeOnboarding}
         />
     </div>
   );
