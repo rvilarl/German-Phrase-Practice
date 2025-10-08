@@ -7,6 +7,8 @@ import SoundIcon from './icons/SoundIcon';
 import MicrophoneIcon from './icons/MicrophoneIcon';
 import MessageQuestionIcon from './icons/MessageQuestionIcon';
 import { useTranslation } from '../src/hooks/useTranslation.ts';
+import { useLanguage } from '../src/contexts/languageContext';
+import { SPEECH_LOCALE_MAP } from '../constants/speechLocales';
 
 // Reusing a similar component from other chat modals for consistent UI
 import ChatContextMenu from './ChatContextMenu';
@@ -88,7 +90,7 @@ const ChatMessageContent: React.FC<{
         return (
             <div className="whitespace-pre-wrap leading-relaxed">
                 {contentParts.map((part, index) =>
-                    part.type === 'german' ? (
+                    part.type === 'learning' || part.type === 'german' ? (
                         <span key={index} className="inline-flex items-center align-middle bg-slate-600/50 px-1.5 py-0.5 rounded-md mx-0.5">
                             <span className="font-medium text-purple-300">{renderClickableGerman(part.text, part.translation || '')}</span>
                             <button onClick={() => onSpeak(part.text)} className="p-0.5 rounded-full hover:bg-white/20 flex-shrink-0 ml-1.5">
@@ -107,12 +109,13 @@ const ChatMessageContent: React.FC<{
 
 const PracticeChatModal: React.FC<PracticeChatModalProps> = ({ isOpen, onClose, history, setHistory, onSendMessage, allPhrases, settings, ...interactiveProps }) => {
   const { t } = useTranslation();
+  const { profile } = useLanguage();
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [input, setInput] = useState('');
   const [promptSuggestions, setPromptSuggestions] = useState<string[]>([]);
   const [isListening, setIsListening] = useState(false);
   const [contextMenuTarget, setContextMenuTarget] = useState<{ sentence: { german: string, russian: string }, word: string } | null>(null);
-  
+
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -122,11 +125,13 @@ const PracticeChatModal: React.FC<PracticeChatModalProps> = ({ isOpen, onClose, 
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'de-DE';
+      // Use learning language from profile for correct pronunciation
+      const learningLang = profile.learning || 'de';
+      utterance.lang = SPEECH_LOCALE_MAP[learningLang] || 'de-DE';
       utterance.rate = 0.9;
       window.speechSynthesis.speak(utterance);
     }
-  }, []);
+  }, [profile.learning]);
 
   const scrollToBottom = () => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -207,8 +212,8 @@ const PracticeChatModal: React.FC<PracticeChatModalProps> = ({ isOpen, onClose, 
 
     // Auto-speak on transition from loading to not loading with a new model message
     if (wasLoading && !isLoading && lastMessage?.role === 'model' && settings.autoSpeak) {
-        const germanParts = lastMessage.contentParts?.filter(p => p.type === 'german').map(p => p.text) || [];
-        const textToSpeak = germanParts.join('. ');
+        const learningParts = lastMessage.contentParts?.filter(p => p.type === 'learning' || p.type === 'german').map(p => p.text) || [];
+        const textToSpeak = learningParts.join('. ');
         if (textToSpeak) {
             onSpeak(textToSpeak);
         }

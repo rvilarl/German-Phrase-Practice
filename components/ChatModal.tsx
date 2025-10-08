@@ -13,6 +13,8 @@ import SoundIcon from './icons/SoundIcon';
 import MicrophoneIcon from './icons/MicrophoneIcon';
 import ChatContextMenu from './ChatContextMenu';
 import { useTranslation } from '../src/hooks/useTranslation';
+import { useLanguage } from '../src/contexts/languageContext';
+import { SPEECH_LOCALE_MAP } from '../constants/speechLocales';
 
 interface ChatModalProps {
   isOpen: boolean;
@@ -101,7 +103,7 @@ const ChatMessageContent: React.FC<{
         return (
             <div className="whitespace-pre-wrap leading-relaxed">
                 {contentParts.map((part, index) =>
-                    part.type === 'german' ? (
+                    part.type === 'learning' || part.type === 'german' ? (
                         <span key={index} className="inline-flex items-center align-middle bg-slate-600/50 px-1.5 py-0.5 rounded-md mx-0.5">
                             <span className="font-medium text-purple-300">{renderClickableGerman({ german: part.text, russian: part.translation || '' })}</span>
                             <button
@@ -153,7 +155,7 @@ const ChatMessageContent: React.FC<{
                                 <h4 className="font-semibold text-purple-300 mb-1">{suggestion.title}</h4>
                                 <div className="whitespace-pre-wrap leading-relaxed text-slate-300">
                                     {suggestion.contentParts && suggestion.contentParts.map((part, partIndex) =>
-                                        part.type === 'german' ? (
+                                        part.type === 'learning' || part.type === 'german' ? (
                                             <span key={partIndex} className="inline-flex items-center align-middle bg-slate-500/50 px-1.5 py-0.5 rounded-md mx-0.5">
                                                 <span className="font-medium text-purple-200">{renderClickableGerman({ german: part.text, russian: part.translation || '' })}</span>
                                                 <button
@@ -200,6 +202,7 @@ const ChatSkeleton: React.FC = () => (
 
 const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, phrase, onGenerateInitialExamples, onContinueChat, apiProviderType, onOpenWordAnalysis, allPhrases, onCreateCard, onAnalyzeWord, onOpenVerbConjugation, onOpenNounDeclension, onOpenAdjectiveDeclension, onTranslateGermanToRussian }) => {
   const { t } = useTranslation();
+  const { profile } = useLanguage();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [input, setInput] = useState('');
@@ -219,11 +222,13 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, phrase, onGenera
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'de-DE';
+      // Use learning language from profile for correct pronunciation
+      const learningLang = profile.learning || 'de';
+      utterance.lang = SPEECH_LOCALE_MAP[learningLang] || 'de-DE';
       utterance.rate = 0.9;
       window.speechSynthesis.speak(utterance);
     }
-  }, []);
+  }, [profile.learning]);
 
   const scrollToBottom = () => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });

@@ -9,6 +9,7 @@ import * as backendService from './services/backendService';
 import { getProviderPriorityList, getFallbackProvider, ApiProviderType } from './services/apiProvider';
 import { AiService } from './services/aiService';
 import { playCorrectSound, playIncorrectSound } from './services/soundService';
+import { SPEECH_LOCALE_MAP } from './constants/speechLocales';
 
 import Header from './components/Header';
 import PracticePage from './pages/PracticePage';
@@ -1913,12 +1914,14 @@ const App: React.FC = () => {
   useEffect(() => {
     if (isPracticeAnswerRevealed && currentPracticePhrase && settings.autoSpeak && 'speechSynthesis' in window) {
       const utterance = new SpeechSynthesisUtterance(currentPracticePhrase.text.learning);
-      utterance.lang = 'de-DE';
+      // Use learning language from profile for correct pronunciation
+      const learningLang = languageProfile.learning || 'de';
+      utterance.lang = SPEECH_LOCALE_MAP[learningLang] || 'de-DE';
       utterance.rate = 0.9;
       window.speechSynthesis.cancel();
       window.speechSynthesis.speak(utterance);
     }
-  }, [isPracticeAnswerRevealed, currentPracticePhrase, settings.autoSpeak]);
+  }, [isPracticeAnswerRevealed, currentPracticePhrase, settings.autoSpeak, languageProfile.learning]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

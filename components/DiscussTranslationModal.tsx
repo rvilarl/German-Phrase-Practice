@@ -8,6 +8,8 @@ import GeminiLogo from './icons/GeminiLogo';
 import SoundIcon from './icons/SoundIcon';
 import CheckIcon from './icons/CheckIcon';
 import { useTranslation } from '../src/hooks/useTranslation';
+import { useLanguage } from '../src/contexts/languageContext';
+import { SPEECH_LOCALE_MAP } from '../constants/speechLocales';
 
 interface DiscussTranslationModalProps {
     isOpen: boolean;
@@ -54,7 +56,7 @@ const ChatMessageContent: React.FC<{
         return (
             <div className="whitespace-pre-wrap leading-relaxed">
                 {contentParts.map((part, index) =>
-                    part.type === 'german' ? (
+                    part.type === 'learning' || part.type === 'german' ? (
                         <span key={index} className="inline-flex items-center align-middle bg-slate-600/50 px-1.5 py-0.5 rounded-md mx-0.5">
                             <span className="font-medium text-purple-300">{renderClickableGerman(part.text)}</span>
                             <button onClick={() => onSpeak(part.text)} className="p-0.5 rounded-full hover:bg-white/20 ml-1.5">
@@ -73,6 +75,7 @@ const ChatMessageContent: React.FC<{
 
 const DiscussTranslationModal: React.FC<DiscussTranslationModalProps> = ({ isOpen, onClose, originalRussian, currentGerman, onDiscuss, onAccept, onOpenWordAnalysis, initialMessage }) => {
     const { t } = useTranslation();
+    const { profile } = useLanguage();
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [input, setInput] = useState('');
@@ -181,11 +184,13 @@ const DiscussTranslationModal: React.FC<DiscussTranslationModalProps> = ({ isOpe
         if ('speechSynthesis' in window) {
             window.speechSynthesis.cancel();
             const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = 'de-DE';
+            // Use learning language from profile for correct pronunciation
+            const learningLang = profile.learning || 'de';
+            utterance.lang = SPEECH_LOCALE_MAP[learningLang] || 'de-DE';
             utterance.rate = 0.9;
             window.speechSynthesis.speak(utterance);
         }
-    }, []);
+    }, [profile.learning]);
 
     useEffect(() => {
         chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });

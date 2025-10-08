@@ -781,9 +781,9 @@ const chatResponseSchema = () => {
                 items: {
                     type: Type.OBJECT,
                     properties: {
-                        type: { type: Type.STRING, enum: ['text', 'german'], description: `Should be 'text' for plain ${lang.native} text or 'german' for a ${lang.learning} word/phrase.` },
+                        type: { type: Type.STRING, enum: ['text', 'learning'], description: `Should be 'text' for plain ${lang.native} text or 'learning' for a ${lang.learning} word/phrase.` },
                         text: { type: Type.STRING, description: "The segment of text. Do not use Markdown here." },
-                        translation: { type: Type.STRING, description: `${lang.native} translation of the text, ONLY if type is 'german'.` }
+                        translation: { type: Type.STRING, description: `${lang.native} translation of the text, ONLY if type is 'learning'.` }
                     },
                     required: ["type", "text"],
                 }
@@ -827,7 +827,7 @@ const continueChat: AiService['continueChat'] = async (phrase, history, newMessa
     });
     
     const systemInstruction = `Ты AI-помощник для изучения ${lang.learning} языка. Пользователь изучает фразу "${phrase.text.learning}" (${phrase.text.native}).
-1. Отвечай на вопросы пользователя. В своем ответе ОБЯЗАТЕЛЬНО используй предоставленную JSON-схему. Разбей свой ответ на массив 'responseParts'. Каждый элемент массива должен быть объектом с ключами 'type' и 'text'. Если часть ответа - это обычный текст на ${lang.native}, используй 'type': 'text'. Если это ${lang.learning} слово или фраза, используй 'type': 'german'. Если 'type' равен 'german', ОБЯЗАТЕЛЬНО предоставь перевод в поле 'translation'. Не используй Markdown в JSON. Сохраняй форматирование с помощью переносов строк (\\n) в текстовых блоках.
+1. Отвечай на вопросы пользователя. В своем ответе ОБЯЗАТЕЛЬНО используй предоставленную JSON-схему. Разбей свой ответ на массив 'responseParts'. Каждый элемент массива должен быть объектом с ключами 'type' и 'text'. Если часть ответа - это обычный текст на ${lang.native}, используй 'type': 'text'. Если это ${lang.learning} слово или фраза, используй 'type': 'learning'. Если 'type' равен 'learning', ОБЯЗАТЕЛЬНО предоставь перевод в поле 'translation'. Не используй Markdown в JSON. Сохраняй форматирование с помощью переносов строк (\\n) в текстовых блоках.
 2. После ответа, сгенерируй от 2 до 4 новых, контекстно-зависимых вопросов для продолжения диалога в поле 'promptSuggestions'. Эти вопросы должны быть основаны на последнем сообщении пользователя и общем контексте диалога.
    - Предлагай "Покажи варианты с местоимениями" только если во фразе есть глагол для спряжения и это релевантно.
    - Предлагай "Как это использовать в вопросе?" только если фраза не является вопросом и это релевантно.
@@ -877,27 +877,65 @@ const practiceConversation: AiService['practiceConversation'] = async (history, 
     }));
     
     const lang = getLang();
-    const systemInstruction = `You are a friendly and patient ${lang.learning} language tutor named 'Alex'. Your goal is to have a practical, spoken-style conversation with a student in ${lang.learning} to help them practice.
+    const systemInstruction = `You are a friendly and patient ${lang.learning} language tutor named 'Alex'.
 
-You have been given a list of all the ${lang.learning} phrases the student is learning, along with their progress (masteryLevel from 0-6). This is the student's entire known vocabulary and grammar.
+**CRITICAL: Your response MUST be valid JSON matching the schema below. Do NOT add any text outside the JSON.**
 
-**Your primary directive is to keep the conversation within the scope of this known material.**
-
-Here is the student's learning data:
-${JSON.stringify(allPhrases.map(p => ({ g: p.text.learning, r: p.text.native, mastery: p.masteryLevel })))}
+Here is the student's vocabulary:
+${JSON.stringify(allPhrases.map(p => ({ learning: p.text.learning, native: p.text.native, mastery: p.masteryLevel })).slice(0, 50))}
 
 **Conversation Rules:**
-1.  **Start the conversation:** If this is the first message (history is empty), greet the student in ${lang.learning}, introduce yourself as Alex, and ask a simple opening question based on their known phrases (e.g., "Hallo! Wie geht es Ihnen?").
-2.  **Stay Relevant:** Build the conversation around the themes present in the student's phrases (e.g., greetings, in a cafe, asking for directions, personal information).
-3.  **Use Their Words:** Primarily use the vocabulary and grammatical structures from the provided list. Try to naturally incorporate phrases they are struggling with (low mastery level) to give them practice.
-4.  **Correct Mistakes:** If the student's ${lang.learning} has errors, you MUST correct them. Your correction should be gentle and encouraging. First, provide the corrected ${lang.learning} sentence. Then, give a very short and simple explanation for the correction **in ${lang.native}**.
-5.  **Be a Conversation Partner:** Ask questions, react to their answers, and keep the conversation flowing naturally. You can propose simple scenarios like "Stellen wir uns vor, wir sind in einem Café. Was möchten Sie bestellen?" (Let's imagine we're in a cafe. What would you like to order?).
-6.  **Keep it ${lang.learning}:** Your main conversational responses should be in ${lang.learning}. Only use ${lang.native} for explanations of corrections.
+1. **Start:** If first message, greet in ${lang.learning} and ask simple question.
+2. **Use Their Words:** Build conversation around their known phrases.
+3. **Correct Mistakes:** If student makes error, provide corrected ${lang.learning} sentence + brief ${lang.native} explanation.
+4. **Keep it ${lang.learning}:** Main response in ${lang.learning}, explanations in ${lang.native}.
 
-**Response Format:**
-Your entire response MUST be a single JSON object matching the provided schema.
-- \`responseParts\`: An array of objects. Each object has a \`type\` ('text' for ${lang.native} explanations, 'german' for your ${lang.learning} conversational response) and \`text\`. Use this to mix your ${lang.learning} response with ${lang.native} explanations of corrections.
-- \`promptSuggestions\`: An array of 2-3 short, relevant ${lang.learning} phrases the user could say next. This helps them continue the conversation.`;
+**RESPONSE FORMAT (STRICTLY ENFORCE):**
+
+Your response MUST be a JSON object with this EXACT structure:
+
+{
+  "responseParts": [
+    {
+      "type": "learning",
+      "text": "Your ${lang.learning} conversational response here",
+      "translation": "${lang.native} translation of the ${lang.learning} text"
+    },
+    {
+      "type": "text",
+      "text": "Any ${lang.native} explanation here (optional)"
+    }
+  ],
+  "promptSuggestions": [
+    "${lang.learning} suggestion 1",
+    "${lang.learning} suggestion 2",
+    "${lang.learning} suggestion 3"
+  ]
+}
+
+**EXAMPLE (${lang.native} → ${lang.learning}):**
+{
+  "responseParts": [
+    {
+      "type": "learning",
+      "text": "Hallo! Wie geht es dir?",
+      "translation": "Hello! How are you?"
+    },
+    {
+      "type": "text",
+      "text": "This is a friendly greeting to start our conversation."
+    }
+  ],
+  "promptSuggestions": ["Mir geht es gut", "Danke, und dir?", "Sehr gut"]
+}
+
+**IMPORTANT:**
+- responseParts is REQUIRED (array of objects)
+- Each object MUST have "type" ("learning" or "text") and "text"
+- If type is "learning", include "translation"
+- promptSuggestions is REQUIRED (array of 2-3 strings)
+- Do NOT add text outside JSON
+- Do NOT use markdown code blocks`;
 
     const userMessage = { role: 'user', parts: [{ text: newMessage || '(Start the conversation)' }] };
 
@@ -914,18 +952,75 @@ Your entire response MUST be a single JSON object matching the provided schema.
         });
 
         const jsonText = response.text.trim();
-        const parsedResponse = JSON.parse(jsonText);
-        
+
+        // 🔍 LOGGING for debugging
+        console.log('[practiceConversation] Raw response (first 300 chars):', jsonText.substring(0, 300));
+
+        // 🛡️ CHECK that response is not empty
+        if (!jsonText) {
+            console.error('[practiceConversation] Empty response from Gemini API');
+            return {
+                role: 'model',
+                contentParts: [{
+                    type: 'text',
+                    text: 'I apologize, but I received an empty response. Please try again.'
+                }],
+                promptSuggestions: [],
+            };
+        }
+
+        // 🛡️ ROBUST PARSING with try-catch
+        let parsedResponse;
+        try {
+            parsedResponse = JSON.parse(jsonText);
+        } catch (parseError) {
+            console.error('[practiceConversation] JSON parse failed:', parseError);
+            console.error('[practiceConversation] Raw text:', jsonText);
+
+            // 🔄 FALLBACK: Try to extract text content
+            const fallbackResponse = {
+                responseParts: [{
+                    type: 'text',
+                    text: jsonText.substring(0, 500) + (jsonText.length > 500 ? '...' : '') || 'I apologize, but I had trouble generating a proper response. Could you try again?'
+                }],
+                promptSuggestions: []
+            };
+            parsedResponse = fallbackResponse;
+        }
+
+        // 🛡️ VALIDATE structure
+        if (!parsedResponse.responseParts || !Array.isArray(parsedResponse.responseParts)) {
+            console.warn('[practiceConversation] Invalid response structure, using fallback');
+            parsedResponse.responseParts = [{
+                type: 'text',
+                text: 'Response structure invalid. Please try again.'
+            }];
+        }
+
+        // 🛡️ ENSURE promptSuggestions is array
+        if (!parsedResponse.promptSuggestions || !Array.isArray(parsedResponse.promptSuggestions)) {
+            parsedResponse.promptSuggestions = [];
+        }
+
         return {
             role: 'model',
-            contentParts: parsedResponse.responseParts || [{ type: 'text', text: 'Error.' }],
-            promptSuggestions: parsedResponse.promptSuggestions || [],
+            contentParts: parsedResponse.responseParts,
+            promptSuggestions: parsedResponse.promptSuggestions,
         };
 
     } catch (error) {
         console.error("Error in practice conversation with Gemini:", error);
-        const errorMessage = (error as any)?.message || 'Unknown error';
-        throw new Error(`Failed to call the Gemini API: ${errorMessage}`);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+        // 🎯 RETURN fallback instead of throw
+        return {
+            role: 'model',
+            contentParts: [{
+                type: 'text',
+                text: `I apologize, but I encountered an error: ${errorMessage}. Please try again or refresh the page.`
+            }],
+            promptSuggestions: []
+        };
     }
 };
 

@@ -9,6 +9,8 @@ import BookOpenIcon from './icons/BookOpenIcon';
 import CheckIcon from './icons/CheckIcon';
 import MicrophoneIcon from './icons/MicrophoneIcon';
 import { useTranslation } from '../src/hooks/useTranslation';
+import { useLanguage } from '../src/contexts/languageContext';
+import { SPEECH_LOCALE_MAP } from '../constants/speechLocales';
 
 interface LearningAssistantModalProps {
   isOpen: boolean;
@@ -63,7 +65,7 @@ const ChatMessageContent: React.FC<{
         return (
             <div className="whitespace-pre-wrap leading-relaxed">
                 {contentParts.map((part, index) =>
-                    part.type === 'german' ? (
+                    part.type === 'learning' || part.type === 'german' ? (
                         <span key={index} className="inline-flex items-center align-middle bg-slate-600/50 px-1.5 py-0.5 rounded-md mx-0.5">
                             <span className="font-medium text-purple-300">{renderClickableGerman(part)}</span>
                             <button
@@ -87,6 +89,7 @@ const ChatMessageContent: React.FC<{
 
 const LearningAssistantModal: React.FC<LearningAssistantModalProps> = ({ isOpen, onClose, phrase, onGuide, onSuccess, onOpenVerbConjugation, onOpenNounDeclension, onOpenPronounsModal, onOpenWFragenModal, cache, setCache, onOpenWordAnalysis, onOpenAdjectiveDeclension }) => {
   const { t } = useTranslation();
+  const { profile } = useLanguage();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [input, setInput] = useState('');
@@ -114,11 +117,13 @@ const LearningAssistantModal: React.FC<LearningAssistantModalProps> = ({ isOpen,
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'de-DE';
+      // Use learning language from profile for correct pronunciation
+      const learningLang = profile.learning || 'de';
+      utterance.lang = SPEECH_LOCALE_MAP[learningLang] || 'de-DE';
       utterance.rate = 0.9;
       window.speechSynthesis.speak(utterance);
     }
-  }, []);
+  }, [profile.learning]);
   
   const scrollToBottom = () => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });

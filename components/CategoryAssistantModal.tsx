@@ -16,6 +16,8 @@ import CategoryAssistantContextMenu from './CategoryAssistantContextMenu';
 import ListIcon from './icons/ListIcon';
 import Spinner from './Spinner';
 import { useTranslation } from '../src/hooks/useTranslation';
+import { useLanguage } from '../src/contexts/languageContext';
+import { SPEECH_LOCALE_MAP } from '../constants/speechLocales';
 
 interface CategoryAssistantModalProps {
   isOpen: boolean;
@@ -126,7 +128,7 @@ const AssistantChatMessageContent: React.FC<{
             <div className="space-y-3">
                  <div className="prose prose-invert prose-sm max-w-none prose-p:my-2 prose-headings:my-3">
                     {responseParts.map((part, index) =>
-                        part.type === 'german' ? (
+                        part.type === 'learning' || part.type === 'german' ? (
                             <span key={index} className="inline-flex items-center align-middle bg-slate-600/50 px-1.5 py-0.5 rounded-md mx-0.5">
                                 <span className="font-medium text-purple-300 not-prose">{renderClickableGerman(part)}</span>
                                 <button
@@ -189,6 +191,7 @@ const AssistantChatMessageContent: React.FC<{
 
 const CategoryAssistantModal: React.FC<CategoryAssistantModalProps> = (props) => {
     const { t } = useTranslation();
+    const { profile } = useLanguage();
     const { isOpen, onClose, category, phrases, onGetAssistantResponse, onAddCards, onOpenConfirmDeletePhrases, cache, setCache, onGoToList, ...interactiveProps } = props;
 
     const [isLoading, setIsLoading] = useState(false);
@@ -211,6 +214,18 @@ const CategoryAssistantModal: React.FC<CategoryAssistantModalProps> = (props) =>
     const scrollToBottom = () => {
         chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
     };
+
+    const onSpeak = useCallback((text: string) => {
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+          const utterance = new SpeechSynthesisUtterance(text);
+          // Use learning language from profile for correct pronunciation
+          const learningLang = profile.learning || 'de';
+          utterance.lang = SPEECH_LOCALE_MAP[learningLang] || 'de-DE';
+          utterance.rate = 0.9;
+          window.speechSynthesis.speak(utterance);
+        }
+    }, [profile.learning]);
 
     const handleRequest = useCallback(async (request: CategoryAssistantRequest) => {
         setIsLoading(true);
@@ -400,16 +415,6 @@ const CategoryAssistantModal: React.FC<CategoryAssistantModalProps> = (props) =>
         )}
         </>
     );
-};
-
-const onSpeak = (text: string) => {
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'de-DE';
-      utterance.rate = 0.9;
-      window.speechSynthesis.speak(utterance);
-    }
 };
 
 export default CategoryAssistantModal;

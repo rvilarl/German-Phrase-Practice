@@ -16,6 +16,7 @@ export const LANGUAGE_NAMES: Record<LanguageCode, string> = {
   zh: 'Chinese',
   ja: 'Japanese',
   ar: 'Arabic',
+  hi: 'Hindi',
 };
 
 /**
