@@ -1,4 +1,4 @@
-const CACHE_NAME = 'german-srs-cache-v3';
+const CACHE_NAME = 'german-srs-cache-v4'; // Updated: Don't cache API requests
 const urlsToCache = [
   '/',
   '/index.html',
@@ -35,6 +35,21 @@ self.addEventListener('fetch', event => {
     return;
   }
 
+  const url = new URL(event.request.url);
+
+  // NEVER cache API requests (backend or Gemini AI)
+  const isApiRequest =
+    url.hostname === 'localhost' || // localhost backend
+    url.hostname.includes('vercel.app') || // deployed backend
+    url.hostname.includes('supabase.co') || // Supabase
+    url.hostname.includes('generativelanguage.googleapis.com'); // Gemini API
+
+  if (isApiRequest) {
+    // Pass through to network, don't cache
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
   // For navigation requests, use a network-first strategy.
   if (event.request.mode === 'navigate') {
     event.respondWith(
@@ -46,7 +61,7 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // For all other requests, use a cache-first strategy.
+  // For static assets only, use a cache-first strategy.
   event.respondWith(
     caches.open(CACHE_NAME).then(cache => {
       return cache.match(event.request).then(response => {
@@ -57,11 +72,21 @@ self.addEventListener('fetch', event => {
 
         // Not in cache, fetch from network.
         return fetch(event.request).then(networkResponse => {
-          // Check if we received a valid response.
+          // Only cache static resources (JS, CSS, images, fonts)
           if (networkResponse && networkResponse.status === 200) {
-            // Clone the response because it's a stream and can only be consumed once.
-            const responseToCache = networkResponse.clone();
-            cache.put(event.request, responseToCache);
+            const contentType = networkResponse.headers.get('content-type') || '';
+            const isCacheable =
+              contentType.includes('javascript') ||
+              contentType.includes('css') ||
+              contentType.includes('image') ||
+              contentType.includes('font') ||
+              url.hostname.includes('cdn.') || // CDN resources
+              url.hostname.includes('esm.sh'); // ESM modules
+
+            if (isCacheable) {
+              const responseToCache = networkResponse.clone();
+              cache.put(event.request, responseToCache);
+            }
           }
           return networkResponse;
         }).catch(error => {

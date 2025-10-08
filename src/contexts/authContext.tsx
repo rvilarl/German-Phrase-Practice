@@ -191,6 +191,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           await authService.signOut();
         }
         clearAppCaches();
+
+        // Clear DevLanguageSelector override on logout (DEV mode)
+        if (import.meta.env.DEV) {
+          localStorage.removeItem('devLanguageOverride');
+        }
+
         applySession(null);
       });
     } catch (signOutError) {

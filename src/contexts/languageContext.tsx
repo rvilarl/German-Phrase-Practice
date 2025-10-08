@@ -324,18 +324,34 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
       try {
         // Try to load profile from database
         const dbProfile = await backendService.getUserProfile();
+
+        // Null means no profile yet (new user)
+        if (!dbProfile) {
+          console.log('[LanguageContext] No profile in database - new user will see onboarding');
+          return;
+        }
+
         console.log('[LanguageContext] Loaded profile from database:', dbProfile);
 
+        // In PRODUCTION: always sync UI language from database (ignore DevSelector)
+        // In DEV: only sync if there's no DevSelector override
+        const hasDevOverride = isDev && localStorage.getItem('devLanguageOverride');
+        const shouldSyncUI = !isDev || !hasDevOverride;
+
         // Update local profile if database has different values
-        if (dbProfile.native !== profile.native || dbProfile.learning !== profile.learning) {
+        if (
+          dbProfile.native !== profile.native ||
+          dbProfile.learning !== profile.learning ||
+          (shouldSyncUI && dbProfile.ui !== profile.ui)
+        ) {
           console.log('[LanguageContext] Syncing profile from database');
           setProfileState(prev => ({
-            ...prev,
+            ui: shouldSyncUI ? dbProfile.ui : prev.ui,
             native: dbProfile.native,
             learning: dbProfile.learning,
           }));
           configService.saveLanguageProfile({
-            ...profile,
+            ui: shouldSyncUI ? dbProfile.ui : profile.ui,
             native: dbProfile.native,
             learning: dbProfile.learning,
           });

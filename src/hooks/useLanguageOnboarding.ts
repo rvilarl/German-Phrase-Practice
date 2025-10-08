@@ -10,7 +10,18 @@ interface UseLanguageOnboardingResult {
   completeOnboarding: (native: LanguageCode, learning: LanguageCode) => Promise<void>;
 }
 
+const DEV_OVERRIDE_KEY = 'devLanguageOverride';
+
 const detectBrowserLanguage = (): LanguageCode => {
+  // In DEV mode, check if DevLanguageSelector has set an override
+  if (import.meta.env.DEV) {
+    const devOverride = localStorage.getItem(DEV_OVERRIDE_KEY);
+    if (devOverride) {
+      return devOverride as LanguageCode;
+    }
+  }
+
+  // Otherwise use browser language
   if (typeof navigator === 'undefined' || !navigator.language) {
     return 'en';
   }
@@ -23,7 +34,7 @@ export const useLanguageOnboarding = (userId: string | null): UseLanguageOnboard
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isGeneratingData, setIsGeneratingData] = useState(false);
-  const [detectedLanguage] = useState<LanguageCode>(detectBrowserLanguage());
+  const [detectedLanguage, setDetectedLanguage] = useState<LanguageCode>(detectBrowserLanguage());
 
   useEffect(() => {
     if (!userId) {
@@ -33,6 +44,8 @@ export const useLanguageOnboarding = (userId: string | null): UseLanguageOnboard
     }
 
     const checkProfile = async () => {
+      // Re-check detected language at the start (for DEV mode updates)
+      setDetectedLanguage(detectBrowserLanguage());
       try {
         setIsLoading(true);
 
@@ -69,7 +82,7 @@ export const useLanguageOnboarding = (userId: string | null): UseLanguageOnboard
     };
 
     checkProfile();
-  }, [userId, detectedLanguage]);
+  }, [userId]); // detectedLanguage updated inside, not a dependency
 
   const completeOnboarding = async (native: LanguageCode, learning: LanguageCode) => {
     if (!userId) return;

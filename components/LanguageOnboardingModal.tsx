@@ -29,8 +29,9 @@ const LanguageOnboardingModal: React.FC<LanguageOnboardingModalProps> = ({
   isGeneratingData = false,
   onComplete,
 }) => {
-  const [step, setStep] = useState<'native' | 'learning' | 'generating'>('native');
-  const [nativeLanguage, setNativeLanguage] = useState<LanguageCode>(detectedBrowserLanguage);
+  const [step, setStep] = useState<'learning' | 'generating'>('learning');
+  // Native language is ALWAYS auto-detected, never asked
+  const nativeLanguage = detectedBrowserLanguage;
   const [learningLanguage, setLearningLanguage] = useState<LanguageCode>('de');
 
   // Show generating state when isGeneratingData changes
@@ -42,18 +43,18 @@ const LanguageOnboardingModal: React.FC<LanguageOnboardingModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleNativeConfirm = () => {
-    setStep('learning');
-  };
-
   const handleLearningConfirm = () => {
     setStep('generating');
+    // Use auto-detected native language
     onComplete(nativeLanguage, learningLanguage);
   };
 
   const availableLearningLanguages = LANGUAGE_OPTIONS.filter(
     (lang) => lang.code !== nativeLanguage
   );
+
+  // Get the native language name for display
+  const nativeLanguageName = LANGUAGE_OPTIONS.find(l => l.code === nativeLanguage)?.nativeName || 'English';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
@@ -73,44 +74,16 @@ const LanguageOnboardingModal: React.FC<LanguageOnboardingModalProps> = ({
               </p>
             </div>
           </>
-        ) : step === 'native' ? (
+        ) : (
           <>
             <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">
               Welcome! 🌍
             </h2>
-            <p className="text-gray-700 dark:text-gray-300 mb-6">
-              What is your native language?
+            <p className="text-gray-700 dark:text-gray-300 mb-2">
+              Your native language: <span className="font-semibold text-blue-600 dark:text-blue-400">{nativeLanguageName}</span>
             </p>
-            <div className="space-y-2 mb-6 max-h-96 overflow-y-auto">
-              {LANGUAGE_OPTIONS.map((lang) => (
-                <button
-                  key={lang.code}
-                  onClick={() => setNativeLanguage(lang.code)}
-                  className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
-                    nativeLanguage === lang.code
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600'
-                  }`}
-                >
-                  <div className="font-semibold">{lang.nativeName}</div>
-                  <div className="text-sm opacity-75">{lang.name}</div>
-                </button>
-              ))}
-            </div>
-            <button
-              onClick={handleNativeConfirm}
-              className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors"
-            >
-              Continue
-            </button>
-          </>
-        ) : (
-          <>
-            <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">
-              Which language do you want to learn? 📚
-            </h2>
             <p className="text-gray-700 dark:text-gray-300 mb-6">
-              Choose the language you'd like to practice
+              Which language do you want to learn?
             </p>
             <div className="space-y-2 mb-6 max-h-96 overflow-y-auto">
               {availableLearningLanguages.map((lang) => (
@@ -128,20 +101,12 @@ const LanguageOnboardingModal: React.FC<LanguageOnboardingModalProps> = ({
                 </button>
               ))}
             </div>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setStep('native')}
-                className="flex-1 bg-gray-300 hover:bg-gray-400 dark:bg-gray-600 dark:hover:bg-gray-500 text-gray-900 dark:text-white font-semibold py-3 px-4 rounded-lg transition-colors"
-              >
-                Back
-              </button>
-              <button
-                onClick={handleLearningConfirm}
-                className="flex-1 bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors"
-              >
-                Start Learning
-              </button>
-            </div>
+            <button
+              onClick={handleLearningConfirm}
+              className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors"
+            >
+              Start Learning
+            </button>
           </>
         )}
       </div>
