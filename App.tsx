@@ -55,6 +55,7 @@ import CategoryAssistantModal from './components/CategoryAssistantModal';
 import ConfirmDeletePhrasesModal from './components/ConfirmDeletePhrasesModal';
 import PracticeChatFab from './components/PracticeChatFab';
 import PracticeChatModal from './components/PracticeChatModal';
+import AiErrorBoundary from './components/AiErrorBoundary';
 import { useTranslation } from './src/hooks/useTranslation.ts';
 import { useAuth } from './src/contexts/authContext.tsx';
 import { useLanguage } from './src/contexts/languageContext.tsx';
@@ -2105,38 +2106,46 @@ const App: React.FC = () => {
       
       <Toast toast={toast} onDismiss={() => setToast(null)} />
 
-      {chatContextPhrase && apiProviderType && <ChatModal 
-          isOpen={isChatModalOpen} 
-          onClose={() => setIsChatModalOpen(false)} 
-          phrase={chatContextPhrase} 
-          onGenerateInitialExamples={handleGenerateInitialExamples}
-          onContinueChat={handleContinueChat}
-          apiProviderType={apiProviderType}
-          onOpenWordAnalysis={handleOpenWordAnalysis}
-          allPhrases={allPhrases}
-          onCreateCard={handleCreateCardFromWord}
-          onAnalyzeWord={analyzeWord}
-          onOpenVerbConjugation={handleOpenVerbConjugation}
-          onOpenNounDeclension={handleOpenNounDeclension}
-          onOpenAdjectiveDeclension={handleOpenAdjectiveDeclension}
-          onTranslateGermanToRussian={handleTranslateGermanToRussian}
-      />}
-      {apiProvider && <PracticeChatModal 
-        isOpen={isPracticeChatModalOpen}
-        onClose={() => setIsPracticeChatModalOpen(false)}
-        history={practiceChatHistory}
-        setHistory={handlePracticeChatHistoryChange}
-        onSendMessage={handlePracticeConversation}
-        allPhrases={allPhrases}
-        onOpenWordAnalysis={handleOpenWordAnalysis}
-        onCreateCard={handleCreateCardFromWord}
-        onAnalyzeWord={analyzeWord}
-        onOpenVerbConjugation={handleOpenVerbConjugation}
-        onOpenNounDeclension={handleOpenNounDeclension}
-        onOpenAdjectiveDeclension={handleOpenAdjectiveDeclension}
-        onTranslateGermanToRussian={handleTranslateGermanToRussian}
-        settings={settings}
-      />}
+      {chatContextPhrase && apiProviderType && (
+        <AiErrorBoundary componentName="Chat Assistant">
+          <ChatModal
+            isOpen={isChatModalOpen}
+            onClose={() => setIsChatModalOpen(false)}
+            phrase={chatContextPhrase}
+            onGenerateInitialExamples={handleGenerateInitialExamples}
+            onContinueChat={handleContinueChat}
+            apiProviderType={apiProviderType}
+            onOpenWordAnalysis={handleOpenWordAnalysis}
+            allPhrases={allPhrases}
+            onCreateCard={handleCreateCardFromWord}
+            onAnalyzeWord={analyzeWord}
+            onOpenVerbConjugation={handleOpenVerbConjugation}
+            onOpenNounDeclension={handleOpenNounDeclension}
+            onOpenAdjectiveDeclension={handleOpenAdjectiveDeclension}
+            onTranslateGermanToRussian={handleTranslateGermanToRussian}
+          />
+        </AiErrorBoundary>
+      )}
+      {apiProvider && (
+        <AiErrorBoundary componentName="Practice Chat">
+          <PracticeChatModal
+            isOpen={isPracticeChatModalOpen}
+            onClose={() => setIsPracticeChatModalOpen(false)}
+            history={practiceChatHistory}
+            setHistory={handlePracticeChatHistoryChange}
+            onSendMessage={handlePracticeConversation}
+            allPhrases={allPhrases}
+            onOpenWordAnalysis={handleOpenWordAnalysis}
+            onCreateCard={handleCreateCardFromWord}
+            onAnalyzeWord={analyzeWord}
+            onOpenVerbConjugation={handleOpenVerbConjugation}
+            onOpenNounDeclension={handleOpenNounDeclension}
+            onOpenAdjectiveDeclension={handleOpenAdjectiveDeclension}
+            onTranslateGermanToRussian={handleTranslateGermanToRussian}
+            settings={settings}
+          />
+        </AiErrorBoundary>
+      )}
       <SettingsModal 
         isOpen={isSettingsModalOpen} 
         onClose={() => setIsSettingsModalOpen(false)} 
@@ -2145,15 +2154,19 @@ const App: React.FC = () => {
         categories={categories}
         onOpenCategoryManager={() => setIsCategoryManagerModalOpen(true)}
       />
-      {deepDivePhrase && <DeepDiveModal 
-        isOpen={isDeepDiveModalOpen} 
-        onClose={() => setIsDeepDiveModalOpen(false)} 
-        phrase={deepDivePhrase}
-        analysis={deepDiveAnalysis}
-        isLoading={isDeepDiveLoading}
-        error={deepDiveError}
-        onOpenWordAnalysis={handleOpenWordAnalysis}
-      />}
+      {deepDivePhrase && (
+        <AiErrorBoundary componentName="Deep Dive">
+          <DeepDiveModal
+            isOpen={isDeepDiveModalOpen}
+            onClose={() => setIsDeepDiveModalOpen(false)}
+            phrase={deepDivePhrase}
+            analysis={deepDiveAnalysis}
+            isLoading={isDeepDiveLoading}
+            error={deepDiveError}
+            onOpenWordAnalysis={handleOpenWordAnalysis}
+          />
+        </AiErrorBoundary>
+      )}
        {movieExamplesPhrase && <MovieExamplesModal 
         isOpen={isMovieExamplesModalOpen} 
         onClose={() => setIsMovieExamplesModalOpen(false)} 
@@ -2295,44 +2308,52 @@ const App: React.FC = () => {
             showToast={showToast}
             onOpenLearningAssistant={handleOpenLearningAssistant}
        />
-       {learningAssistantPhrase && <LearningAssistantModal
-            isOpen={isLearningAssistantModalOpen}
-            onClose={(didSucceed?: boolean) => {
-                setIsLearningAssistantModalOpen(false);
-                const shouldReturnToWorkspace = isVoiceWorkspaceModalOpen;
+       {learningAssistantPhrase && (
+         <AiErrorBoundary componentName="Learning Assistant">
+           <LearningAssistantModal
+             isOpen={isLearningAssistantModalOpen}
+             onClose={(didSucceed?: boolean) => {
+                 setIsLearningAssistantModalOpen(false);
+                 const shouldReturnToWorkspace = isVoiceWorkspaceModalOpen;
 
-                if (didSucceed && learningAssistantPhrase) {
-                    const finalPhraseState = allPhrases.find(p => p.id === learningAssistantPhrase.id) || learningAssistantPhrase;
-                    handleOpenVoiceWorkspace(finalPhraseState);
-                } else if (shouldReturnToWorkspace && learningAssistantPhrase) {
-                    handleOpenVoiceWorkspace(learningAssistantPhrase);
-                }
-            }}
-            phrase={learningAssistantPhrase}
-            onGuide={handleGuideToTranslation}
-            onSuccess={handleLearningAssistantSuccess}
-            onOpenVerbConjugation={handleOpenVerbConjugation}
-            onOpenNounDeclension={handleOpenNounDeclension}
-            onOpenPronounsModal={() => setIsPronounsModalOpen(true)}
-            onOpenWFragenModal={() => setIsWFragenModalOpen(true)}
-            cache={learningAssistantCache}
-            setCache={setLearningAssistantCache}
-            onOpenWordAnalysis={handleOpenWordAnalysis}
-            onOpenAdjectiveDeclension={handleOpenAdjectiveDeclension}
-       />}
-       {phraseToDiscuss && apiProvider && <DiscussTranslationModal
-            isOpen={isDiscussModalOpen}
-            onClose={() => {
-                setIsDiscussModalOpen(false);
-                setDiscussInitialMessage(undefined);
-            }}
-            originalRussian={phraseToDiscuss.text.native}
-            currentGerman={phraseToDiscuss.text.learning}
-            onDiscuss={handleDiscussTranslation}
-            onAccept={handleDiscussionAccept}
-            onOpenWordAnalysis={handleOpenWordAnalysis}
-            initialMessage={discussInitialMessage}
-        />}
+                 if (didSucceed && learningAssistantPhrase) {
+                     const finalPhraseState = allPhrases.find(p => p.id === learningAssistantPhrase.id) || learningAssistantPhrase;
+                     handleOpenVoiceWorkspace(finalPhraseState);
+                 } else if (shouldReturnToWorkspace && learningAssistantPhrase) {
+                     handleOpenVoiceWorkspace(learningAssistantPhrase);
+                 }
+             }}
+             phrase={learningAssistantPhrase}
+             onGuide={handleGuideToTranslation}
+             onSuccess={handleLearningAssistantSuccess}
+             onOpenVerbConjugation={handleOpenVerbConjugation}
+             onOpenNounDeclension={handleOpenNounDeclension}
+             onOpenPronounsModal={() => setIsPronounsModalOpen(true)}
+             onOpenWFragenModal={() => setIsWFragenModalOpen(true)}
+             cache={learningAssistantCache}
+             setCache={setLearningAssistantCache}
+             onOpenWordAnalysis={handleOpenWordAnalysis}
+             onOpenAdjectiveDeclension={handleOpenAdjectiveDeclension}
+           />
+         </AiErrorBoundary>
+       )}
+       {phraseToDiscuss && apiProvider && (
+         <AiErrorBoundary componentName="Discuss Translation">
+           <DiscussTranslationModal
+             isOpen={isDiscussModalOpen}
+             onClose={() => {
+                 setIsDiscussModalOpen(false);
+                 setDiscussInitialMessage(undefined);
+             }}
+             originalRussian={phraseToDiscuss.text.native}
+             currentGerman={phraseToDiscuss.text.learning}
+             onDiscuss={handleDiscussTranslation}
+             onAccept={handleDiscussionAccept}
+             onOpenWordAnalysis={handleOpenWordAnalysis}
+             initialMessage={discussInitialMessage}
+           />
+         </AiErrorBoundary>
+       )}
         <PronounsModal isOpen={isPronounsModalOpen} onClose={() => setIsPronounsModalOpen(false)} onOpenWordAnalysis={handleOpenWordAnalysis} />
         <WFragenModal isOpen={isWFragenModalOpen} onClose={() => setIsWFragenModalOpen(false)} onOpenWordAnalysis={handleOpenWordAnalysis} />
 
@@ -2416,6 +2437,7 @@ const App: React.FC = () => {
             onAddOnlyNew={handleAddOnlyNewFromReview}
         />
         {assistantCategory && (
+          <AiErrorBoundary componentName="Category Assistant">
             <CategoryAssistantModal
                 isOpen={isCategoryAssistantModalOpen}
                 onClose={(view?: View) => {
@@ -2441,6 +2463,7 @@ const App: React.FC = () => {
                 onGoToList={() => setView('list')}
                 onOpenConfirmDeletePhrases={handleOpenConfirmDeletePhrases}
             />
+          </AiErrorBoundary>
         )}
         {isConfirmDeletePhrasesModalOpen && phrasesForDeletion && (
           <ConfirmDeletePhrasesModal

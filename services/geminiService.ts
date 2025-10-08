@@ -25,6 +25,49 @@ const model = "gemini-2.5-flash-lite-preview-09-2025";
 // const model = "gemini-2.5-flash";
 
 /**
+ * Retry wrapper for AI API calls with exponential backoff
+ * @param fn - Async function to retry
+ * @param maxRetries - Maximum number of retry attempts (default: 3)
+ * @param initialDelayMs - Initial delay in milliseconds (default: 1000)
+ * @returns Result of the function
+ * @throws Last error if all retries fail
+ */
+async function retryWithExponentialBackoff<T>(
+  fn: () => Promise<T>,
+  maxRetries: number = 3,
+  initialDelayMs: number = 1000
+): Promise<T> {
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error as Error;
+      const isLastAttempt = attempt === maxRetries - 1;
+
+      console.warn(
+        `[retryWithExponentialBackoff] Attempt ${attempt + 1}/${maxRetries} failed:`,
+        error instanceof Error ? error.message : error
+      );
+
+      if (isLastAttempt) {
+        console.error('[retryWithExponentialBackoff] All retries exhausted');
+        break;
+      }
+
+      // Calculate delay with exponential backoff: 1s, 2s, 4s, etc.
+      const delayMs = initialDelayMs * Math.pow(2, attempt);
+      console.log(`[retryWithExponentialBackoff] Waiting ${delayMs}ms before retry...`);
+
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+    }
+  }
+
+  throw lastError || new Error('Max retries exceeded');
+}
+
+/**
  * Helper functions for getting language names in prompts
  */
 const getLang = () => {
@@ -868,15 +911,16 @@ const continueChat: AiService['continueChat'] = async (phrase, history, newMessa
 };
 
 const practiceConversation: AiService['practiceConversation'] = async (history, newMessage, allPhrases) => {
-    const api = initializeApi();
-    if (!api) throw new Error("Gemini API key not configured.");
+    return retryWithExponentialBackoff(async () => {
+        const api = initializeApi();
+        if (!api) throw new Error("Gemini API key not configured.");
 
-    const formattedHistory = history.map(msg => ({
-        role: msg.role,
-        parts: [{ text: msg.text || msg.contentParts?.map(p => p.text).join('') || '' }]
-    }));
-    
-    const lang = getLang();
+        const formattedHistory = history.map(msg => ({
+            role: msg.role,
+            parts: [{ text: msg.text || msg.contentParts?.map(p => p.text).join('') || '' }]
+        }));
+
+        const lang = getLang();
     const systemInstruction = `You are a friendly and patient ${lang.learning} language tutor named 'Alex'.
 
 **CRITICAL: Your response MUST be valid JSON matching the schema below. Do NOT add any text outside the JSON.**
@@ -1022,6 +1066,7 @@ Your response MUST be a JSON object with this EXACT structure:
             promptSuggestions: []
         };
     }
+    }, 3, 1000); // 3 retries with 1-2-4 seconds delay
 };
 
 
