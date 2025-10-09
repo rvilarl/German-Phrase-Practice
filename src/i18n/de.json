@@ -755,6 +755,7 @@
     "learningAssistant": {
       "success": "Richtig!",
       "placeholder": "Deine Antwort...",
+      "dontKnow": "Ich weiß nicht",
       "errors": {
         "generic": "Ein Fehler ist aufgetreten: {{message}}"
       }

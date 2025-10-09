@@ -600,6 +600,7 @@
     "learningAssistant": {
       "success": "Correct!",
       "placeholder": "Your answer...",
+      "dontKnow": "I don't know",
       "errors": {
         "generic": "An error occurred: {{message}}"
       }

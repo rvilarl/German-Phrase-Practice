@@ -613,6 +613,7 @@
     "learningAssistant": {
       "success": "Верно!",
       "placeholder": "Ваш ответ...",
+      "dontKnow": "Не знаю",
       "errors": {
         "generic": "Произошла ошибка: {{message}}"
       }

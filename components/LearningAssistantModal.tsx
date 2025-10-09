@@ -306,6 +306,17 @@ const LearningAssistantModal: React.FC<LearningAssistantModalProps> = ({ isOpen,
       handleSendMessage(word);
   }
   
+  // Replace hardcoded "Не знаю" with localized version
+  const getLocalizedWordOptions = useCallback((options: string[]) => {
+    if (options.length > 0 && options[0] === "Не знаю") {
+      const localizedDontKnow = t('modals.learningAssistant.dontKnow');
+      return [localizedDontKnow, ...options.slice(1)];
+    }
+    return options;
+  }, [t]);
+  
+  const localizedWordOptions = getLocalizedWordOptions(wordOptions);
+  
   if (!isOpen) return null;
 
   return (
@@ -354,9 +365,9 @@ const LearningAssistantModal: React.FC<LearningAssistantModalProps> = ({ isOpen,
                 </div>
             ) : (
             <>
-                {wordOptions.length > 0 && (
+                {localizedWordOptions.length > 0 && (
                   <div className="flex flex-wrap justify-center gap-2 mb-3">
-                    {wordOptions.map(opt => (
+                    {localizedWordOptions.map(opt => (
                         <button key={opt} onClick={() => handleWordOptionClick(opt)} className="px-3 py-1.5 bg-slate-700/80 hover:bg-slate-700 text-slate-300 text-sm font-medium rounded-full transition-colors">
                             {opt}
                         </button>
