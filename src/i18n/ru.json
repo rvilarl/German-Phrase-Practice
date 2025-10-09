@@ -258,9 +258,27 @@
   },
   "practice": {
     "chat": {
-      "title": "Практика с AI",
-      "placeholder": "Напишите своё сообщение...",
-      "listeningPlaceholder": "Слушаю..."
+      "title": "Практика с ИИ",
+      "placeholder": "Напечатайте сообщение...",
+      "listeningPlaceholder": "Слушаю...",
+      "actions": {
+        "speak": "Произнести"
+      },
+      "messages": {
+        "revealTranslation": "Нажмите, чтобы показать перевод",
+        "secondaryPrefix": "Подсказка:",
+        "errorPrefix": "Ошибка: {{message}}",
+        "unknownError": "Неизвестная ошибка"
+      },
+      "stats": {
+        "phrasesUsed_zero": "{{count}} фраз повторено",
+        "phrasesUsed_one": "{{count}} фраза повторена",
+        "phrasesUsed_few": "{{count}} фразы повторены",
+        "phrasesUsed_many": "{{count}} фраз повторено",
+        "phrasesUsed_other": "{{count}} фраз повторено",
+        "phrasesUsed": "{{count}} фраз повторено",
+        "phrasesUsed_plural": "{{count}} фраз отработано"
+      }
     },
     "actions": {
       "skip": "Пропустить",
@@ -286,6 +304,11 @@
       "continue": "Продолжить",
       "generateNew": "Сгенерировать новые",
       "generating": "Генерация..."
+    },
+    "discuss": {
+      "examples": {
+        "intro": "Вот несколько примеров и советов, которые помогут вам лучше понять эту фразу:"
+      }
     }
   },
   "languages": {
@@ -1005,6 +1028,21 @@
     },
     "prompts": {
       "generateSimilar": "Сгенерировать похожие фразы для: {phrase}"
+    }
+  },
+  "phraseCard": {
+    "actions": {
+      "learningAssistant": "Изучать с ИИ",
+      "sentenceChain": "Цепочка фраз",
+      "phraseBuilder": "Конструктор фраз",
+      "chat": "Обсудить с ИИ",
+      "deepDive": "Глубокий анализ",
+      "movieExamples": "Примеры из фильмов"
+    },
+    "aria": {
+      "openSettings": "Улучшить фразу",
+      "playTranslation": "Озвучить перевод",
+      "moreActions": "Дополнительные действия"
     }
   }
 }

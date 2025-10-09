@@ -22,6 +22,9 @@
     },
     "labels": {
       "error": ""
+    },
+    "actions": {
+      "delete": "Supprimer"
     }
   },
   "auth": {
@@ -249,7 +252,20 @@
     "chat": {
       "title": "",
       "placeholder": "",
-      "listeningPlaceholder": ""
+      "listeningPlaceholder": "",
+      "actions": {
+        "speak": "Prononcer"
+      },
+      "messages": {
+        "revealTranslation": "Cliquez pour afficher la traduction",
+        "secondaryPrefix": "Astuce :",
+        "errorPrefix": "Erreur : {{message}}",
+        "unknownError": "Erreur inconnue"
+      },
+      "stats": {
+        "phrasesUsed": "{{count}} phrase pratiquée",
+        "phrasesUsed_plural": "{{count}} phrases pratiquées"
+      }
     },
     "actions": {
       "skip": "",
@@ -275,6 +291,11 @@
       "continue": "",
       "generateNew": "",
       "generating": ""
+    },
+    "discuss": {
+      "examples": {
+        "intro": "Voici quelques exemples et conseils pour mieux comprendre cette expression :"
+      }
     }
   },
   "languages": {
@@ -955,6 +976,39 @@
     "actions": {
       "duplicates": "",
       "aiImport": ""
+    }
+  },
+  "phraseCard": {
+    "actions": {
+      "learningAssistant": "Apprendre avec l’IA",
+      "sentenceChain": "Chaîne de phrases",
+      "phraseBuilder": "Constructeur de phrases",
+      "chat": "Discuter avec l’IA",
+      "deepDive": "Analyse approfondie",
+      "movieExamples": "Exemples de films"
+    },
+    "aria": {
+      "openSettings": "Améliorer la phrase",
+      "playTranslation": "Lire la traduction",
+      "moreActions": "Plus d’actions"
+    }
+  },
+  "assistant": {
+    "contextMenu": {
+      "wordDetails": "Détails du mot",
+      "createWordCard": "Créer une carte de mot",
+      "createPhraseCard": "Créer une carte de phrase",
+      "generateSimilar": "Générer des similaires",
+      "goToList": "Aller à la liste",
+      "discussTranslation": "Discuter de la traduction"
+    },
+    "common": {
+      "translationError": "Erreur de traduction",
+      "translating": "Traduction en cours",
+      "translate": "Traduire"
+    },
+    "prompts": {
+      "generateSimilar": "Générer des phrases similaires pour : {phrase}"
     }
   }
 }

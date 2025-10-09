@@ -22,6 +22,9 @@
     },
     "labels": {
       "error": ""
+    },
+    "actions": {
+      "delete": "削除"
     }
   },
   "auth": {
@@ -249,7 +252,20 @@
     "chat": {
       "title": "",
       "placeholder": "",
-      "listeningPlaceholder": ""
+      "listeningPlaceholder": "",
+      "actions": {
+        "speak": "再生"
+      },
+      "messages": {
+        "revealTranslation": "クリックして翻訳を表示",
+        "secondaryPrefix": "ヒント：",
+        "errorPrefix": "エラー: {{message}}",
+        "unknownError": "不明なエラー"
+      },
+      "stats": {
+        "phrasesUsed": "{{count}} 件のフレーズを練習しました",
+        "phrasesUsed_plural": "{{count}} 件のフレーズを練習しました"
+      }
     },
     "actions": {
       "skip": "",
@@ -275,6 +291,11 @@
       "continue": "",
       "generateNew": "",
       "generating": ""
+    },
+    "discuss": {
+      "examples": {
+        "intro": "このフレーズをより理解するための例とヒントをいくつか紹介します。"
+      }
     }
   },
   "languages": {
@@ -955,6 +976,39 @@
     "actions": {
       "duplicates": "",
       "aiImport": ""
+    }
+  },
+  "phraseCard": {
+    "actions": {
+      "learningAssistant": "AIと学習する",
+      "sentenceChain": "フレーズチェーン",
+      "phraseBuilder": "フレーズビルダー",
+      "chat": "AIと話す",
+      "deepDive": "詳細分析",
+      "movieExamples": "映画の例"
+    },
+    "aria": {
+      "openSettings": "フレーズを改善",
+      "playTranslation": "翻訳を再生",
+      "moreActions": "その他の操作"
+    }
+  },
+  "assistant": {
+    "contextMenu": {
+      "wordDetails": "単語の詳細",
+      "createWordCard": "単語カードを作成",
+      "createPhraseCard": "フレーズカードを作成",
+      "generateSimilar": "類似を生成",
+      "goToList": "リストに移動",
+      "discussTranslation": "翻訳を議論"
+    },
+    "common": {
+      "translationError": "翻訳エラー",
+      "translating": "翻訳中",
+      "translate": "翻訳する"
+    },
+    "prompts": {
+      "generateSimilar": "{phrase} の類似フレーズを生成"
     }
   }
 }

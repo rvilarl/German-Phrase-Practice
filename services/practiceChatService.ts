@@ -497,6 +497,7 @@ export function createInitialGreeting(
     zh: '你好！让我们练习中文！',
     ja: 'こんにちは！日本語を練習しましょう！',
     ar: 'مرحبا! دعونا نمارس العربية!',
+    hi: 'नमस्ते! चलो हिंदी का अभ्यास करें!',
   };
 
   // Translation templates by native language
@@ -512,6 +513,7 @@ export function createInitialGreeting(
       zh: 'Привет! Давай практиковать китайский!',
       ja: 'Привет! Давай практиковать японский!',
       ar: 'Привет! Давай практиковать арабский!',
+      hi: 'Привет! Давай практиковать хинди!',
     },
     en: {
       de: 'Hello! Let\'s practice German!',
@@ -524,8 +526,35 @@ export function createInitialGreeting(
       zh: 'Hello! Let\'s practice Chinese!',
       ja: 'Hello! Let\'s practice Japanese!',
       ar: 'Hello! Let\'s practice Arabic!',
+      hi: 'Hello! Let\'s practice Hindi!',
     },
-    // Add more native languages as needed...
+    es: {
+      hi: '¡Hola! Practiquemos hindi!',
+    },
+    de: {
+      hi: 'Hallo! Lass uns Hindi üben!',
+    },
+    fr: {
+      hi: 'Bonjour ! Pratiquons le hindi !',
+    },
+    it: {
+      hi: 'Ciao! Alleniamoci con l’hindi!',
+    },
+    pt: {
+      hi: 'Olá! Vamos praticar híndi!',
+    },
+    pl: {
+      hi: 'Cześć! Poćwiczmy hindi!',
+    },
+    zh: {
+      hi: '你好！我们来练习印地语吧！',
+    },
+    ja: {
+      hi: 'こんにちは！ヒンディー語を練習しましょう！',
+    },
+    ar: {
+      hi: 'مرحبًا! لنتمرن على الهندية!',
+    },
   };
 
   const greetingText = greetingTexts[languageProfile.learning] || greetingTexts['en'];
@@ -545,6 +574,7 @@ export function createInitialGreeting(
     zh: ['你好！', '早上好！', '好的！'],
     ja: ['こんにちは！', 'おはよう！', 'はい！'],
     ar: ['مرحبا!', 'صباح الخير!', 'نعم!'],
+    hi: ['नमस्ते!', 'चलो शुरू करें!', 'मैं तैयार हूँ!'],
   };
 
   const suggestions = suggestionsByLang[languageProfile.learning] || suggestionsByLang['en'];

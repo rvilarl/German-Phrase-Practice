@@ -53,6 +53,7 @@ const MessageBubble: React.FC<{
   revealedTranslations?: Set<number>;
   setRevealedTranslations?: React.Dispatch<React.SetStateAction<Set<number>>>;
 }> = ({ message, onSpeak, isUser, onOpenWordAnalysis, onOpenContextMenu, messageIndex, revealedTranslations, setRevealedTranslations }) => {
+  const { t } = useTranslation();
   const wordLongPressTimer = useRef<number | null>(null);
 
   const handleWordClick = (contextText: string, word: string, russianText: string) => {
@@ -143,7 +144,7 @@ const MessageBubble: React.FC<{
               <button
                 onClick={() => onSpeak(message.content.primary.text)}
                 className="p-1.5 rounded-full hover:bg-white/10 flex-shrink-0 transition-colors"
-                title="Speak"
+                title={t('practice.chat.actions.speak', { defaultValue: 'Speak' })}
               >
                 <SoundIcon className="w-4 h-4 text-slate-300" />
               </button>
@@ -166,7 +167,13 @@ const MessageBubble: React.FC<{
                   });
                 }
               }}
-              title={isTranslationRevealed ? '' : 'Click to reveal translation'}
+              title={
+                isTranslationRevealed
+                  ? ''
+                  : t('practice.chat.messages.revealTranslation', {
+                      defaultValue: 'Click to reveal translation',
+                    })
+              }
             >
               {message.content.primary.translation}
             </p>
@@ -176,7 +183,7 @@ const MessageBubble: React.FC<{
         {/* Secondary explanation (corrections, hints) - in native language */}
         {message.content.secondary && (
           <div className="px-3 py-2 rounded-lg bg-slate-600/0 text-slate-300 text-sm border border-slate-700 border-none">
-            <span className="opacity-30 italic ">💬 {message.content.secondary.text}</span>
+            <span className="opacity-60 italic">{t('practice.chat.messages.secondaryPrefix', { defaultValue: 'Hint:' })} {message.content.secondary.text}</span>
           </div>
         )}
       </div>
@@ -431,13 +438,14 @@ export const PracticeChatModal_v2: React.FC<Props> = ({
         }));
       }
     } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Unknown error';
+      const unknownError = t('practice.chat.messages.unknownError', { defaultValue: 'Unknown error' });
+      const errorMsg = err instanceof Error ? err.message : unknownError;
       setError(errorMsg);
       console.error('[PracticeChatModal] Error:', err);
     } finally {
       setIsLoading(false);
     }
-  }, [messages, isLoading, allPhrases, profile, isListening, normalizeAssistantTranslation]);
+  }, [messages, isLoading, allPhrases, profile, isListening, normalizeAssistantTranslation, t]);
 
   // Handle quick reply
   const handleQuickReply = useCallback((text: string) => {
@@ -475,7 +483,10 @@ export const PracticeChatModal_v2: React.FC<Props> = ({
             <div>
               <h2 className="text-lg font-bold text-slate-100">{t('practice.chat.title')}</h2>
               <p className="text-xs text-slate-400">
-                {stats.phrasesUsedIds.length} {t('practice.chat.phrasesUsed') || 'phrases practiced'}
+                {t('practice.chat.stats.phrasesUsed', {
+                  count: stats.phrasesUsedIds.length,
+                  defaultValue: '{{count}} phrases practiced',
+                })}
               </p>
             </div>
           </div>
@@ -508,7 +519,10 @@ export const PracticeChatModal_v2: React.FC<Props> = ({
 
             {error && (
               <div className="bg-red-900/30 border border-red-700 rounded-lg p-3 text-sm text-red-200">
-                ⚠️ {error}
+                {t('practice.chat.messages.errorPrefix', {
+                  message: error,
+                  defaultValue: `Error: ${error}`,
+                })}
               </div>
             )}
 
@@ -544,7 +558,11 @@ export const PracticeChatModal_v2: React.FC<Props> = ({
                   handleSendMessage(userInput);
                 }
               }}
-              placeholder={isListening ? t('practice.chat.listeningPlaceholder') || 'Listening...' : t('practice.chat.placeholder') || 'Your message...'}
+              placeholder={
+                isListening
+                  ? t('practice.chat.listeningPlaceholder', { defaultValue: 'Listening...' })
+                  : t('practice.chat.placeholder', { defaultValue: 'Your message...' })
+              }
               className="flex-grow bg-slate-700 rounded-lg p-3 text-slate-200 placeholder-slate-400 resize-none max-h-32 min-h-12 focus:outline-none focus:ring-2 focus:ring-purple-500"
               rows={1}
               disabled={isLoading}

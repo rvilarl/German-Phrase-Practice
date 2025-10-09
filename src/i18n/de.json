@@ -252,7 +252,20 @@
     "chat": {
       "title": "Mit KI üben",
       "placeholder": "Nachricht eingeben...",
-      "listeningPlaceholder": "Höre zu..."
+      "listeningPlaceholder": "Höre zu...",
+      "actions": {
+        "speak": "Vorlesen"
+      },
+      "messages": {
+        "revealTranslation": "Zum Anzeigen der Übersetzung klicken",
+        "secondaryPrefix": "Hinweis:",
+        "errorPrefix": "Fehler: {{message}}",
+        "unknownError": "Unbekannter Fehler"
+      },
+      "stats": {
+        "phrasesUsed": "{{count}} geübte Phrase",
+        "phrasesUsed_plural": "{{count}} geübte Phrasen"
+      }
     },
     "actions": {
       "skip": "Überspringen",
@@ -278,6 +291,11 @@
       "continue": "Weiter",
       "generateNew": "Neue generieren",
       "generating": "Wird generiert..."
+    },
+    "discuss": {
+      "examples": {
+        "intro": "Hier sind einige Beispiele und Tipps, die dir helfen, diese Phrase besser zu verstehen:"
+      }
     }
   },
   "languages": {
@@ -976,6 +994,21 @@
     },
     "prompts": {
       "generateSimilar": "Ähnliche Phrasen generieren für: {phrase}"
+    }
+  },
+  "phraseCard": {
+    "actions": {
+      "learningAssistant": "Mit KI lernen",
+      "sentenceChain": "Satzkette",
+      "phraseBuilder": "Satzbaukasten",
+      "chat": "Mit KI besprechen",
+      "deepDive": "Tiefenanalyse",
+      "movieExamples": "Filmbeispiele"
+    },
+    "aria": {
+      "openSettings": "Satz verbessern",
+      "playTranslation": "Übersetzung abspielen",
+      "moreActions": "Weitere Aktionen"
     }
   }
 }

@@ -252,7 +252,20 @@
     "chat": {
       "title": "Practicar con IA",
       "placeholder": "Escribe tu mensaje...",
-      "listeningPlaceholder": "Escuchando..."
+      "listeningPlaceholder": "Escuchando...",
+      "actions": {
+        "speak": "Reproducir"
+      },
+      "messages": {
+        "revealTranslation": "Haz clic para mostrar la traducción",
+        "secondaryPrefix": "Consejo:",
+        "errorPrefix": "Error: {{message}}",
+        "unknownError": "Error desconocido"
+      },
+      "stats": {
+        "phrasesUsed": "{{count}} frase practicada",
+        "phrasesUsed_plural": "{{count}} frases practicadas"
+      }
     },
     "actions": {
       "skip": "Omitir",
@@ -278,6 +291,11 @@
       "continue": "Continuar",
       "generateNew": "Generar nuevas",
       "generating": "Generando..."
+    },
+    "discuss": {
+      "examples": {
+        "intro": "Aquí tienes algunos ejemplos y consejos para ayudarte a comprender mejor esta frase:"
+      }
     }
   },
   "languages": {
@@ -976,6 +994,21 @@
     },
     "prompts": {
       "generateSimilar": "Ähnliche Phrasen generieren für: {phrase}"
+    }
+  },
+  "phraseCard": {
+    "actions": {
+      "learningAssistant": "Aprender con IA",
+      "sentenceChain": "Cadena de frases",
+      "phraseBuilder": "Constructor de frases",
+      "chat": "Hablar con IA",
+      "deepDive": "Análisis profundo",
+      "movieExamples": "Ejemplos de películas"
+    },
+    "aria": {
+      "openSettings": "Mejorar frase",
+      "playTranslation": "Reproducir traducción",
+      "moreActions": "Más acciones"
     }
   }
 }

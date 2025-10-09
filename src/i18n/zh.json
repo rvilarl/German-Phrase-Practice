@@ -22,6 +22,9 @@
     },
     "labels": {
       "error": ""
+    },
+    "actions": {
+      "delete": "删除"
     }
   },
   "auth": {
@@ -249,7 +252,20 @@
     "chat": {
       "title": "",
       "placeholder": "",
-      "listeningPlaceholder": ""
+      "listeningPlaceholder": "",
+      "actions": {
+        "speak": "播放"
+      },
+      "messages": {
+        "revealTranslation": "点击显示翻译",
+        "secondaryPrefix": "提示：",
+        "errorPrefix": "错误：{{message}}",
+        "unknownError": "未知错误"
+      },
+      "stats": {
+        "phrasesUsed": "已练习 {{count}} 条短语",
+        "phrasesUsed_plural": "已练习 {{count}} 个短语"
+      }
     },
     "actions": {
       "skip": "",
@@ -275,6 +291,11 @@
       "continue": "",
       "generateNew": "",
       "generating": ""
+    },
+    "discuss": {
+      "examples": {
+        "intro": "这里有一些示例和提示，帮助你更好地理解这个短语："
+      }
     }
   },
   "languages": {
@@ -955,6 +976,39 @@
     "actions": {
       "duplicates": "",
       "aiImport": ""
+    }
+  },
+  "phraseCard": {
+    "actions": {
+      "learningAssistant": "与 AI 学习",
+      "sentenceChain": "句子链",
+      "phraseBuilder": "句子构建器",
+      "chat": "与 AI 讨论",
+      "deepDive": "深入分析",
+      "movieExamples": "电影示例"
+    },
+    "aria": {
+      "openSettings": "改进短语",
+      "playTranslation": "播放翻译",
+      "moreActions": "更多操作"
+    }
+  },
+  "assistant": {
+    "contextMenu": {
+      "wordDetails": "单词详情",
+      "createWordCard": "创建单词卡片",
+      "createPhraseCard": "创建短语卡片",
+      "generateSimilar": "生成相似项",
+      "goToList": "前往列表",
+      "discussTranslation": "讨论翻译"
+    },
+    "common": {
+      "translationError": "翻译错误",
+      "translating": "翻译中",
+      "translate": "翻译"
+    },
+    "prompts": {
+      "generateSimilar": "为 {phrase} 生成相似短语"
     }
   }
 }

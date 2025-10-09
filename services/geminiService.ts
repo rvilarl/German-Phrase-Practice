@@ -8,6 +8,7 @@ import { getGeminiApiKey } from './env';
 import type { TranslationRecord } from '../src/services/languageService.ts';
 import { currentLanguageProfile } from './currentLanguageProfile';
 import { getLanguageName } from './languageNames';
+import i18n from '../src/i18n/config.ts';
 
 let ai: GoogleGenAI | null = null;
 
@@ -801,10 +802,14 @@ const generateInitialExamples: AiService['generateInitialExamples'] = async (phr
         const examples: ExamplePair[] = (parsedResponse.examples || []).map((ex: any) => ({ learning: ex[lang.learningCode], native: ex[lang.nativeCode] }));
         const suggestions: ProactiveSuggestion[] = parsedResponse.proactiveSuggestions || [];
         const promptSuggestions: string[] = parsedResponse.promptSuggestions || [];
+        const intro = i18n.t('practice.discuss.examples.intro', {
+            lng: currentLanguageProfile.getUi(),
+            defaultValue: i18n.getFixedT('en')('practice.discuss.examples.intro'),
+        });
 
         return {
             role: 'model' as const,
-            text: 'Вот несколько примеров и советов, которые помогут вам лучше понять эту фразу:',
+            text: intro,
             examples,
             suggestions,
             promptSuggestions,

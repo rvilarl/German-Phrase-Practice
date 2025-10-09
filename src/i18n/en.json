@@ -252,7 +252,20 @@
     "chat": {
       "title": "Practice with AI",
       "placeholder": "Type your message...",
-      "listeningPlaceholder": "Listening..."
+      "listeningPlaceholder": "Listening...",
+      "actions": {
+        "speak": "Speak"
+      },
+      "messages": {
+        "revealTranslation": "Click to reveal translation",
+        "secondaryPrefix": "Hint:",
+        "errorPrefix": "Error: {{message}}",
+        "unknownError": "Unknown error"
+      },
+      "stats": {
+        "phrasesUsed": "{{count}} phrase practiced",
+        "phrasesUsed_plural": "{{count}} phrases practiced"
+      }
     },
     "actions": {
       "skip": "Skip",
@@ -278,6 +291,11 @@
       "continue": "Continue",
       "generateNew": "Generate new",
       "generating": "Generating..."
+    },
+    "discuss": {
+      "examples": {
+        "intro": "Here are a few examples and tips to help you understand this phrase better:"
+      }
     }
   },
   "languages": {
@@ -976,6 +994,21 @@
     },
     "prompts": {
       "generateSimilar": "Generate similar phrases for: {phrase}"
+    }
+  },
+  "phraseCard": {
+    "actions": {
+      "learningAssistant": "Learn with AI",
+      "sentenceChain": "Sentence chain",
+      "phraseBuilder": "Phrase builder",
+      "chat": "Discuss with AI",
+      "deepDive": "Deep analysis",
+      "movieExamples": "Movie examples"
+    },
+    "aria": {
+      "openSettings": "Improve phrase",
+      "playTranslation": "Play translation audio",
+      "moreActions": "More actions"
     }
   }
 }

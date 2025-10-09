@@ -22,6 +22,9 @@
     },
     "labels": {
       "error": ""
+    },
+    "actions": {
+      "delete": "Elimina"
     }
   },
   "auth": {
@@ -249,7 +252,20 @@
     "chat": {
       "title": "",
       "placeholder": "",
-      "listeningPlaceholder": ""
+      "listeningPlaceholder": "",
+      "actions": {
+        "speak": "Pronuncia"
+      },
+      "messages": {
+        "revealTranslation": "Clicca per mostrare la traduzione",
+        "secondaryPrefix": "Suggerimento:",
+        "errorPrefix": "Errore: {{message}}",
+        "unknownError": "Errore sconosciuto"
+      },
+      "stats": {
+        "phrasesUsed": "{{count}} frase esercitata",
+        "phrasesUsed_plural": "{{count}} frasi esercitate"
+      }
     },
     "actions": {
       "skip": "",
@@ -275,6 +291,11 @@
       "continue": "",
       "generateNew": "",
       "generating": ""
+    },
+    "discuss": {
+      "examples": {
+        "intro": "Ecco alcuni esempi e suggerimenti per aiutarti a capire meglio questa frase:"
+      }
     }
   },
   "languages": {
@@ -955,6 +976,39 @@
     "actions": {
       "duplicates": "",
       "aiImport": ""
+    }
+  },
+  "phraseCard": {
+    "actions": {
+      "learningAssistant": "Studia con l'IA",
+      "sentenceChain": "Catena di frasi",
+      "phraseBuilder": "Costruttore di frasi",
+      "chat": "Discuti con l'IA",
+      "deepDive": "Analisi approfondita",
+      "movieExamples": "Esempi dai film"
+    },
+    "aria": {
+      "openSettings": "Migliora la frase",
+      "playTranslation": "Riproduci la traduzione",
+      "moreActions": "Altre azioni"
+    }
+  },
+  "assistant": {
+    "contextMenu": {
+      "wordDetails": "Dettagli della parola",
+      "createWordCard": "Crea scheda parola",
+      "createPhraseCard": "Crea scheda frase",
+      "generateSimilar": "Genera simili",
+      "goToList": "Vai alla lista",
+      "discussTranslation": "Discuti la traduzione"
+    },
+    "common": {
+      "translationError": "Errore di traduzione",
+      "translating": "Traduzione in corso",
+      "translate": "Traduci"
+    },
+    "prompts": {
+      "generateSimilar": "Genera frasi simili per: {phrase}"
     }
   }
 }

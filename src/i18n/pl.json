@@ -22,6 +22,9 @@
     },
     "labels": {
       "error": ""
+    },
+    "actions": {
+      "delete": "Usuń"
     }
   },
   "auth": {
@@ -249,7 +252,25 @@
     "chat": {
       "title": "",
       "placeholder": "",
-      "listeningPlaceholder": ""
+      "listeningPlaceholder": "",
+      "actions": {
+        "speak": "Odtwórz"
+      },
+      "messages": {
+        "revealTranslation": "Kliknij, aby wyświetlić tłumaczenie",
+        "secondaryPrefix": "Wskazówka:",
+        "errorPrefix": "Błąd: {{message}}",
+        "unknownError": "Nieznany błąd"
+      },
+      "stats": {
+        "phrasesUsed": "{{count}} użytych fraz",
+        "phrasesUsed_zero": "{{count}} użytych fraz",
+        "phrasesUsed_one": "{{count}} użyta fraza",
+        "phrasesUsed_few": "{{count}} użyte frazy",
+        "phrasesUsed_many": "{{count}} użytych fraz",
+        "phrasesUsed_other": "{{count}} użytych fraz",
+        "phrasesUsed_plural": "{{count}} przećwiczonych zwrotów"
+      }
     },
     "actions": {
       "skip": "",
@@ -275,6 +296,11 @@
       "continue": "",
       "generateNew": "",
       "generating": ""
+    },
+    "discuss": {
+      "examples": {
+        "intro": "Oto kilka przykładów i wskazówek, które pomogą ci lepiej zrozumieć tę frazę:"
+      }
     }
   },
   "languages": {
@@ -955,6 +981,39 @@
     "actions": {
       "duplicates": "",
       "aiImport": ""
+    }
+  },
+  "phraseCard": {
+    "actions": {
+      "learningAssistant": "Ucz się z AI",
+      "sentenceChain": "Łańcuch zdań",
+      "phraseBuilder": "Budowniczy zdań",
+      "chat": "Omów z AI",
+      "deepDive": "Dogłębna analiza",
+      "movieExamples": "Przykłady z filmów"
+    },
+    "aria": {
+      "openSettings": "Ulepsz frazę",
+      "playTranslation": "Odtwórz tłumaczenie",
+      "moreActions": "Więcej działań"
+    }
+  },
+  "assistant": {
+    "contextMenu": {
+      "wordDetails": "Szczegóły słowa",
+      "createWordCard": "Utwórz fiszkę słowa",
+      "createPhraseCard": "Utwórz fiszkę zwrotu",
+      "generateSimilar": "Generuj podobne",
+      "goToList": "Przejdź do listy",
+      "discussTranslation": "Omów tłumaczenie"
+    },
+    "common": {
+      "translationError": "Błąd tłumaczenia",
+      "translating": "Trwa tłumaczenie",
+      "translate": "Przetłumacz"
+    },
+    "prompts": {
+      "generateSimilar": "Wygeneruj podobne zwroty dla: {phrase}"
     }
   }
 }

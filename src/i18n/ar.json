@@ -22,6 +22,9 @@
     },
     "labels": {
       "error": ""
+    },
+    "actions": {
+      "delete": "حذف"
     }
   },
   "auth": {
@@ -249,7 +252,26 @@
     "chat": {
       "title": "",
       "placeholder": "",
-      "listeningPlaceholder": ""
+      "listeningPlaceholder": "",
+      "actions": {
+        "speak": "تشغيل"
+      },
+      "messages": {
+        "revealTranslation": "انقر لعرض الترجمة",
+        "secondaryPrefix": "تلميح:",
+        "errorPrefix": "خطأ: {{message}}",
+        "unknownError": "خطأ غير معروف"
+      },
+      "stats": {
+        "phrasesUsed": "تم تدريب {{count}} عبارة",
+        "phrasesUsed_zero": "تم تدريب {{count}} عبارة",
+        "phrasesUsed_one": "تم تدريب عبارة واحدة",
+        "phrasesUsed_two": "تم تدريب عبارتين",
+        "phrasesUsed_few": "تم تدريب {{count}} عبارات",
+        "phrasesUsed_many": "تم تدريب {{count}} عبارة",
+        "phrasesUsed_other": "تم تدريب {{count}} عبارة",
+        "phrasesUsed_plural": "تم التدرب على {{count}} عبارة"
+      }
     },
     "actions": {
       "skip": "",
@@ -275,6 +297,11 @@
       "continue": "",
       "generateNew": "",
       "generating": ""
+    },
+    "discuss": {
+      "examples": {
+        "intro": "إليك بعض الأمثلة والنصائح لمساعدتك على فهم هذه العبارة بشكل أفضل:"
+      }
     }
   },
   "languages": {
@@ -955,6 +982,39 @@
     "actions": {
       "duplicates": "",
       "aiImport": ""
+    }
+  },
+  "phraseCard": {
+    "actions": {
+      "learningAssistant": "تعلّم مع الذكاء الاصطناعي",
+      "sentenceChain": "سلسلة العبارات",
+      "phraseBuilder": "منشئ العبارات",
+      "chat": "ناقش مع الذكاء الاصطناعي",
+      "deepDive": "تحليل متعمق",
+      "movieExamples": "أمثلة من الأفلام"
+    },
+    "aria": {
+      "openSettings": "تحسين العبارة",
+      "playTranslation": "تشغيل الترجمة",
+      "moreActions": "إجراءات إضافية"
+    }
+  },
+  "assistant": {
+    "contextMenu": {
+      "wordDetails": "تفاصيل الكلمة",
+      "createWordCard": "إنشاء بطاقة للكلمة",
+      "createPhraseCard": "إنشاء بطاقة للعبارة",
+      "generateSimilar": "توليد عبارات مشابهة",
+      "goToList": "الانتقال إلى القائمة",
+      "discussTranslation": "مناقشة الترجمة"
+    },
+    "common": {
+      "translationError": "خطأ في الترجمة",
+      "translating": "جارٍ الترجمة",
+      "translate": "ترجم"
+    },
+    "prompts": {
+      "generateSimilar": "توليد عبارات مشابهة لـ: {phrase}"
     }
   }
 }

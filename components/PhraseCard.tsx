@@ -16,6 +16,7 @@ import MoreActionsMenu from './MoreActionsMenu';
 import ProgressBar from './ProgressBar';
 import { MAX_MASTERY_LEVEL } from '../services/srsService';
 import SoundIcon from './icons/SoundIcon';
+import { useTranslation } from '../src/hooks/useTranslation.ts';
 
 
 interface PhraseCardProps {
@@ -78,6 +79,7 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
   cardActionUsage, onLogCardActionUsage,
   flash, onFlashEnd,
 }) => {
+  const { t } = useTranslation();
   const [wordHint, setWordHint] = useState<{
     word: string;
     translation: string | null;
@@ -163,13 +165,13 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
   }, [phrase, onLogCardActionUsage]);
 
   const allButtons = useMemo(() => [
-    { key: 'learningAssistant', label: 'Изучать с AI', icon: <BookOpenIcon className="w-5 h-5" />, action: createLoggedAction('learningAssistant', onOpenLearningAssistant) },
-    { key: 'sentenceChain', label: 'Цепочка фраз', icon: <LinkIcon className="w-5 h-5" />, action: createLoggedAction('sentenceChain', onOpenSentenceChain) },
-    { key: 'phraseBuilder', label: 'Конструктор фраз', icon: <BlocksIcon className="w-5 h-5" />, action: createLoggedAction('phraseBuilder', onOpenVoicePractice) },
-    { key: 'chat', label: 'Обсудить с AI', icon: <ChatIcon className="w-5 h-5" />, action: createLoggedAction('chat', onOpenChat) },
-    { key: 'deepDive', label: 'Глубокий анализ', icon: <AnalysisIcon className="w-5 h-5" />, action: createLoggedAction('deepDive', onOpenDeepDive) },
-    { key: 'movieExamples', label: 'Примеры из фильмов', icon: <FilmIcon className="w-5 h-5" />, action: createLoggedAction('movieExamples', onOpenMovieExamples) },
-  ], [phrase, createLoggedAction, onOpenLearningAssistant, onOpenSentenceChain, onOpenVoicePractice, onOpenChat, onOpenDeepDive, onOpenMovieExamples]);
+    { key: 'learningAssistant', label: t('phraseCard.actions.learningAssistant'), icon: <BookOpenIcon className="w-5 h-5" />, action: createLoggedAction('learningAssistant', onOpenLearningAssistant) },
+    { key: 'sentenceChain', label: t('phraseCard.actions.sentenceChain'), icon: <LinkIcon className="w-5 h-5" />, action: createLoggedAction('sentenceChain', onOpenSentenceChain) },
+    { key: 'phraseBuilder', label: t('phraseCard.actions.phraseBuilder'), icon: <BlocksIcon className="w-5 h-5" />, action: createLoggedAction('phraseBuilder', onOpenVoicePractice) },
+    { key: 'chat', label: t('phraseCard.actions.chat'), icon: <ChatIcon className="w-5 h-5" />, action: createLoggedAction('chat', onOpenChat) },
+    { key: 'deepDive', label: t('phraseCard.actions.deepDive'), icon: <AnalysisIcon className="w-5 h-5" />, action: createLoggedAction('deepDive', onOpenDeepDive) },
+    { key: 'movieExamples', label: t('phraseCard.actions.movieExamples'), icon: <FilmIcon className="w-5 h-5" />, action: createLoggedAction('movieExamples', onOpenMovieExamples) },
+  ], [t, createLoggedAction, onOpenLearningAssistant, onOpenSentenceChain, onOpenVoicePractice, onOpenChat, onOpenDeepDive, onOpenMovieExamples]);
 
   const actionButtons = useMemo(() => {
     // Create a copy to avoid mutating the original allButtons array
@@ -285,7 +287,7 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
             <button
               onClick={(e) => { e.stopPropagation(); setIsMenuOpen(prev => !prev); }}
               className={`p-3 rounded-full transition-colors ${themeClasses}`}
-              aria-label="Еще"
+              aria-label={t('phraseCard.aria.moreActions')}
               aria-expanded={isMenuOpen}
             >
               {isMenuOpen ? <CloseIcon className="w-5 h-5" /> : <MoreHorizontalIcon className="w-5 h-5" />}
@@ -325,7 +327,7 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
             <button
                 onClick={handleOpenImprovePhrase}
                 className="absolute top-3 right-3 p-2 rounded-full text-slate-300 hover:bg-white/20 hover:text-white transition-colors z-10"
-                aria-label="Улучшить перевод"
+                aria-label={t('phraseCard.aria.openSettings')}
             >
                 <SettingsIcon className="w-5 h-5" />
             </button>
@@ -353,7 +355,7 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
                           onSpeak(wordHint.translation!, 'de-DE');
                         }}
                         className="p-1 -my-1 -mr-1.5 rounded-full hover:bg-white/20 transition-colors"
-                        aria-label="Озвучить перевод"
+                        aria-label={t('phraseCard.aria.playTranslation')}
                       >
                         <SoundIcon className="w-4 h-4" />
                       </button>
@@ -378,7 +380,7 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
                 <button
                     onClick={handleOpenImprovePhrase}
                     className="absolute top-3 right-3 p-2 rounded-full text-white/70 hover:bg-black/20 hover:text-white transition-colors z-10"
-                    aria-label="Улучшить перевод"
+                    aria-label={t('phraseCard.aria.openSettings')}
                 >
                     <SettingsIcon className="w-5 h-5" />
                 </button>
