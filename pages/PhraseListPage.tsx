@@ -28,6 +28,7 @@ interface PhraseListPageProps {
     onEditCategory: (category: Category) => void;
     onOpenAssistant: (category: Category) => void;
     backendService: typeof backendService;
+    onOpenWordAnalysis?: (phrase: Phrase, word: string) => void;
 }
 
 type ListItem = 
@@ -36,7 +37,7 @@ type ListItem =
 
 
 // FIX: Changed to a named export to resolve "no default export" error in App.tsx.
-export const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, onDeletePhrase, onFindDuplicates, updateAndSavePhrases, onStartPractice, highlightedPhraseId, onClearHighlight, onOpenSmartImport, categories, onUpdatePhraseCategory, onStartPracticeWithCategory, onEditCategory, onOpenAssistant, backendService }) => {
+export const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, onDeletePhrase, onFindDuplicates, updateAndSavePhrases, onStartPractice, highlightedPhraseId, onClearHighlight, onOpenSmartImport, categories, onUpdatePhraseCategory, onStartPracticeWithCategory, onEditCategory, onOpenAssistant, backendService, onOpenWordAnalysis }) => {
     const { t } = useTranslation();
     const [searchTerm, setSearchTerm] = useState('');
     const [categoryFilter, setCategoryFilter] = useState<'all' | PhraseCategory>('all');
@@ -431,6 +432,7 @@ export const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditP
                                        categoryInfo={categoryInfo}
                                        allCategories={categories}
                                        onUpdatePhraseCategory={onUpdatePhraseCategory}
+                                       onOpenWordAnalysis={onOpenWordAnalysis}
                                    />
                                );
                            }

@@ -19,9 +19,10 @@ interface PhraseListItemProps {
     categoryInfo?: Category;
     allCategories: Category[];
     onUpdatePhraseCategory: (phraseId: string, newCategoryId: string) => void;
+    onOpenWordAnalysis?: (phrase: Phrase, word: string) => void;
 }
 
-const PhraseListItem: React.FC<PhraseListItemProps> = React.memo(({ phrase, onEdit, onDelete, isDuplicate, isHighlighted, onPreview, onStartPractice, onCategoryClick, categoryInfo, allCategories, onUpdatePhraseCategory }) => {
+const PhraseListItem: React.FC<PhraseListItemProps> = React.memo(({ phrase, onEdit, onDelete, isDuplicate, isHighlighted, onPreview, onStartPractice, onCategoryClick, categoryInfo, allCategories, onUpdatePhraseCategory, onOpenWordAnalysis }) => {
     const { t } = useTranslation();
     const [isCategoryPopoverOpen, setIsCategoryPopoverOpen] = useState(false);
     const popoverRef = useRef<HTMLDivElement>(null);
@@ -45,6 +46,28 @@ const PhraseListItem: React.FC<PhraseListItemProps> = React.memo(({ phrase, onEd
         e.stopPropagation();
         onUpdatePhraseCategory(phrase.id, newCategoryId);
         setIsCategoryPopoverOpen(false);
+    };
+
+    const handleWordClick = (e: React.MouseEvent, word: string) => {
+        if (!onOpenWordAnalysis) return;
+        e.stopPropagation();
+        const cleanedWord = word.replace(/[.,!?()""":;]/g, '');
+        if (cleanedWord) {
+            onOpenWordAnalysis(phrase, cleanedWord);
+        }
+    };
+
+    const renderClickableGerman = (text: string) => {
+        if (!onOpenWordAnalysis || !text) return <span>{text}</span>;
+        return text.split(' ').map((word, i, arr) => (
+            <span
+                key={i}
+                onClick={(e) => handleWordClick(e, word)}
+                className="cursor-pointer hover:bg-white/20 px-0.5 rounded transition-colors"
+            >
+                {word}{i < arr.length - 1 ? ' ' : ''}
+            </span>
+        ));
     };
 
     useEffect(() => {
@@ -82,7 +105,7 @@ const PhraseListItem: React.FC<PhraseListItemProps> = React.memo(({ phrase, onEd
                 <div className="flex items-center justify-between mb-1">
                     <p className="font-semibold text-slate-100">{phrase.text.native}</p>
                 </div>
-                <p className="text-sm text-slate-400">{phrase.text.learning}</p>
+                <p className="text-sm text-slate-400">{renderClickableGerman(phrase.text.learning)}</p>
                 <div className="mt-2">
                     <ProgressBar current={phrase.masteryLevel} max={srsService.MAX_MASTERY_LEVEL} />
                 </div>

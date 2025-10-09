@@ -11,10 +11,33 @@ interface PracticeResultModalProps {
   isCorrect: boolean;
   phrase: Phrase | null;
   evaluation: PhraseEvaluation | null;
+  onOpenWordAnalysis?: (phrase: Phrase, word: string) => void;
 }
 
-const PracticeResultModal: React.FC<PracticeResultModalProps> = ({ isOpen, onClose, isCorrect, phrase, evaluation }) => {
+const PracticeResultModal: React.FC<PracticeResultModalProps> = ({ isOpen, onClose, isCorrect, phrase, evaluation, onOpenWordAnalysis }) => {
   const { t } = useTranslation();
+
+  const handleWordClick = (e: React.MouseEvent, word: string) => {
+    if (!onOpenWordAnalysis || !phrase) return;
+    e.stopPropagation();
+    const cleanedWord = word.replace(/[.,!?()""":;]/g, '');
+    if (cleanedWord) {
+      onOpenWordAnalysis(phrase, cleanedWord);
+    }
+  };
+
+  const renderClickableGerman = (text: string) => {
+    if (!onOpenWordAnalysis || !text) return text;
+    return text.split(' ').map((word, i, arr) => (
+      <span
+        key={i}
+        onClick={(e) => handleWordClick(e, word)}
+        className="cursor-pointer hover:bg-white/20 px-0.5 rounded transition-colors"
+      >
+        {word}{i < arr.length - 1 ? ' ' : ''}
+      </span>
+    ));
+  };
 
   useEffect(() => {
     if (isOpen && isCorrect) {
@@ -39,7 +62,7 @@ const PracticeResultModal: React.FC<PracticeResultModalProps> = ({ isOpen, onClo
               </div>
             </div>
             <h2 className="text-2xl font-bold text-slate-100">{t('modals.practiceResult.correct')}</h2>
-            <p className="text-xl text-slate-200 mt-4">{phrase.text.learning}</p>
+            <p className="text-xl text-slate-200 mt-4">{renderClickableGerman(phrase.text.learning)}</p>
           </>
         ) : (
           <>
@@ -56,7 +79,7 @@ const PracticeResultModal: React.FC<PracticeResultModalProps> = ({ isOpen, onClo
               <p className="text-xs text-slate-400 text-left">{t('modals.practiceResult.correctAnswer')}</p>
               <div className="flex items-center justify-center gap-x-2 mt-1">
                 <AudioPlayer textToSpeak={evaluation?.correctedPhrase || phrase.text.learning} />
-                <p className="text-slate-100 font-medium text-lg">{evaluation?.correctedPhrase || phrase.text.learning}</p>
+                <p className="text-slate-100 font-medium text-lg">{renderClickableGerman(evaluation?.correctedPhrase || phrase.text.learning)}</p>
               </div>
             </div>
             <button onClick={onClose} className="w-full px-6 py-3 rounded-md bg-purple-600 hover:bg-purple-700 text-white font-semibold transition-colors">

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import type { Phrase, DeepDiveAnalysis } from '../types';
 import CloseIcon from './icons/CloseIcon';
 import AnalysisIcon from './icons/AnalysisIcon';
@@ -73,14 +73,35 @@ const DeepDiveSkeleton: React.FC = () => (
 
 const DeepDiveModal: React.FC<DeepDiveModalProps> = ({ isOpen, onClose, phrase, analysis, isLoading, error, onOpenWordAnalysis }) => {
   const { t } = useTranslation();
+  const wordLongPressTimer = useRef<number | null>(null);
 
   if (!isOpen) return null;
-  
+
   const handleWordClick = (contextText: string, word: string) => {
     const proxyPhrase: Phrase = { ...phrase, id: `proxy_deep_dive_${phrase.id}`, text: { ...phrase.text, learning: contextText } };
     onOpenWordAnalysis(proxyPhrase, word);
   };
-  
+
+  const handleWordPointerDown = (e: React.PointerEvent<HTMLSpanElement>, contextText: string, word: string) => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    e.stopPropagation();
+    const cleanedWord = word.replace(/[.,!?()""":;]/g, '');
+    if (!cleanedWord) return;
+
+    wordLongPressTimer.current = window.setTimeout(() => {
+      // On long press, open word analysis (same as click for now, could add context menu)
+      handleWordClick(contextText, cleanedWord);
+      wordLongPressTimer.current = null;
+    }, 500);
+  };
+
+  const clearWordLongPress = (e: React.PointerEvent<HTMLSpanElement>) => {
+    e.stopPropagation();
+    if (wordLongPressTimer.current) {
+      clearTimeout(wordLongPressTimer.current);
+    }
+  };
+
   const renderClickableGerman = (text: string) => {
     if (!text) return null;
     return text.split(' ').map((word, i, arr) => (
@@ -88,7 +109,16 @@ const DeepDiveModal: React.FC<DeepDiveModalProps> = ({ isOpen, onClose, phrase, 
             key={i}
             onClick={(e) => {
                 e.stopPropagation();
-                const cleanedWord = word.replace(/[.,!?()"“”:;]/g, '');
+                const cleanedWord = word.replace(/[.,!?()""":;]/g, '');
+                if (cleanedWord) handleWordClick(text, cleanedWord);
+            }}
+            onPointerDown={(e) => handleWordPointerDown(e, text, word)}
+            onPointerUp={clearWordLongPress}
+            onPointerLeave={clearWordLongPress}
+            onContextMenu={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const cleanedWord = word.replace(/[.,!?()""":;]/g, '');
                 if (cleanedWord) handleWordClick(text, cleanedWord);
             }}
             className="cursor-pointer hover:bg-white/20 px-1 py-0.5 rounded-md transition-colors"

@@ -12,7 +12,7 @@
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import type { Phrase, PracticeChatMessage, PracticeChatSessionStats, SpeechRecognition, SpeechRecognitionErrorEvent } from '../types';
+import type { Phrase, PracticeChatMessage, PracticeChatSessionStats, SpeechRecognition, SpeechRecognitionErrorEvent, WordAnalysis } from '../types';
 import { sendPracticeChatMessage, createInitialGreeting } from '../services/practiceChatService';
 import { useLanguage } from '../src/contexts/languageContext';
 import { useTranslation } from '../src/hooks/useTranslation';
@@ -22,6 +22,7 @@ import SendIcon from './icons/SendIcon';
 import SoundIcon from './icons/SoundIcon';
 import MicrophoneIcon from './icons/MicrophoneIcon';
 import MessageQuestionIcon from './icons/MessageQuestionIcon';
+import ChatContextMenu from './ChatContextMenu';
 
 interface Props {
   isOpen: boolean;
@@ -30,6 +31,13 @@ interface Props {
   settings?: {
     autoSpeak?: boolean;
   };
+  onOpenWordAnalysis: (phrase: Phrase, word: string) => void;
+  onAnalyzeWord: (phrase: Phrase, word: string) => Promise<WordAnalysis | null>;
+  onCreateCard: (phraseData: { german: string; russian: string }) => void;
+  onOpenVerbConjugation: (infinitive: string) => void;
+  onOpenNounDeclension: (noun: string, article: string) => void;
+  onOpenAdjectiveDeclension: (adjective: string) => void;
+  onTranslateGermanToRussian: (germanPhrase: string) => Promise<{ russian: string }>;
 }
 
 /**
@@ -39,7 +47,75 @@ const MessageBubble: React.FC<{
   message: PracticeChatMessage;
   onSpeak?: (text: string) => void;
   isUser: boolean;
-}> = ({ message, onSpeak, isUser }) => {
+  onOpenWordAnalysis?: (phrase: Phrase, word: string) => void;
+  onOpenContextMenu?: (target: { sentence: { german: string, russian: string }, word: string }) => void;
+  messageIndex?: number;
+  revealedTranslations?: Set<number>;
+  setRevealedTranslations?: React.Dispatch<React.SetStateAction<Set<number>>>;
+}> = ({ message, onSpeak, isUser, onOpenWordAnalysis, onOpenContextMenu, messageIndex, revealedTranslations, setRevealedTranslations }) => {
+  const wordLongPressTimer = useRef<number | null>(null);
+
+  const handleWordClick = (contextText: string, word: string, russianText: string) => {
+    if (!onOpenWordAnalysis) return;
+    const proxyPhrase: Phrase = {
+      id: `proxy_practice_v2_${contextText.slice(0, 5)}`,
+      text: { learning: contextText, native: russianText },
+      category: 'general' as const,
+      masteryLevel: 0,
+      lastReviewedAt: null,
+      nextReviewAt: Date.now(),
+      knowCount: 0,
+      knowStreak: 0,
+      isMastered: false,
+      lapses: 0,
+    };
+    onOpenWordAnalysis(proxyPhrase, word);
+  };
+
+  const handleWordPointerDown = (e: React.PointerEvent<HTMLSpanElement>, sentence: { german: string, russian: string }, word: string) => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    e.stopPropagation();
+    const cleanedWord = word.replace(/[.,!?()""":;]/g, '');
+    if (!cleanedWord || !onOpenContextMenu) return;
+
+    wordLongPressTimer.current = window.setTimeout(() => {
+      onOpenContextMenu({ sentence, word: cleanedWord });
+      wordLongPressTimer.current = null;
+    }, 500);
+  };
+
+  const clearWordLongPress = (e: React.PointerEvent<HTMLSpanElement>) => {
+    e.stopPropagation();
+    if (wordLongPressTimer.current) {
+      clearTimeout(wordLongPressTimer.current);
+    }
+  };
+
+  const renderClickableGerman = (text: string, translation: string) => {
+    if (!text || !onOpenWordAnalysis) return text;
+    return text.split(' ').map((word, i, arr) => (
+      <span
+        key={i}
+        onClick={(e) => {
+          e.stopPropagation();
+          const cleaned = word.replace(/[.,!?()""":;]/g, '');
+          if (cleaned) handleWordClick(text, cleaned, translation);
+        }}
+        onPointerDown={(e) => handleWordPointerDown(e, { german: text, russian: translation }, word)}
+        onPointerUp={clearWordLongPress}
+        onPointerLeave={clearWordLongPress}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const cleaned = word.replace(/[.,!?()""":;]/g, '');
+          if (cleaned && onOpenContextMenu) onOpenContextMenu({ sentence: { german: text, russian: translation }, word: cleaned });
+        }}
+        className="cursor-pointer hover:bg-white/20 px-1 py-0.5 rounded-md transition-colors"
+      >
+        {word}{i < arr.length - 1 ? ' ' : ''}
+      </span>
+    ));
+  };
   if (isUser) {
     // User message - simple bubble
     return (
@@ -52,6 +128,8 @@ const MessageBubble: React.FC<{
   }
 
   // AI message - with translation and optional explanation
+  const isTranslationRevealed = messageIndex !== undefined && revealedTranslations?.has(messageIndex);
+
   return (
     <div className="flex justify-start mb-4">
       <div className="max-w-[85%] space-y-2">
@@ -59,7 +137,7 @@ const MessageBubble: React.FC<{
         <div className="px-4 py-3 rounded-2xl rounded-bl-lg bg-slate-700 text-slate-200">
           <div className="flex items-start justify-between gap-2">
             <p className="text-base flex-1 font-medium text-purple-300">
-              {message.content.primary.text}
+              {renderClickableGerman(message.content.primary.text, message.content.primary.translation || '')}
             </p>
             {onSpeak && (
               <button
@@ -72,9 +150,24 @@ const MessageBubble: React.FC<{
             )}
           </div>
 
-          {/* Translation in native language */}
+          {/* Translation in native language - BLURRED */}
           {message.content.primary.translation && (
-            <p className="text-sm text-slate-400 mt-1 italic">
+            <p
+              className={`text-sm text-slate-400 mt-1 italic cursor-pointer transition-all duration-200 ${
+                isTranslationRevealed ? '' : 'blur-sm select-none hover:blur-[3px]'
+              }`}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (messageIndex !== undefined && setRevealedTranslations) {
+                  setRevealedTranslations(prev => {
+                    const newSet = new Set(prev);
+                    newSet.add(messageIndex);
+                    return newSet;
+                  });
+                }
+              }}
+              title={isTranslationRevealed ? '' : 'Click to reveal translation'}
+            >
               {message.content.primary.translation}
             </p>
           )}
@@ -135,7 +228,14 @@ export const PracticeChatModal_v2: React.FC<Props> = ({
   isOpen,
   onClose,
   allPhrases,
-  settings
+  settings,
+  onOpenWordAnalysis,
+  onAnalyzeWord,
+  onCreateCard,
+  onOpenVerbConjugation,
+  onOpenNounDeclension,
+  onOpenAdjectiveDeclension,
+  onTranslateGermanToRussian
 }) => {
   const { t } = useTranslation();
   const { profile } = useLanguage();
@@ -144,6 +244,8 @@ export const PracticeChatModal_v2: React.FC<Props> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isListening, setIsListening] = useState(false);
+  const [revealedTranslations, setRevealedTranslations] = useState<Set<number>>(new Set());
+  const [contextMenuTarget, setContextMenuTarget] = useState<{ sentence: { german: string, russian: string }, word: string } | null>(null);
 
   // Session stats
   const [stats, setStats] = useState<PracticeChatSessionStats>({
@@ -260,6 +362,33 @@ export const PracticeChatModal_v2: React.FC<Props> = ({
     }
   }, [isOpen]);
 
+  const normalizeAssistantTranslation = useCallback(async (message: PracticeChatMessage) => {
+    const primaryContent = message.content?.primary;
+    if (!primaryContent?.text) return message;
+
+    try {
+      const translationResult = await onTranslateGermanToRussian(primaryContent.text);
+      const normalized = translationResult?.russian?.trim();
+
+      if (normalized && normalized !== primaryContent.translation?.trim()) {
+        return {
+          ...message,
+          content: {
+            ...message.content,
+            primary: {
+              ...primaryContent,
+              translation: normalized,
+            },
+          },
+        };
+      }
+    } catch (error) {
+      console.error('[PracticeChatModal] Failed to normalize translation:', error);
+    }
+
+    return message;
+  }, [onTranslateGermanToRussian]);
+
   // Handle sending message
   const handleSendMessage = useCallback(async (text: string) => {
     if (!text.trim() || isLoading) return;
@@ -289,7 +418,9 @@ export const PracticeChatModal_v2: React.FC<Props> = ({
         profile
       );
 
-      setMessages(prev => [...prev, aiResponse]);
+      const normalizedResponse = await normalizeAssistantTranslation(aiResponse);
+
+      setMessages(prev => [...prev, normalizedResponse]);
 
       // Update stats
       if (aiResponse.actions?.phraseUsed) {
@@ -306,7 +437,7 @@ export const PracticeChatModal_v2: React.FC<Props> = ({
     } finally {
       setIsLoading(false);
     }
-  }, [messages, isLoading, allPhrases, profile, isListening]);
+  }, [messages, isLoading, allPhrases, profile, isListening, normalizeAssistantTranslation]);
 
   // Handle quick reply
   const handleQuickReply = useCallback((text: string) => {
@@ -365,6 +496,11 @@ export const PracticeChatModal_v2: React.FC<Props> = ({
                 message={msg}
                 isUser={msg.role === 'user'}
                 onSpeak={msg.role === 'assistant' ? speakText : undefined}
+                onOpenWordAnalysis={onOpenWordAnalysis}
+                onOpenContextMenu={setContextMenuTarget}
+                messageIndex={index}
+                revealedTranslations={revealedTranslations}
+                setRevealedTranslations={setRevealedTranslations}
               />
             ))}
 
@@ -441,6 +577,24 @@ export const PracticeChatModal_v2: React.FC<Props> = ({
           </form>
         </div>
       </div>
+
+      {/* Context Menu */}
+      {contextMenuTarget && (
+        <ChatContextMenu
+          target={contextMenuTarget}
+          onClose={() => setContextMenuTarget(null)}
+          allPhrases={allPhrases}
+          onGenerateMore={handleSendMessage}
+          onSpeak={speakText}
+          onOpenWordAnalysis={onOpenWordAnalysis}
+          onAnalyzeWord={onAnalyzeWord}
+          onCreateCard={onCreateCard}
+          onOpenVerbConjugation={onOpenVerbConjugation}
+          onOpenNounDeclension={onOpenNounDeclension}
+          onOpenAdjectiveDeclension={onOpenAdjectiveDeclension}
+          onTranslateGermanToRussian={onTranslateGermanToRussian}
+        />
+      )}
     </div>
   );
 };

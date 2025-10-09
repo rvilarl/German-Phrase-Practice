@@ -2060,6 +2060,7 @@ const App: React.FC = () => {
                 onEditCategory={handleOpenCategoryFormForEdit}
                 onOpenAssistant={handleOpenCategoryAssistant}
                 backendService={backendService}
+                onOpenWordAnalysis={handleOpenWordAnalysis}
             />;
         case 'library':
             return <LibraryPage onOpenBook={handleOpenBook} />;
@@ -2133,6 +2134,13 @@ const App: React.FC = () => {
             onClose={() => setIsPracticeChatModalOpen(false)}
             allPhrases={allPhrases}
             settings={settings}
+            onOpenWordAnalysis={handleOpenWordAnalysis}
+            onAnalyzeWord={analyzeWord}
+            onCreateCard={handleCreateCardFromWord}
+            onOpenVerbConjugation={handleOpenVerbConjugation}
+            onOpenNounDeclension={handleOpenNounDeclension}
+            onOpenAdjectiveDeclension={handleOpenAdjectiveDeclension}
+            onTranslateGermanToRussian={handleTranslateGermanToRussian}
           />
         </AiErrorBoundary>
       )}

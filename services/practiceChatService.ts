@@ -156,38 +156,73 @@ function createFallbackResponse(
   errorMessage: string,
   lang: LanguageProfile
 ): PracticeChatMessage {
-  const learningLangName = LANGUAGE_NAMES[lang.learning] || lang.learning;
+  const fallbackPrimaryTexts: Record<string, string> = {
+    de: 'Entschuldigung',
+    en: 'Sorry',
+    fr: 'Désolé',
+    es: 'Lo siento',
+    it: 'Mi dispiace',
+    pt: 'Desculpa',
+    pl: 'Przepraszam',
+    zh: '对不起',
+    ja: 'ごめんなさい',
+    ar: 'عذرًا',
+  };
+
+  const fallbackTranslations: Record<string, string> = {
+    de: 'Entschuldigung',
+    en: 'Sorry',
+    ru: 'Извините',
+    fr: 'Désolé',
+    es: 'Lo siento',
+    it: 'Mi dispiace',
+    pt: 'Desculpa',
+    pl: 'Przepraszam',
+    zh: '对不起',
+    ja: 'ごめんなさい',
+    ar: 'عذرًا',
+  };
+
+  const retrySuggestions: Record<string, string> = {
+    de: 'Noch einmal',
+    en: 'Try again',
+    fr: 'Encore',
+    es: 'Otra vez',
+    it: 'Ancora una volta',
+    pt: 'Mais uma vez',
+    pl: 'Jeszcze raz',
+    zh: '再试一次',
+    ja: 'もう一度',
+    ar: 'حاول مرة أخرى',
+  };
+
+  const fallbackPrimary = fallbackPrimaryTexts[lang.learning] ?? fallbackPrimaryTexts.en;
+  const fallbackTranslation = fallbackTranslations[lang.native] ?? fallbackTranslations.en;
+  const retry = retrySuggestions[lang.learning] ?? retrySuggestions.en;
 
   return {
     role: 'assistant',
     messageType: 'explanation',
     content: {
       primary: {
-        text: lang.learning === 'de' ? 'Entschuldigung' :
-              lang.learning === 'fr' ? 'Désolé' :
-              lang.learning === 'es' ? 'Lo siento' :
-              'Sorry',
-        translation: 'Sorry'
+        text: fallbackPrimary,
+        translation: fallbackTranslation,
       },
       secondary: {
-        text: errorMessage
-      }
+        text: errorMessage,
+      },
     },
     actions: {
       suggestions: [
         'OK',
-        lang.learning === 'de' ? 'Noch einmal' :
-        lang.learning === 'fr' ? 'Encore' :
-        lang.learning === 'es' ? 'Otra vez' :
-        'Try again'
-      ]
+        retry,
+      ],
     },
     metadata: {
-      timestamp: Date.now()
-    }
+      timestamp: Date.now(),
+    },
   };
 }
-
 /**
  * Convert AI response to PracticeChatMessage
  */
@@ -450,20 +485,54 @@ export function createInitialGreeting(
   const learningLang = LANGUAGE_NAMES[languageProfile.learning] || languageProfile.learning;
   const nativeLang = LANGUAGE_NAMES[languageProfile.native] || languageProfile.native;
 
-  const greetings: Record<string, { text: string; translation: string }> = {
-    de: { text: 'Hallo! Lass uns Deutsch üben!', translation: 'Hello! Let\'s practice German!' },
-    en: { text: 'Hello! Let\'s practice English!', translation: 'Привет! Давай практиковать английский!' },
-    fr: { text: 'Bonjour! Pratiquons le français!', translation: 'Hello! Let\'s practice French!' },
-    es: { text: '¡Hola! ¡Practiquemos español!', translation: 'Hello! Let\'s practice Spanish!' },
-    it: { text: 'Ciao! Pratichiamo l\'italiano!', translation: 'Hello! Let\'s practice Italian!' },
-    pt: { text: 'Olá! Vamos praticar português!', translation: 'Hello! Let\'s practice Portuguese!' },
-    pl: { text: 'Cześć! Ćwiczmy polski!', translation: 'Hello! Let\'s practice Polish!' },
-    zh: { text: '你好！让我们练习中文！', translation: 'Hello! Let\'s practice Chinese!' },
-    ja: { text: 'こんにちは！日本語を練習しましょう！', translation: 'Hello! Let\'s practice Japanese!' },
-    ar: { text: 'مرحبا! دعونا نمارس العربية!', translation: 'Hello! Let\'s practice Arabic!' },
+  // Greeting templates by learning language
+  const greetingTexts: Record<string, string> = {
+    de: 'Hallo! Lass uns Deutsch üben!',
+    en: 'Hello! Let\'s practice English!',
+    fr: 'Bonjour! Pratiquons le français!',
+    es: '¡Hola! ¡Practiquemos español!',
+    it: 'Ciao! Pratichiamo l\'italiano!',
+    pt: 'Olá! Vamos praticar português!',
+    pl: 'Cześć! Ćwiczmy polski!',
+    zh: '你好！让我们练习中文！',
+    ja: 'こんにちは！日本語を練習しましょう！',
+    ar: 'مرحبا! دعونا نمارس العربية!',
   };
 
-  const greeting = greetings[languageProfile.learning] || greetings['en'];
+  // Translation templates by native language
+  const greetingTranslations: Record<string, Record<string, string>> = {
+    ru: {
+      de: 'Привет! Давай практиковать немецкий!',
+      en: 'Привет! Давай практиковать английский!',
+      fr: 'Привет! Давай практиковать французский!',
+      es: 'Привет! Давай практиковать испанский!',
+      it: 'Привет! Давай практиковать итальянский!',
+      pt: 'Привет! Давай практиковать португальский!',
+      pl: 'Привет! Давай практиковать польский!',
+      zh: 'Привет! Давай практиковать китайский!',
+      ja: 'Привет! Давай практиковать японский!',
+      ar: 'Привет! Давай практиковать арабский!',
+    },
+    en: {
+      de: 'Hello! Let\'s practice German!',
+      en: 'Hello! Let\'s practice English!',
+      fr: 'Hello! Let\'s practice French!',
+      es: 'Hello! Let\'s practice Spanish!',
+      it: 'Hello! Let\'s practice Italian!',
+      pt: 'Hello! Let\'s practice Portuguese!',
+      pl: 'Hello! Let\'s practice Polish!',
+      zh: 'Hello! Let\'s practice Chinese!',
+      ja: 'Hello! Let\'s practice Japanese!',
+      ar: 'Hello! Let\'s practice Arabic!',
+    },
+    // Add more native languages as needed...
+  };
+
+  const greetingText = greetingTexts[languageProfile.learning] || greetingTexts['en'];
+  const translationMap = greetingTranslations[languageProfile.native] || greetingTranslations['en'];
+  const greetingTranslation = translationMap[languageProfile.learning] || `Hello! Let's practice ${learningLang}!`;
+
+  const greeting = { text: greetingText, translation: greetingTranslation };
 
   const suggestionsByLang: Record<string, string[]> = {
     de: ['Hallo!', 'Guten Tag!', 'Ja, gerne!'],

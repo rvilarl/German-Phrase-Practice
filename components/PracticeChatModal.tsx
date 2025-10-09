@@ -38,6 +38,7 @@ const ChatMessageContent: React.FC<{
 }> = ({ message, onSpeak, onOpenWordAnalysis, onOpenContextMenu }) => {
     const { text, contentParts } = message;
     const wordLongPressTimer = useRef<number | null>(null);
+    const [revealedTranslations, setRevealedTranslations] = useState<Set<number>>(new Set());
 
     const handleWordClick = (contextText: string, word: string, russianText: string) => {
         // FIX: Correctly construct the proxy Phrase with a nested text object.
@@ -96,6 +97,24 @@ const ChatMessageContent: React.FC<{
                             <button onClick={() => onSpeak(part.text)} className="p-0.5 rounded-full hover:bg-white/20 flex-shrink-0 ml-1.5">
                                 <SoundIcon className="w-3.5 h-3.5 text-slate-300" />
                             </button>
+                            {part.translation && (
+                                <span
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setRevealedTranslations(prev => {
+                                            const newSet = new Set(prev);
+                                            newSet.add(index);
+                                            return newSet;
+                                        });
+                                    }}
+                                    className={`ml-2 text-xs text-slate-400 italic cursor-pointer transition-all duration-200 ${
+                                        revealedTranslations.has(index) ? '' : 'blur-sm select-none hover:blur-[3px]'
+                                    }`}
+                                    title={revealedTranslations.has(index) ? '' : 'Нажми чтобы показать перевод'}
+                                >
+                                    {part.translation}
+                                </span>
+                            )}
                         </span>
                     ) : (
                         <span key={index}>{part.text}</span>
