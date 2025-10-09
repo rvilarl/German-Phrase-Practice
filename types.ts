@@ -179,61 +179,21 @@ export interface ChatMessage {
   assistantResponse?: CategoryAssistantResponse;
 }
 
-export interface DeepDiveAnalysis {
-  chunks: {
-    type: 'literal' | 'breakdown' | 'usage' | 'nuances' | 'related';
-    title: string;
-    content: string;
-  }[];
-  similarPhrases: {
+export interface TranslationChatRequest {
+  originalNative: string;
+  currentLearning: string;
+  history: ChatMessage[];
+  userRequest: string;
+}
+
+export interface TranslationChatResponse {
+  role: 'user' | 'model';
+  contentParts: ContentPart[];
+  promptSuggestions: string[];
+  suggestion?: {
     learning: string;
     native: string;
-    difference: string;
-  }[];
-}
-
-export interface PhraseEvaluation {
-  isCorrect: boolean;
-  correctPhrases: string[];
-  feedback: string;
-}
-
-export interface AppState {
-  phrases: Phrase[];
-  currentView: View;
-  currentPracticePhrase: Phrase | null;
-}
-
-// Settings stuff
-export interface Settings {
-  // If true, the app will automatically speak the 'learning' text
-  // when a card's answer is revealed in practice mode.
-  autoSpeak: boolean;
-  // Play sound effects, e.g. when marking a card correct/incorrect
-  soundEffects: boolean;
-
-  /**
-   * enabledCategories is an object where the keys are category IDs
-   * and values are `true` if the category is enabled in practice sessions.
-   *
-   * For example:
-   * {
-   *   "greetings": true,
-   *   "colors": false,
-   *   "animals": true
-   * }
-   */
-  enabledCategories: Record<string, boolean>;
-}
-
-export interface BookRecord {
-  id: string;
-  title: string;
-  author: string;
-  cover?: string; // base64 image
-  fileData: ArrayBuffer;
-  currentLocation?: string; // CFI
-  addedAt: number;
+  };
 }
 
 export interface CategoryAssistantResponse {

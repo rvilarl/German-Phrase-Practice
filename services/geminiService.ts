@@ -2,7 +2,8 @@
 
 
 import { GoogleGenAI, Type } from "@google/genai";
-import type { Phrase, ChatMessage, ExamplePair, ProactiveSuggestion, ContentPart, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, AdjectiveDeclension, SentenceContinuation, TranslationChatRequest, TranslationChatResponse, PhraseBuilderOptions, PhraseEvaluation, CategoryAssistantRequest, CategoryAssistantResponse, CategoryAssistantRequestType, ProposedCard, LanguageCode } from '../types';
+import type { Phrase, ChatMessage, ExamplePair, ProactiveSuggestion, ContentPart, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, AdjectiveDeclension, SentenceContinuation, PhraseBuilderOptions, PhraseEvaluation, CategoryAssistantRequest, CategoryAssistantResponse, CategoryAssistantRequestType, ProposedCard, LanguageCode } from '../types';
+
 import { AiService } from './aiService';
 import { getGeminiApiKey } from './env';
 import type { TranslationRecord } from '../src/services/languageService.ts';
@@ -863,11 +864,12 @@ const continueChat: AiService['continueChat'] = async (phrase, history, newMessa
         } else if (msg.text) {
              fullText = msg.text;
              if (msg.examples && msg.examples.length > 0) {
-                const examplesText = msg.examples.map(ex => `- ${ex.learning} (${ex.native})`).join('\n');
+                const examplesText = msg.examples.map(ex => `- ${ex.learningExample} (${ex.nativeTranslation})`).join('\n');
                 fullText += '\n\nПримеры:\n' + examplesText;
             }
             if (msg.suggestions && msg.suggestions.length > 0) {
-                const suggestionsText = msg.suggestions.map(s => `### ${s.title}\n${s.contentParts.map(p => p.text).join('')}`).join('\n\n');
+                // We don't have detailed structure for suggestions in the type definition
+                const suggestionsText = msg.suggestions.map(s => `- ${s.topic}`).join('\n');
                 fullText += '\n\nСоветы:\n' + suggestionsText;
             }
         }
@@ -1078,37 +1080,60 @@ Your response MUST be a JSON object with this EXACT structure:
 };
 
 
-const learningAssistantResponseSchema = {
-    type: Type.OBJECT,
-    properties: {
-        ...chatResponseSchema().properties,
-        isCorrect: {
-            type: Type.BOOLEAN,
-            description: "Set to true ONLY if the user's answer is a correct and complete translation of the target phrase."
-        },
-        wordOptions: {
-            type: Type.ARRAY,
-            description: "A list of 7-10 shuffled word choices (correct words and distractors) to help the user construct their next response. Should be an empty array if isCorrect is true.",
-            items: {
-                type: Type.STRING
+const learningAssistantResponseSchema = () => {
+    const lang = getLang();
+    return {
+        type: Type.OBJECT,
+        properties: {
+            responseParts: {
+                type: Type.ARRAY,
+                description: `The response broken down into segments of plain text and ${lang.learning} text.`,
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        type: { type: Type.STRING, enum: ['text', 'learning'], description: `Should be 'text' for plain ${lang.native} text or 'learning' for a ${lang.learning} word/phrase.` },
+                        text: { type: Type.STRING, description: "The segment of text. Do not use Markdown here." },
+                        translation: { type: Type.STRING, description: `${lang.native} translation of the text, ONLY if type is 'learning'.` }
+                    },
+                    required: ["type", "text"],
+                }
+            },
+            isCorrect: {
+                type: Type.BOOLEAN,
+                description: "Set to true ONLY if the user's answer is a correct and complete translation of the target phrase."
+            },
+            promptSuggestions: {
+                type: Type.ARRAY,
+                description: `A list of 2-4 new, context-aware follow-up questions in ${lang.native} that the user might ask next, based on the current conversation. Only suggest pronoun variations if there's a verb. Only suggest asking a question if the phrase isn't one already.`,
+                items: {
+                    type: Type.STRING
+                }
+            },
+            wordOptions: {
+                type: Type.ARRAY,
+                description: "A list of 7-10 shuffled word choices (correct words and distractors) to help the user construct their next response. Should be an empty array if isCorrect is true.",
+                items: {
+                    type: Type.STRING
+                }
+            },
+            cheatSheetOptions: {
+                type: Type.ARRAY,
+                description: "An optional list of cheat sheet buttons to show the user based on the current question.",
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        type: { type: Type.STRING, enum: ['verbConjugation', 'nounDeclension', 'pronouns', 'wFragen'] },
+                        label: { type: Type.STRING, description: "The button text, e.g., 'Спряжение глагола'" },
+                        data: { type: Type.STRING, description: "Data for the cheat sheet. Verb infinitive, or a JSON string for nouns like '{\"noun\":\"Tisch\",\"article\":\"der\"}'." }
+                    },
+                    required: ["type", "label", "data"]
+                }
             }
         },
-        cheatSheetOptions: {
-            type: Type.ARRAY,
-            description: "An optional list of cheat sheet buttons to show the user based on the current question.",
-            items: {
-                type: Type.OBJECT,
-                properties: {
-                    type: { type: Type.STRING, enum: ['verbConjugation', 'nounDeclension', 'pronouns', 'wFragen'] },
-                    label: { type: Type.STRING, description: "The button text, e.g., 'Спряжение глагола'" },
-                    data: { type: Type.STRING, description: "Data for the cheat sheet. Verb infinitive, or a JSON string for nouns like '{\"noun\":\"Tisch\",\"article\":\"der\"}'." }
-                },
-                required: ["type", "label", "data"]
-            }
-        }
-    },
-    required: ["responseParts", "isCorrect", "promptSuggestions", "wordOptions"]
+        required: ["responseParts", "isCorrect", "promptSuggestions", "wordOptions"]
+    };
 };
+
 
 const guideToTranslation: AiService['guideToTranslation'] = async (phrase, history, userAnswer) => {
     const api = initializeApi();
@@ -1178,7 +1203,7 @@ const guideToTranslation: AiService['guideToTranslation'] = async (phrase, histo
             config: {
                 systemInstruction,
                 responseMimeType: "application/json",
-                responseSchema: learningAssistantResponseSchema,
+                responseSchema: learningAssistantResponseSchema(),
                 temperature: 0.6,
             },
         });
