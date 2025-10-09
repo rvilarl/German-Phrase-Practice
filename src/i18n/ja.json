@@ -86,6 +86,10 @@
       }
     }
   },
+  "account": {
+    "title": "アカウント",
+    "email": "メールアドレス"
+  },
   "settings": {
     "views": {
       "main": "",

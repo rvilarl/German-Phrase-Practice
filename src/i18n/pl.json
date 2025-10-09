@@ -86,6 +86,10 @@
       }
     }
   },
+  "account": {
+    "title": "Konto",
+    "email": "E-mail"
+  },
   "settings": {
     "views": {
       "main": "",

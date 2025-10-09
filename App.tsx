@@ -2,12 +2,13 @@
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 // FIX: Import View type from shared types.ts
-import { Phrase, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, AdjectiveDeclension, SentenceContinuation, PhraseBuilderOptions, PhraseEvaluation, ChatMessage, PhraseCategory, ProposedCard, BookRecord, Category, CategoryAssistantRequest, CategoryAssistantResponse, View, LanguageCode } from './types';
+import { Phrase, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, AdjectiveDeclension, SentenceContinuation, PhraseBuilderOptions, PhraseEvaluation, ChatMessage, PhraseCategory, ProposedCard, BookRecord, Category, CategoryAssistantRequest, CategoryAssistantResponse, View, LanguageCode, PracticeChatSessionRecord, PracticeReviewLogEntry, PracticeReviewAction } from './types';
 import * as srsService from './services/srsService';
 import * as cacheService from './services/cacheService';
 import * as backendService from './services/backendService';
 import { getProviderPriorityList, getFallbackProvider, ApiProviderType } from './services/apiProvider';
 import { AiService } from './services/aiService';
+import { buildPracticeAnalyticsSummary } from './services/practiceAnalyticsService';
 import { playCorrectSound, playIncorrectSound } from './services/soundService';
 import { SPEECH_LOCALE_MAP } from './constants/speechLocales';
 
@@ -87,6 +88,12 @@ const HABIT_TRACKER_KEY = (userId?: string) => getStorageKey('userHabitTracker',
 const CARD_ACTION_USAGE_KEY = (userId?: string) => getStorageKey('userCardActionUsage', userId);
 const PRACTICE_CHAT_HISTORY_KEY = (userId?: string, langProfile?: { native: string; learning: string }) =>
   getStorageKey('userPracticeChatHistory', userId, langProfile);
+const PRACTICE_CHAT_SESSIONS_KEY = (userId?: string, langProfile?: { native: string; learning: string }) =>
+  getStorageKey('userPracticeChatSessions', userId, langProfile);
+const PRACTICE_REVIEW_LOG_KEY = (userId?: string, langProfile?: { native: string; learning: string }) =>
+  getStorageKey('userPracticeReviewLog', userId, langProfile);
+
+const PRACTICE_REVIEW_LOG_LIMIT = 5000;
 
 // FIX: Removed local View type definition. It's now imported from types.ts
 type AnimationDirection = 'left' | 'right';
@@ -378,7 +385,9 @@ const App: React.FC = () => {
   
   // New state for practice chat
   const [isPracticeChatModalOpen, setIsPracticeChatModalOpen] = useState(false);
-  const [practiceChatHistory, setPracticeChatHistory] = useState<ChatMessage[]>([]);
+const [practiceChatHistory, setPracticeChatHistory] = useState<ChatMessage[]>([]);
+  const [practiceChatSessions, setPracticeChatSessions] = useState<PracticeChatSessionRecord[]>([]);
+  const [practiceReviewLog, setPracticeReviewLog] = useState<PracticeReviewLogEntry[]>([]);
 
   const [isAccountDrawerOpen, setIsAccountDrawerOpen] = useState(false);
 
@@ -510,6 +519,10 @@ const App: React.FC = () => {
 
           const storedPracticeChat = localStorage.getItem(PRACTICE_CHAT_HISTORY_KEY(userId, languageProfile));
           if (storedPracticeChat) setPracticeChatHistory(JSON.parse(storedPracticeChat));
+          const storedPracticeChatSessions = localStorage.getItem(PRACTICE_CHAT_SESSIONS_KEY(userId, languageProfile));
+          if (storedPracticeChatSessions) setPracticeChatSessions(JSON.parse(storedPracticeChatSessions));
+          const storedPracticeReviewLog = localStorage.getItem(PRACTICE_REVIEW_LOG_KEY(userId, languageProfile));
+          if (storedPracticeReviewLog) setPracticeReviewLog(JSON.parse(storedPracticeReviewLog));
 
         } catch (e) { console.error("Failed to load settings or trackers", e); }
     }
@@ -546,10 +559,16 @@ const App: React.FC = () => {
       setCurrentPracticePhrase(null);
       setIsLoading(true);
       setError(null);
+      setPracticeChatHistory([]);
+      setPracticeChatSessions([]);
+      setPracticeReviewLog([]);
 
       // Clear localStorage for user data
       localStorage.removeItem(PHRASES_KEY(userId, languageProfile));
       localStorage.removeItem(CATEGORIES_KEY(userId, languageProfile));
+      localStorage.removeItem(PRACTICE_CHAT_HISTORY_KEY(userId, languageProfile));
+      localStorage.removeItem(PRACTICE_CHAT_SESSIONS_KEY(userId, languageProfile));
+      localStorage.removeItem(PRACTICE_REVIEW_LOG_KEY(userId, languageProfile));
 
       // Reload data from server
       loadUserData();
@@ -666,6 +685,30 @@ const App: React.FC = () => {
         const newHistory = typeof updater === 'function' ? updater(prev) : updater;
         localStorage.setItem(PRACTICE_CHAT_HISTORY_KEY(userId, languageProfile), JSON.stringify(newHistory));
         return newHistory;
+    });
+  }, [userId, languageProfile]);
+
+  const handlePracticeChatSessionComplete = useCallback((session: PracticeChatSessionRecord) => {
+    setPracticeChatSessions(prev => {
+        const updatedSessions = [...prev, session];
+        const trimmed = updatedSessions.slice(-50);
+        localStorage.setItem(PRACTICE_CHAT_SESSIONS_KEY(userId, languageProfile), JSON.stringify(trimmed));
+        return trimmed;
+    });
+  }, [userId, languageProfile]);
+
+  const appendPracticeReviewLog = useCallback((entry: PracticeReviewLogEntry) => {
+    if (!userId) return;
+    const storageKey = PRACTICE_REVIEW_LOG_KEY(userId, languageProfile);
+    setPracticeReviewLog(prev => {
+      const next = [...prev, entry];
+      const trimmed = next.length > PRACTICE_REVIEW_LOG_LIMIT ? next.slice(next.length - PRACTICE_REVIEW_LOG_LIMIT) : next;
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(trimmed));
+      } catch (error) {
+        console.error('[PracticeReviewLog] Failed to persist log', error);
+      }
+      return trimmed;
     });
   }, [userId, languageProfile]);
 
@@ -975,7 +1018,7 @@ const App: React.FC = () => {
     return callApiWithFallback(provider => provider.evaluateSpokenPhraseAttempt(phrase, userAttempt));
   }, [callApiWithFallback]);
   
-  const updatePhraseMasteryAndCache = useCallback(async (phrase: Phrase, action: 'know' | 'forgot' | 'dont_know') => {
+  const updatePhraseMasteryAndCache = useCallback(async (phrase: Phrase, action: PracticeReviewAction) => {
     const updatedPhrase = srsService.updatePhraseMastery(phrase, action, categories);
 
     // Optimistic UI update
@@ -994,9 +1037,41 @@ const App: React.FC = () => {
         showToast({ message: t('notifications.sync.error', { message: (err as Error).message }) });
         console.error("Background sync failed for phrase " + phrase.id, err);
     }
+
+    const logTimestamp = Date.now();
+    const randomSource = typeof globalThis !== 'undefined' ? (globalThis as typeof globalThis & { crypto?: Crypto }).crypto : undefined;
+    const logEntry: PracticeReviewLogEntry = {
+      id: randomSource && typeof randomSource.randomUUID === 'function'
+        ? randomSource.randomUUID()
+        : `review_${phrase.id}_${logTimestamp}`,
+      timestamp: logTimestamp,
+      phraseId: phrase.id,
+      categoryId: phrase.category,
+      action,
+      wasCorrect: action === 'know',
+      wasNew: phrase.lastReviewedAt === null,
+      previousMasteryLevel: phrase.masteryLevel,
+      newMasteryLevel: updatedPhrase.masteryLevel,
+      previousKnowStreak: phrase.knowStreak,
+      newKnowStreak: updatedPhrase.knowStreak,
+      previousLapses: phrase.lapses ?? 0,
+      newLapses: updatedPhrase.lapses ?? 0,
+      previousNextReviewAt: phrase.nextReviewAt,
+      nextReviewAt: updatedPhrase.nextReviewAt,
+      previousIsMastered: phrase.isMastered,
+      newIsMastered: updatedPhrase.isMastered,
+      previousKnowCount: phrase.knowCount,
+      newKnowCount: updatedPhrase.knowCount,
+      intervalMs: Math.max(updatedPhrase.nextReviewAt - logTimestamp, 0),
+      languageLearning: languageProfile?.learning ?? '',
+      languageNative: languageProfile?.native ?? '',
+      isLeechAfter: srsService.isLeech(updatedPhrase),
+    };
+
+    appendPracticeReviewLog(logEntry);
     
     return updatedPhrase; // Return the optimistically updated phrase.
-  }, [updateAndSavePhrases, categories, showToast]);
+  }, [updateAndSavePhrases, categories, showToast, appendPracticeReviewLog, languageProfile]);
 
 
   const handlePhraseActionSuccess = useCallback(async (phrase: Phrase) => {
@@ -1744,6 +1819,10 @@ const App: React.FC = () => {
     return unmasteredPhrases.filter(p => p.category === practiceCategoryFilter);
   }, [unmasteredPhrases, practiceCategoryFilter]);
 
+  const practiceAnalyticsSummary = useMemo(() => {
+    return buildPracticeAnalyticsSummary(allPhrases, categories, practiceReviewLog);
+  }, [allPhrases, categories, practiceReviewLog]);
+
   const changePracticePhrase = useCallback((nextPhrase: Phrase | null, direction: AnimationDirection) => {
     setIsPracticeAnswerRevealed(false);
     setPracticeCardEvaluated(false);
@@ -2124,6 +2203,7 @@ const App: React.FC = () => {
             onOpenNounDeclension={handleOpenNounDeclension}
             onOpenAdjectiveDeclension={handleOpenAdjectiveDeclension}
             onTranslateGermanToRussian={handleTranslateGermanToRussian}
+            onSessionComplete={handlePracticeChatSessionComplete}
           />
         </AiErrorBoundary>
       )}
@@ -2150,6 +2230,8 @@ const App: React.FC = () => {
         settings={settings} 
         onSettingsChange={handleSettingsChange} 
         categories={categories}
+        practiceChatSessions={practiceChatSessions}
+        practiceAnalyticsSummary={practiceAnalyticsSummary}
         onOpenCategoryManager={() => setIsCategoryManagerModalOpen(true)}
       />
       {deepDivePhrase && (

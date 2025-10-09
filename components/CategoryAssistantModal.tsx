@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Category, Phrase, ProposedCard, CategoryAssistantRequest, ChatMessage, SpeechRecognition, SpeechRecognitionErrorEvent, ContentPart, WordAnalysis, View } from '../types';
+import { Category, Phrase, ProposedCard, CategoryAssistantRequest, ChatMessage, ContentPart, WordAnalysis, View } from '../types';
 import CloseIcon from './icons/CloseIcon';
 import SendIcon from './icons/SendIcon';
 import SmartToyIcon from './icons/SmartToyIcon';
@@ -17,7 +17,7 @@ import ListIcon from './icons/ListIcon';
 import Spinner from './Spinner';
 import { useTranslation } from '../src/hooks/useTranslation';
 import { useLanguage } from '../src/contexts/languageContext';
-import { SPEECH_LOCALE_MAP } from '../constants/speechLocales';
+import { SPEECH_LOCALE_MAP, getNativeSpeechLocale } from '../services/speechService';
 
 interface CategoryAssistantModalProps {
   isOpen: boolean;
@@ -200,7 +200,7 @@ const CategoryAssistantModal: React.FC<CategoryAssistantModalProps> = (props) =>
     const [promptSuggestions, setPromptSuggestions] = useState<string[]>([]);
     const [contextMenuTarget, setContextMenuTarget] = useState<{ sentence: { german: string, russian: string }, word: string } | null>(null);
 
-    const recognitionRef = useRef<SpeechRecognition | null>(null);
+    const recognitionRef = useRef<any>(null);
     const chatEndRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     
@@ -274,7 +274,7 @@ const CategoryAssistantModal: React.FC<CategoryAssistantModalProps> = (props) =>
         const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (SpeechRecognitionAPI) {
             const recognition = new SpeechRecognitionAPI();
-            recognition.lang = 'ru-RU';
+            recognition.lang = getNativeSpeechLocale(profile);
             recognition.interimResults = false;
             recognition.continuous = false;
             recognition.onstart = () => setIsListening(true);

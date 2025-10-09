@@ -86,12 +86,17 @@
       }
     }
   },
+  "account": {
+    "title": "Cuenta",
+    "email": "Correo electrónico"
+  },
   "settings": {
     "views": {
       "main": "Configuración",
       "general": "General",
       "automation": "Automatización (IA)",
-      "categories": "Categorías de práctica"
+      "categories": "Categorías de práctica",
+      "analytics": "Progreso y analítica"
     },
     "general": {
       "legend": "Configuración general",
@@ -115,6 +120,37 @@
     },
     "categories": {
       "manageButton": "Administrar categorías"
+    },
+    "analytics": {
+      "noData": "—",
+      "srs": {
+        "totalCards": "Total de tarjetas",
+        "mastered": "Dominadas",
+        "learning": "Aprendiendo: {{count}}",
+        "dueToday": "Para hoy",
+        "overdue": "Atrasadas: {{count}}",
+        "accuracy": "Precisión",
+        "reviews": "{{count}} repasos",
+        "masteryProgress": "{{percent}}% dominadas",
+        "streak": "🔥 Racha de {{days}} días",
+        "streak_plural": "🔥 Racha de {{days}} días",
+        "accuracyBreakdown": "Desglose de precisión",
+        "overall": "Total",
+        "last7Days": "Últimos 7 días",
+        "last30Days": "Últimos 30 días",
+        "levelsDistribution": "Distribución de niveles SRS",
+        "level": "N{{level}}",
+        "categories": "Categorías",
+        "cards": "tarjetas",
+        "avgLevel": "Nivel promedio",
+        "recentActivity": "Actividad reciente (14 días)",
+        "difficultCards": "Tarjetas difíciles (Leeches)",
+        "lapses": "errores",
+        "noActivityYet": "Aún no hay actividad de repaso",
+        "noDifficultCards": "Aún no hay tarjetas difíciles",
+        "emptyState": "Aún no hay datos de práctica",
+        "emptyStateHint": "Comienza a practicar para ver aquí tus estadísticas de progreso."
+      }
     }
   },
   "notifications": {

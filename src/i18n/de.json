@@ -86,12 +86,17 @@
       }
     }
   },
+  "account": {
+    "title": "Konto",
+    "email": "E-Mail"
+  },
   "settings": {
     "views": {
       "main": "Einstellungen",
       "general": "Allgemein",
       "automation": "Automatisierung (KI)",
-      "categories": "Übungskategorien"
+      "categories": "Übungskategorien",
+      "analytics": "Fortschritt & Analytik"
     },
     "general": {
       "legend": "Allgemeine Einstellungen",
@@ -115,7 +120,39 @@
     },
     "categories": {
       "manageButton": "Kategorien verwalten"
-    }
+    },
+"analytics": {
+  "noData": "—",
+  "srs": {
+    "totalCards": "Gesamte Karten",
+    "mastered": "Gemeistert",
+    "learning": "Lernen: {{count}}",
+    "dueToday": "Fällig heute",
+    "overdue": "Überfällig: {{count}}",
+    "accuracy": "Genauigkeit",
+    "reviews": "{{count}} Wiederholungen",
+    "masteryProgress": "{{percent}}% gemeistert",
+    "streak": "🔥 {{days}}-Tage-Serie",
+    "streak_plural": "🔥 {{days}}-Tage-Serie",
+    "accuracyBreakdown": "Genauigkeitsübersicht",
+    "overall": "Insgesamt",
+    "last7Days": "Letzte 7 Tage",
+    "last30Days": "Letzte 30 Tage",
+    "levelsDistribution": "Verteilung der SRS-Stufen",
+    "level": "L{{level}}",
+    "categories": "Kategorien",
+    "cards": "Karten",
+    "avgLevel": "Durchschnittsstufe",
+    "recentActivity": "Letzte Aktivität (14 Tage)",
+    "difficultCards": "Schwierige Karten (Leeches)",
+    "lapses": "Fehler",
+    "noActivityYet": "Noch keine Wiederholungsaktivität",
+    "noDifficultCards": "Noch keine schwierigen Karten",
+    "emptyState": "Noch keine Übungsdaten",
+    "emptyStateHint": "Beginne mit dem Üben, um hier deine Fortschrittsstatistiken zu sehen."
+  }
+}
+
   },
   "notifications": {
     "sync": {

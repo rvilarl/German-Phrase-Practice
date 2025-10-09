@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Phrase, ChatMessage, SpeechRecognition, SpeechRecognitionErrorEvent, WordAnalysis } from '../types';
+import { Phrase, ChatMessage, WordAnalysis } from '../types';
 import CloseIcon from './icons/CloseIcon';
 import SendIcon from './icons/SendIcon';
 import SoundIcon from './icons/SoundIcon';
@@ -8,7 +8,7 @@ import MicrophoneIcon from './icons/MicrophoneIcon';
 import MessageQuestionIcon from './icons/MessageQuestionIcon';
 import { useTranslation } from '../src/hooks/useTranslation.ts';
 import { useLanguage } from '../src/contexts/languageContext';
-import { SPEECH_LOCALE_MAP } from '../constants/speechLocales';
+import { SPEECH_LOCALE_MAP, getLearningSpeechLocale } from '../services/speechService';
 
 // Reusing a similar component from other chat modals for consistent UI
 import ChatContextMenu from './ChatContextMenu';
@@ -135,7 +135,7 @@ const PracticeChatModal: React.FC<PracticeChatModalProps> = ({ isOpen, onClose, 
   const [isListening, setIsListening] = useState(false);
   const [contextMenuTarget, setContextMenuTarget] = useState<{ sentence: { german: string, russian: string }, word: string } | null>(null);
 
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const recognitionRef = useRef<any>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const prevIsLoadingRef = useRef(isLoading);
@@ -204,7 +204,7 @@ const PracticeChatModal: React.FC<PracticeChatModalProps> = ({ isOpen, onClose, 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognition) {
         const recognition = new SpeechRecognition();
-        recognition.lang = 'de-DE';
+        recognition.lang = getLearningSpeechLocale(profile);
         recognition.interimResults = false;
         recognition.continuous = false;
         recognition.onstart = () => setIsListening(true);

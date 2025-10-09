@@ -1,4 +1,4 @@
-import type { LanguageCode } from '../types';
+import type { LanguageCode, LanguageProfile } from '../types';
 
 /**
  * Mapping of language codes to Web Speech API locale codes
@@ -228,4 +228,33 @@ export const initializeSpeech = (): Promise<void> => {
       resolve();
     }, 1000);
   });
+};
+
+/**
+ * Get speech recognition locale for learning language from user profile
+ * @param profile - User language profile
+ * @returns Speech recognition locale string (e.g., 'de-DE')
+ */
+export const getLearningSpeechLocale = (profile: LanguageProfile): string => {
+  return SPEECH_LOCALE_MAP[profile.learning] || 'de-DE';
+};
+
+/**
+ * Get speech recognition locale for native language from user profile
+ * @param profile - User language profile
+ * @returns Speech recognition locale string (e.g., 'ru-RU')
+ */
+export const getNativeSpeechLocale = (profile: LanguageProfile): string => {
+  return SPEECH_LOCALE_MAP[profile.native] || 'ru-RU';
+};
+
+/**
+ * Get speech recognition locale for a specific language from user profile
+ * @param profile - User language profile
+ * @param languageType - 'learning' or 'native'
+ * @returns Speech recognition locale string
+ */
+export const getSpeechLocaleFromProfile = (profile: LanguageProfile, languageType: 'learning' | 'native'): string => {
+  const langCode = languageType === 'learning' ? profile.learning : profile.native;
+  return SPEECH_LOCALE_MAP[langCode] || (languageType === 'learning' ? 'de-DE' : 'ru-RU');
 };

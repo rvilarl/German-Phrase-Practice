@@ -86,12 +86,17 @@
       }
     }
   },
+  "account": {
+    "title": "Account",
+    "email": "Email"
+  },
   "settings": {
     "views": {
       "main": "Settings",
       "general": "General",
       "automation": "Automation (AI)",
-      "categories": "Practice categories"
+      "categories": "Practice categories",
+      "analytics": "Progress & analytics"
     },
     "general": {
       "legend": "General settings",
@@ -115,6 +120,37 @@
     },
     "categories": {
       "manageButton": "Manage categories"
+    },
+    "analytics": {
+      "noData": "—",
+      "srs": {
+        "totalCards": "Total Cards",
+        "mastered": "Mastered",
+        "learning": "Learning: {{count}}",
+        "dueToday": "Due Today",
+        "overdue": "Overdue: {{count}}",
+        "accuracy": "Accuracy",
+        "reviews": "{{count}} reviews",
+        "masteryProgress": "{{percent}}% mastered",
+        "streak": "🔥 {{days}} day streak",
+        "streak_plural": "🔥 {{days}} days streak",
+        "accuracyBreakdown": "Accuracy Breakdown",
+        "overall": "Overall",
+        "last7Days": "Last 7 days",
+        "last30Days": "Last 30 days",
+        "levelsDistribution": "SRS Levels Distribution",
+        "level": "L{{level}}",
+        "categories": "Categories",
+        "cards": "cards",
+        "avgLevel": "Avg Level",
+        "recentActivity": "Recent Activity (14 days)",
+        "difficultCards": "Difficult Cards (Leeches)",
+        "lapses": "lapses",
+        "noActivityYet": "No review activity yet",
+        "noDifficultCards": "No difficult cards yet",
+        "emptyState": "No practice data yet",
+        "emptyStateHint": "Start practicing cards to see your progress statistics here."
+      }
     }
   },
   "notifications": {

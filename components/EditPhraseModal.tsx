@@ -1,12 +1,14 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import type { Phrase, SpeechRecognition, SpeechRecognitionErrorEvent, TranslationChatResponse, Category } from '../types';
+import type { Phrase, TranslationChatResponse, Category } from '../types';
 import CloseIcon from './icons/CloseIcon';
 import MicrophoneIcon from './icons/MicrophoneIcon';
 import XCircleIcon from './icons/XCircleIcon';
 import DiscussTranslationModal from './DiscussTranslationModal';
 import AudioPlayer from './AudioPlayer';
 import { useTranslation } from '../src/hooks/useTranslation';
+import { useLanguage } from '../src/contexts/languageContext';
+import { getNativeSpeechLocale } from '../services/speechService';
 
 interface EditPhraseModalProps {
     isOpen: boolean;
@@ -34,6 +36,7 @@ const useDebounce = (value: string, delay: number) => {
 
 const EditPhraseModal: React.FC<EditPhraseModalProps> = ({ isOpen, onClose, phrase, onSave, onTranslate, onDiscuss, onOpenWordAnalysis, categories }) => {
     const { t } = useTranslation();
+    const { profile } = useLanguage();
     const [russian, setRussian] = useState(phrase.text.native);
     const [german, setGerman] = useState(phrase.text.learning);
     const [selectedCategory, setSelectedCategory] = useState(phrase.category);
@@ -41,8 +44,8 @@ const EditPhraseModal: React.FC<EditPhraseModalProps> = ({ isOpen, onClose, phra
     const [error, setError] = useState<string | null>(null);
     const [isListening, setIsListening] = useState(false);
     const [isDiscussModalOpen, setIsDiscussModalOpen] = useState(false);
-    
-    const recognitionRef = useRef<SpeechRecognition | null>(null);
+
+    const recognitionRef = useRef<any>(null);
     const debouncedRussian = useDebounce(russian, 1000);
     const initialRussianRef = useRef(phrase.text.native);
 
@@ -60,7 +63,7 @@ const EditPhraseModal: React.FC<EditPhraseModalProps> = ({ isOpen, onClose, phra
         const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (SpeechRecognitionAPI) {
             const recognition = new SpeechRecognitionAPI();
-            recognition.lang = 'ru-RU';
+            recognition.lang = getNativeSpeechLocale(profile);
             recognition.continuous = false;
             recognition.interimResults = true;
             recognition.onstart = () => setIsListening(true);

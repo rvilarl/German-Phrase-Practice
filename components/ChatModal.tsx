@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Phrase, ChatMessage, SpeechRecognition, SpeechRecognitionErrorEvent, WordAnalysis, ExamplePair } from '../types';
+import { Phrase, ChatMessage, WordAnalysis, ExamplePair } from '../types';
 import { getCache, setCache } from '../services/cacheService';
 import { ApiProviderType } from '../services/apiProvider';
 import GeminiLogo from './icons/GeminiLogo';
@@ -14,7 +14,7 @@ import MicrophoneIcon from './icons/MicrophoneIcon';
 import ChatContextMenu from './ChatContextMenu';
 import { useTranslation } from '../src/hooks/useTranslation';
 import { useLanguage } from '../src/contexts/languageContext';
-import { SPEECH_LOCALE_MAP } from '../constants/speechLocales';
+import { SPEECH_LOCALE_MAP, getNativeSpeechLocale } from '../services/speechService';
 
 interface ChatModalProps {
   isOpen: boolean;
@@ -211,7 +211,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, phrase, onGenera
 
   const [isListening, setIsListening] = useState(false);
   const [speechSupported, setSpeechSupported] = useState(false);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const recognitionRef = useRef<any>(null);
 
   const [contextMenuTarget, setContextMenuTarget] = useState<{ sentence: { german: string, russian: string }, word: string } | null>(null);
 
@@ -239,7 +239,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, phrase, onGenera
     if (SpeechRecognition) {
         setSpeechSupported(true);
         const recognition = new SpeechRecognition();
-        recognition.lang = 'ru-RU';
+        recognition.lang = getNativeSpeechLocale(profile);
         recognition.interimResults = false;
         recognition.continuous = false;
 

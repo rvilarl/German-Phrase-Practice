@@ -12,7 +12,7 @@
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import type { Phrase, PracticeChatMessage, PracticeChatSessionStats, SpeechRecognition, SpeechRecognitionErrorEvent, WordAnalysis } from '../types';
+import type { Phrase, PracticeChatMessage, PracticeChatSessionStats, PracticeChatSessionRecord, SpeechRecognition, SpeechRecognitionErrorEvent, WordAnalysis } from '../types';
 import { sendPracticeChatMessage, createInitialGreeting } from '../services/practiceChatService';
 import { useLanguage } from '../src/contexts/languageContext';
 import { useTranslation } from '../src/hooks/useTranslation';
@@ -38,6 +38,7 @@ interface Props {
   onOpenNounDeclension: (noun: string, article: string) => void;
   onOpenAdjectiveDeclension: (adjective: string) => void;
   onTranslateGermanToRussian: (germanPhrase: string) => Promise<{ russian: string }>;
+  onSessionComplete?: (session: PracticeChatSessionRecord) => void;
 }
 
 /**
@@ -51,8 +52,8 @@ const MessageBubble: React.FC<{
   onOpenContextMenu?: (target: { sentence: { german: string, russian: string }, word: string }) => void;
   messageIndex?: number;
   revealedTranslations?: Set<number>;
-  setRevealedTranslations?: React.Dispatch<React.SetStateAction<Set<number>>>;
-}> = ({ message, onSpeak, isUser, onOpenWordAnalysis, onOpenContextMenu, messageIndex, revealedTranslations, setRevealedTranslations }) => {
+  onRevealTranslation?: (messageIndex: number) => void;
+}> = ({ message, onSpeak, isUser, onOpenWordAnalysis, onOpenContextMenu, messageIndex, revealedTranslations, onRevealTranslation }) => {
   const { t } = useTranslation();
   const wordLongPressTimer = useRef<number | null>(null);
 
@@ -135,7 +136,7 @@ const MessageBubble: React.FC<{
     <div className="flex justify-start mb-4">
       <div className="max-w-[85%] space-y-2">
         {/* Main dialogue in learning language */}
-        <div className="px-4 py-3 rounded-2xl rounded-bl-lg bg-slate-700 text-slate-200">
+        <div className="px-4 py-3 rounded-2xl rounded-bl-lg bg-slate-700 text-slate-200 border border-slate-600">
           <div className="flex items-start justify-between gap-2">
             <p className="text-base flex-1 font-medium text-purple-300">
               {renderClickableGerman(message.content.primary.text, message.content.primary.translation || '')}
@@ -159,12 +160,8 @@ const MessageBubble: React.FC<{
               }`}
               onClick={(e) => {
                 e.stopPropagation();
-                if (messageIndex !== undefined && setRevealedTranslations) {
-                  setRevealedTranslations(prev => {
-                    const newSet = new Set(prev);
-                    newSet.add(messageIndex);
-                    return newSet;
-                  });
+                if (messageIndex !== undefined) {
+                  onRevealTranslation?.(messageIndex);
                 }
               }}
               title={
@@ -228,6 +225,17 @@ const TypingIndicator: React.FC = () => (
   </div>
 );
 
+const buildInitialStats = (): PracticeChatSessionStats => ({
+  phrasesUsedIds: [],
+  correctCount: 0,
+  incorrectCount: 0,
+  partialCount: 0,
+  hintsUsed: 0,
+  duration: 0,
+  messagesExchanged: 0,
+  sessionStartTime: Date.now(),
+});
+
 /**
  * Main Practice Chat Modal Component
  */
@@ -242,7 +250,8 @@ export const PracticeChatModal_v2: React.FC<Props> = ({
   onOpenVerbConjugation,
   onOpenNounDeclension,
   onOpenAdjectiveDeclension,
-  onTranslateGermanToRussian
+  onTranslateGermanToRussian,
+  onSessionComplete
 }) => {
   const { t } = useTranslation();
   const { profile } = useLanguage();
@@ -255,20 +264,24 @@ export const PracticeChatModal_v2: React.FC<Props> = ({
   const [contextMenuTarget, setContextMenuTarget] = useState<{ sentence: { german: string, russian: string }, word: string } | null>(null);
 
   // Session stats
-  const [stats, setStats] = useState<PracticeChatSessionStats>({
-    phrasesUsedIds: [],
-    correctCount: 0,
-    incorrectCount: 0,
-    hintsUsed: 0,
-    duration: 0,
-    messagesExchanged: 0,
-    sessionStartTime: Date.now()
-  });
+  const [stats, setStats] = useState<PracticeChatSessionStats>(() => buildInitialStats());
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const prevIsLoadingRef = useRef(isLoading);
+  const statsRef = useRef(stats);
+  const messagesRef = useRef<PracticeChatMessage[]>(messages);
+  const sessionFinalizedRef = useRef(true);
+  const prevIsOpenRef = useRef(isOpen);
+
+  useEffect(() => {
+    statsRef.current = stats;
+  }, [stats]);
+
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   // Speech synthesis
   const speakText = useCallback((text: string) => {
@@ -282,12 +295,68 @@ export const PracticeChatModal_v2: React.FC<Props> = ({
     }
   }, [profile.learning]);
 
+  const handleRevealTranslation = useCallback((messageIndex: number) => {
+    setRevealedTranslations(prev => {
+      if (prev.has(messageIndex)) {
+        return prev;
+      }
+      const next = new Set(prev);
+      next.add(messageIndex);
+      setStats(prevStats => ({
+        ...prevStats,
+        hintsUsed: prevStats.hintsUsed + 1,
+      }));
+      return next;
+    });
+  }, []);
+
+  const finalizeSession = useCallback(() => {
+    if (sessionFinalizedRef.current) {
+      return;
+    }
+
+    sessionFinalizedRef.current = true;
+
+    const statsSnapshot = statsRef.current;
+    const endTime = Date.now();
+    const ensuredDuration = Math.max(statsSnapshot.duration, endTime - statsSnapshot.sessionStartTime);
+    const hasConversation = messagesRef.current.length > 1;
+
+    if (hasConversation) {
+      const randomSource = typeof globalThis !== 'undefined' ? (globalThis as typeof globalThis & { crypto?: Crypto }).crypto : undefined;
+      const sessionId =
+        randomSource && typeof randomSource.randomUUID === 'function'
+          ? randomSource.randomUUID()
+          : `session_${statsSnapshot.sessionStartTime}_${endTime}`;
+
+      onSessionComplete?.({
+        ...statsSnapshot,
+        duration: ensuredDuration,
+        sessionEndTime: endTime,
+        sessionId,
+      });
+    }
+
+    const nextStats = buildInitialStats();
+    statsRef.current = nextStats;
+    setStats(nextStats);
+    setMessages([]);
+    setUserInput('');
+    setRevealedTranslations(new Set<number>());
+    setContextMenuTarget(null);
+    setError(null);
+    setIsLoading(false);
+  }, [onSessionComplete]);
+
   // Initialize greeting
   useEffect(() => {
     if (isOpen && messages.length === 0) {
+      sessionFinalizedRef.current = false;
+      setStats(buildInitialStats());
+      setRevealedTranslations(new Set<number>());
+      setContextMenuTarget(null);
       const greeting = createInitialGreeting(profile, allPhrases);
       setMessages([greeting]);
-      setStats(prev => ({ ...prev, sessionStartTime: Date.now() }));
 
       // Auto-speak greeting if enabled
       if (settings?.autoSpeak && greeting.content.primary.text) {
@@ -296,6 +365,19 @@ export const PracticeChatModal_v2: React.FC<Props> = ({
       }
     }
   }, [isOpen, profile, allPhrases, settings?.autoSpeak, speakText]);
+
+  useEffect(() => {
+    if (prevIsOpenRef.current && !isOpen) {
+      finalizeSession();
+    }
+    prevIsOpenRef.current = isOpen;
+  }, [isOpen, finalizeSession]);
+
+  useEffect(() => {
+    return () => {
+      finalizeSession();
+    };
+  }, [finalizeSession]);
 
   // Initialize speech recognition
   useEffect(() => {
@@ -416,10 +498,16 @@ export const PracticeChatModal_v2: React.FC<Props> = ({
     setUserInput('');
     setIsLoading(true);
     setError(null);
+    const userMessageTimestamp = Date.now();
+    setStats(prev => ({
+      ...prev,
+      messagesExchanged: prev.messagesExchanged + 1,
+      duration: Math.max(prev.duration, userMessageTimestamp - prev.sessionStartTime),
+    }));
 
     try {
       const aiResponse = await sendPracticeChatMessage(
-        messages,
+        messagesRef.current,
         text.trim(),
         allPhrases,
         profile
@@ -429,14 +517,26 @@ export const PracticeChatModal_v2: React.FC<Props> = ({
 
       setMessages(prev => [...prev, normalizedResponse]);
 
-      // Update stats
-      if (aiResponse.actions?.phraseUsed) {
-        setStats(prev => ({
+      const now = Date.now();
+      setStats(prev => {
+        const phraseId = normalizedResponse.actions?.phraseUsed;
+        const hasPhrase = phraseId ? prev.phrasesUsedIds.includes(phraseId) : false;
+        const correctness = normalizedResponse.metadata?.correctness;
+
+        return {
           ...prev,
-          phrasesUsedIds: [...new Set([...prev.phrasesUsedIds, aiResponse.actions!.phraseUsed!])],
-          messagesExchanged: prev.messagesExchanged + 1
-        }));
-      }
+          phrasesUsedIds: phraseId
+            ? hasPhrase
+              ? prev.phrasesUsedIds
+              : [...prev.phrasesUsedIds, phraseId]
+            : prev.phrasesUsedIds,
+          correctCount: correctness === 'correct' ? prev.correctCount + 1 : prev.correctCount,
+          incorrectCount: correctness === 'incorrect' ? prev.incorrectCount + 1 : prev.incorrectCount,
+          partialCount: correctness === 'partial' ? prev.partialCount + 1 : prev.partialCount,
+          messagesExchanged: prev.messagesExchanged + 1,
+          duration: Math.max(prev.duration, now - prev.sessionStartTime),
+        };
+      });
     } catch (err) {
       const unknownError = t('practice.chat.messages.unknownError', { defaultValue: 'Unknown error' });
       const errorMsg = err instanceof Error ? err.message : unknownError;
@@ -445,7 +545,7 @@ export const PracticeChatModal_v2: React.FC<Props> = ({
     } finally {
       setIsLoading(false);
     }
-  }, [messages, isLoading, allPhrases, profile, isListening, normalizeAssistantTranslation, t]);
+  }, [isLoading, allPhrases, profile, isListening, normalizeAssistantTranslation, t]);
 
   // Handle quick reply
   const handleQuickReply = useCallback((text: string) => {
@@ -462,6 +562,11 @@ export const PracticeChatModal_v2: React.FC<Props> = ({
     }
   }, [isListening]);
 
+  const handleModalClose = useCallback(() => {
+    finalizeSession();
+    onClose();
+  }, [finalizeSession, onClose]);
+
   // Get last assistant message for quick replies
   const lastAssistantMessage = [...messages].reverse().find(m => m.role === 'assistant');
 
@@ -470,7 +575,7 @@ export const PracticeChatModal_v2: React.FC<Props> = ({
   return (
     <div
       className="fixed inset-0 bg-black/60 z-50 flex justify-center items-end"
-      onClick={onClose}
+      onClick={handleModalClose}
     >
       <div
         className={`bg-slate-800 w-full max-w-2xl h-full rounded-t-2xl shadow-2xl flex flex-col transition-transform duration-300 ease-out ${isOpen ? 'translate-y-0' : 'translate-y-full'}`}
@@ -491,7 +596,7 @@ export const PracticeChatModal_v2: React.FC<Props> = ({
             </div>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleModalClose}
             className="p-2 rounded-full hover:bg-slate-700 transition-colors"
           >
             <CloseIcon className="w-6 h-6 text-slate-400" />
@@ -511,7 +616,7 @@ export const PracticeChatModal_v2: React.FC<Props> = ({
                 onOpenContextMenu={setContextMenuTarget}
                 messageIndex={index}
                 revealedTranslations={revealedTranslations}
-                setRevealedTranslations={setRevealedTranslations}
+                onRevealTranslation={handleRevealTranslation}
               />
             ))}
 

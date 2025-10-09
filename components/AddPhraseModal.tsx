@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useContext } from 'react';
 import { SpeechRecognition, SpeechRecognitionErrorEvent, LanguageCode } from '../types';
 import MicrophoneIcon from './icons/MicrophoneIcon';
 import CloseIcon from './icons/CloseIcon';
@@ -6,6 +6,7 @@ import KeyboardIcon from './icons/KeyboardIcon';
 import SendIcon from './icons/SendIcon';
 import PhraseCardSkeleton from './PhraseCardSkeleton';
 import { useTranslation } from '../src/hooks/useTranslation.ts';
+import { LanguageContext } from '../src/contexts/languageContext.tsx';
 
 interface AddPhraseModalProps {
   isOpen: boolean;
@@ -27,6 +28,8 @@ const AddPhraseModal: React.FC<AddPhraseModalProps> = ({
   autoSubmit,
 }) => {
   const { t } = useTranslation();
+  const languageContext = useContext(LanguageContext);
+  const profile = languageContext?.profile;
   const [inputText, setInputText] = useState('');
   const [isListening, setIsListening] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -46,14 +49,15 @@ const AddPhraseModal: React.FC<AddPhraseModalProps> = ({
   const handleSubmit = useCallback(
     async (textToSubmit: string) => {
       const trimmedText = textToSubmit.trim();
-      if (!trimmedText || isLoading) return;
+      if (!trimmedText || isLoading || !profile) return;
 
       setIsLoading(true);
       setError(null);
 
       try {
         let newPhraseData: { german: string; russian: string };
-        if (language === 'ru') {
+        // Check if the input language is the native language
+        if (language === profile.native) {
           newPhraseData = await onGenerate(trimmedText);
         } else {
           const { russian } = await onTranslateGerman(trimmedText);
@@ -66,7 +70,7 @@ const AddPhraseModal: React.FC<AddPhraseModalProps> = ({
       }
       // Parent component closes the modal, which resets `isLoading` on success.
     },
-    [isLoading, onGenerate, onPhraseCreated, language, onTranslateGerman, t],
+    [isLoading, onGenerate, onPhraseCreated, language, onTranslateGerman, t, profile],
   );
 
   useEffect(() => {

@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Phrase, SpeechRecognition, SpeechRecognitionErrorEvent } from '../types';
+import { Phrase } from '../types';
 import MicrophoneIcon from './icons/MicrophoneIcon';
 import CloseIcon from './icons/CloseIcon';
 import { useTranslation } from '../src/hooks/useTranslation';
+import { useLanguage } from '../src/contexts/languageContext';
+import { getLearningSpeechLocale } from '../services/speechService';
 
 interface VoicePracticeModalProps {
   isOpen: boolean;
@@ -13,22 +15,23 @@ interface VoicePracticeModalProps {
 
 const VoicePracticeModal: React.FC<VoicePracticeModalProps> = ({ isOpen, onClose, onSubmit, phrase }) => {
   const { t } = useTranslation();
+  const { profile } = useLanguage();
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const recognitionRef = useRef<any>(null);
 
   useEffect(() => {
     const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognitionAPI) return;
 
     const recognition = new SpeechRecognitionAPI();
-    recognition.lang = 'de-DE';
+    recognition.lang = getLearningSpeechLocale(profile);
     recognition.continuous = false;
     recognition.interimResults = true;
     
     recognition.onstart = () => setIsListening(true);
     recognition.onend = () => setIsListening(false);
-    recognition.onerror = (e: SpeechRecognitionErrorEvent) => {
+    recognition.onerror = (e: any) => {
         if (e.error !== 'aborted' && e.error !== 'no-speech') {
             console.error('Speech recognition error:', e.error);
         }

@@ -1,7 +1,8 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from '../src/hooks/useTranslation';
-import { SpeechRecognition, SpeechRecognitionErrorEvent, ProposedCard, Phrase, Category } from '../types';
+import { useLanguage } from '../src/contexts/languageContext';
+import { ProposedCard, Phrase, Category } from '../types';
 import CloseIcon from './icons/CloseIcon';
 import MicrophoneIcon from './icons/MicrophoneIcon';
 import CheckIcon from './icons/CheckIcon';
@@ -16,6 +17,7 @@ import PencilIcon from './icons/PencilIcon';
 import ImageIcon from './icons/ImageIcon';
 import FileImportView from './FileImportView';
 import CardListSkeleton from './CardListSkeleton';
+import { getNativeSpeechLocale } from '../services/speechService';
 
 type View = 'assistant' | 'speech' | 'file' | 'classifying' | 'suggestion' | 'processing' | 'preview';
 type SpeechStatus = 'idle' | 'recording' | 'stopped';
@@ -39,6 +41,7 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
     initialTopic, allPhrases, categories
 }) => {
   const { t } = useTranslation();
+  const { profile } = useLanguage();
   const [view, setView] = useState<View>('assistant');
   const [speechStatus, setSpeechStatus] = useState<SpeechStatus>('idle');
   const [lang, setLang] = useState<Language>('de');
@@ -278,7 +281,7 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
     if (!SpeechRecognitionAPI) return;
 
     const recognition = new SpeechRecognitionAPI();
-    recognition.lang = 'ru-RU';
+    recognition.lang = getNativeSpeechLocale(profile);
     recognition.interimResults = false;
     recognition.continuous = false;
 
@@ -303,7 +306,7 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
     if (!SpeechRecognitionAPI) return;
 
     const recognition = new SpeechRecognitionAPI();
-    recognition.lang = 'ru-RU';
+    recognition.lang = getNativeSpeechLocale(profile);
     recognition.interimResults = true;
     recognition.continuous = false;
 

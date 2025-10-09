@@ -310,10 +310,44 @@ export interface PracticeChatSessionStats {
   phrasesUsedIds: string[];       // IDs of phrases practiced
   correctCount: number;            // Number of correct responses
   incorrectCount: number;          // Number of mistakes
+  partialCount: number;            // Number of partially correct responses
   hintsUsed: number;               // Number of hints requested
   duration: number;                // Session duration in ms
   messagesExchanged: number;       // Total message count
   sessionStartTime: number;        // Timestamp of session start
+}
+
+export interface PracticeChatSessionRecord extends PracticeChatSessionStats {
+  sessionEndTime: number;          // Timestamp of session end
+  sessionId: string;               // Unique session identifier
+}
+
+export type PracticeReviewAction = 'know' | 'forgot' | 'dont_know';
+
+export interface PracticeReviewLogEntry {
+  id: string;
+  timestamp: number;
+  phraseId: string;
+  categoryId: string;
+  action: PracticeReviewAction;
+  wasCorrect: boolean;
+  wasNew: boolean;
+  previousMasteryLevel: number;
+  newMasteryLevel: number;
+  previousKnowStreak: number;
+  newKnowStreak: number;
+  previousLapses: number;
+  newLapses: number;
+  previousNextReviewAt: number;
+  nextReviewAt: number;
+  previousIsMastered: boolean;
+  newIsMastered: boolean;
+  previousKnowCount: number;
+  newKnowCount: number;
+  intervalMs: number;
+  languageLearning: string;
+  languageNative: string;
+  isLeechAfter: boolean;
 }
 
 /**

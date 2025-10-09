@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import type { Phrase, PhraseEvaluation, PhraseBuilderOptions, SpeechRecognition, SpeechRecognitionErrorEvent } from '../types';
+import type { Phrase, PhraseEvaluation, PhraseBuilderOptions } from '../types';
 import CloseIcon from './icons/CloseIcon';
 import MicrophoneIcon from './icons/MicrophoneIcon';
 import CheckIcon from './icons/CheckIcon';
@@ -11,6 +11,8 @@ import * as cacheService from '../services/cacheService';
 import BookOpenIcon from './icons/BookOpenIcon';
 import FeedbackMessage from './FeedbackMessage';
 import { useTranslation } from '../src/hooks/useTranslation';
+import { useLanguage } from '../src/contexts/languageContext';
+import { getLearningSpeechLocale } from '../services/speechService';
 
 interface VoiceWorkspaceModalProps {
   isOpen: boolean;
@@ -79,6 +81,7 @@ export const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
   const [speechError, setSpeechError] = useState<string | null>(null);
 
   const { t } = useTranslation();
+  const { profile } = useLanguage();
 
   // Drag & Drop State
   const [draggedItem, setDraggedItem] = useState<DraggedItem | null>(null);
@@ -98,7 +101,7 @@ export const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
   const [showPostHintButtons, setShowPostHintButtons] = useState(false);
   const inactivityTimerRef = useRef<number | null>(null);
   
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const recognitionRef = useRef<any>(null);
   const constructedPhraseRef = useRef<HTMLDivElement>(null);
 
   const constructedWordIds = useMemo(() => new Set(constructedWords.map(w => w.id)), [constructedWords]);
@@ -349,7 +352,7 @@ export const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
     const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognitionAPI) {
       const recognition = new SpeechRecognitionAPI();
-      recognition.lang = 'de-DE';
+      recognition.lang = getLearningSpeechLocale(profile);
       recognition.continuous = false; // Changed to false for better reliability
       recognition.interimResults = true;
       

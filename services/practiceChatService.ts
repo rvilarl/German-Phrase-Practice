@@ -229,6 +229,17 @@ function createFallbackResponse(
 function convertAIResponseToMessage(
   aiResponse: PracticeChatAIResponse
 ): PracticeChatMessage {
+  const correctnessMap: Record<PracticeChatMessageType, 'correct' | 'partial' | 'incorrect' | undefined> = {
+    greeting: undefined,
+    question: 'correct',
+    encouragement: 'correct',
+    suggestion: 'partial',
+    explanation: 'partial',
+    correction: 'incorrect',
+  };
+
+  const correctness = correctnessMap[aiResponse.messageType];
+
   return {
     role: 'assistant',
     messageType: aiResponse.messageType,
@@ -248,7 +259,8 @@ function convertAIResponseToMessage(
     },
     metadata: {
       timestamp: Date.now(),
-      vocabulary: aiResponse.vocabularyUsed
+      vocabulary: aiResponse.vocabularyUsed,
+      correctness
     }
   };
 }
