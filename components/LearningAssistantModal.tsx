@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 // FIX: Added 'ContentPart' to the import to resolve 'Cannot find name' error.
-import { Phrase, ChatMessage, CheatSheetOption, SpeechRecognition, SpeechRecognitionErrorEvent, ContentPart } from '../types';
+import { Phrase, ChatMessage, CheatSheetOption, ContentPart } from '../types';
 import CloseIcon from './icons/CloseIcon';
 import SendIcon from './icons/SendIcon';
 import SoundIcon from './icons/SoundIcon';
@@ -65,7 +64,7 @@ const ChatMessageContent: React.FC<{
         return (
             <div className="whitespace-pre-wrap leading-relaxed">
                 {contentParts.map((part, index) =>
-                    part.type === 'learning' || part.type === 'german' ? (
+                    part.type === 'learning' ? (
                         <span key={index} className="inline-flex items-center align-middle bg-slate-600/50 px-1.5 py-0.5 rounded-md mx-0.5">
                             <span className="font-medium text-purple-300">{renderClickableGerman(part)}</span>
                             <button
@@ -99,8 +98,8 @@ const LearningAssistantModal: React.FC<LearningAssistantModalProps> = ({ isOpen,
   
   const [recognitionLang, setRecognitionLang] = useState<'ru' | 'de'>('ru');
   const [isListening, setIsListening] = useState(false);
-  const ruRecognitionRef = useRef<SpeechRecognition | null>(null);
-  const deRecognitionRef = useRef<SpeechRecognition | null>(null);
+  const ruRecognitionRef = useRef<any>(null);
+  const deRecognitionRef = useRef<any>(null);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -168,22 +167,22 @@ const LearningAssistantModal: React.FC<LearningAssistantModalProps> = ({ isOpen,
   }, [isOpen, phrase, onGuide, cache, updateMessages]);
   
   useEffect(() => {
-    const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (SpeechRecognitionAPI) {
-        const setupRecognizer = (lang: 'ru-RU' | 'de-DE'): SpeechRecognition => {
+        const setupRecognizer = (lang: 'ru-RU' | 'de-DE') => {
             const recognition = new SpeechRecognitionAPI();
             recognition.lang = lang;
             recognition.continuous = false;
             recognition.interimResults = false;
             recognition.onstart = () => setIsListening(true);
             recognition.onend = () => setIsListening(false);
-            recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+            recognition.onerror = (event: any) => {
                 if (event.error !== 'aborted' && event.error !== 'no-speech') {
                   console.error(`Speech recognition error (${lang}):`, event.error);
                 }
                 setIsListening(false);
             };
-            recognition.onresult = (event) => {
+            recognition.onresult = (event: any) => {
                 const transcript = event.results[0]?.[0]?.transcript;
                 if (transcript && transcript.trim()) {
                     setInput(prev => (prev ? prev + ' ' : '') + transcript);
@@ -267,15 +266,29 @@ const LearningAssistantModal: React.FC<LearningAssistantModalProps> = ({ isOpen,
   const handleCheatSheetClick = (option: CheatSheetOption) => {
     switch (option.type) {
       case 'verbConjugation':
-        onOpenVerbConjugation(option.data);
+        // Ensure data is a string before passing to onOpenVerbConjugation
+        if (typeof option.data === 'string') {
+          onOpenVerbConjugation(option.data);
+        } else {
+          console.error("Invalid data type for verb conjugation:", typeof option.data);
+        }
         break;
       case 'nounDeclension':
         try {
-          const nounData = JSON.parse(option.data);
-          if (nounData.noun && nounData.article) {
-            onOpenNounDeclension(nounData.noun, nounData.article);
+          // Check if data exists and is a string before parsing
+          if (typeof option.data === 'string' && option.data) {
+            const nounData = JSON.parse(option.data);
+            if (nounData.noun && nounData.article) {
+              onOpenNounDeclension(nounData.noun, nounData.article);
+            } else {
+              console.error("Missing noun or article in noun data:", nounData);
+            }
+          } else {
+            console.error("Invalid data for noun declension:", option.data);
           }
-        } catch (e) { console.error("Failed to parse noun data for cheat sheet", e); }
+        } catch (e) { 
+          console.error("Failed to parse noun data for cheat sheet", e);
+        }
         break;
       case 'pronouns':
         onOpenPronounsModal();
@@ -289,8 +302,8 @@ const LearningAssistantModal: React.FC<LearningAssistantModalProps> = ({ isOpen,
   };
 
   const handleWordOptionClick = (word: string) => {
-      setInput(prev => (prev ? prev + ' ' : '') + word);
-      setTimeout(() => textareaRef.current?.focus(), 0);
+      // For quick replies, send the message directly instead of inserting into input
+      handleSendMessage(word);
   }
   
   if (!isOpen) return null;
@@ -359,7 +372,8 @@ const LearningAssistantModal: React.FC<LearningAssistantModalProps> = ({ isOpen,
                         ))}
                     </div>
                 )}
-                <div className="flex items-end space-x-2">
+                {/* Wrap the input and buttons in a form for proper submission handling */}
+                <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(input); }} className="flex items-end space-x-2">
                   <textarea
                     ref={textareaRef} value={input} onChange={e => setInput(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(input); } }}
@@ -377,7 +391,7 @@ const LearningAssistantModal: React.FC<LearningAssistantModalProps> = ({ isOpen,
                   <button type="submit" disabled={!input.trim() || isLoading} className="self-stretch p-3 bg-purple-600 rounded-lg hover:bg-purple-700 disabled:bg-slate-600 flex-shrink-0">
                     <SendIcon className="w-6 h-6 text-white"/>
                   </button>
-                </div>
+                </form>
             </>
             )}
         </div>
