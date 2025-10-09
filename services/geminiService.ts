@@ -280,10 +280,13 @@ const generateSinglePhrase: AiService['generateSinglePhrase'] = async (russianPh
              throw new Error("Received malformed translation data from API.");
         }
 
-        return {
+        const finalResponse = {
             german: parsedResult[lang.learningCode],
             russian: russianPhrase,
         };
+
+        console.log('[practiceConversation] Final structured response:', finalResponse);
+        return finalResponse;
     } catch (error) {
         console.error("Error generating single phrase with Gemini:", error);
         const errorMessage = (error as any)?.message || 'Unknown error';
@@ -800,7 +803,7 @@ const generateInitialExamples: AiService['generateInitialExamples'] = async (phr
         const promptSuggestions: string[] = parsedResponse.promptSuggestions || [];
 
         return {
-            role: 'model',
+            role: 'model' as const,
             text: 'Вот несколько примеров и советов, которые помогут вам лучше понять эту фразу:',
             examples,
             suggestions,
@@ -818,7 +821,7 @@ const chatResponseSchema = () => {
     return {
         type: Type.OBJECT,
         properties: {
-            responseParts: {
+            contentParts: {
                 type: Type.ARRAY,
                 description: `The response broken down into segments of plain text and ${lang.learning} text.`,
                 items: {
@@ -839,7 +842,7 @@ const chatResponseSchema = () => {
                 }
             }
         },
-        required: ["responseParts", "promptSuggestions"]
+        required: ["contentParts", "promptSuggestions"]
     };
 };
 
@@ -1033,9 +1036,9 @@ Your response MUST be a JSON object with this EXACT structure:
         }
 
         // 🛡️ VALIDATE structure
-        if (!parsedResponse.responseParts || !Array.isArray(parsedResponse.responseParts)) {
-            console.warn('[practiceConversation] Invalid response structure, using fallback');
-            parsedResponse.responseParts = [{
+        if (!parsedResponse.contentParts || !Array.isArray(parsedResponse.contentParts)) {
+            console.warn('[practiceConversation] Invalid response structure (missing contentParts), using fallback');
+            parsedResponse.contentParts = [{
                 type: 'text',
                 text: 'Response structure invalid. Please try again.'
             }];
@@ -1048,7 +1051,7 @@ Your response MUST be a JSON object with this EXACT structure:
 
         return {
             role: 'model',
-            contentParts: parsedResponse.responseParts,
+            contentParts: parsedResponse.contentParts,
             promptSuggestions: parsedResponse.promptSuggestions,
         };
 

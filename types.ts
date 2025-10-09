@@ -98,68 +98,71 @@ export interface VerbConjugation {
 export interface NounDeclension {
   noun: string;
   singular: {
-    nominativ: string;
-    akkusativ: string;
-    dativ: string;
-    genitiv: string;
+    nominative: string;
+    accusative: string;
+    dative: string;
+    genitive: string;
   };
   plural: {
-    nominativ: string;
-    akkusativ: string;
-    dativ: string;
-    genitiv: string;
+    nominative: string;
+    accusative: string;
+    dative: string;
+    genitive: string;
   };
-}
-
-export interface AdjectiveDeclensionTable {
-    masculine: { nominativ: string; akkusativ: string; dativ: string; genitiv: string; };
-    feminine: { nominativ: string; akkusativ: string; dativ: string; genitiv: string; };
-    neuter: { nominativ: string; akkusativ: string; dativ: string; genitiv: string; };
-    plural: { nominativ: string; akkusativ: string; dativ: string; genitiv: string; };
-}
-
-export interface AdjectiveComparison {
-    positive: string;
-    comparative: string;
-    superlative: string;
 }
 
 export interface AdjectiveDeclension {
-    adjective: string;
-    comparison: AdjectiveComparison;
-    weak: AdjectiveDeclensionTable;
-    mixed: AdjectiveDeclensionTable;
-    strong: AdjectiveDeclensionTable;
+  adjective: string;
+  weak: DeclensionTable;
+  mixed: DeclensionTable;
+  strong: DeclensionTable;
 }
 
+export interface DeclensionTable {
+  masculine: CaseDeclension;
+  feminine: CaseDeclension;
+  neuter: CaseDeclension;
+  plural: CaseDeclension;
+}
+
+export interface CaseDeclension {
+  nominative: string;
+  accusative: string;
+  dative: string;
+  genitive: string;
+}
 
 export interface SentenceContinuation {
-  learning: string;
-  continuations: string[];
+  german: string;
+  russian: string;
 }
 
-
-export interface ExamplePair {
-  learning: string;
-  native: string;
-}
-
-export interface ProactiveSuggestion {
-  title: string;
-  contentParts: ContentPart[];
-}
-
-export interface ContentPart {
-  // FIX: Changed 'learning' to 'german' to match API response schema
-  type: 'text' | 'german';
-  text: string;
-  translation?: string;
+export interface PhraseBuilderOptions {
+  wordOptions: string[];
 }
 
 export interface CheatSheetOption {
   type: 'verbConjugation' | 'nounDeclension' | 'pronouns' | 'wFragen';
-  label: string; // e.g., "Спряжение: sprechen"
-  data: string; // e.g., 'sprechen' or a JSON string like '{"noun":"Tisch","article":"der"}'
+  label: string;
+  data?: string | { noun: string; article: string };
+}
+
+export interface ContentPart {
+  type: 'text' | 'learning';
+  text: string;
+  translation?: string; // For learning type
+}
+
+export interface ExamplePair {
+  // FIX: Renamed 'germanExample' to 'learningExample' for consistency.
+  learningExample: string;
+  // FIX: Renamed 'russianTranslation' to 'nativeTranslation' for consistency.
+  nativeTranslation: string;
+}
+
+export interface ProactiveSuggestion {
+  topic: string;
+  icon: string;
 }
 
 export interface ChatMessage {
@@ -178,125 +181,61 @@ export interface ChatMessage {
 
 export interface DeepDiveAnalysis {
   chunks: {
-    text: string;
-    type: string;
-    explanation: string;
+    type: 'literal' | 'breakdown' | 'usage' | 'nuances' | 'related';
+    title: string;
+    content: string;
   }[];
-  keyConcepts: {
-    concept: string;
-    explanation: string;
+  similarPhrases: {
+    learning: string;
+    native: string;
+    difference: string;
   }[];
-  personalizationQuestion: string;
-  mnemonicImage: {
-    description: string;
-    keywords: string[];
-  };
-}
-
-
-// --- Web Speech API Types for TypeScript ---
-
-export interface SpeechRecognitionErrorEvent extends Event {
-  readonly error: string;
-  readonly message: string;
-}
-
-export interface SpeechRecognitionEvent extends Event {
-  readonly resultIndex: number;
-  readonly results: SpeechRecognitionResultList;
-}
-
-export interface SpeechRecognitionResultList {
-  readonly length: number;
-  item(index: number): SpeechRecognitionResult;
-  [index: number]: SpeechRecognitionResult;
-}
-
-export interface SpeechRecognitionResult {
-  readonly length: number;
-  readonly isFinal: boolean;
-  item(index: number): SpeechRecognitionAlternative;
-  [index: number]: SpeechRecognitionAlternative;
-}
-
-export interface SpeechRecognitionAlternative {
-  readonly transcript: string;
-  readonly confidence: number;
-}
-
-export interface SpeechRecognition extends EventTarget {
-  lang: string;
-  interimResults: boolean;
-  continuous: boolean;
-  onstart: (() => void) | null;
-  onend: (() => void) | null;
-  onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
-  onresult: ((event: SpeechRecognitionEvent) => void) | null;
-  start(): void;
-  stop(): void;
-  abort(): void;
-}
-
-declare global {
-  interface Window {
-    SpeechRecognition: { new (): SpeechRecognition };
-    webkitSpeechRecognition: { new (): SpeechRecognition };
-  }
-}
-
-// This is to allow using `SpeechRecognition` as a type.
-declare var SpeechRecognition: {
-  new (): SpeechRecognition;
-};
-
-
-// Types for translation editing flow
-export interface TranslationChatRequest {
-    // FIX: Renamed to use 'native'/'learning' for consistency.
-    originalNative: string;
-    // FIX: Renamed to use 'native'/'learning' for consistency.
-    currentLearning: string;
-    history: ChatMessage[];
-    userRequest: string;
-}
-
-export interface TranslationChatResponse {
-    role: 'model';
-    contentParts: ContentPart[];
-    suggestion?: {
-        native: string;
-        learning: string;
-    };
-    promptSuggestions: string[];
-}
-
-// Types for Phrase Builder
-export interface PhraseBuilderOptions {
-  words: string[];
 }
 
 export interface PhraseEvaluation {
   isCorrect: boolean;
+  correctPhrases: string[];
   feedback: string;
-  correctedPhrase?: string;
 }
 
-// EPUB Reader types
-export interface Book {
-  id?: number; // Optional because it's auto-incrementing
+export interface AppState {
+  phrases: Phrase[];
+  currentView: View;
+  currentPracticePhrase: Phrase | null;
+}
+
+// Settings stuff
+export interface Settings {
+  // If true, the app will automatically speak the 'learning' text
+  // when a card's answer is revealed in practice mode.
+  autoSpeak: boolean;
+  // Play sound effects, e.g. when marking a card correct/incorrect
+  soundEffects: boolean;
+
+  /**
+   * enabledCategories is an object where the keys are category IDs
+   * and values are `true` if the category is enabled in practice sessions.
+   *
+   * For example:
+   * {
+   *   "greetings": true,
+   *   "colors": false,
+   *   "animals": true
+   * }
+   */
+  enabledCategories: Record<string, boolean>;
+}
+
+export interface BookRecord {
+  id: string;
   title: string;
   author: string;
-  coverBlob: Blob;
-  epubData: ArrayBuffer;
-  lastLocation: string | null;
+  cover?: string; // base64 image
+  fileData: ArrayBuffer;
+  currentLocation?: string; // CFI
+  addedAt: number;
 }
 
-export interface BookRecord extends Book {
-  id: number;
-  coverUrl: string; // Blob URL created on retrieval
-}
-
-// Types for Category Assistant
 export interface CategoryAssistantResponse {
   responseType: 'text' | 'proposed_cards' | 'phrases_to_review' | 'phrases_to_delete';
   responseParts: ContentPart[];
@@ -311,4 +250,81 @@ export type CategoryAssistantRequestType = 'initial' | 'add_similar' | 'check_ho
 export interface CategoryAssistantRequest {
     type: CategoryAssistantRequestType;
     text?: string;
+}
+
+// ============================================================================
+// NEW PRACTICE CHAT TYPES (Redesign)
+// ============================================================================
+
+/**
+ * Type of AI message in Practice Chat
+ */
+export type PracticeChatMessageType =
+  | 'greeting'      // Welcome and session start
+  | 'question'      // Question from AI to user
+  | 'correction'    // Correction of user's mistake
+  | 'explanation'   // Grammar/word explanation
+  | 'encouragement' // Praise and motivation
+  | 'suggestion';   // Suggestion to use a phrase
+
+/**
+ * Simplified Practice Chat Message structure
+ */
+export interface PracticeChatMessage {
+  role: 'user' | 'assistant';
+  messageType?: PracticeChatMessageType; // Only for assistant messages
+
+  // Main content
+  content: {
+    // Primary text in learning language
+    primary: {
+      text: string;           // e.g., "Wie geht es dir?"
+      translation?: string;   // e.g., "How are you?" (for assistant messages)
+    };
+
+    // Additional explanation in native language (optional)
+    secondary?: {
+      text: string;           // e.g., "Это вежливый способ спросить как дела"
+    };
+  };
+
+  // Interactive elements (only for assistant)
+  actions?: {
+    suggestions?: string[];   // Quick reply buttons ["Gut, danke", "Sehr gut"]
+    hints?: string[];         // Hints if user is stuck
+    phraseUsed?: string;      // ID of phrase from vocabulary
+  };
+
+  // Metadata
+  metadata?: {
+    timestamp: number;
+    correctness?: 'correct' | 'partial' | 'incorrect';  // For user messages
+    vocabulary?: string[];    // New words introduced
+  };
+}
+
+/**
+ * Practice Chat Session Statistics
+ */
+export interface PracticeChatSessionStats {
+  phrasesUsedIds: string[];       // IDs of phrases practiced
+  correctCount: number;            // Number of correct responses
+  incorrectCount: number;          // Number of mistakes
+  hintsUsed: number;               // Number of hints requested
+  duration: number;                // Session duration in ms
+  messagesExchanged: number;       // Total message count
+  sessionStartTime: number;        // Timestamp of session start
+}
+
+/**
+ * Raw AI response from Gemini (simplified schema)
+ */
+export interface PracticeChatAIResponse {
+  messageType: PracticeChatMessageType;
+  primaryText: string;
+  translation: string;
+  secondaryText?: string;
+  suggestions: string[];
+  hints?: string[];
+  vocabularyUsed?: string[];
 }

@@ -54,7 +54,7 @@ import MoveOrSkipModal from './components/MoveOrSkipModal';
 import CategoryAssistantModal from './components/CategoryAssistantModal';
 import ConfirmDeletePhrasesModal from './components/ConfirmDeletePhrasesModal';
 import PracticeChatFab from './components/PracticeChatFab';
-import PracticeChatModal from './components/PracticeChatModal';
+import PracticeChatModal_v2 from './components/PracticeChatModal_v2';
 import AiErrorBoundary from './components/AiErrorBoundary';
 import { useTranslation } from './src/hooks/useTranslation.ts';
 import { useAuth } from './src/contexts/authContext.tsx';
@@ -2128,20 +2128,10 @@ const App: React.FC = () => {
       )}
       {apiProvider && (
         <AiErrorBoundary componentName="Practice Chat">
-          <PracticeChatModal
+          <PracticeChatModal_v2
             isOpen={isPracticeChatModalOpen}
             onClose={() => setIsPracticeChatModalOpen(false)}
-            history={practiceChatHistory}
-            setHistory={handlePracticeChatHistoryChange}
-            onSendMessage={handlePracticeConversation}
             allPhrases={allPhrases}
-            onOpenWordAnalysis={handleOpenWordAnalysis}
-            onCreateCard={handleCreateCardFromWord}
-            onAnalyzeWord={analyzeWord}
-            onOpenVerbConjugation={handleOpenVerbConjugation}
-            onOpenNounDeclension={handleOpenNounDeclension}
-            onOpenAdjectiveDeclension={handleOpenAdjectiveDeclension}
-            onTranslateGermanToRussian={handleTranslateGermanToRussian}
             settings={settings}
           />
         </AiErrorBoundary>
