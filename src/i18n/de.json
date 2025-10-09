@@ -191,10 +191,16 @@
       "deletedCount": "✓ {{count}} Karten gelöscht.",
       "movedToCategory": "✓ {{count}} Karten in \"{{category}}\" verschoben.",
       "otherCategory": "andere Kategorie",
-      "bulkAdded": "✓ {{count}} Karte hinzugefügt.",
-      "bulkAdded_plural": "✓ {{count}} Karten hinzugefügt.",
-      "bulkSkipped": "{{count}} existierte bereits und wurde übersprungen.",
-      "bulkSkipped_plural": "{{count}} existierten bereits und wurden übersprungen."
+      "bulkAdded": "✓ {{count}} Karten hinzugefügt.",
+      "bulkAdded_one": "✓ {{count}} Karte hinzugefügt.",
+      "bulkAdded_few": "✓ {{count}} Karten hinzugefügt.",
+      "bulkAdded_many": "✓ {{count}} Karten hinzugefügt.",
+      "bulkAdded_other": "✓ {{count}} Karten hinzugefügt.",
+      "bulkSkipped": "{{count}} existierten bereits und wurden übersprungen.",
+      "bulkSkipped_one": "{{count}} existierte bereits und wurde übersprungen.",
+      "bulkSkipped_few": "{{count}} existierten bereits und wurden übersprungen.",
+      "bulkSkipped_many": "{{count}} existierten bereits und wurden übersprungen.",
+      "bulkSkipped_other": "{{count}} existierten bereits und wurden übersprungen."
     },
     "categories": {
       "createError": "Fehler beim Erstellen der Kategorie: {{message}}",

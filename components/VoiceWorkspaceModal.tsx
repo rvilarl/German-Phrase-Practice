@@ -152,18 +152,18 @@ export const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
           cacheService.setCache(cacheKey, options);
           setAllWordOptions(options.words.map((w, i) => ({ text: w, id: `avail-${i}`, originalIndex: i })));
       } catch (err) {
-          let displayError = t('voiceWorkspace.errors.unexpected');
+          let displayError = t('modals.voiceWorkspace.errors.unexpected');
           console.error("Failed to load phrase builder options:", err);
           if (err instanceof Error) {
               if (err.message.includes("500") || err.message.includes("Internal Server Error")) {
-                  displayError = t('voiceWorkspace.errors.serviceUnavailable');
+                  displayError = t('modals.voiceWorkspace.errors.serviceUnavailable');
               } else if (err.message.includes("API key")) {
-                  displayError = t('voiceWorkspace.errors.apiKey');
+                  displayError = t('modals.voiceWorkspace.errors.apiKey');
               } else {
-                  displayError = t('voiceWorkspace.errors.requestFailed');
+                  displayError = t('modals.voiceWorkspace.errors.requestFailed');
               }
           }
-          setOptionsError(`${t('voiceWorkspace.errors.loadWords')} ${displayError}`);
+          setOptionsError(`${t('modals.voiceWorkspace.errors.loadWords')} ${displayError}`);
       } finally {
           setIsLoadingOptions(false);
       }
@@ -277,12 +277,12 @@ export const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
         onSuccess(phrase);
         setSuccessTimestamp(Date.now());
         onPracticeNext();
-        showToast({ message: t('voiceWorkspace.automation.nextPhrase'), type: 'automationSuccess' });
+        showToast({ message: t('modals.voiceWorkspace.automation.nextPhrase'), type: 'automationSuccess' });
         return; 
     }
 
     if (isCorrectLocally) {
-      setEvaluation({ isCorrect: true, feedback: t('voiceWorkspace.feedback.correct') });
+      setEvaluation({ isCorrect: true, feedback: t('modals.voiceWorkspace.feedback.correct') });
       onSuccess(phrase);
       setSuccessTimestamp(Date.now());
       return;
@@ -290,7 +290,7 @@ export const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
 
     if (attemptNumber === 1) {
       setAttemptNumber(2);
-      setTransientFeedback({ message: t('voiceWorkspace.feedback.incorrect'), key: Date.now() });
+      setTransientFeedback({ message: t('modals.voiceWorkspace.feedback.incorrect'), key: Date.now() });
       setIsFeedbackFading(false);
       recognitionRef.current?.stop();
     } else {
@@ -306,7 +306,7 @@ export const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
           onFailure(phrase);
         }
       } catch (err) {
-        setEvaluation({ isCorrect: false, feedback: err instanceof Error ? err.message : t('voiceWorkspace.errors.check') });
+        setEvaluation({ isCorrect: false, feedback: err instanceof Error ? err.message : t('modals.voiceWorkspace.errors.check') });
         onFailure(phrase);
       } finally {
         setIsChecking(false);
@@ -358,18 +358,18 @@ export const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
       
       recognition.onstart = () => setIsListening(true);
       recognition.onend = () => setIsListening(false);
-      recognition.onerror = (e: SpeechRecognitionErrorEvent) => { 
+      recognition.onerror = (e: SpeechRecognitionErrorEvent) => {
         if (e.error !== 'aborted' && e.error !== 'no-speech') {
           console.error('Speech error:', e.error);
-          let userFriendlyError = t('voiceWorkspace.errors.speech');
+          let userFriendlyError = t('modals.voiceWorkspace.errors.speech');
           if (e.error === 'network') {
-              userFriendlyError = t('voiceWorkspace.errors.speechNetwork');
+              userFriendlyError = t('modals.voiceWorkspace.errors.speechNetwork');
           } else if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
-              userFriendlyError = t('voiceWorkspace.errors.microphoneDenied');
+              userFriendlyError = t('modals.voiceWorkspace.errors.microphoneDenied');
           }
           setSpeechError(userFriendlyError);
         }
-        setIsListening(false); 
+        setIsListening(false);
       };
       
       recognition.onresult = (event) => {
@@ -480,21 +480,21 @@ export const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
         action: () => handleActionButtonClick('close', onClose),
         icon: <CloseIcon className="w-6 h-6" />,
         className: 'bg-slate-600 hover:bg-slate-700',
-        label: t('voiceWorkspace.actions.close'),
+        label: t('modals.voiceWorkspace.actions.close'),
       },
       {
         key: 'continue' as const,
         action: () => handleActionButtonClick('continue', onNextPhrase),
         icon: <CheckIcon className="w-6 h-6" />,
         className: 'bg-green-600 hover:bg-green-700',
-        label: t('voiceWorkspace.actions.continue'),
+        label: t('modals.voiceWorkspace.actions.continue'),
       },
       {
         key: 'next' as const,
         action: () => handleActionButtonClick('next', onPracticeNext),
         icon: <ArrowRightIcon className="w-6 h-6" />,
         className: 'bg-purple-600 hover:bg-purple-700',
-        label: t('voiceWorkspace.actions.nextPhrase'),
+        label: t('modals.voiceWorkspace.actions.nextPhrase'),
       },
     ];
     // Dynamic button layout has been removed for a consistent UI.
@@ -506,12 +506,12 @@ export const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
     onFailure(phrase);
     setEvaluation({
       isCorrect: false,
-      feedback: t('voiceWorkspace.feedback.revealAnswer'),
+      feedback: t('modals.voiceWorkspace.feedback.revealAnswer'),
       correctedPhrase: phrase.text.learning,
     });
     setIsStuck(false);
     setShowPostHintButtons(false);
-  }, [phrase, onFailure]);
+  }, [phrase, onFailure, t]);
   
   const handleLearn = useCallback(() => {
     if (!phrase) return;
@@ -551,7 +551,7 @@ export const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
                     onDragLeave={() => setDropIndex(null)}
                     className="flex-grow bg-slate-700/50 p-4 rounded-lg min-h-[80px] flex flex-wrap items-center justify-start gap-2 border-2 border-dashed border-slate-600"
                   >
-                    {constructedWords.length === 0 && dropIndex === null && <p className="text-slate-500 w-full text-center">{t('voiceWorkspace.instructions')}</p>}
+                    {constructedWords.length === 0 && dropIndex === null && <p className="text-slate-500 w-full text-center">{t('modals.voiceWorkspace.instructions')}</p>}
                     
                     {constructedWords.map((word, index) => (
                       <React.Fragment key={word.id}>
@@ -575,7 +575,7 @@ export const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
                     onClick={handleReset}
                     disabled={isChecking || !!evaluation || constructedWords.length === 0}
                     className="p-3 self-center rounded-full bg-slate-600/50 hover:bg-slate-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                    aria-label={t('voiceWorkspace.actions.clear')}
+                    aria-label={t('modals.voiceWorkspace.actions.clear')}
                   >
                     <BackspaceIcon className="w-5 h-5 text-white" />
                   </button>
@@ -599,7 +599,7 @@ export const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
                  ) : isLoadingOptions ? (
                     <div className="flex-grow flex flex-col justify-center items-center">
                         <WordBankSkeleton />
-                        <p className="mt-4 text-slate-400">{t('voiceWorkspace.loading')}</p>
+                        <p className="mt-4 text-slate-400">{t('modals.voiceWorkspace.loading')}</p>
                     </div>
                  ) : (
                     <div className="w-full bg-slate-900/50 flex flex-wrap items-start content-start justify-center gap-2 p-4 rounded-lg overflow-y-auto hide-scrollbar">
@@ -631,7 +631,7 @@ export const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
                             >
                                 <span className={`flex items-center transition-opacity ${isChecking ? 'opacity-0' : 'opacity-100'}`}>
                                     <CheckIcon className="w-5 h-5 mr-2" />
-                                    <span>{t('voiceWorkspace.actions.check')}</span>
+                                    <span>{t('modals.voiceWorkspace.actions.check')}</span>
                                 </span>
                                 {isChecking && <div className="absolute inset-0 flex items-center justify-center"><div className="w-6 h-6 border-2 border-white/50 border-t-white rounded-full animate-spin"></div></div>}
                             </button>
@@ -646,8 +646,8 @@ export const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
                         
                         {(isStuck || showPostHintButtons) && (
                            <div className="flex items-center gap-x-2 animate-fade-in">
-                               <button onClick={handleLearn} className="flex items-center gap-x-2 px-3 py-1.5 rounded-full bg-slate-700 hover:bg-slate-600 transition-colors text-sm text-purple-300 font-medium"><BookOpenIcon className="w-4 h-4" /> {t('voiceWorkspace.actions.learnWithAI')}</button>
-                               <button onClick={handleFailureAndReveal} className="px-3 py-1.5 rounded-full bg-slate-700 hover:bg-slate-600 transition-colors text-sm text-slate-300 font-medium">{t('voiceWorkspace.actions.showAnswer')}</button>
+                               <button onClick={handleLearn} className="flex items-center gap-x-2 px-3 py-1.5 rounded-full bg-slate-700 hover:bg-slate-600 transition-colors text-sm text-purple-300 font-medium"><BookOpenIcon className="w-4 h-4" /> {t('modals.voiceWorkspace.actions.learnWithAI')}</button>
+                               <button onClick={handleFailureAndReveal} className="px-3 py-1.5 rounded-full bg-slate-700 hover:bg-slate-600 transition-colors text-sm text-slate-300 font-medium">{t('modals.voiceWorkspace.actions.showAnswer')}</button>
                            </div>
                         )}
                       </div>

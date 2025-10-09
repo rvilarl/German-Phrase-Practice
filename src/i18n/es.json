@@ -190,10 +190,16 @@
       "deletedCount": "✓ {{count}} tarjetas eliminadas.",
       "movedToCategory": "✓ {{count}} tarjetas movidas a \"{{category}}\".",
       "otherCategory": "otra categoría",
-      "bulkAdded": "✓ {{count}} tarjeta agregada.",
-      "bulkAdded_plural": "✓ {{count}} tarjetas agregadas.",
-      "bulkSkipped": "{{count}} ya existía y fue omitida.",
-      "bulkSkipped_plural": "{{count}} ya existían y fueron omitidas."
+      "bulkAdded": "✓ {{count}} tarjetas agregadas.",
+      "bulkAdded_one": "✓ {{count}} tarjeta agregada.",
+      "bulkAdded_few": "✓ {{count}} tarjetas agregadas.",
+      "bulkAdded_many": "✓ {{count}} tarjetas agregadas.",
+      "bulkAdded_other": "✓ {{count}} tarjetas agregadas.",
+      "bulkSkipped": "{{count}} ya existían y fueron omitidas.",
+      "bulkSkipped_one": "{{count}} ya existía y fue omitida.",
+      "bulkSkipped_few": "{{count}} ya existían y fueron omitidas.",
+      "bulkSkipped_many": "{{count}} ya existían y fueron omitidas.",
+      "bulkSkipped_other": "{{count}} ya existían y fueron omitidas."
     },
     "categories": {
       "createError": "Error al crear categoría: {{message}}",

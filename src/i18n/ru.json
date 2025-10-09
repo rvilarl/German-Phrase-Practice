@@ -200,13 +200,11 @@
       "bulkAdded_many": "✓ {{count}} карточек добавлено.",
       "bulkAdded_other": "✓ {{count}} карточек добавлено.",
       "bulkAdded": "✓ {{count}} карточек добавлено.",
-      "bulkAdded_plural": "✓ {{count}} карточек добавлено.",
       "bulkSkipped_one": "{{count}} уже существовала и была пропущена.",
       "bulkSkipped_few": "{{count}} уже существовали и были пропущены.",
       "bulkSkipped_many": "{{count}} уже существовали и были пропущены.",
       "bulkSkipped_other": "{{count}} уже существовали и были пропущены.",
-      "bulkSkipped": "{{count}} уже существовало и было пропущено.",
-      "bulkSkipped_plural": "{{count}} уже существовали и были пропущены."
+      "bulkSkipped": "{{count}} уже существовало и было пропущено."
     }
   },
   "localization": {

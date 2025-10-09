@@ -190,10 +190,16 @@
       "deletedCount": "✓ {{count}} cards deleted.",
       "movedToCategory": "✓ {{count}} cards moved to \"{{category}}\".",
       "otherCategory": "another category",
-      "bulkAdded": "✓ {{count}} card added.",
-      "bulkAdded_plural": "✓ {{count}} cards added.",
-      "bulkSkipped": "{{count}} already existed and was skipped.",
-      "bulkSkipped_plural": "{{count}} already existed and were skipped."
+      "bulkAdded": "✓ {{count}} cards added.",
+      "bulkAdded_one": "✓ {{count}} card added.",
+      "bulkAdded_few": "✓ {{count}} cards added.",
+      "bulkAdded_many": "✓ {{count}} cards added.",
+      "bulkAdded_other": "✓ {{count}} cards added.",
+      "bulkSkipped": "{{count}} already existed and were skipped.",
+      "bulkSkipped_one": "{{count}} already existed and was skipped.",
+      "bulkSkipped_few": "{{count}} already existed and were skipped.",
+      "bulkSkipped_many": "{{count}} already existed and were skipped.",
+      "bulkSkipped_other": "{{count}} already existed and were skipped."
     },
     "categories": {
       "createError": "Failed to create category: {{message}}",
