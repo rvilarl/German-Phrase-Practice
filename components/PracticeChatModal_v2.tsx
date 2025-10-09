@@ -578,7 +578,7 @@ export const PracticeChatModal_v2: React.FC<Props> = ({
       onClick={handleModalClose}
     >
       <div
-        className={`bg-slate-800 w-full max-w-2xl h-full rounded-t-2xl shadow-2xl flex flex-col transition-transform duration-300 ease-out ${isOpen ? 'translate-y-0' : 'translate-y-full'}`}
+        className={`bg-slate-900 w-full max-w-2xl h-full rounded-t-2xl shadow-2xl flex flex-col transition-transform duration-300 ease-out ${isOpen ? 'translate-y-0' : 'translate-y-full'}`}
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
