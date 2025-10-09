@@ -175,8 +175,8 @@ const MessageBubble: React.FC<{
 
         {/* Secondary explanation (corrections, hints) - in native language */}
         {message.content.secondary && (
-          <div className="px-3 py-2 rounded-lg bg-slate-600/50 text-slate-300 text-sm border border-slate-600">
-            <span className="opacity-75">💬 {message.content.secondary.text}</span>
+          <div className="px-3 py-2 rounded-lg bg-slate-600/0 text-slate-300 text-sm border border-slate-700 border-none">
+            <span className="opacity-30 italic ">💬 {message.content.secondary.text}</span>
           </div>
         )}
       </div>
