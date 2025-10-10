@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 // FIX: Added 'ContentPart' to the import to resolve 'Cannot find name' error.
-import { Phrase, ChatMessage, CheatSheetOption, ContentPart } from '../types';
+import { Phrase, ChatMessage, CheatSheetOption, ContentPart, LanguageCode } from '../types';
 import CloseIcon from './icons/CloseIcon';
 import SendIcon from './icons/SendIcon';
 import SoundIcon from './icons/SoundIcon';
@@ -10,6 +10,7 @@ import MicrophoneIcon from './icons/MicrophoneIcon';
 import { useTranslation } from '../src/hooks/useTranslation';
 import { useLanguage } from '../src/contexts/languageContext';
 import { SPEECH_LOCALE_MAP } from '../constants/speechLocales';
+import { getLanguageLabel } from '../services/languageLabels';
 
 interface LearningAssistantModalProps {
   isOpen: boolean;
@@ -95,11 +96,11 @@ const LearningAssistantModal: React.FC<LearningAssistantModalProps> = ({ isOpen,
   const [wordOptions, setWordOptions] = useState<string[]>([]);
   const [cheatSheetOptions, setCheatSheetOptions] = useState<CheatSheetOption[]>([]);
   const [isSuccess, setIsSuccess] = useState(false);
-  
-  const [recognitionLang, setRecognitionLang] = useState<'ru' | 'de'>('ru');
+
+  const [recognitionLang, setRecognitionLang] = useState<LanguageCode>(profile.native);
   const [isListening, setIsListening] = useState(false);
-  const ruRecognitionRef = useRef<any>(null);
-  const deRecognitionRef = useRef<any>(null);
+  const nativeRecognitionRef = useRef<any>(null);
+  const learningRecognitionRef = useRef<any>(null);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -169,16 +170,16 @@ const LearningAssistantModal: React.FC<LearningAssistantModalProps> = ({ isOpen,
   useEffect(() => {
     const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (SpeechRecognitionAPI) {
-        const setupRecognizer = (lang: 'ru-RU' | 'de-DE') => {
+        const setupRecognizer = (langCode: LanguageCode) => {
             const recognition = new SpeechRecognitionAPI();
-            recognition.lang = lang;
+            recognition.lang = SPEECH_LOCALE_MAP[langCode] || 'en-US';
             recognition.continuous = false;
             recognition.interimResults = false;
             recognition.onstart = () => setIsListening(true);
             recognition.onend = () => setIsListening(false);
             recognition.onerror = (event: any) => {
                 if (event.error !== 'aborted' && event.error !== 'no-speech') {
-                  console.error(`Speech recognition error (${lang}):`, event.error);
+                  console.error(`Speech recognition error (${langCode}):`, event.error);
                 }
                 setIsListening(false);
             };
@@ -190,25 +191,25 @@ const LearningAssistantModal: React.FC<LearningAssistantModalProps> = ({ isOpen,
             };
             return recognition;
         }
-        ruRecognitionRef.current = setupRecognizer('ru-RU');
-        deRecognitionRef.current = setupRecognizer('de-DE');
+        nativeRecognitionRef.current = setupRecognizer(profile.native);
+        learningRecognitionRef.current = setupRecognizer(profile.learning);
     }
-  }, []);
+  }, [profile.native, profile.learning]);
 
-  const handleLangChange = (lang: 'ru' | 'de') => {
+  const handleLangChange = (lang: LanguageCode) => {
       if (isListening) return;
       setRecognitionLang(lang);
   };
 
   const handleMicClick = () => {
-      const recognizer = recognitionLang === 'ru' ? ruRecognitionRef.current : deRecognitionRef.current;
+      const recognizer = recognitionLang === profile.native ? nativeRecognitionRef.current : learningRecognitionRef.current;
       if (!recognizer) return;
-      
+
       if (isListening) {
           recognizer.stop();
       } else {
           try {
-              (recognitionLang === 'ru' ? deRecognitionRef.current : ruRecognitionRef.current)?.stop();
+              (recognitionLang === profile.native ? learningRecognitionRef.current : nativeRecognitionRef.current)?.stop();
               recognizer.start();
           } catch (e) {
               console.error("Could not start recognition:", e);
@@ -228,9 +229,9 @@ const LearningAssistantModal: React.FC<LearningAssistantModalProps> = ({ isOpen,
 
   const handleSendMessage = useCallback(async (messageText: string) => {
     if (!messageText.trim() || isLoading || isSuccess) return;
-    
+
     if (isListening) {
-      (recognitionLang === 'ru' ? ruRecognitionRef.current : deRecognitionRef.current)?.stop();
+      (recognitionLang === profile.native ? nativeRecognitionRef.current : learningRecognitionRef.current)?.stop();
     }
 
     setWordOptions([]);
@@ -393,8 +394,8 @@ const LearningAssistantModal: React.FC<LearningAssistantModalProps> = ({ isOpen,
                     rows={1} disabled={isLoading}
                   />
                   <div className="flex items-center self-stretch bg-slate-600 rounded-lg">
-                    <button type="button" onClick={() => handleLangChange('de')} className={`h-full px-2 rounded-l-lg transition-colors ${recognitionLang === 'de' ? 'bg-purple-600/50' : 'hover:bg-slate-500'}`}><span className="text-xs font-bold text-white">DE</span></button>
-                    <button type="button" onClick={() => handleLangChange('ru')} className={`h-full px-2 transition-colors ${recognitionLang === 'ru' ? 'bg-purple-600/50' : 'hover:bg-slate-500'}`}><span className="text-xs font-bold text-white">RU</span></button>
+                    <button type="button" onClick={() => handleLangChange(profile.learning)} className={`h-full px-2 rounded-l-lg transition-colors ${recognitionLang === profile.learning ? 'bg-purple-600/50' : 'hover:bg-slate-500'}`}><span className="text-xs font-bold text-white">{getLanguageLabel(profile.learning)}</span></button>
+                    <button type="button" onClick={() => handleLangChange(profile.native)} className={`h-full px-2 transition-colors ${recognitionLang === profile.native ? 'bg-purple-600/50' : 'hover:bg-slate-500'}`}><span className="text-xs font-bold text-white">{getLanguageLabel(profile.native)}</span></button>
                     <button type="button" onClick={handleMicClick} disabled={isLoading} className={`h-full px-2 rounded-r-lg transition-colors ${isListening ? 'bg-red-600' : 'hover:bg-slate-500'}`}>
                         <MicrophoneIcon className="w-6 h-6 text-white" />
                     </button>

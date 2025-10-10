@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import type { Phrase, SpeechRecognition, SpeechRecognitionErrorEvent, SpeechRecognitionEvent, PhraseCategory, Category } from '../types';
+import type { Phrase, SpeechRecognition, SpeechRecognitionErrorEvent, SpeechRecognitionEvent, PhraseCategory, Category, LanguageCode } from '../types';
 import PhraseListItem from '../components/PhraseListItem';
 import XCircleIcon from '../components/icons/XCircleIcon';
 import MicrophoneIcon from '../components/icons/MicrophoneIcon';
@@ -11,6 +11,9 @@ import FindDuplicatesModal from '../components/FindDuplicatesModal';
 
 import * as backendService from '../services/backendService';
 import { useTranslation } from '../src/hooks/useTranslation';
+import { useLanguage } from '../src/contexts/languageContext';
+import { SPEECH_LOCALE_MAP } from '../constants/speechLocales';
+import { getLanguageLabel } from '../services/languageLabels';
 
 interface PhraseListPageProps {
     phrases: Phrase[];
@@ -39,15 +42,16 @@ type ListItem =
 // FIX: Changed to a named export to resolve "no default export" error in App.tsx.
 export const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, onDeletePhrase, onFindDuplicates, updateAndSavePhrases, onStartPractice, highlightedPhraseId, onClearHighlight, onOpenSmartImport, categories, onUpdatePhraseCategory, onStartPracticeWithCategory, onEditCategory, onOpenAssistant, backendService, onOpenWordAnalysis }) => {
     const { t } = useTranslation();
+    const { profile } = useLanguage();
     const [searchTerm, setSearchTerm] = useState('');
     const [categoryFilter, setCategoryFilter] = useState<'all' | PhraseCategory>('all');
     const [previewPhrase, setPreviewPhrase] = useState<Phrase | null>(null);
     const [isFindDuplicatesModalOpen, setIsFindDuplicatesModalOpen] = useState(false);
 
     const [isListening, setIsListening] = useState(false);
-    const [recognitionLang, setRecognitionLang] = useState<'ru' | 'de'>('ru');
-    const ruRecognitionRef = useRef<SpeechRecognition | null>(null);
-    const deRecognitionRef = useRef<SpeechRecognition | null>(null);
+    const [recognitionLang, setRecognitionLang] = useState<LanguageCode>(profile.native);
+    const nativeRecognitionRef = useRef<SpeechRecognition | null>(null);
+    const learningRecognitionRef = useRef<SpeechRecognition | null>(null);
     
     const [contextMenu, setContextMenu] = useState<{ category: Category; x: number; y: number } | null>(null);
     // FIX: Changed `useRef<number>()` to the more explicit and safer `useRef<number | null>(null)`. The original syntax, while valid, can sometimes be misinterpreted by build tools, and this change resolves the potential ambiguity that might be causing the reported error.
@@ -60,19 +64,19 @@ export const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditP
     useEffect(() => {
         const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (SpeechRecognitionAPI) {
-            const setupRecognizer = (lang: 'ru-RU' | 'de-DE'): SpeechRecognition => {
+            const setupRecognizer = (langCode: LanguageCode): SpeechRecognition => {
                 const recognition = new SpeechRecognitionAPI();
-                recognition.lang = lang;
+                recognition.lang = SPEECH_LOCALE_MAP[langCode] || 'en-US';
                 recognition.continuous = false;
                 recognition.interimResults = false;
 
                 recognition.onend = () => {
                     setIsListening(false);
                 };
-                
+
                 recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
                     if (event.error !== 'aborted' && event.error !== 'no-speech') {
-                      console.error(`Speech recognition error (${lang}):`, event.error);
+                      console.error(`Speech recognition error (${langCode}):`, event.error);
                     }
                     setIsListening(false);
                 };
@@ -88,20 +92,20 @@ export const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditP
                 return recognition;
             }
 
-            ruRecognitionRef.current = setupRecognizer('ru-RU');
-            deRecognitionRef.current = setupRecognizer('de-DE');
+            nativeRecognitionRef.current = setupRecognizer(profile.native);
+            learningRecognitionRef.current = setupRecognizer(profile.learning);
         }
-    }, []);
+    }, [profile.native, profile.learning]);
 
-    const handleLangChange = (lang: 'ru' | 'de') => {
+    const handleLangChange = (lang: LanguageCode) => {
         if (lang === recognitionLang) return; // No change
         setRecognitionLang(lang);
         if (isListening) {
             // Stop current recognizer
-            (recognitionLang === 'ru' ? ruRecognitionRef.current : deRecognitionRef.current)?.stop();
+            (recognitionLang === profile.native ? nativeRecognitionRef.current : learningRecognitionRef.current)?.stop();
 
             // Start new recognizer
-            const newRecognizer = lang === 'ru' ? ruRecognitionRef.current : deRecognitionRef.current;
+            const newRecognizer = lang === profile.native ? nativeRecognitionRef.current : learningRecognitionRef.current;
             if (newRecognizer) {
                 try {
                     newRecognizer.start();
@@ -114,9 +118,9 @@ export const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditP
     };
 
     const handleMicClick = () => {
-        const recognizer = recognitionLang === 'ru' ? ruRecognitionRef.current : deRecognitionRef.current;
+        const recognizer = recognitionLang === profile.native ? nativeRecognitionRef.current : learningRecognitionRef.current;
         if (!recognizer) return;
-        
+
         if (isListening) {
             recognizer.stop();
         } else {
@@ -124,7 +128,7 @@ export const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditP
             setIsListening(true);
             try {
                 // Ensure the other recognizer is stopped
-                (recognitionLang === 'ru' ? deRecognitionRef.current : ruRecognitionRef.current)?.stop();
+                (recognitionLang === profile.native ? learningRecognitionRef.current : nativeRecognitionRef.current)?.stop();
                 recognizer.start();
             } catch (e) {
                 console.error("Could not start recognition:", e);
@@ -333,17 +337,17 @@ export const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditP
                                     </button>
                                 )}
                                 <div className="flex items-center bg-slate-700/50 rounded-full p-0.5">
-                                    <button 
-                                        onClick={() => handleLangChange('ru')}
-                                        className={`px-2 py-0.5 text-xs font-bold rounded-full transition-colors ${recognitionLang === 'ru' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:bg-slate-600'}`}
+                                    <button
+                                        onClick={() => handleLangChange(profile.native)}
+                                        className={`px-2 py-0.5 text-xs font-bold rounded-full transition-colors ${recognitionLang === profile.native ? 'bg-purple-600 text-white' : 'text-slate-400 hover:bg-slate-600'}`}
                                     >
-                                        RU
+                                        {getLanguageLabel(profile.native)}
                                     </button>
-                                    <button 
-                                        onClick={() => handleLangChange('de')}
-                                        className={`px-2 py-0.5 text-xs font-bold rounded-full transition-colors ${recognitionLang === 'de' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:bg-slate-600'}`}
+                                    <button
+                                        onClick={() => handleLangChange(profile.learning)}
+                                        className={`px-2 py-0.5 text-xs font-bold rounded-full transition-colors ${recognitionLang === profile.learning ? 'bg-purple-600 text-white' : 'text-slate-400 hover:bg-slate-600'}`}
                                     >
-                                        DE
+                                        {getLanguageLabel(profile.learning)}
                                     </button>
                                 </div>
                                 <button onClick={handleMicClick} className="p-2 transition-colors">
