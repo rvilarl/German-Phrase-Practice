@@ -7,7 +7,6 @@ const urlsToCache = [
   '/manifest.json',
   '/icon.svg',
   // Key external dependencies from the importmap
-  'https://cdn.tailwindcss.com',
   'https://esm.sh/@google/genai@^1.15.0',
   'https://esm.sh/react@^19.1.1',
   'https://esm.sh/react-dom@^19.1.1',

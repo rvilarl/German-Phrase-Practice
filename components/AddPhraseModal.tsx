@@ -7,6 +7,8 @@ import SendIcon from './icons/SendIcon';
 import PhraseCardSkeleton from './PhraseCardSkeleton';
 import { useTranslation } from '../src/hooks/useTranslation.ts';
 import { LanguageContext } from '../src/contexts/languageContext.tsx';
+import { SPEECH_LOCALE_MAP } from '../constants/speechLocales';
+import { getLanguageLabel } from '../services/languageLabels';
 
 interface AddPhraseModalProps {
   isOpen: boolean;
@@ -63,7 +65,7 @@ const AddPhraseModal: React.FC<AddPhraseModalProps> = ({
           const { russian } = await onTranslateGerman(trimmedText);
           newPhraseData = { german: trimmedText, russian };
         }
-        onPhraseCreated(newPhraseData);
+        await onPhraseCreated(newPhraseData);
       } catch (err) {
         setError(err instanceof Error ? err.message : t('modals.addPhrase.errors.generic'));
         setIsLoading(false);
@@ -78,7 +80,7 @@ const AddPhraseModal: React.FC<AddPhraseModalProps> = ({
     if (!SpeechRecognitionAPI) return;
 
     const recognition = new SpeechRecognitionAPI();
-    recognition.lang = language === 'ru' ? 'ru-RU' : 'de-DE';
+    recognition.lang = SPEECH_LOCALE_MAP[language] || 'en-US';
     recognition.interimResults = true;
     recognition.continuous = false;
 
@@ -183,16 +185,21 @@ const AddPhraseModal: React.FC<AddPhraseModalProps> = ({
             <div className="flex-grow flex items-center justify-center w-full">
               {mode === 'voice' ? (
                 <div className="flex flex-col items-center">
-                  <button
-                    type="button"
-                    onClick={() => recognitionRef.current?.start()}
-                    aria-label={t('modals.addPhrase.aria.microphone')}
-                    className={`w-28 h-28 rounded-full flex items-center justify-center transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-purple-500/50 ${
-                      isListening ? 'listening-glow' : 'bg-slate-700/50 hover:bg-slate-700'
-                    }`}
-                  >
-                    <MicrophoneIcon className="w-12 h-12 text-white" />
-                  </button>
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => recognitionRef.current?.start()}
+                      aria-label={t('modals.addPhrase.aria.microphone')}
+                      className={`w-28 h-28 rounded-full flex items-center justify-center transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-purple-500/50 ${
+                        isListening ? 'listening-glow' : 'bg-slate-700/50 hover:bg-slate-700'
+                      }`}
+                    >
+                      <MicrophoneIcon className="w-12 h-12 text-white" />
+                    </button>
+                    <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-purple-600 text-white text-xs font-bold rounded-full shadow-lg">
+                      {getLanguageLabel(language)}
+                    </span>
+                  </div>
                   <p className="mt-6 text-slate-200 text-lg h-8">{inputText || (isListening ? listeningText : ' ')}</p>
                 </div>
               ) : (

@@ -62,7 +62,7 @@ export const useLanguageOnboarding = (userId: string | null): UseLanguageOnboard
 
         // Check if user has any data
         const initialData = await backendService.fetchInitialData();
-        const hasData = initialData.categories.length > 0;
+        const hasData = initialData.categories.length > 0 || initialData.phrases.length > 0;
 
         // User needs onboarding if they have no data
         if (!hasData) {
@@ -74,8 +74,9 @@ export const useLanguageOnboarding = (userId: string | null): UseLanguageOnboard
         }
       } catch (error) {
         console.error('Error checking user profile:', error);
-        // If there's an error, assume user needs onboarding
-        setNeedsOnboarding(true);
+        // If there's an error, DON'T show onboarding - it might be a temporary network issue
+        // Better to let them use the app without onboarding than to force them through it
+        setNeedsOnboarding(false);
       } finally {
         setIsLoading(false);
       }

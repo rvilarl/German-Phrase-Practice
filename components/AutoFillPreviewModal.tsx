@@ -8,6 +8,8 @@ import WandIcon from './icons/WandIcon';
 import MicrophoneIcon from './icons/MicrophoneIcon';
 import Spinner from './Spinner';
 import { useTranslation } from '../src/hooks/useTranslation.ts';
+import { useLanguage } from '../src/contexts/languageContext';
+import { getNativeSpeechLocale } from '../services/speechService';
 
 interface AutoFillPreviewModalProps {
   isOpen: boolean;
@@ -43,6 +45,7 @@ const AutoFillPreviewModal: React.FC<AutoFillPreviewModalProps> = ({
   isLoading,
 }) => {
   const { t } = useTranslation();
+  const { profile } = useLanguage();
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
   const [showRefineInput, setShowRefineInput] = useState(false);
   const [refineText, setRefineText] = useState('');
@@ -67,7 +70,7 @@ const AutoFillPreviewModal: React.FC<AutoFillPreviewModalProps> = ({
     }
 
     const recognition = new SpeechRecognitionAPI();
-    recognition.lang = 'ru-RU';
+    recognition.lang = getNativeSpeechLocale(profile);
     recognition.interimResults = true;
     recognition.continuous = false;
 

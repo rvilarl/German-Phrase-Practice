@@ -10,6 +10,8 @@ import CheckIcon from './icons/CheckIcon';
 import CloseIcon from './icons/CloseIcon';
 import CameraIcon from './icons/CameraIcon';
 import CameraCaptureModal from './CameraCaptureModal';
+import { useLanguage } from '../src/contexts/languageContext';
+import { getNativeSpeechLocale } from '../services/speechService';
 
 interface ImageCropperModalProps {
   isOpen: boolean;
@@ -93,6 +95,7 @@ interface FileImportViewProps {
 
 const FileImportView: React.FC<FileImportViewProps> = ({ onProcessFile }) => {
   const { t } = useTranslation();
+  const { profile } = useLanguage();
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -100,7 +103,7 @@ const FileImportView: React.FC<FileImportViewProps> = ({ onProcessFile }) => {
   const [refinement, setRefinement] = useState('');
   const [isRefineListening, setIsRefineListening] = useState(false);
   const refineRecognitionRef = useRef<SpeechRecognition | null>(null);
-  
+
   const [isCropperOpen, setIsCropperOpen] = useState(false);
   const [imageToCrop, setImageToCrop] = useState<string | null>(null);
   const [croppedImageSrc, setCroppedImageSrc] = useState<string | null>(null);
@@ -111,7 +114,7 @@ const FileImportView: React.FC<FileImportViewProps> = ({ onProcessFile }) => {
     const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognitionAPI) {
       const recognition = new SpeechRecognitionAPI();
-      recognition.lang = 'ru-RU';
+      recognition.lang = getNativeSpeechLocale(profile);
       recognition.interimResults = true;
       recognition.continuous = false;
       recognition.onstart = () => setIsRefineListening(true);

@@ -5,6 +5,8 @@ import SendIcon from './icons/SendIcon';
 import CloseIcon from './icons/CloseIcon';
 import KeyboardIcon from './icons/KeyboardIcon';
 import { useTranslation } from '../src/hooks/useTranslation.ts';
+import { useLanguage } from '../src/contexts/languageContext';
+import { getNativeSpeechLocale } from '../services/speechService';
 
 interface AddContinuationModalProps {
   isOpen: boolean;
@@ -14,6 +16,7 @@ interface AddContinuationModalProps {
 
 const AddContinuationModal: React.FC<AddContinuationModalProps> = ({ isOpen, onClose, onSubmit }) => {
   const { t } = useTranslation();
+  const { profile } = useLanguage();
   const [inputText, setInputText] = useState('');
   const [isListening, setIsListening] = useState(false);
   const [mode, setMode] = useState<'voice' | 'text'>('voice');
@@ -26,7 +29,7 @@ const AddContinuationModal: React.FC<AddContinuationModalProps> = ({ isOpen, onC
     if (!SpeechRecognitionAPI) return;
 
     const recognition = new SpeechRecognitionAPI();
-    recognition.lang = 'ru-RU';
+    recognition.lang = getNativeSpeechLocale(profile);
     recognition.interimResults = true;
     recognition.continuous = false;
 

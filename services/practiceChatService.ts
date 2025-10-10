@@ -571,7 +571,8 @@ export function createInitialGreeting(
 
   const greetingText = greetingTexts[languageProfile.learning] || greetingTexts['en'];
   const translationMap = greetingTranslations[languageProfile.native] || greetingTranslations['en'];
-  const greetingTranslation = translationMap[languageProfile.learning] || `Hello! Let's practice ${learningLang}!`;
+  const defaultTranslation = translationMap[languageProfile.learning];
+  const greetingTranslation = defaultTranslation || translationMap['en'] || `Hello! Let's practice ${learningLang}!`;
 
   const greeting = { text: greetingText, translation: greetingTranslation };
 

@@ -10,6 +10,7 @@ import CheckIcon from './icons/CheckIcon';
 import { useTranslation } from '../src/hooks/useTranslation';
 import { useLanguage } from '../src/contexts/languageContext';
 import { SPEECH_LOCALE_MAP } from '../constants/speechLocales';
+import { getNativeSpeechLocale } from '../services/speechService';
 
 interface DiscussTranslationModalProps {
     isOpen: boolean;
@@ -161,7 +162,7 @@ const DiscussTranslationModal: React.FC<DiscussTranslationModalProps> = ({ isOpe
         const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (SpeechRecognitionAPI) {
             const recognition = new SpeechRecognitionAPI();
-            recognition.lang = 'ru-RU';
+            recognition.lang = getNativeSpeechLocale(profile);
             recognition.continuous = false;
             recognition.interimResults = false;
             recognition.onstart = () => setIsListening(true);

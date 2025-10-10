@@ -48,7 +48,7 @@ const NounDeclensionModal: React.FC<NounDeclensionModalProps> = ({ isOpen, onClo
     // FIX: Updated proxy phrase creation to match the new `Phrase` type with a nested `text` object.
     const proxyPhrase: Omit<Phrase, 'id'> & { id?: string } = {
         id: `proxy_noun_${noun}`,
-        text: { learning: contextText, native: `Склонение: ${noun}` },
+        text: { learning: contextText, native: t('modals.nounDeclension.proxyTitle', { noun }) },
         category: 'general',
         masteryLevel: 0, lastReviewedAt: null, nextReviewAt: Date.now(),
         knowCount: 0, knowStreak: 0, isMastered: false,

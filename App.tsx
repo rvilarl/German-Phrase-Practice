@@ -1162,11 +1162,13 @@ const [practiceChatHistory, setPracticeChatHistory] = useState<ChatMessage[]>([]
     const isDuplicateInCategory = categoryToView ? allPhrases.some(p => p.category === categoryToView.id && p.text.learning.trim().toLowerCase() === normalizedGerman) : false;
 
     if (isDuplicateInCategory) {
-        showToast({ message: t('notifications.phrases.existsInCategory', { phrase: newPhraseData.german }) });
-        return;
+        const message = t('notifications.phrases.existsInCategory', { phrase: newPhraseData.german });
+        showToast({ message });
+        throw new Error(message);
     } else if (isDuplicate) {
-        showToast({ message: t('notifications.phrases.existsInOtherCategory', { phrase: newPhraseData.german }) });
-        return;
+        const message = t('notifications.phrases.existsInOtherCategory', { phrase: newPhraseData.german });
+        showToast({ message });
+        throw new Error(message);
     }
     
     try {

@@ -180,7 +180,7 @@ const MessageBubble: React.FC<{
         {/* Secondary explanation (corrections, hints) - in native language */}
         {message.content.secondary && (
           <div className="px-3 py-2 rounded-lg bg-slate-600/0 text-slate-300 text-sm border border-slate-700 border-none">
-            <span className="opacity-60 italic">{t('practice.chat.messages.secondaryPrefix', { defaultValue: 'Hint:' })} {message.content.secondary.text}</span>
+            <span className="opacity-60 italic">{t('practice.chat.messages.secondaryPrefix')} {message.content.secondary.text}</span>
           </div>
         )}
       </div>

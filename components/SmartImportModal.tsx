@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from '../src/hooks/useTranslation';
 import { useLanguage } from '../src/contexts/languageContext';
-import { ProposedCard, Phrase, Category } from '../types';
+import { ProposedCard, Phrase, Category, LanguageCode } from '../types';
 import CloseIcon from './icons/CloseIcon';
 import MicrophoneIcon from './icons/MicrophoneIcon';
 import CheckIcon from './icons/CheckIcon';
@@ -18,15 +18,16 @@ import ImageIcon from './icons/ImageIcon';
 import FileImportView from './FileImportView';
 import CardListSkeleton from './CardListSkeleton';
 import { getNativeSpeechLocale } from '../services/speechService';
+import { SPEECH_LOCALE_MAP } from '../constants/speechLocales';
+import { getLanguageLabel } from '../services/languageLabels';
 
 type View = 'assistant' | 'speech' | 'file' | 'classifying' | 'suggestion' | 'processing' | 'preview';
 type SpeechStatus = 'idle' | 'recording' | 'stopped';
-type Language = 'ru' | 'de';
 
 interface SmartImportModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onGenerateCards: (transcript: string, lang: Language) => Promise<ProposedCard[]>;
+  onGenerateCards: (transcript: string, lang: LanguageCode) => Promise<ProposedCard[]>;
   onGenerateCardsFromImage: (imageData: { mimeType: string, data: string }, refinement?: string) => Promise<{ cards: ProposedCard[], categoryName: string }>;
   onGenerateTopicCards: (topic: string, refinement?: string, existingPhrases?: string[]) => Promise<ProposedCard[]>;
   onCardsCreated: (cards: ProposedCard[], options?: { categoryId?: string; createCategoryName?: string }) => Promise<void>;
@@ -44,7 +45,7 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
   const { profile } = useLanguage();
   const [view, setView] = useState<View>('assistant');
   const [speechStatus, setSpeechStatus] = useState<SpeechStatus>('idle');
-  const [lang, setLang] = useState<Language>('de');
+  const [lang, setLang] = useState<LanguageCode>(profile.learning);
   
   const [transcript, setTranscript] = useState('');
   const [assistantInput, setAssistantInput] = useState('');
@@ -248,7 +249,7 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
     if (!SpeechRecognitionAPI) return;
 
     const recognition = new SpeechRecognitionAPI();
-    recognition.lang = lang === 'ru' ? 'ru-RU' : 'de-DE';
+    recognition.lang = SPEECH_LOCALE_MAP[lang] || 'en-US';
     recognition.interimResults = true;
     recognition.continuous = true;
 
@@ -447,8 +448,12 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
             <p className="text-slate-400 mt-1 mb-4">{t('modals.smartImport.speech.subtitle')}</p>
             
             <div className="flex items-center space-x-2 bg-slate-700/50 rounded-full p-1 mb-4">
-                <button onClick={() => setLang('de')} className={`px-4 py-1 text-sm font-bold rounded-full transition-colors ${lang === 'de' ? 'bg-purple-600 text-white' : 'text-slate-300'}`}>DE</button>
-                <button onClick={() => setLang('ru')} className={`px-4 py-1 text-sm font-bold rounded-full transition-colors ${lang === 'ru' ? 'bg-purple-600 text-white' : 'text-slate-300'}`}>RU</button>
+                <button onClick={() => setLang(profile.learning)} className={`px-4 py-1 text-sm font-bold rounded-full transition-colors ${lang === profile.learning ? 'bg-purple-600 text-white' : 'text-slate-300'}`}>
+                  {getLanguageLabel(profile.learning)}
+                </button>
+                <button onClick={() => setLang(profile.native)} className={`px-4 py-1 text-sm font-bold rounded-full transition-colors ${lang === profile.native ? 'bg-purple-600 text-white' : 'text-slate-300'}`}>
+                  {getLanguageLabel(profile.native)}
+                </button>
             </div>
 
             <div className="w-full h-40 bg-slate-700/50 rounded-lg p-3 overflow-y-auto text-left text-slate-200 mb-4">
