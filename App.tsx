@@ -774,7 +774,7 @@ const [practiceChatHistory, setPracticeChatHistory] = useState<ChatMessage[]>([]
     try {
 // FIX: Use phrase.text.learning to match the updated Phrase type
         const existingGermanPhrases = allPhrases.map(p => p.text.learning).join('; ');
-        const prompt = `Сгенерируй ${count} новых, полезных в быту немецких фраз уровня A1. Не повторяй: "${existingGermanPhrases}". Верни JSON-массив объектов с ключами 'german' и 'russian'.`;
+        const prompt = `Сгенерируй ${count} новых, полезных в быту немецких фраз уровня A1. Не повторяй: "${existingGermanPhrases}". Верни JSON-массив объектов с ключами 'german' и 'native'.`;
         const newPhrasesData = await callApiWithFallback(provider => provider.generatePhrases(prompt));
         
         const generalCategory = categories.find(c => c.name.toLowerCase() === 'общие');
@@ -782,7 +782,7 @@ const [practiceChatHistory, setPracticeChatHistory] = useState<ChatMessage[]>([]
         
         const phrasesToCreate = newPhrasesData.map(p => ({
             // FIX: Map flat structure to nested `text` object
-            text: { learning: p.german, native: p.russian },
+            text: { learning: p.german, native: p.native },
             category: defaultCategoryId
         }));
 
@@ -1093,19 +1093,19 @@ const [practiceChatHistory, setPracticeChatHistory] = useState<ChatMessage[]>([]
   }, [handlePhraseActionSuccess, handlePhraseActionFailure]);
 
 
-  const handleGenerateContinuations = useCallback((russianPhrase: string) => callApiWithFallback(provider => provider.generateSentenceContinuations(russianPhrase)),[callApiWithFallback]);
+  const handleGenerateContinuations = useCallback((nativePhrase: string) => callApiWithFallback(provider => provider.generateSentenceContinuations(nativePhrase)),[callApiWithFallback]);
   const handleGenerateInitialExamples = useCallback((phrase: Phrase) => callApiWithFallback(provider => provider.generateInitialExamples(phrase)),[callApiWithFallback]);
   const handleContinueChat = useCallback((phrase: Phrase, history: any[], newMessage: string) => callApiWithFallback(provider => provider.continueChat(phrase, history, newMessage)),[callApiWithFallback]);
   const handlePracticeConversation = useCallback((history: ChatMessage[], newMessage: string) => callApiWithFallback(provider => provider.practiceConversation(history, newMessage, allPhrases)),[callApiWithFallback, allPhrases]);
   const handleGuideToTranslation = useCallback((phrase: Phrase, history: ChatMessage[], userAnswer: string) => callApiWithFallback(provider => provider.guideToTranslation(phrase, history, userAnswer)),[callApiWithFallback]);
-  const handleGenerateSinglePhrase = useCallback((russianPhrase: string) => callApiWithFallback(provider => provider.generateSinglePhrase(russianPhrase)),[callApiWithFallback]);
-  const handleTranslateGermanToRussian = useCallback((germanPhrase: string) => callApiWithFallback(provider => provider.translateGermanToRussian(germanPhrase)), [callApiWithFallback]);
-  const handleGetWordTranslation = useCallback(async (russianPhrase: string, germanPhrase: string, russianWord: string): Promise<{ germanTranslation: string }> => {
-    const cacheKey = `word_translation_${russianPhrase}_${russianWord}`;
+  const handleGenerateSinglePhrase = useCallback((nativePhrase: string) => callApiWithFallback(provider => provider.generateSinglePhrase(nativePhrase)),[callApiWithFallback]);
+  const handleTranslateGermanToNative = useCallback((germanPhrase: string) => callApiWithFallback(provider => provider.translateGermanToNative(germanPhrase)), [callApiWithFallback]);
+  const handleGetWordTranslation = useCallback(async (nativePhrase: string, germanPhrase: string, nativeWord: string): Promise<{ germanTranslation: string }> => {
+    const cacheKey = `word_translation_${nativePhrase}_${nativeWord}`;
     const cached = cacheService.getCache<{ germanTranslation: string }>(cacheKey);
     if (cached) return cached;
 
-    const result = await callApiWithFallback(provider => provider.getWordTranslation(russianPhrase, germanPhrase, russianWord));
+    const result = await callApiWithFallback(provider => provider.getWordTranslation(nativePhrase, germanPhrase, nativeWord));
     cacheService.setCache(cacheKey, result);
     return result;
   }, [callApiWithFallback]);
@@ -1156,7 +1156,7 @@ const [practiceChatHistory, setPracticeChatHistory] = useState<ChatMessage[]>([]
     setIsAddPhraseModalOpen(true);
   };
 
-  const handlePhraseCreated = async (newPhraseData: { german: string; russian: string }) => {
+  const handlePhraseCreated = async (newPhraseData: { german: string; native: string }) => {
     const normalizedGerman = newPhraseData.german.trim().toLowerCase();
     const isDuplicate = allPhrases.some(p => p.text.learning.trim().toLowerCase() === normalizedGerman);
     const isDuplicateInCategory = categoryToView ? allPhrases.some(p => p.category === categoryToView.id && p.text.learning.trim().toLowerCase() === normalizedGerman) : false;
@@ -1177,7 +1177,7 @@ const [practiceChatHistory, setPracticeChatHistory] = useState<ChatMessage[]>([]
         const categoryId = categoryToView?.id || generalCategory?.id || defaultCategoryId;
 
         // FIX: The Phrase type requires a nested `text` object.
-        const phraseToCreate = { text: { learning: newPhraseData.german, native: newPhraseData.russian }, category: categoryId };
+        const phraseToCreate = { text: { learning: newPhraseData.german, native: newPhraseData.native }, category: categoryId };
         const newPhrase = await backendService.createPhrase(phraseToCreate);
         
         updateAndSavePhrases(prev => [{...newPhrase, isNew: true }, ...prev]);
@@ -1287,7 +1287,7 @@ const [practiceChatHistory, setPracticeChatHistory] = useState<ChatMessage[]>([]
   }, [allPhrases, categories, categoryToView, assistantCategory, settings.enabledCategories, handleSettingsChange, showToast, updateAndSaveCategories, updateAndSavePhrases]);
 
 
-  const handleCreateCardFromWord = useCallback(async (phraseData: { german: string; russian: string; }) => {
+  const handleCreateCardFromWord = useCallback(async (phraseData: { german: string; native: string; }) => {
     const alreadyExists = allPhrases.some(p => p.text.learning.trim().toLowerCase() === phraseData.german.trim().toLowerCase());
     if (alreadyExists) {
         showToast({ message: t('notifications.phrases.exists', { phrase: phraseData.german }) });
@@ -1300,7 +1300,7 @@ const [practiceChatHistory, setPracticeChatHistory] = useState<ChatMessage[]>([]
         const categoryId = generalCategory?.id || defaultCategoryId;
 
         // FIX: The Phrase type requires a nested `text` object.
-        const phraseToCreate = { text: { learning: phraseData.german, native: phraseData.russian }, category: categoryId };
+        const phraseToCreate = { text: { learning: phraseData.german, native: phraseData.native }, category: categoryId };
         const newPhrase = await backendService.createPhrase(phraseToCreate);
         
         updateAndSavePhrases(prev => [{...newPhrase, isNew: true }, ...prev]);
@@ -1322,13 +1322,13 @@ const [practiceChatHistory, setPracticeChatHistory] = useState<ChatMessage[]>([]
       }
   
       try {
-          const { russian } = await callApiWithFallback(provider => provider.translateGermanToRussian(germanText));
+          const { native } = await callApiWithFallback(provider => provider.translateGermanToNative(germanText));
           const generalCategory = categories.find(c => c.name.toLowerCase() === 'общие');
           const defaultCategoryId = (categories.length > 0 ? categories[0].id : '1');
           const categoryId = generalCategory?.id || defaultCategoryId;
           
           // FIX: The Phrase type requires a nested `text` object.
-          const phraseToCreate = { text: { learning: germanText, native: russian }, category: categoryId };
+          const phraseToCreate = { text: { learning: germanText, native: native }, category: categoryId };
           const newPhrase = await backendService.createPhrase(phraseToCreate);
 
           updateAndSavePhrases(prev => [{...newPhrase, isNew: true}, ...prev]);
@@ -1355,19 +1355,19 @@ const [practiceChatHistory, setPracticeChatHistory] = useState<ChatMessage[]>([]
     setIsDiscussModalOpen(true);
   };
 
-  const handleGenerateImprovement = useCallback((originalRussian: string, currentGerman: string) => callApiWithFallback(provider => provider.improvePhrase(originalRussian, currentGerman)),[callApiWithFallback]);
+  const handleGenerateImprovement = useCallback((originalNative: string, currentGerman: string) => callApiWithFallback(provider => provider.improvePhrase(originalNative, currentGerman)),[callApiWithFallback]);
   
-  const handleTranslatePhrase = useCallback((russian: string) => callApiWithFallback(provider => provider.translatePhrase(russian)), [callApiWithFallback]);
+  const handleTranslatePhrase = useCallback((native: string) => callApiWithFallback(provider => provider.translatePhrase(native)), [callApiWithFallback]);
   
   const handleDiscussTranslation = useCallback((request: any) => callApiWithFallback(provider => provider.discussTranslation(request)),[callApiWithFallback]);
 
   const handleFindDuplicates = useCallback(() => callApiWithFallback(provider => provider.findDuplicatePhrases(allPhrases)), [callApiWithFallback, allPhrases]);
 
-  const handlePhraseImproved = async (phraseId: string, newGerman: string, newRussian?: string) => {
+  const handlePhraseImproved = async (phraseId: string, newGerman: string, newNative?: string) => {
     const originalPhrase = allPhrases.find(p => p.id === phraseId);
     if (!originalPhrase) return;
 // FIX: Use nested text object to match Phrase type
-    const updatedPhrase = { ...originalPhrase, text: { learning: newGerman, native: newRussian ?? originalPhrase.text.native } };
+    const updatedPhrase = { ...originalPhrase, text: { learning: newGerman, native: newNative ?? originalPhrase.text.native } };
     try {
         await backendService.updatePhrase(updatedPhrase);
         updateAndSavePhrases(prev => prev.map(p => (p.id === phraseId ? updatedPhrase : p)));
@@ -1442,9 +1442,9 @@ const [practiceChatHistory, setPracticeChatHistory] = useState<ChatMessage[]>([]
     setIsDiscussModalOpen(true);
   };
 
-  const handleDiscussionAccept = (suggestion: { russian: string; german: string; }) => {
+  const handleDiscussionAccept = (suggestion: { native: string; german: string; }) => {
     if (phraseToDiscuss) {
-      handlePhraseImproved(phraseToDiscuss.id, suggestion.german, suggestion.russian);
+      handlePhraseImproved(phraseToDiscuss.id, suggestion.german, suggestion.native);
     }
     setIsDiscussModalOpen(false);
     setDiscussInitialMessage(undefined);
@@ -2204,7 +2204,7 @@ const [practiceChatHistory, setPracticeChatHistory] = useState<ChatMessage[]>([]
             onOpenVerbConjugation={handleOpenVerbConjugation}
             onOpenNounDeclension={handleOpenNounDeclension}
             onOpenAdjectiveDeclension={handleOpenAdjectiveDeclension}
-            onTranslateGermanToRussian={handleTranslateGermanToRussian}
+            onTranslateGermanToNative={handleTranslateGermanToNative}
             onSessionComplete={handlePracticeChatSessionComplete}
           />
         </AiErrorBoundary>
@@ -2222,7 +2222,7 @@ const [practiceChatHistory, setPracticeChatHistory] = useState<ChatMessage[]>([]
             onOpenVerbConjugation={handleOpenVerbConjugation}
             onOpenNounDeclension={handleOpenNounDeclension}
             onOpenAdjectiveDeclension={handleOpenAdjectiveDeclension}
-            onTranslateGermanToRussian={handleTranslateGermanToRussian}
+            onTranslateGermanToNative={handleTranslateGermanToNative}
           />
         </AiErrorBoundary>
       )}
@@ -2310,7 +2310,7 @@ const [practiceChatHistory, setPracticeChatHistory] = useState<ChatMessage[]>([]
           isOpen={isAddPhraseModalOpen} 
           onClose={() => setIsAddPhraseModalOpen(false)}
           onGenerate={handleGenerateSinglePhrase}
-          onTranslateGerman={handleTranslateGermanToRussian}
+          onTranslateGerman={handleTranslateGermanToNative}
           onPhraseCreated={handlePhraseCreated}
           language={addPhraseConfig.language}
           autoSubmit={addPhraseConfig.autoSubmit}
@@ -2427,7 +2427,7 @@ const [practiceChatHistory, setPracticeChatHistory] = useState<ChatMessage[]>([]
                  setIsDiscussModalOpen(false);
                  setDiscussInitialMessage(undefined);
              }}
-             originalRussian={phraseToDiscuss.text.native}
+             originalNative={phraseToDiscuss.text.native}
              currentGerman={phraseToDiscuss.text.learning}
              onDiscuss={handleDiscussTranslation}
              onAccept={handleDiscussionAccept}
@@ -2541,7 +2541,7 @@ const [practiceChatHistory, setPracticeChatHistory] = useState<ChatMessage[]>([]
                 onOpenVerbConjugation={handleOpenVerbConjugation}
                 onOpenNounDeclension={handleOpenNounDeclension}
                 onOpenAdjectiveDeclension={handleOpenAdjectiveDeclension}
-                onTranslateGermanToRussian={handleTranslateGermanToRussian}
+                onTranslateGermanToNative={handleTranslateGermanToNative}
                 onGoToList={() => setView('list')}
                 onOpenConfirmDeletePhrases={handleOpenConfirmDeletePhrases}
             />

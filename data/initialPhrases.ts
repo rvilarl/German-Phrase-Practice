@@ -920,112 +920,112 @@ const generalPhrases: Omit<Phrase, 'id' | 'category'>[] = [
 
 const pronouns = [
   // Nominativ
-  { russian: "я", german: "ich" },
-  { russian: "ты", german: "du" },
-  { russian: "он", german: "er" },
-  { russian: "она", german: "sie" },
-  { russian: "оно", german: "es" },
-  { russian: "мы", german: "wir" },
-  { russian: "вы (неформ.)", german: "ihr" },
-  { russian: "они", german: "sie" },
-  { russian: "Вы (форм.)", german: "Sie" },
+  { native: "я", german: "ich" },
+  { native: "ты", german: "du" },
+  { native: "он", german: "er" },
+  { native: "она", german: "sie" },
+  { native: "оно", german: "es" },
+  { native: "мы", german: "wir" },
+  { native: "вы (неформ.)", german: "ihr" },
+  { native: "они", german: "sie" },
+  { native: "Вы (форм.)", german: "Sie" },
   // Akkusativ
-  { russian: "меня (Akk)", german: "mich" },
-  { russian: "тебя (Akk)", german: "dich" },
-  { russian: "его (Akk)", german: "ihn" },
+  { native: "меня (Akk)", german: "mich" },
+  { native: "тебя (Akk)", german: "dich" },
+  { native: "его (Akk)", german: "ihn" },
   // Dativ
-  { russian: "мне (Dat)", german: "mir" },
-  { russian: "тебе (Dat)", german: "dir" },
-  { russian: "ему (Dat)", german: "ihm" },
-  { russian: "им (Dat)", german: "ihnen" },
-  { russian: "Вам (Dat)", german: "Ihnen" },
+  { native: "мне (Dat)", german: "mir" },
+  { native: "тебе (Dat)", german: "dir" },
+  { native: "ему (Dat)", german: "ihm" },
+  { native: "им (Dat)", german: "ihnen" },
+  { native: "Вам (Dat)", german: "Ihnen" },
   // Possessiv
-  { russian: "мой", german: "mein" },
-  { russian: "твой", german: "dein" },
-  { russian: "его (притяж.)", german: "sein" },
-  { russian: "её", german: "ihr" },
+  { native: "мой", german: "mein" },
+  { native: "твой", german: "dein" },
+  { native: "его (притяж.)", german: "sein" },
+  { native: "её", german: "ihr" },
 ];
 
 const wFragen = [
-  { russian: "Что?", german: "Was?" },
-  { russian: "Кто?", german: "Wer?" },
-  { russian: "Где?", german: "Wo?" },
-  { russian: "Когда?", german: "Wann?" },
-  { russian: "Как?", german: "Wie?" },
-  { russian: "Почему?", german: "Warum?" },
-  { russian: "Откуда?", german: "Woher?" },
-  { russian: "Куда?", german: "Wohin?" },
-  { russian: "Какой?", german: "Welcher?" },
-  { russian: "Сколько? (неисчисл.)", german: "Wie viel?" },
-  { russian: "Сколько? (исчисл.)", german: "Wie viele?" }
+  { native: "Что?", german: "Was?" },
+  { native: "Кто?", german: "Wer?" },
+  { native: "Где?", german: "Wo?" },
+  { native: "Когда?", german: "Wann?" },
+  { native: "Как?", german: "Wie?" },
+  { native: "Почему?", german: "Warum?" },
+  { native: "Откуда?", german: "Woher?" },
+  { native: "Куда?", german: "Wohin?" },
+  { native: "Какой?", german: "Welcher?" },
+  { native: "Сколько? (неисчисл.)", german: "Wie viel?" },
+  { native: "Сколько? (исчисл.)", german: "Wie viele?" }
 ];
 
 const numbers = [
-    { russian: "ноль", german: "null" },
-    { russian: "один", german: "eins" },
-    { russian: "два", german: "zwei" },
-    { russian: "три", german: "drei" },
-    { russian: "четыре", german: "vier" },
-    { russian: "пять", german: "fünf" },
-    { russian: "шесть", german: "sechs" },
-    { russian: "семь", german: "sieben" },
-    { russian: "восемь", german: "acht" },
-    { russian: "девять", german: "neun" },
-    { russian: "десять", german: "zehn" },
-    { russian: "одиннадцать", german: "elf" },
-    { russian: "двенадцать", german: "zwölf" },
-    { russian: "двадцать", german: "zwanzig" },
-    { russian: "сто", german: "hundert" },
+    { native: "ноль", german: "null" },
+    { native: "один", german: "eins" },
+    { native: "два", german: "zwei" },
+    { native: "три", german: "drei" },
+    { native: "четыре", german: "vier" },
+    { native: "пять", german: "fünf" },
+    { native: "шесть", german: "sechs" },
+    { native: "семь", german: "sieben" },
+    { native: "восемь", german: "acht" },
+    { native: "девять", german: "neun" },
+    { native: "десять", german: "zehn" },
+    { native: "одиннадцать", german: "elf" },
+    { native: "двенадцать", german: "zwölf" },
+    { native: "двадцать", german: "zwanzig" },
+    { native: "сто", german: "hundert" },
 ];
 
 const timePhrases = [
     // Days
-    { russian: "Понедельник", german: "Montag" },
-    { russian: "Вторник", german: "Dienstag" },
-    { russian: "Среда", german: "Mittwoch" },
-    { russian: "Четверг", german: "Donnerstag" },
-    { russian: "Пятница", german: "Freitag" },
-    { russian: "Суббота", german: "Samstag" },
-    { russian: "Воскресенье", german: "Sonntag" },
+    { native: "Понедельник", german: "Montag" },
+    { native: "Вторник", german: "Dienstag" },
+    { native: "Среда", german: "Mittwoch" },
+    { native: "Четверг", german: "Donnerstag" },
+    { native: "Пятница", german: "Freitag" },
+    { native: "Суббота", german: "Samstag" },
+    { native: "Воскресенье", german: "Sonntag" },
     // Months
-    { russian: "Январь", german: "Januar" },
-    { russian: "Февраль", german: "Februar" },
-    { russian: "Март", german: "März" },
-    { russian: "Апрель", german: "April" },
-    { russian: "Май", german: "Mai" },
-    { russian: "Июнь", german: "Juni" },
-    { russian: "Июль", german: "Juli" },
-    { russian: "Август", german: "August" },
-    { russian: "Сентябрь", german: "September" },
-    { russian: "Октябрь", german: "Oktober" },
-    { russian: "Ноябрь", german: "November" },
-    { russian: "Декабрь", german: "Dezember" },
+    { native: "Январь", german: "Januar" },
+    { native: "Февраль", german: "Februar" },
+    { native: "Март", german: "März" },
+    { native: "Апрель", german: "April" },
+    { native: "Май", german: "Mai" },
+    { native: "Июнь", german: "Juni" },
+    { native: "Июль", german: "Juli" },
+    { native: "Август", german: "August" },
+    { native: "Сентябрь", german: "September" },
+    { native: "Октябрь", german: "Oktober" },
+    { native: "Ноябрь", german: "November" },
+    { native: "Декабрь", german: "Dezember" },
     // Conversational Time
-    { russian: "Который час?", german: "Wie spät ist es?" },
-    { russian: "Сейчас час.", german: "Es ist ein Uhr." },
-    { russian: "Сейчас два часа.", german: "Es ist zwei Uhr." },
-    { russian: "Пол первого.", german: "Es ist halb eins." }, // 12:30
-    { russian: "Полтретьего.", german: "Es ist halb drei." }, // 2:30
-    { russian: "Четверть пятого.", german: "Es ist Viertel nach vier." }, // 4:15
-    { russian: "Без четверти шесть.", german: "Es ist Viertel vor sechs." }, // 5:45
-    { russian: "Десять минут седьмого.", german: "Es ist zehn nach sechs." }, // 6:10
-    { russian: "Без двадцати девять.", german: "Es ist zwanzig vor neun." }, // 8:40
-    { russian: "Пять минут после полудня.", german: "Es ist fünf nach zwölf." }, // 12:05
+    { native: "Который час?", german: "Wie spät ist es?" },
+    { native: "Сейчас час.", german: "Es ist ein Uhr." },
+    { native: "Сейчас два часа.", german: "Es ist zwei Uhr." },
+    { native: "Пол первого.", german: "Es ist halb eins." }, // 12:30
+    { native: "Полтретьего.", german: "Es ist halb drei." }, // 2:30
+    { native: "Четверть пятого.", german: "Es ist Viertel nach vier." }, // 4:15
+    { native: "Без четверти шесть.", german: "Es ist Viertel vor sechs." }, // 5:45
+    { native: "Десять минут седьмого.", german: "Es ist zehn nach sechs." }, // 6:10
+    { native: "Без двадцати девять.", german: "Es ist zwanzig vor neun." }, // 8:40
+    { native: "Пять минут после полудня.", german: "Es ist fünf nach zwölf." }, // 12:05
 ];
 
 const moneyPhrases = [
-    { russian: "Сколько это стоит?", german: "Was kostet das?" },
-    { russian: "Это стоит 10 евро.", german: "Das kostet zehn Euro." },
-    { russian: "23,75 евро", german: "dreiundzwanzig Euro fünfundsiebzig" },
-    { russian: "12,50 долларов", german: "zwölf Dollar fünfzig" },
-    { russian: "У вас есть сдача с 50 евро?", german: "Haben Sie Wechselgeld für fünfzig Euro?" },
-    { russian: "Я хотел бы заплатить.", german: "Ich möchte bezahlen." }
+    { native: "Сколько это стоит?", german: "Was kostet das?" },
+    { native: "Это стоит 10 евро.", german: "Das kostet zehn Euro." },
+    { native: "23,75 евро", german: "dreiundzwanzig Euro fünfundsiebzig" },
+    { native: "12,50 долларов", german: "zwölf Dollar fünfzig" },
+    { native: "У вас есть сдача с 50 евро?", german: "Haben Sie Wechselgeld für fünfzig Euro?" },
+    { native: "Я хотел бы заплатить.", german: "Ich möchte bezahlen." }
 ];
 
 
-const mapToPhraseDefaults = (p: { russian: string, german: string, category: string }): Omit<Phrase, 'id'> => ({
+const mapToPhraseDefaults = (p: { native: string, german: string, category: string }): Omit<Phrase, 'id'> => ({
     // FIX: Map flat structure to nested `text` object.
-    text: { native: p.russian, learning: p.german },
+    text: { native: p.native, learning: p.german },
     category: p.category,
     masteryLevel: 0,
     lastReviewedAt: null,
@@ -1048,7 +1048,7 @@ export const foundationalPhrases: Omit<Phrase, 'id'>[] = foundationalPhrasesList
 
 export const initialPhrases: Omit<Phrase, 'id'>[] = [
   ...generalPhrases.map(p => ({ ...p, category: 'general' as const })),
-  ...foundationalPhrasesList.map(p => ({...p, text: { native: p.russian, learning: p.german }})),
+  ...foundationalPhrasesList.map(p => ({...p, text: { native: p.native, learning: p.german }})),
 ].map(p => ({
     text: p.text,
     category: p.category,

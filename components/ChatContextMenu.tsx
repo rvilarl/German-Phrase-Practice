@@ -11,10 +11,10 @@ import LanguagesIcon from './icons/LanguagesIcon';
 import { useTranslation } from '../src/hooks/useTranslation';
 
 interface ChatContextMenuProps {
-  target: { sentence: { german: string; russian: string }; word: string };
+  target: { sentence: { german: string; native: string }; word: string };
   onClose: () => void;
   onAnalyzeWord: (phrase: Phrase, word: string) => Promise<WordAnalysis | null>;
-  onCreateCard: (data: { german: string; russian: string }) => void;
+  onCreateCard: (data: { german: string; native: string }) => void;
   onGenerateMore: (prompt: string) => void;
   onSpeak: (text: string) => void;
   onOpenVerbConjugation: (infinitive: string) => void;
@@ -22,7 +22,7 @@ interface ChatContextMenuProps {
   onOpenAdjectiveDeclension: (adjective: string) => void;
   onOpenWordAnalysis: (phrase: Phrase, word: string) => void;
   allPhrases: Phrase[];
-  onTranslateGermanToRussian: (germanPhrase: string) => Promise<{ russian: string }>;
+  onTranslateGermanToNative: (germanPhrase: string) => Promise<{ native: string }>;
 }
 
 const ChatContextMenu: React.FC<ChatContextMenuProps> = ({
@@ -37,18 +37,18 @@ const ChatContextMenu: React.FC<ChatContextMenuProps> = ({
   onOpenAdjectiveDeclension,
   onOpenWordAnalysis,
   allPhrases,
-  onTranslateGermanToRussian,
+  onTranslateGermanToNative,
 }) => {
   const { t } = useTranslation();
   const { sentence, word } = target;
   const [analysis, setAnalysis] = useState<WordAnalysis | null>(null);
   const [isAnalysisLoading, setIsAnalysisLoading] = useState(true);
-  const [translation, setTranslation] = useState<string | null>(sentence.russian);
+  const [translation, setTranslation] = useState<string | null>(sentence.native);
   const [isTranslating, setIsTranslating] = useState(false);
 
   const proxyPhrase: Phrase = {
     id: `proxy_context_${Date.now()}`,
-    text: { learning: sentence.german, native: sentence.russian },
+    text: { learning: sentence.german, native: sentence.native },
     category: 'general',
     masteryLevel: 0,
     lastReviewedAt: null,
@@ -79,15 +79,15 @@ const ChatContextMenu: React.FC<ChatContextMenuProps> = ({
     if (isTranslating) return;
     setIsTranslating(true);
     try {
-      const result = await onTranslateGermanToRussian(sentence.german);
-      setTranslation(result.russian);
+      const result = await onTranslateGermanToNative(sentence.german);
+      setTranslation(result.native);
     } catch (error) {
       console.error("Translation failed", error);
       setTranslation(t('assistant.common.translationError'));
     } finally {
       setIsTranslating(false);
     }
-  }, [sentence.german, onTranslateGermanToRussian, isTranslating]);
+  }, [sentence.german, onTranslateGermanToNative, isTranslating]);
 
   const getCanonicalWordGerman = useCallback(() => {
     if (!analysis) return word;
@@ -97,7 +97,7 @@ const ChatContextMenu: React.FC<ChatContextMenuProps> = ({
   }, [analysis, word]);
 
   const phraseCardExists =
-    !!sentence.russian &&
+    !!sentence.native &&
     allPhrases.some(
       (p) => p.text.learning.trim().toLowerCase() === sentence.german.trim().toLowerCase()
     );
@@ -120,14 +120,14 @@ const ChatContextMenu: React.FC<ChatContextMenuProps> = ({
 
   const menuItems = [
     { label: t('assistant.contextMenu.wordDetails'), icon: <InfoIcon />, action: () => onOpenWordAnalysis(proxyPhrase, word), condition: !!analysis },
-    { label: t('assistant.contextMenu.createWordCard'), icon: <PlusIcon />, action: () => { if (analysis) onCreateCard({ german: getCanonicalWordGerman(), russian: analysis.nativeTranslation }); }, condition: !wordCardExists && !!analysis },
+    { label: t('assistant.contextMenu.createWordCard'), icon: <PlusIcon />, action: () => { if (analysis) onCreateCard({ german: getCanonicalWordGerman(), native: analysis.nativeTranslation }); }, condition: !wordCardExists && !!analysis },
     { label: t('modals.wordAnalysis.actions.openVerb'), icon: <TableIcon />, action: () => { if (analysis?.verbDetails?.infinitive) onOpenVerbConjugation(analysis.verbDetails.infinitive); }, condition: !!analysis?.verbDetails },
     { label: t('modals.wordAnalysis.actions.openNoun'), icon: <TableIcon />, action: () => { if (analysis?.nounDetails) onOpenNounDeclension(analysis.word, analysis.nounDetails.article); }, condition: !!analysis?.nounDetails },
     { label: t('modals.wordAnalysis.actions.openAdjective'), icon: <TableIcon />, action: () => { if (analysis) onOpenAdjectiveDeclension(analysis.baseForm || analysis.word); }, condition: analysis?.partOfSpeech === 'Прилагательное' },
   ];
 
   const phraseMenuItems = [
-    { label: t('assistant.contextMenu.createPhraseCard'), icon: <CardPlusIcon />, action: () => onCreateCard({ german: sentence.german, russian: translation || sentence.russian }), condition: !!translation && !phraseCardExists },
+    { label: t('assistant.contextMenu.createPhraseCard'), icon: <CardPlusIcon />, action: () => onCreateCard({ german: sentence.german, native: translation || sentence.native }), condition: !!translation && !phraseCardExists },
     { label: t('assistant.contextMenu.generateSimilar'), icon: <WandIcon />, action: () => onGenerateMore(t('assistant.prompts.generateSimilar', { phrase: sentence.german })), condition: true },
   ];
 

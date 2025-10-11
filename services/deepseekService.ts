@@ -55,7 +55,7 @@ const notImplemented = () => Promise.reject(new Error("Not implemented for DeepS
 const generatePhrases: AiService['generatePhrases'] = notImplemented;
 const generateSinglePhrase: AiService['generateSinglePhrase'] = notImplemented;
 const translatePhrase: AiService['translatePhrase'] = notImplemented;
-const translateGermanToRussian: AiService['translateGermanToRussian'] = notImplemented;
+const translateGermanToNative: AiService['translateGermanToNative'] = notImplemented;
 const getWordTranslation: AiService['getWordTranslation'] = notImplemented;
 const improvePhrase: AiService['improvePhrase'] = notImplemented;
 const generateInitialExamples: AiService['generateInitialExamples'] = notImplemented;
@@ -108,7 +108,7 @@ export const deepseekService: AiService = {
     generatePhrases,
     generateSinglePhrase,
     translatePhrase,
-    translateGermanToRussian,
+    translateGermanToNative,
     getWordTranslation,
     improvePhrase,
     generateInitialExamples,

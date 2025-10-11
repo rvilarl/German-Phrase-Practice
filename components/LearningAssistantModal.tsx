@@ -36,10 +36,10 @@ const ChatMessageContent: React.FC<{
 }> = ({ message, onSpeak, basePhrase, onOpenWordAnalysis }) => {
     const { contentParts } = message;
 
-    // FIX: Updated to accept russianText and construct a valid proxy Phrase.
-    const handleWordClick = (contextText: string, word: string, russianText: string) => {
+    // FIX: Updated to accept nativeText and construct a valid proxy Phrase.
+    const handleWordClick = (contextText: string, word: string, nativeText: string) => {
         if (!onOpenWordAnalysis || !basePhrase) return;
-        const proxyPhrase: Phrase = { ...basePhrase, id: `${basePhrase.id}_proxy_${contextText.slice(0, 5)}`, text: { learning: contextText, native: russianText } };
+        const proxyPhrase: Phrase = { ...basePhrase, id: `${basePhrase.id}_proxy_${contextText.slice(0, 5)}`, text: { learning: contextText, native: nativeText } };
         onOpenWordAnalysis(proxyPhrase, word);
     };
 

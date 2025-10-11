@@ -21,7 +21,7 @@ describe('Learning Assistant Localization', () => {
     expect(translation).toBe("No lo sé");
   });
 
-  it('should have dontKnow translation in Russian', () => {
+  it('should have dontKnow translation in Native', () => {
     i18n.changeLanguage('ru');
     const translation = i18n.t('modals.learningAssistant.dontKnow');
     expect(translation).toBe("Не знаю");

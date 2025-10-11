@@ -406,32 +406,32 @@
       "headers": {
         "speak": "Sprechen",
         "german": "Deutsch",
-        "russian": "Russisch"
+        "native": "Russisch"
       },
       "pronouns": [
         {
           "german": "ich",
-          "russian": "I"
+          "native": "I"
         },
         {
           "german": "du",
-          "russian": "you (informal)"
+          "native": "you (informal)"
         },
         {
           "german": "er / sie / es",
-          "russian": "he / she / it"
+          "native": "he / she / it"
         },
         {
           "german": "wir",
-          "russian": "we"
+          "native": "we"
         },
         {
           "german": "ihr",
-          "russian": "you (plural informal)"
+          "native": "you (plural informal)"
         },
         {
           "german": "sie / Sie",
-          "russian": "they / you (formal)"
+          "native": "they / you (formal)"
         }
       ]
     },
@@ -719,7 +719,7 @@
     "editPhrase": {
       "title": "Phrase bearbeiten",
       "fields": {
-        "russian": "Russisch",
+        "native": "Russisch",
         "german": "Deutsch",
         "category": "Kategorie"
       },

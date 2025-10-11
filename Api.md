@@ -44,7 +44,7 @@ Retrieves all categories and phrases with additional frontend-specific fields fo
   "phrases": [
     {
       "id": 1,
-      "russian": "привет",
+      "native": "привет",
       "german": "hallo",
       "category": 1,
       "transcription": "halo",
@@ -97,14 +97,14 @@ Creates a new phrase.
 **Request Body:**
 ```json
 {
-  "russian": "спасибо",
+  "native": "спасибо",
   "german": "danke",
   "category_id": 1
 }
 ```
 
 **Validation:**
-- `russian`: Required, non-empty string
+- `native`: Required, non-empty string
 - `german`: Required, non-empty string
 - `category_id`: Required, number
 
@@ -112,7 +112,7 @@ Creates a new phrase.
 ```json
 {
   "id": 1,
-  "russian": "спасибо",
+  "native": "спасибо",
   "german": "danke",
   "category_id": 1
 }
@@ -121,7 +121,7 @@ Creates a new phrase.
 **Error Response (400 - Validation Error):**
 ```json
 {
-  "error": "Russian text is required and must be a non-empty string"
+  "error": "Native text is required and must be a non-empty string"
 }
 ```
 
@@ -143,14 +143,14 @@ Updates an existing phrase.
 **Request Body:**
 ```json
 {
-  "russian": "пожалуйста",
+  "native": "пожалуйста",
   "german": "bitte",
   "category_id": 1
 }
 ```
 
 **Validation:**
-- `russian`: Required, non-empty string
+- `native`: Required, non-empty string
 - `german`: Required, non-empty string
 - `category_id`: Required, number
 
@@ -158,7 +158,7 @@ Updates an existing phrase.
 ```json
 {
   "id": 1,
-  "russian": "пожалуйста",
+  "native": "пожалуйста",
   "german": "bitte",
   "category_id": 1
 }
@@ -167,7 +167,7 @@ Updates an existing phrase.
 **Error Response (400 - Validation Error):**
 ```json
 {
-  "error": "Russian text is required and must be a non-empty string"
+  "error": "Native text is required and must be a non-empty string"
 }
 ```
 
@@ -322,7 +322,7 @@ Deletes a category. If `migrationTargetId` is provided in the request body, asso
 
 ### Phrase
 - `id` (number): Unique identifier
-- `russian` (string): Russian text
+- `native` (string): Native text
 - `german` (string): German text
 - `category_id` (number): Reference to category
 - `transcription` (string, optional): Pronunciation guide
@@ -368,7 +368,7 @@ The API validates incoming request data to ensure data integrity. Validation is 
 ### Validation Rules
 
 #### Phrases (POST /api/phrases, PUT /api/phrases/:id)
-- `russian`: Required, must be a non-empty string
+- `native`: Required, must be a non-empty string
 - `german`: Required, must be a non-empty string
 - `category_id`: Required, must be a number
 

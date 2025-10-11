@@ -15,7 +15,7 @@ interface EditPhraseModalProps {
     onClose: () => void;
     phrase: Phrase;
     onSave: (phraseId: string, updates: Partial<Omit<Phrase, 'id'>>) => void;
-    onTranslate: (russianPhrase: string) => Promise<{ german: string }>;
+    onTranslate: (nativePhrase: string) => Promise<{ german: string }>;
     onDiscuss: (request: any) => Promise<TranslationChatResponse>;
     onOpenWordAnalysis: (phrase: Phrase, word: string) => void;
     categories: Category[];
@@ -37,7 +37,7 @@ const useDebounce = (value: string, delay: number) => {
 const EditPhraseModal: React.FC<EditPhraseModalProps> = ({ isOpen, onClose, phrase, onSave, onTranslate, onDiscuss, onOpenWordAnalysis, categories }) => {
     const { t } = useTranslation();
     const { profile } = useLanguage();
-    const [russian, setRussian] = useState(phrase.text.native);
+    const [native, setNative] = useState(phrase.text.native);
     const [german, setGerman] = useState(phrase.text.learning);
     const [selectedCategory, setSelectedCategory] = useState(phrase.category);
     const [isLoading, setIsLoading] = useState(false);
@@ -46,16 +46,16 @@ const EditPhraseModal: React.FC<EditPhraseModalProps> = ({ isOpen, onClose, phra
     const [isDiscussModalOpen, setIsDiscussModalOpen] = useState(false);
 
     const recognitionRef = useRef<any>(null);
-    const debouncedRussian = useDebounce(russian, 1000);
-    const initialRussianRef = useRef(phrase.text.native);
+    const debouncedNative = useDebounce(native, 1000);
+    const initialNativeRef = useRef(phrase.text.native);
 
     useEffect(() => {
         if (isOpen) {
-            setRussian(phrase.text.native);
+            setNative(phrase.text.native);
             setGerman(phrase.text.learning);
             setSelectedCategory(phrase.category);
             setError(null);
-            initialRussianRef.current = phrase.text.native;
+            initialNativeRef.current = phrase.text.native;
         }
     }, [isOpen, phrase]);
 
@@ -74,21 +74,21 @@ const EditPhraseModal: React.FC<EditPhraseModalProps> = ({ isOpen, onClose, phra
             };
             recognition.onresult = (event) => {
                 const transcript = Array.from(event.results).map(r => r[0].transcript).join('');
-                setRussian(transcript);
+                setNative(transcript);
             };
             recognitionRef.current = recognition;
         }
     }, []);
 
     useEffect(() => {
-        if (debouncedRussian && debouncedRussian.trim() && debouncedRussian !== initialRussianRef.current) {
+        if (debouncedNative && debouncedNative.trim() && debouncedNative !== initialNativeRef.current) {
             const getTranslation = async () => {
                 setIsLoading(true);
                 setError(null);
                 try {
-                    const { german } = await onTranslate(debouncedRussian);
+                    const { german } = await onTranslate(debouncedNative);
                     setGerman(german);
-                    initialRussianRef.current = debouncedRussian;
+                    initialNativeRef.current = debouncedNative;
                 } catch (err) {
                     setError('Не удалось получить перевод.');
                 } finally {
@@ -97,10 +97,10 @@ const EditPhraseModal: React.FC<EditPhraseModalProps> = ({ isOpen, onClose, phra
             };
             getTranslation();
         }
-    }, [debouncedRussian, onTranslate]);
+    }, [debouncedNative, onTranslate]);
     
     const handleSave = () => {
-        onSave(phrase.id, { text: { native: russian, learning: german }, category: selectedCategory });
+        onSave(phrase.id, { text: { native: native, learning: german }, category: selectedCategory });
         onClose();
     };
 
@@ -112,10 +112,10 @@ const EditPhraseModal: React.FC<EditPhraseModalProps> = ({ isOpen, onClose, phra
         }
     };
     
-    const handleDiscussionAccept = (suggestion: { russian: string; german: string }) => {
-        setRussian(suggestion.russian);
+    const handleDiscussionAccept = (suggestion: { native: string; german: string }) => {
+        setNative(suggestion.native);
         setGerman(suggestion.german);
-        initialRussianRef.current = suggestion.russian; // Prevent re-translation
+        initialNativeRef.current = suggestion.native; // Prevent re-translation
         setIsDiscussModalOpen(false);
     };
 
@@ -135,17 +135,17 @@ const EditPhraseModal: React.FC<EditPhraseModalProps> = ({ isOpen, onClose, phra
                         {error && <div className="text-center bg-red-900/50 text-red-300 p-2 rounded-md text-sm">{t('modals.editPhrase.errors.translation')}</div>}
                         
                         <div>
-                            <label className="block text-sm font-medium text-slate-400 mb-1">{t('modals.editPhrase.fields.russian')}</label>
+                            <label className="block text-sm font-medium text-slate-400 mb-1">{t('modals.editPhrase.fields.native')}</label>
                             <div className="relative">
                                 <input
                                     type="text"
-                                    value={russian}
-                                    onChange={(e) => setRussian(e.target.value)}
+                                    value={native}
+                                    onChange={(e) => setNative(e.target.value)}
                                     className="w-full bg-slate-700 border border-slate-600 rounded-md p-3 pr-20 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                                 />
                                 <div className="absolute inset-y-0 right-0 flex items-center pr-2">
-                                    {russian && (
-                                        <button onClick={() => setRussian('')} className="p-1 text-slate-400 hover:text-white">
+                                    {native && (
+                                        <button onClick={() => setNative('')} className="p-1 text-slate-400 hover:text-white">
                                             <XCircleIcon className="w-5 h-5" />
                                         </button>
                                     )}
@@ -200,7 +200,7 @@ const EditPhraseModal: React.FC<EditPhraseModalProps> = ({ isOpen, onClose, phra
                             </button>
                             <button
                                 onClick={handleSave}
-                                disabled={!russian.trim() || !german.trim()}
+                                disabled={!native.trim() || !german.trim()}
                                 className="px-6 py-2 rounded-md bg-purple-600 hover:bg-purple-700 transition-colors font-semibold text-white shadow-md disabled:opacity-50"
                             >
                                 {t('modals.editPhrase.actions.save')}
@@ -212,7 +212,7 @@ const EditPhraseModal: React.FC<EditPhraseModalProps> = ({ isOpen, onClose, phra
             {phrase && <DiscussTranslationModal
                 isOpen={isDiscussModalOpen}
                 onClose={() => setIsDiscussModalOpen(false)}
-                originalRussian={phrase.text.native}
+                originalNative={phrase.text.native}
                 currentGerman={german}
                 onDiscuss={onDiscuss}
                 onAccept={handleDiscussionAccept}

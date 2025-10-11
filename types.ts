@@ -134,7 +134,7 @@ export interface CaseDeclension {
 
 export interface SentenceContinuation {
   german: string;
-  russian: string;
+  native: string;
 }
 
 export interface PhraseBuilderOptions {
@@ -156,7 +156,7 @@ export interface ContentPart {
 export interface ExamplePair {
   // FIX: Renamed 'germanExample' to 'learningExample' for consistency.
   learningExample: string;
-  // FIX: Renamed 'russianTranslation' to 'nativeTranslation' for consistency.
+  // FIX: Renamed 'nativeTranslation' to 'nativeTranslation' for consistency.
   nativeTranslation: string;
 }
 

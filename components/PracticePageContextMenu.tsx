@@ -16,7 +16,7 @@ interface PracticePageContextMenuProps {
   onDelete: (phraseId: string) => void;
   onDiscuss: (phrase: Phrase) => void;
   onAnalyzeWord: (phrase: Phrase, word: string) => Promise<WordAnalysis | null>;
-  onCreateCard: (data: { german: string; russian: string }) => void;
+  onCreateCard: (data: { german: string; native: string }) => void;
   onOpenWordAnalysis: (phrase: Phrase, word: string) => void;
   onOpenVerbConjugation: (infinitive: string) => void;
   onOpenNounDeclension: (noun: string, article: string) => void;
@@ -78,7 +78,7 @@ const PracticePageContextMenu: React.FC<PracticePageContextMenuProps> = ({
     setIsCreatingCard(true);
     const canonicalGerman = getCanonicalGerman();
     if (canonicalGerman) {
-      onCreateCard({ german: canonicalGerman, russian: analysis.nativeTranslation });
+      onCreateCard({ german: canonicalGerman, native: analysis.nativeTranslation });
     }
     // No need to set isCreatingCard to false, the modal will close.
     // However, if the action is quick, we can keep it for visual feedback.

@@ -28,7 +28,7 @@ interface PhraseCardProps {
   onOpenDeepDive: (phrase: Phrase) => void;
   onOpenMovieExamples: (phrase: Phrase) => void;
   onWordClick: (phrase: Phrase, word: string) => void;
-  onGetWordTranslation: (russianPhrase: string, germanPhrase: string, russianWord: string) => Promise<{ germanTranslation: string }>;
+  onGetWordTranslation: (nativePhrase: string, germanPhrase: string, nativeWord: string) => Promise<{ germanTranslation: string }>;
   onOpenSentenceChain: (phrase: Phrase) => void;
   onOpenImprovePhrase: (phrase: Phrase) => void;
   onOpenContextMenu: (target: { phrase: Phrase, word?: string }) => void;
@@ -41,13 +41,13 @@ interface PhraseCardProps {
   onFlashEnd: () => void;
 }
 
-interface RussianPhraseDisplayProps {
+interface NativePhraseDisplayProps {
   text: string;
   as: 'h2' | 'div';
   onWordClick: (event: React.MouseEvent<HTMLSpanElement>, word: string) => void;
 }
 
-const RussianPhraseDisplay: React.FC<RussianPhraseDisplayProps> = ({ text, as: Component, onWordClick }) => {
+const NativePhraseDisplay: React.FC<NativePhraseDisplayProps> = ({ text, as: Component, onWordClick }) => {
   const match = text.match(/(.*?)\s*\(([^)]+)\)/);
   
   const mainText = match && match[1] ? match[1].trim() : text;
@@ -127,7 +127,7 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
     }
   }, [isFlipped, phrase.text.learning, onSpeak, onFlip]);
   
-  const handleRussianWordClick = async (e: React.MouseEvent<HTMLSpanElement>, word: string) => {
+  const handleNativeWordClick = async (e: React.MouseEvent<HTMLSpanElement>, word: string) => {
     e.stopPropagation();
 
     if (wordHint?.word === word) {
@@ -320,7 +320,7 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
         className={`relative w-full h-full rounded-xl transition-transform duration-700 ease-in-out [transform-style:preserve-3d] ${isFlipped ? '[transform:rotateY(180deg)]' : ''}`}
         onClick={handleCardClick}
       >
-        {/* Front Side (Russian) */}
+        {/* Front Side (Native) */}
         <div 
             className={`card-face bg-slate-400/10 backdrop-blur-xl transition-colors duration-500`}
         >
@@ -332,7 +332,7 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
                 <SettingsIcon className="w-5 h-5" />
             </button>
             <div className="flex-grow flex flex-col items-center justify-center w-full">
-                <RussianPhraseDisplay text={phrase.text.native} as="h2" onWordClick={handleRussianWordClick} />
+                <NativePhraseDisplay text={phrase.text.native} as="h2" onWordClick={handleNativeWordClick} />
                 {phrase.context?.native && (
                   <p className="text-slate-300 mt-3 text-sm text-center font-normal italic max-w-xs">{phrase.context.native}</p>
                 )}

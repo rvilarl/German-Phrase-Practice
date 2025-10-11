@@ -26,7 +26,7 @@ const PhrasePreviewModal: React.FC<PhrasePreviewModalProps> = ({ phrase, onClose
     >
         <div className="[perspective:1000px] w-full max-w-md h-64" onClick={e => e.stopPropagation()}>
             <div className="relative w-full h-full [transform-style:preserve-3d] slow-rotate-animation">
-                {/* Front Side (Russian) */}
+                {/* Front Side (Native) */}
                 <div className="card-face bg-gradient-to-br from-slate-700 to-slate-800 border border-slate-600">
                     <h2 className="text-3xl font-semibold text-slate-100">{phrase.text.native}</h2>
                     {phrase.context?.native && <p className="text-slate-300 mt-3 text-base font-normal italic px-4">{phrase.context.native}</p>}

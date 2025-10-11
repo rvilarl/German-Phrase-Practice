@@ -14,7 +14,7 @@ interface SentenceChainModalProps {
   isOpen: boolean;
   onClose: () => void;
   phrase: Phrase;
-  onGenerateContinuations: (russianPhrase: string) => Promise<SentenceContinuation>;
+  onGenerateContinuations: (nativePhrase: string) => Promise<SentenceContinuation>;
   onWordClick: (phrase: Phrase, word: string) => void;
 }
 
@@ -44,7 +44,7 @@ const SentenceChainModal: React.FC<SentenceChainModalProps> = ({ isOpen, onClose
   const apiCacheKey = useMemo(() => `sentence_chain_api_cache_${phrase.id}`, [phrase.id]);
   const historyCacheKey = useMemo(() => `sentence_chain_history_${phrase.id}`, [phrase.id]);
   
-  const getFullRussianPhrase = useCallback((currentHistory: string[]): string => {
+  const getFullNativePhrase = useCallback((currentHistory: string[]): string => {
     let fullPhrase = phrase.text.native;
     for (const part of currentHistory) {
       if (part.match(/^[.,:;!?]/)) {
@@ -56,9 +56,9 @@ const SentenceChainModal: React.FC<SentenceChainModalProps> = ({ isOpen, onClose
     return fullPhrase;
   }, [phrase.text.native]);
 
-  const fetchContinuations = useCallback(async (russianPhrase: string) => {
-    if (cacheRef.current.has(russianPhrase)) {
-      const cachedData = cacheRef.current.get(russianPhrase)!;
+  const fetchContinuations = useCallback(async (nativePhrase: string) => {
+    if (cacheRef.current.has(nativePhrase)) {
+      const cachedData = cacheRef.current.get(nativePhrase)!;
       setCurrentGerman(cachedData.learning);
       setContinuations(cachedData.continuations);
       setIsLoading(false);
@@ -70,8 +70,8 @@ const SentenceChainModal: React.FC<SentenceChainModalProps> = ({ isOpen, onClose
     setError(null);
     setContinuations([]);
     try {
-      const result = await onGenerateContinuations(russianPhrase);
-      cacheRef.current.set(russianPhrase, result);
+      const result = await onGenerateContinuations(nativePhrase);
+      cacheRef.current.set(nativePhrase, result);
       // FIX: Use `result.learning` to match the `SentenceContinuation` type.
       setCurrentGerman(result.learning);
       setContinuations(result.continuations);
@@ -104,10 +104,10 @@ const SentenceChainModal: React.FC<SentenceChainModalProps> = ({ isOpen, onClose
   // Effect to fetch data whenever history changes, but only after initialization
   useEffect(() => {
     if (isOpen && isInitialized) {
-      const fullRussianPhrase = getFullRussianPhrase(history);
-      fetchContinuations(fullRussianPhrase);
+      const fullNativePhrase = getFullNativePhrase(history);
+      fetchContinuations(fullNativePhrase);
     }
-  }, [history, isOpen, isInitialized, getFullRussianPhrase, fetchContinuations]);
+  }, [history, isOpen, isInitialized, getFullNativePhrase, fetchContinuations]);
 
 
   const handleSelectContinuation = (continuation: string) => {
@@ -142,7 +142,7 @@ const SentenceChainModal: React.FC<SentenceChainModalProps> = ({ isOpen, onClose
     e.stopPropagation();
     const cleanedWord = word.replace(/[.,!?]/g, '');
     if (cleanedWord) {
-      const proxyPhrase: Phrase = { ...phrase, text: { learning: currentGerman, native: getFullRussianPhrase(history) } };
+      const proxyPhrase: Phrase = { ...phrase, text: { learning: currentGerman, native: getFullNativePhrase(history) } };
       onWordClick(proxyPhrase, cleanedWord);
     }
   };

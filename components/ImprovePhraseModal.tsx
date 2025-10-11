@@ -15,7 +15,7 @@ interface ImprovePhraseModalProps {
   isOpen: boolean;
   onClose: () => void;
   phrase: Phrase;
-  onGenerateImprovement: (originalRussian: string, currentGerman: string) => Promise<Suggestion>;
+  onGenerateImprovement: (originalNative: string, currentGerman: string) => Promise<Suggestion>;
   onPhraseImproved: (phraseId: string, newGerman: string) => void;
   onOpenDiscussion: (phrase: Phrase) => void;
 }

@@ -406,32 +406,32 @@
       "headers": {
         "speak": "Hablar",
         "german": "Alemán",
-        "russian": "Ruso"
+        "native": "Ruso"
       },
       "pronouns": [
         {
           "german": "ich",
-          "russian": "yo"
+          "native": "yo"
         },
         {
           "german": "du",
-          "russian": "tú (informal)"
+          "native": "tú (informal)"
         },
         {
           "german": "er / sie / es",
-          "russian": "él / ella / ello"
+          "native": "él / ella / ello"
         },
         {
           "german": "wir",
-          "russian": "nosotros"
+          "native": "nosotros"
         },
         {
           "german": "ihr",
-          "russian": "vosotros (plural informal)"
+          "native": "vosotros (plural informal)"
         },
         {
           "german": "sie / Sie",
-          "russian": "ellos / usted (formal)"
+          "native": "ellos / usted (formal)"
         }
       ]
     },
@@ -719,7 +719,7 @@
     "editPhrase": {
       "title": "Editar frase",
       "fields": {
-        "russian": "Ruso",
+        "native": "Ruso",
         "german": "Alemán",
         "category": "Categoría"
       },

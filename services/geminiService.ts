@@ -231,7 +231,7 @@ const generatePhrases: AiService['generatePhrases'] = async (prompt) => {
         
         return parsedPhrases.map((p: any) => ({
             german: p[lang.learningCode],
-            russian: p[lang.nativeCode],
+            native: p[lang.nativeCode],
         }));
     } catch (error) {
         console.error("Error generating phrases with Gemini:", error);
@@ -257,12 +257,12 @@ const singlePhraseSchema = () => {
     };
 };
 
-const generateSinglePhrase: AiService['generateSinglePhrase'] = async (russianPhrase) => {
+const generateSinglePhrase: AiService['generateSinglePhrase'] = async (nativePhrase) => {
     const api = initializeApi();
     if (!api) throw new Error("Gemini API key not configured.");
 
     const lang = getLang();
-    const prompt = `Translate the following ${lang.native} phrase into a common, natural-sounding ${lang.learning} phrase: "${russianPhrase}". Return a single JSON object with one key: "${lang.learningCode}" for the translation.`;
+    const prompt = `Translate the following ${lang.native} phrase into a common, natural-sounding ${lang.learning} phrase: "${nativePhrase}". Return a single JSON object with one key: "${lang.learningCode}" for the translation.`;
 
     try {
         const response = await api.models.generateContent({
@@ -284,7 +284,7 @@ const generateSinglePhrase: AiService['generateSinglePhrase'] = async (russianPh
 
         const finalResponse = {
             german: parsedResult[lang.learningCode],
-            russian: russianPhrase,
+            native: nativePhrase,
         };
 
         console.log('[practiceConversation] Final structured response:', finalResponse);
@@ -296,13 +296,13 @@ const generateSinglePhrase: AiService['generateSinglePhrase'] = async (russianPh
     }
 };
 
-const translatePhrase: AiService['translatePhrase'] = async (russianPhrase) => {
+const translatePhrase: AiService['translatePhrase'] = async (nativePhrase) => {
     const api = initializeApi();
     if (!api) throw new Error("Gemini API key not configured.");
 
     const lang = getLang();
 
-    const prompt = `Translate this ${lang.native} phrase to ${lang.learning}: "${russianPhrase}"`;
+    const prompt = `Translate this ${lang.native} phrase to ${lang.learning}: "${nativePhrase}"`;
 
     try {
         const response = await api.models.generateContent({
@@ -323,7 +323,7 @@ const translatePhrase: AiService['translatePhrase'] = async (russianPhrase) => {
     }
 };
 
-const russianSinglePhraseSchema = () => {
+const nativeSinglePhraseSchema = () => {
     const lang = getLang();
     return {
         type: Type.OBJECT,
@@ -337,7 +337,7 @@ const russianSinglePhraseSchema = () => {
     };
 };
 
-const translateGermanToRussian: AiService['translateGermanToRussian'] = async (germanPhrase) => {
+const translateGermanToNative: AiService['translateGermanToNative'] = async (germanPhrase) => {
     const api = initializeApi();
     if (!api) throw new Error("Gemini API key not configured.");
     const lang = getLang();
@@ -350,13 +350,13 @@ const translateGermanToRussian: AiService['translateGermanToRussian'] = async (g
             contents: prompt,
             config: {
                 responseMimeType: "application/json",
-                responseSchema: russianSinglePhraseSchema(),
+                responseSchema: nativeSinglePhraseSchema(),
                 temperature: 0.2,
             },
         });
         const jsonText = response.text.trim();
         const parsedResult = JSON.parse(jsonText);
-        return { russian: parsedResult[lang.nativeCode] };
+        return { native: parsedResult[lang.nativeCode] };
     } catch (error) {
         console.error("Error translating German phrase with Gemini:", error);
         throw new Error(`Failed to call the Gemini API: ${(error as any)?.message || 'Unknown error'}`);
@@ -377,14 +377,14 @@ const wordTranslationSchema = () => {
     };
 };
 
-const getWordTranslation: AiService['getWordTranslation'] = async (russianPhrase, germanPhrase, russianWord) => {
+const getWordTranslation: AiService['getWordTranslation'] = async (nativePhrase, germanPhrase, nativeWord) => {
     const api = initializeApi();
     if (!api) throw new Error("Gemini API key not configured.");
     const lang = getLang();
 
-    const prompt = `Дана ${lang.native} фраза: "${russianPhrase}".
+    const prompt = `Дана ${lang.native} фраза: "${nativePhrase}".
 Ее ${lang.learning} перевод: "${germanPhrase}".
-Каков точный перевод ${lang.native} слова "${russianWord}" в этом конкретном контексте?
+Каков точный перевод ${lang.native} слова "${nativeWord}" в этом конкретном контексте?
 Верни ТОЛЬКО JSON-объект с одним ключом "germanTranslation".`;
 
     try {
@@ -626,7 +626,7 @@ const topicClassificationSchema = {
         },
         categoryName: {
             type: Type.STRING,
-            description: "A short, suitable name for the category if isCategory is true. Should be in Russian. E.g., 'Дни недели', 'Цвета'. Empty string if isCategory is false."
+            description: "A short, suitable name for the category if isCategory is true. Should be in Native. E.g., 'Дни недели', 'Цвета'. Empty string if isCategory is false."
         }
     },
     required: ["isCategory", "categoryName"]
@@ -675,13 +675,13 @@ const improvePhraseSchema = () => {
     };
 };
 
-const improvePhrase: AiService['improvePhrase'] = async (originalRussian, currentGerman) => {
+const improvePhrase: AiService['improvePhrase'] = async (originalNative, currentGerman) => {
     const api = initializeApi();
     if (!api) throw new Error("Gemini API key not configured.");
     const lang = getLang();
 
     const prompt = `Ты — эксперт по ${lang.learning} языку. Пользователь хочет выучить правильный и естественный ${lang.learning}.
-Исходная фраза на ${lang.native}: "${originalRussian}"
+Исходная фраза на ${lang.native}: "${originalNative}"
 Текущий перевод на ${lang.learning}: "${currentGerman}"
 
 Твоя задача:
@@ -1596,7 +1596,7 @@ const conjugateVerb: AiService['conjugateVerb'] = async (infinitive) => {
         const mapConjugation = (item: any) => ({
             pronoun: item.pronoun,
             german: item[lang.learningCode],
-            russian: item[lang.nativeCode],
+            native: item[lang.nativeCode],
         });
 
         const mapTenseForms = (tense: any) => ({
@@ -1811,13 +1811,13 @@ const sentenceContinuationSchema = () => {
     };
 };
 
-const generateSentenceContinuations: AiService['generateSentenceContinuations'] = async (russianPhrase) => {
+const generateSentenceContinuations: AiService['generateSentenceContinuations'] = async (nativePhrase) => {
     const api = initializeApi();
     if (!api) throw new Error("Gemini API key not configured.");
     const lang = getLang();
 
     const prompt = `Ты — AI-помощник для изучения языка, который помогает пользователю строить фразы по частям.
-Текущая фраза пользователя на ${lang.native}: "${russianPhrase}"
+Текущая фраза пользователя на ${lang.native}: "${nativePhrase}"
 
 Твоя задача — проанализировать фразу и предложить логичные продолжения.
 
@@ -1826,7 +1826,7 @@ const generateSentenceContinuations: AiService['generateSentenceContinuations'] 
     - Если фраза "Как мне добраться до вокзала", то можно добавить **обстоятельство способа действия** (как?) или **времени** (когда?).
 
 2.  **Генерация**:
-    - **learning**: Переведи текущую фразу "${russianPhrase}" на ${lang.learning} язык. Убедись, что грамматика и знаки препинания корректны.
+    - **learning**: Переведи текущую фразу "${nativePhrase}" на ${lang.learning} язык. Убедись, что грамматика и знаки препинания корректны.
     - **continuations**: Сгенерируй от 7 до 10 разнообразных и логичных вариантов продолжения для ${lang.native} фразы. Варианты должны быть релевантны для взрослого человека в реальных жизненных ситуациях (работа, семья, быт, друзья, путешествия).
         - **ВАЖНО**: Варианты должны **продолжать** мысль, а не **заменять** ее часть.
         - **ПРАВИЛЬНО**: для "Как мне добраться до вокзала", предложи способы: "на метро", "пешком", "быстрее всего".
@@ -2208,7 +2208,7 @@ export const geminiService: AiService = {
     generatePhrases,
     generateSinglePhrase,
     translatePhrase,
-    translateGermanToRussian,
+    translateGermanToNative,
     getWordTranslation,
     improvePhrase,
     generateInitialExamples,

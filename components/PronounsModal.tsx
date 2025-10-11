@@ -12,12 +12,12 @@ interface PronounsModalProps {
 }
 
 const pronouns = [
-    { german: 'ich', russian: 'I' },
-    { german: 'du', russian: 'you (informal)' },
-    { german: 'er / sie / es', russian: 'he / she / it' },
-    { german: 'wir', russian: 'we' },
-    { german: 'ihr', russian: 'you (plural informal)' },
-    { german: 'sie / Sie', russian: 'they / you (formal)' },
+    { german: 'ich', native: 'I' },
+    { german: 'du', native: 'you (informal)' },
+    { german: 'er / sie / es', native: 'he / she / it' },
+    { german: 'wir', native: 'we' },
+    { german: 'ihr', native: 'you (plural informal)' },
+    { german: 'sie / Sie', native: 'they / you (formal)' },
 ];
 
 const PronounsModal: React.FC<PronounsModalProps> = ({ isOpen, onClose, onOpenWordAnalysis }) => {
@@ -25,11 +25,11 @@ const PronounsModal: React.FC<PronounsModalProps> = ({ isOpen, onClose, onOpenWo
 
   if (!isOpen) return null;
 
-  const handleWordClick = (contextText: string, word: string, russianText: string) => {
+  const handleWordClick = (contextText: string, word: string, nativeText: string) => {
     // FIX: Updated proxy phrase creation to match the new `Phrase` type with a nested `text` object.
     const proxyPhrase: Omit<Phrase, 'id'> & { id?: string } = {
         id: `proxy_pronoun_${word}`,
-        text: { learning: contextText, native: russianText },
+        text: { learning: contextText, native: nativeText },
         category: 'pronouns',
         masteryLevel: 0, lastReviewedAt: null, nextReviewAt: Date.now(),
         knowCount: 0, knowStreak: 0, isMastered: false,
@@ -38,7 +38,7 @@ const PronounsModal: React.FC<PronounsModalProps> = ({ isOpen, onClose, onOpenWo
     onOpenWordAnalysis(proxyPhrase as Phrase, word);
   };
   
-  const renderClickableGerman = (text: string, russian: string) => {
+  const renderClickableGerman = (text: string, native: string) => {
       if (!text) return null;
       return text.split(' ').map((word, i, arr) => {
           if (word === '/') return <span key={i}> / </span>;
@@ -48,7 +48,7 @@ const PronounsModal: React.FC<PronounsModalProps> = ({ isOpen, onClose, onOpenWo
                   onClick={(e) => {
                       e.stopPropagation();
                       const cleanedWord = word.replace(/[.,!?()"“”:;]/g, '');
-                      if (cleanedWord) handleWordClick(text, cleanedWord, russian);
+                      if (cleanedWord) handleWordClick(text, cleanedWord, native);
                   }}
                   className="cursor-pointer hover:bg-white/20 px-1 py-0.5 rounded-md transition-colors"
               >
@@ -81,7 +81,7 @@ const PronounsModal: React.FC<PronounsModalProps> = ({ isOpen, onClose, onOpenWo
                         <tr className="border-b border-slate-600">
                             <th className="p-3 w-1/6"><span className="sr-only">{t('modals.pronouns.headers.speak')}</span></th>
                             <th className="p-3 text-sm font-semibold text-slate-400">{t('modals.pronouns.headers.german')}</th>
-                            <th className="p-3 text-sm font-semibold text-slate-400">{t('modals.pronouns.headers.russian')}</th>
+                            <th className="p-3 text-sm font-semibold text-slate-400">{t('modals.pronouns.headers.native')}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -90,8 +90,8 @@ const PronounsModal: React.FC<PronounsModalProps> = ({ isOpen, onClose, onOpenWo
                                 <td className="p-3">
                                   <AudioPlayer textToSpeak={p.german.replace(/ \/ /g, ', ')} />
                                 </td>
-                                <td className="p-3 text-slate-100 font-semibold text-lg whitespace-nowrap">{renderClickableGerman(p.german, p.russian)}</td>
-                                <td className="p-3 text-slate-300 text-lg">{p.russian}</td>
+                                <td className="p-3 text-slate-100 font-semibold text-lg whitespace-nowrap">{renderClickableGerman(p.german, p.native)}</td>
+                                <td className="p-3 text-slate-300 text-lg">{p.native}</td>
                             </tr>
                         ))}
                     </tbody>

@@ -20,7 +20,7 @@ interface WordAnalysisModalProps {
   onOpenAdjectiveDeclension: (adjective: string) => void;
   onOpenWordAnalysis: (phrase: Phrase, word: string) => void;
   allPhrases: Phrase[];
-  onCreateCard: (phraseData: { german: string; russian: string; }) => void;
+  onCreateCard: (phraseData: { german: string; native: string; }) => void;
 }
 
 const WordAnalysisSkeleton: React.FC = () => (
@@ -81,7 +81,7 @@ const WordAnalysisModal: React.FC<WordAnalysisModalProps> = ({
     
     onCreateCard({
         german: canonicalGerman,
-        russian: analysis.nativeTranslation,
+        native: analysis.nativeTranslation,
     });
     setIsCardCreated(true);
   };
@@ -89,12 +89,12 @@ const WordAnalysisModal: React.FC<WordAnalysisModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleWordClick = (contextText: string, clickedWord: string, russianText: string) => {
-    const proxyPhrase: Phrase = { ...phrase, id: `proxy_${phrase.id}_analysis`, text: { learning: contextText, native: russianText } };
+  const handleWordClick = (contextText: string, clickedWord: string, nativeText: string) => {
+    const proxyPhrase: Phrase = { ...phrase, id: `proxy_${phrase.id}_analysis`, text: { learning: contextText, native: nativeText } };
     onOpenWordAnalysis(proxyPhrase, clickedWord);
   };
   
-  const renderClickableGerman = (text: string, russian: string) => {
+  const renderClickableGerman = (text: string, native: string) => {
       if (!text) return null;
       return text.split(' ').map((word, i, arr) => (
           <span
@@ -102,7 +102,7 @@ const WordAnalysisModal: React.FC<WordAnalysisModalProps> = ({
               onClick={(e) => {
                   e.stopPropagation();
                   const cleanedWord = word.replace(/[.,!?()"“”:;]/g, '');
-                  if (cleanedWord) handleWordClick(text, cleanedWord, russian);
+                  if (cleanedWord) handleWordClick(text, cleanedWord, native);
               }}
               className="cursor-pointer hover:bg-white/20 px-1 py-0.5 rounded-md transition-colors"
           >

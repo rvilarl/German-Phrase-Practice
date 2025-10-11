@@ -15,10 +15,10 @@ import { getNativeSpeechLocale } from '../services/speechService';
 interface DiscussTranslationModalProps {
     isOpen: boolean;
     onClose: () => void;
-    originalRussian: string;
+    originalNative: string;
     currentGerman: string;
     onDiscuss: (request: any) => Promise<TranslationChatResponse>;
-    onAccept: (suggestion: { russian: string; german: string }) => void;
+    onAccept: (suggestion: { native: string; german: string }) => void;
     onOpenWordAnalysis: (phrase: Phrase, word: string) => void;
     initialMessage?: string;
 }
@@ -74,13 +74,13 @@ const ChatMessageContent: React.FC<{
     return text ? <p>{text}</p> : null;
 };
 
-const DiscussTranslationModal: React.FC<DiscussTranslationModalProps> = ({ isOpen, onClose, originalRussian, currentGerman, onDiscuss, onAccept, onOpenWordAnalysis, initialMessage }) => {
+const DiscussTranslationModal: React.FC<DiscussTranslationModalProps> = ({ isOpen, onClose, originalNative, currentGerman, onDiscuss, onAccept, onOpenWordAnalysis, initialMessage }) => {
     const { t } = useTranslation();
     const { profile } = useLanguage();
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [input, setInput] = useState('');
-    const [latestSuggestion, setLatestSuggestion] = useState<{ russian: string; german: string } | null>(null);
+    const [latestSuggestion, setLatestSuggestion] = useState<{ native: string; german: string } | null>(null);
     const [isListening, setIsListening] = useState(false);
     
     const recognitionRef = useRef<SpeechRecognition | null>(null);
@@ -88,7 +88,7 @@ const DiscussTranslationModal: React.FC<DiscussTranslationModalProps> = ({ isOpe
     const isInitialMessageSent = useRef(false);
 
     const basePhrase = {
-        text: { native: originalRussian, learning: currentGerman },
+        text: { native: originalNative, learning: currentGerman },
         category: 'general' as const,
         masteryLevel: 0, lastReviewedAt: null, nextReviewAt: Date.now(),
         knowCount: 0, knowStreak: 0, isMastered: false,
@@ -108,21 +108,21 @@ const DiscussTranslationModal: React.FC<DiscussTranslationModalProps> = ({ isOpe
 
         try {
             const response = await onDiscuss({
-                originalNative: originalRussian,
+                originalNative: originalNative,
                 currentLearning: currentGerman,
                 history: newMessages,
                 userRequest: messageText,
             });
             setMessages(prev => [...prev, response]);
             if (response.suggestion) {
-                setLatestSuggestion({ russian: response.suggestion.native, german: response.suggestion.learning });
+                setLatestSuggestion({ native: response.suggestion.native, german: response.suggestion.learning });
             }
         } catch (error) {
             setMessages(prev => [...prev, { role: 'model', contentParts: [{ type: 'text', text: t('modals.discussTranslation.errors.generic', { message: (error as Error).message }) }] }]);
         } finally {
             setIsLoading(false);
         }
-    }, [isLoading, messages, originalRussian, currentGerman, onDiscuss]);
+    }, [isLoading, messages, originalNative, currentGerman, onDiscuss]);
     
     useEffect(() => {
         if (isOpen) {
@@ -134,14 +134,14 @@ const DiscussTranslationModal: React.FC<DiscussTranslationModalProps> = ({ isOpe
                 setMessages([userMessage]);
 
                 onDiscuss({
-                    originalNative: originalRussian,
+                    originalNative: originalNative,
                     currentLearning: currentGerman,
                     history: [userMessage],
                     userRequest: initialMessage,
                 }).then(response => {
                     setMessages(prev => [...prev, response]);
                     if (response.suggestion) {
-                        setLatestSuggestion({ russian: response.suggestion.native, german: response.suggestion.learning });
+                        setLatestSuggestion({ native: response.suggestion.native, german: response.suggestion.learning });
                     }
                 }).catch(error => {
                     setMessages(prev => [...prev, { role: 'model', contentParts: [{ type: 'text', text: t('modals.discussTranslation.errors.generic', { message: (error as Error).message }) }] }]);
@@ -156,7 +156,7 @@ const DiscussTranslationModal: React.FC<DiscussTranslationModalProps> = ({ isOpe
             setInput('');
             isInitialMessageSent.current = false;
         }
-    }, [isOpen, initialMessage, originalRussian, currentGerman, onDiscuss]);
+    }, [isOpen, initialMessage, originalNative, currentGerman, onDiscuss]);
     
     useEffect(() => {
         const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -251,7 +251,7 @@ const DiscussTranslationModal: React.FC<DiscussTranslationModalProps> = ({ isOpe
                     {latestSuggestion && (
                         <div className="bg-slate-700/50 p-3 rounded-lg mb-3">
                             <p className="text-sm text-slate-400">{t('modals.discussTranslation.suggestion')}:</p>
-                            <p className="font-semibold text-slate-200">{latestSuggestion.russian} → {latestSuggestion.german}</p>
+                            <p className="font-semibold text-slate-200">{latestSuggestion.native} → {latestSuggestion.german}</p>
                             <button onClick={handleAccept} className="w-full mt-2 text-sm flex items-center justify-center py-2 bg-green-600 hover:bg-green-700 rounded-md font-bold text-white">
                                 <CheckIcon className="w-4 h-4 mr-2" />
                                 {t('modals.discussTranslation.accept')}

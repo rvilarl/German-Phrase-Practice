@@ -13,9 +13,9 @@ import { getLanguageLabel } from '../services/languageLabels';
 interface AddPhraseModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onGenerate: (russianPhrase: string) => Promise<{ german: string; russian: string }>;
-  onTranslateGerman: (germanPhrase: string) => Promise<{ russian: string }>;
-  onPhraseCreated: (phraseData: { german: string; russian: string }) => void;
+  onGenerate: (nativePhrase: string) => Promise<{ german: string; native: string }>;
+  onTranslateGerman: (germanPhrase: string) => Promise<{ native: string }>;
+  onPhraseCreated: (phraseData: { german: string; native: string }) => void;
   language: LanguageCode;
   autoSubmit: boolean;
 }
@@ -57,13 +57,13 @@ const AddPhraseModal: React.FC<AddPhraseModalProps> = ({
       setError(null);
 
       try {
-        let newPhraseData: { german: string; russian: string };
+        let newPhraseData: { german: string; native: string };
         // Check if the input language is the native language
         if (language === profile.native) {
           newPhraseData = await onGenerate(trimmedText);
         } else {
-          const { russian } = await onTranslateGerman(trimmedText);
-          newPhraseData = { german: trimmedText, russian };
+          const { native } = await onTranslateGerman(trimmedText);
+          newPhraseData = { german: trimmedText, native };
         }
         await onPhraseCreated(newPhraseData);
       } catch (err) {

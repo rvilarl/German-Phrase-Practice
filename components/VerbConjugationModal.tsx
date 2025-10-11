@@ -217,7 +217,7 @@ const VerbConjugationModal: React.FC<VerbConjugationModalProps> = ({ isOpen, onC
                 <span className="font-mono text-purple-300 text-right">{conj.pronoun}</span>
                 <div className="min-w-0">
                     <p className="text-slate-100 font-medium truncate">{renderClickableGerman((conj as any).german)}</p>
-                    <p className="text-xs text-slate-400 italic truncate">«{(conj as any).russian}»</p>
+                    <p className="text-xs text-slate-400 italic truncate">«{(conj as any).native}»</p>
                 </div>
                 <AudioPlayer textToSpeak={(conj as any).german} />
             </div>

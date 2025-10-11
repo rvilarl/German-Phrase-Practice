@@ -60,7 +60,7 @@ async function retryWithExponentialBackoff<T>(
 const LANGUAGE_NAMES: Record<string, string> = {
   en: 'English',
   de: 'German',
-  ru: 'Russian',
+  ru: 'Native',
   fr: 'French',
   es: 'Spanish',
   it: 'Italian',

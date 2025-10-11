@@ -414,32 +414,32 @@
       "headers": {
         "speak": "",
         "german": "",
-        "russian": ""
+        "native": ""
       },
       "pronouns": [
         {
           "german": "",
-          "russian": ""
+          "native": ""
         },
         {
           "german": "",
-          "russian": ""
+          "native": ""
         },
         {
           "german": "",
-          "russian": ""
+          "native": ""
         },
         {
           "german": "",
-          "russian": ""
+          "native": ""
         },
         {
           "german": "",
-          "russian": ""
+          "native": ""
         },
         {
           "german": "",
-          "russian": ""
+          "native": ""
         }
       ]
     },
@@ -727,7 +727,7 @@
     "editPhrase": {
       "title": "",
       "fields": {
-        "russian": "",
+        "native": "",
         "german": "",
         "category": ""
       },

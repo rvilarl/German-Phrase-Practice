@@ -7,7 +7,7 @@ import type { LanguageCode } from '../types';
 export const LANGUAGE_NAMES: Record<LanguageCode, string> = {
   en: 'English',
   de: 'German',
-  ru: 'Russian',
+  ru: 'Native',
   fr: 'French',
   es: 'Spanish',
   it: 'Italian',

@@ -29,7 +29,7 @@ export function getLanguageNameInEnglish(languageCode: LanguageCode): string {
   const names: Record<LanguageCode, string> = {
     en: 'English',
     de: 'German',
-    ru: 'Russian',
+    ru: 'Native',
     fr: 'French',
     es: 'Spanish',
     it: 'Italian',

@@ -22,36 +22,36 @@ interface PracticeChatModalProps {
   allPhrases: Phrase[];
   settings: { autoSpeak: boolean };
   onOpenWordAnalysis: (phrase: Phrase, word: string) => void;
-  onCreateCard: (phraseData: { german: string; russian: string; }) => void;
+  onCreateCard: (phraseData: { german: string; native: string; }) => void;
   onAnalyzeWord: (phrase: Phrase, word: string) => Promise<WordAnalysis | null>;
   onOpenVerbConjugation: (infinitive: string) => void;
   onOpenNounDeclension: (noun: string, article: string) => void;
   onOpenAdjectiveDeclension: (adjective: string) => void;
-  onTranslateGermanToRussian: (germanPhrase: string) => Promise<{ russian: string }>;
+  onTranslateGermanToNative: (germanPhrase: string) => Promise<{ native: string }>;
 }
 
 const ChatMessageContent: React.FC<{
     message: ChatMessage;
     onSpeak: (text: string) => void;
     onOpenWordAnalysis: (phrase: Phrase, word: string) => void;
-    onOpenContextMenu: (target: { sentence: { german: string, russian: string }, word: string }) => void;
+    onOpenContextMenu: (target: { sentence: { german: string, native: string }, word: string }) => void;
 }> = ({ message, onSpeak, onOpenWordAnalysis, onOpenContextMenu }) => {
     const { text, contentParts } = message;
     const wordLongPressTimer = useRef<number | null>(null);
     const [revealedTranslations, setRevealedTranslations] = useState<Set<number>>(new Set());
 
-    const handleWordClick = (contextText: string, word: string, russianText: string) => {
+    const handleWordClick = (contextText: string, word: string, nativeText: string) => {
         // FIX: Correctly construct the proxy Phrase with a nested text object.
         const proxyPhrase: Phrase = {
             id: `proxy_practice_chat_${contextText.slice(0, 5)}`,
-            text: { learning: contextText, native: russianText },
+            text: { learning: contextText, native: nativeText },
             category: 'general' as const, masteryLevel: 0, lastReviewedAt: null, nextReviewAt: Date.now(),
             knowCount: 0, knowStreak: 0, isMastered: false, lapses: 0,
         };
         onOpenWordAnalysis(proxyPhrase, word);
     };
 
-    const handleWordPointerDown = (e: React.PointerEvent<HTMLSpanElement>, sentence: { german: string, russian: string }, word: string) => {
+    const handleWordPointerDown = (e: React.PointerEvent<HTMLSpanElement>, sentence: { german: string, native: string }, word: string) => {
         if (e.pointerType === 'mouse' && e.button !== 0) return;
         e.stopPropagation();
         const cleanedWord = word.replace(/[.,!?()"“”:;]/g, '');
@@ -76,10 +76,10 @@ const ChatMessageContent: React.FC<{
             <span
                 key={i}
                 onClick={(e) => { e.stopPropagation(); const cleaned = word.replace(/[.,!?()"“”:;]/g, ''); if (cleaned) handleWordClick(text, cleaned, translation); }}
-                onPointerDown={(e) => handleWordPointerDown(e, { german: text, russian: translation }, word)}
+                onPointerDown={(e) => handleWordPointerDown(e, { german: text, native: translation }, word)}
                 onPointerUp={clearWordLongPress}
                 onPointerLeave={clearWordLongPress}
-                onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); const cleaned = word.replace(/[.,!?()"“”:;]/g, ''); if(cleaned) onOpenContextMenu({ sentence: { german: text, russian: translation }, word: cleaned }); }}
+                onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); const cleaned = word.replace(/[.,!?()"“”:;]/g, ''); if(cleaned) onOpenContextMenu({ sentence: { german: text, native: translation }, word: cleaned }); }}
                 className="cursor-pointer hover:bg-white/20 px-1 py-0.5 rounded-md transition-colors"
             >
                 {word}{i < arr.length - 1 ? ' ' : ''}
@@ -133,7 +133,7 @@ const PracticeChatModal: React.FC<PracticeChatModalProps> = ({ isOpen, onClose, 
   const [input, setInput] = useState('');
   const [promptSuggestions, setPromptSuggestions] = useState<string[]>([]);
   const [isListening, setIsListening] = useState(false);
-  const [contextMenuTarget, setContextMenuTarget] = useState<{ sentence: { german: string, russian: string }, word: string } | null>(null);
+  const [contextMenuTarget, setContextMenuTarget] = useState<{ sentence: { german: string, native: string }, word: string } | null>(null);
 
   const recognitionRef = useRef<any>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);

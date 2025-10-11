@@ -570,7 +570,7 @@
     "editPhrase": {
       "title": "Редактировать фразу",
       "fields": {
-        "russian": "Русский",
+        "native": "Русский",
         "german": "Немецкий",
         "category": "Категория"
       },
@@ -704,32 +704,32 @@
       "headers": {
         "speak": "Озвучить",
         "german": "Немецкий",
-        "russian": "Русский"
+        "native": "Русский"
       },
       "pronouns": [
         {
           "german": "ich",
-          "russian": "я"
+          "native": "я"
         },
         {
           "german": "du",
-          "russian": "ты"
+          "native": "ты"
         },
         {
           "german": "er / sie / es",
-          "russian": "он / она / оно"
+          "native": "он / она / оно"
         },
         {
           "german": "wir",
-          "russian": "мы"
+          "native": "мы"
         },
         {
           "german": "ihr",
-          "russian": "вы (неформ.)"
+          "native": "вы (неформ.)"
         },
         {
           "german": "sie / Sie",
-          "russian": "они / Вы (форм.)"
+          "native": "они / Вы (форм.)"
         }
       ]
     },

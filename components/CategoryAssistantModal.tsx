@@ -32,12 +32,12 @@ interface CategoryAssistantModalProps {
   // Props for interactivity
   onOpenWordAnalysis: (phrase: Phrase, word: string) => void;
   allPhrases: Phrase[];
-  onCreateCard: (phraseData: { german: string; russian: string; }) => void;
+  onCreateCard: (phraseData: { german: string; native: string; }) => void;
   onAnalyzeWord: (phrase: Phrase, word: string) => Promise<WordAnalysis | null>;
   onOpenVerbConjugation: (infinitive: string) => void;
   onOpenNounDeclension: (noun: string, article: string) => void;
   onOpenAdjectiveDeclension: (adjective: string) => void;
-  onTranslateGermanToRussian: (germanPhrase: string) => Promise<{ russian: string }>;
+  onTranslateGermanToNative: (germanPhrase: string) => Promise<{ native: string }>;
   onGoToList: () => void;
 }
 
@@ -50,7 +50,7 @@ const AssistantChatMessageContent: React.FC<{
     // Interactivity props
     onSpeak: (text: string) => void;
     onOpenWordAnalysis: (phrase: Phrase, word: string) => void;
-    onOpenContextMenu: (target: { sentence: { german: string, russian: string }, word: string }) => void;
+    onOpenContextMenu: (target: { sentence: { german: string, native: string }, word: string }) => void;
 }> = ({ msg, category, onAddCards, onGoToList, onClose, onSpeak, onOpenWordAnalysis, onOpenContextMenu }) => {
     const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
     const [addedInfo, setAddedInfo] = useState<{ count: number } | null>(null);
@@ -74,7 +74,7 @@ const AssistantChatMessageContent: React.FC<{
         setIsAdding(false);
     };
     
-    const handleWordPointerDown = (e: React.PointerEvent<HTMLSpanElement>, sentence: { german: string, russian: string }, word: string) => {
+    const handleWordPointerDown = (e: React.PointerEvent<HTMLSpanElement>, sentence: { german: string, native: string }, word: string) => {
         if (e.pointerType === 'mouse' && e.button !== 0) return;
         e.stopPropagation();
         const cleanedWord = word.replace(/[.,!?()"“”:;]/g, '');
@@ -93,10 +93,10 @@ const AssistantChatMessageContent: React.FC<{
         }
     };
     
-    const handleWordClick = (contextText: string, word: string, russianText: string) => {
+    const handleWordClick = (contextText: string, word: string, nativeText: string) => {
         const proxyPhrase: Phrase = {
             id: `proxy_assist_${contextText.slice(0, 5)}`,
-            text: { learning: contextText, native: russianText },
+            text: { learning: contextText, native: nativeText },
             category: category.id,
             masteryLevel: 0, lastReviewedAt: null, nextReviewAt: Date.now(),
             knowCount: 0, knowStreak: 0, isMastered: false, lapses: 0,
@@ -110,10 +110,10 @@ const AssistantChatMessageContent: React.FC<{
             <span
                 key={i}
                 onClick={(e) => { e.stopPropagation(); const cleaned = word.replace(/[.,!?()"“”:;]/g, ''); if (cleaned) handleWordClick(part.text, cleaned, part.translation || ''); }}
-                onPointerDown={(e) => handleWordPointerDown(e, { german: part.text, russian: part.translation || '' }, word)}
+                onPointerDown={(e) => handleWordPointerDown(e, { german: part.text, native: part.translation || '' }, word)}
                 onPointerUp={clearWordLongPress}
                 onPointerLeave={clearWordLongPress}
-                onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); const cleaned = word.replace(/[.,!?()"“”:;]/g, ''); if(cleaned) onOpenContextMenu({ sentence: { german: part.text, russian: part.translation || '' }, word: cleaned }); }}
+                onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); const cleaned = word.replace(/[.,!?()"“”:;]/g, ''); if(cleaned) onOpenContextMenu({ sentence: { german: part.text, native: part.translation || '' }, word: cleaned }); }}
                 className="cursor-pointer hover:bg-white/20 px-1 py-0.5 rounded-md transition-colors"
             >
                 {word}{i < arr.length - 1 ? ' ' : ''}
@@ -198,7 +198,7 @@ const CategoryAssistantModal: React.FC<CategoryAssistantModalProps> = (props) =>
     const [input, setInput] = useState('');
     const [isListening, setIsListening] = useState(false);
     const [promptSuggestions, setPromptSuggestions] = useState<string[]>([]);
-    const [contextMenuTarget, setContextMenuTarget] = useState<{ sentence: { german: string, russian: string }, word: string } | null>(null);
+    const [contextMenuTarget, setContextMenuTarget] = useState<{ sentence: { german: string, native: string }, word: string } | null>(null);
 
     const recognitionRef = useRef<any>(null);
     const chatEndRef = useRef<HTMLDivElement>(null);

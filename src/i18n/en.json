@@ -565,7 +565,7 @@
     "editPhrase": {
       "title": "Edit phrase",
       "fields": {
-        "russian": "Russian",
+        "native": "Native",
         "german": "German",
         "category": "Category"
       },
@@ -699,32 +699,32 @@
       "headers": {
         "speak": "Speak",
         "german": "German",
-        "russian": "Russian"
+        "native": "Native"
       },
       "pronouns": [
         {
           "german": "ich",
-          "russian": "I"
+          "native": "I"
         },
         {
           "german": "du",
-          "russian": "you (informal)"
+          "native": "you (informal)"
         },
         {
           "german": "er / sie / es",
-          "russian": "he / she / it"
+          "native": "he / she / it"
         },
         {
           "german": "wir",
-          "russian": "we"
+          "native": "we"
         },
         {
           "german": "ihr",
-          "russian": "you (plural informal)"
+          "native": "you (plural informal)"
         },
         {
           "german": "sie / Sie",
-          "russian": "they / you (formal)"
+          "native": "they / you (formal)"
         }
       ]
     },
