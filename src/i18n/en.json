@@ -1035,6 +1035,28 @@
       "translating": "Translating",
       "translate": "Translate"
     },
+    "modal": {
+      "title": "Assistant for {{name}}",
+      "input": {
+        "placeholder": "Describe what you need...",
+        "listening": "Listening..."
+      },
+      "quickActions": {
+        "addSimilar": "Add similar phrases",
+        "checkConsistency": "Check consistency",
+        "createDialogue": "Create dialogue"
+      },
+      "actions": {
+        "addSelected": "Add selected ({{count}})",
+        "goToList": "Go to list"
+      },
+      "messages": {
+        "error": "Failed to run assistant: {{message}}"
+      },
+      "success": {
+        "added": "Added {{count}} cards to the category."
+      }
+    },
     "prompts": {
       "generateSimilar": "Generate similar phrases for: {phrase}"
     }

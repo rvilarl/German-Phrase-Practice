@@ -1061,6 +1061,28 @@
       "translating": "Перевод...",
       "translate": "Перевести"
     },
+    "modal": {
+      "title": "Ассистент для «{{name}}»",
+      "input": {
+        "placeholder": "Опишите, что нужно добавить...",
+        "listening": "Слушаю..."
+      },
+      "quickActions": {
+        "addSimilar": "Добавить похожие фразы",
+        "checkConsistency": "Проверить однородность",
+        "createDialogue": "Создать диалог"
+      },
+      "actions": {
+        "addSelected": "Добавить выбранные ({{count}})",
+        "goToList": "Перейти к списку"
+      },
+      "messages": {
+        "error": "Не удалось выполнить запрос: {{message}}"
+      },
+      "success": {
+        "added": "Добавлено {{count}} карточек в категорию."
+      }
+    },
     "prompts": {
       "generateSimilar": "Сгенерировать похожие фразы для: {phrase}"
     }

@@ -121,38 +121,37 @@
     "categories": {
       "manageButton": "Kategorien verwalten"
     },
-"analytics": {
-  "noData": "—",
-  "srs": {
-    "totalCards": "Gesamte Karten",
-    "mastered": "Gemeistert",
-    "learning": "Lernen: {{count}}",
-    "dueToday": "Fällig heute",
-    "overdue": "Überfällig: {{count}}",
-    "accuracy": "Genauigkeit",
-    "reviews": "{{count}} Wiederholungen",
-    "masteryProgress": "{{percent}}% gemeistert",
-    "streak": "🔥 {{days}}-Tage-Serie",
-    "streak_plural": "🔥 {{days}}-Tage-Serie",
-    "accuracyBreakdown": "Genauigkeitsübersicht",
-    "overall": "Insgesamt",
-    "last7Days": "Letzte 7 Tage",
-    "last30Days": "Letzte 30 Tage",
-    "levelsDistribution": "Verteilung der SRS-Stufen",
-    "level": "L{{level}}",
-    "categories": "Kategorien",
-    "cards": "Karten",
-    "avgLevel": "Durchschnittsstufe",
-    "recentActivity": "Letzte Aktivität (14 Tage)",
-    "difficultCards": "Schwierige Karten (Leeches)",
-    "lapses": "Fehler",
-    "noActivityYet": "Noch keine Wiederholungsaktivität",
-    "noDifficultCards": "Noch keine schwierigen Karten",
-    "emptyState": "Noch keine Übungsdaten",
-    "emptyStateHint": "Beginne mit dem Üben, um hier deine Fortschrittsstatistiken zu sehen."
-  }
-}
-
+    "analytics": {
+      "noData": "—",
+      "srs": {
+        "totalCards": "Gesamte Karten",
+        "mastered": "Gemeistert",
+        "learning": "Lernen: {{count}}",
+        "dueToday": "Fällig heute",
+        "overdue": "Überfällig: {{count}}",
+        "accuracy": "Genauigkeit",
+        "reviews": "{{count}} Wiederholungen",
+        "masteryProgress": "{{percent}}% gemeistert",
+        "streak": "🔥 {{days}}-Tage-Serie",
+        "streak_plural": "🔥 {{days}}-Tage-Serie",
+        "accuracyBreakdown": "Genauigkeitsübersicht",
+        "overall": "Insgesamt",
+        "last7Days": "Letzte 7 Tage",
+        "last30Days": "Letzte 30 Tage",
+        "levelsDistribution": "Verteilung der SRS-Stufen",
+        "level": "L{{level}}",
+        "categories": "Kategorien",
+        "cards": "Karten",
+        "avgLevel": "Durchschnittsstufe",
+        "recentActivity": "Letzte Aktivität (14 Tage)",
+        "difficultCards": "Schwierige Karten (Leeches)",
+        "lapses": "Fehler",
+        "noActivityYet": "Noch keine Wiederholungsaktivität",
+        "noDifficultCards": "Noch keine schwierigen Karten",
+        "emptyState": "Noch keine Übungsdaten",
+        "emptyStateHint": "Beginne mit dem Üben, um hier deine Fortschrittsstatistiken zu sehen."
+      }
+    }
   },
   "notifications": {
     "sync": {
@@ -1038,6 +1037,28 @@
     },
     "prompts": {
       "generateSimilar": "Ähnliche Phrasen generieren für: {phrase}"
+    },
+    "modal": {
+      "title": "Assistent für {{name}}",
+      "input": {
+        "placeholder": "Beschreibe, was du brauchst...",
+        "listening": "Höre zu..."
+      },
+      "quickActions": {
+        "addSimilar": "Ähnliche Sätze hinzufügen",
+        "checkConsistency": "Konsistenz prüfen",
+        "createDialogue": "Dialog erstellen"
+      },
+      "actions": {
+        "addSelected": "Ausgewählte hinzufügen ({{count}})",
+        "goToList": "Zur Liste gehen"
+      },
+      "messages": {
+        "error": "Assistent konnte nicht ausgeführt werden: {{message}}"
+      },
+      "success": {
+        "added": "{{count}} Karten wurden zur Kategorie hinzugefügt."
+      }
     }
   },
   "phraseCard": {

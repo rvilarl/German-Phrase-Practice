@@ -1037,6 +1037,28 @@
     },
     "prompts": {
       "generateSimilar": "Ähnliche Phrasen generieren für: {phrase}"
+    },
+    "modal": {
+      "title": "Asistente para {{name}}",
+      "input": {
+        "placeholder": "Describe lo que necesitas...",
+        "listening": "Escuchando..."
+      },
+      "quickActions": {
+        "addSimilar": "Agregar frases similares",
+        "checkConsistency": "Comprobar consistencia",
+        "createDialogue": "Crear diálogo"
+      },
+      "actions": {
+        "addSelected": "Agregar seleccionadas ({{count}})",
+        "goToList": "Ir a la lista"
+      },
+      "messages": {
+        "error": "No se pudo ejecutar el asistente: {{message}}"
+      },
+      "success": {
+        "added": "Se agregaron {{count}} tarjetas a la categoría."
+      }
     }
   },
   "phraseCard": {
