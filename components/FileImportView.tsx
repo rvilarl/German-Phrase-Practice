@@ -228,7 +228,7 @@ const FileImportView: React.FC<FileImportViewProps> = ({ onProcessFile }) => {
       <div className="flex flex-col items-center justify-center h-full text-center">
         {!croppedImageSrc ? (
           <>
-              <p className="text-slate-400 -mt-4 mb-4 max-w-md">{t('modals.fileImport.instructions')}</p>
+              <p className="text-sm italic text-slate-600 -mt-4 mb-4 max-w-md">{t('modals.fileImport.instructions')}</p>
               <input
                   ref={fileInputRef}
                   type="file"
@@ -237,27 +237,27 @@ const FileImportView: React.FC<FileImportViewProps> = ({ onProcessFile }) => {
                   accept="image/*"
                   onChange={(e) => handleFileChange(e.target.files?.[0] || null)}
               />
-              <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="w-[90%]  h-[85%] grid grid-cols-1 sm:grid-cols-2 gap-4 ">
                 <label
                     htmlFor="file-upload"
                     onDragEnter={(e) => handleDragEvents(e, true)}
                     onDragLeave={(e) => handleDragEvents(e, false)}
                     onDragOver={(e) => handleDragEvents(e, true)}
                     onDrop={handleDrop}
-                    className={`h-48 border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer transition-colors ${isDragging ? 'border-purple-500 bg-slate-700' : 'border-slate-600 hover:border-slate-500'}`}
+                    className={`py-5 border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer transition-colors ${isDragging ? 'border-purple-500 bg-slate-700' : 'border-slate-600 hover:border-slate-500'}`}
                 >
-                    <FilePlusIcon className="w-10 h-10 text-slate-500 mb-2" />
-                    <span className="font-semibold text-slate-300">{t('modals.fileImport.dropzone.text')}</span>
-                    <span className="text-xs text-slate-500 mt-1">{t('modals.fileImport.dropzone.subtext')}</span>
+                    <FilePlusIcon className="w-5 h-5 text-slate-600 mb-2" />
+                    <span className="text-sm font-semibold text-slate-300">{t('modals.fileImport.dropzone.text')}</span>
+                    <span className="text-sm text-slate-600 mt-1">{t('modals.fileImport.dropzone.subtext')}</span>
                 </label>
                 <button
                   type="button"
                   onClick={() => setIsCameraOpen(true)}
-                  className="h-48 border-2 border-dashed border-slate-600 hover:border-slate-500 rounded-lg flex flex-col items-center justify-center cursor-pointer transition-colors"
+                  className="py-5 border-2 border-dashed border-slate-600 hover:border-slate-500 rounded-lg flex flex-col items-center justify-center cursor-pointer transition-colors"
                 >
-                  <CameraIcon className="w-10 h-10 text-slate-500 mb-2" />
+                  <CameraIcon className="w-5 h-5 text-slate-500 mb-2" />
                   <span className="font-semibold text-slate-300">{t('modals.fileImport.camera.button')}</span>
-                  <span className="text-xs text-slate-500 mt-1">{t('modals.fileImport.camera.subtext')}</span>
+                  <span className="text-xs text-slate-600 mt-1">{t('modals.fileImport.camera.subtext')}</span>
                 </button>
               </div>
           </>

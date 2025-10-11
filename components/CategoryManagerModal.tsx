@@ -28,14 +28,14 @@ const CategoryManagerModal: React.FC<CategoryManagerModalProps> = ({ isOpen, onC
         <header className="flex items-center justify-between p-4 border-b border-slate-700">
           <div className="flex items-center space-x-3">
             <FolderIcon className="w-6 h-6 text-purple-400" />
-            <h2 className="text-lg font-bold text-slate-100">{t('categories.manager.title')}</h2>
+            <h2 className="text-sm text-slate-400">{t('categories.manager.title')}</h2>
           </div>
           <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-700">
             <CloseIcon className="w-6 h-6 text-slate-400" />
           </button>
         </header>
 
-        <div className="p-4 space-y-2 max-h-[60vh] overflow-y-auto hide-scrollbar">
+        <div className="p-2 space-y-2 max-h-[60vh] overflow-y-auto hide-scrollbar">
           {categories.map(category => (
             <div
               key={category.id}

@@ -444,8 +444,8 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
     
     return (
         <div className="flex flex-col items-center justify-center h-full text-center">
-            <h2 className="text-xl font-bold text-slate-100">{t('modals.smartImport.speech.title')}</h2>
-            <p className="text-slate-400 mt-1 mb-4">{t('modals.smartImport.speech.subtitle')}</p>
+            <h2 className="text-m font-bold text-slate-100">{t('modals.smartImport.speech.title')}</h2>
+            <p className="text-sm text-slate-500 mt-1 mb-4">{t('modals.smartImport.speech.subtitle')}</p>
             
             <div className="flex items-center space-x-2 bg-slate-700/50 rounded-full p-1 mb-4">
                 <button onClick={() => setLang(profile.learning)} className={`px-4 py-1 text-sm font-bold rounded-full transition-colors ${lang === profile.learning ? 'bg-purple-600 text-white' : 'text-slate-300'}`}>
@@ -457,7 +457,7 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
             </div>
 
             <div className="w-full h-40 bg-slate-700/50 rounded-lg p-3 overflow-y-auto text-left text-slate-200 mb-4">
-                {currentTranscript || <span className="text-slate-500">{t('modals.smartImport.speech.transcriptPlaceholder')}</span>}
+                {currentTranscript || <span className="italic text-sm text-slate-500">{t('modals.smartImport.speech.transcriptPlaceholder')}</span>}
             </div>
     
             <div className="flex items-center justify-center space-x-4">
@@ -484,8 +484,8 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
 
   const renderAssistantContent = () => (
   <div className="flex flex-col items-center justify-center h-full text-center">
-      <h2 className="text-xl font-bold text-slate-100">{t('modals.smartImport.assistant.title')}</h2>
-      <p className="text-slate-400 mt-1 mb-6">{t('modals.smartImport.assistant.subtitle')}</p>
+      <h3 className="text-xl font-bold text-slate-300">{t('modals.smartImport.assistant.title')}</h3>
+      <p className="text-sm text-slate-500 mt-1 mb-6">{t('modals.smartImport.assistant.subtitle')}</p>
       
       <div className="relative w-full max-w-md">
           <input
@@ -494,7 +494,7 @@ const SmartImportModal: React.FC<SmartImportModalProps> = ({
               onChange={e => setAssistantInput(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') handleProcessAssistantRequest(); }}
               placeholder={t('modals.smartImport.assistant.placeholder')}
-              className="w-full bg-slate-700 border border-slate-600 rounded-full py-3 pl-5 pr-24 text-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
+              className="w-full bg-slate-700 border border-slate-600 rounded-full py-3 pl-5 pr-24 text-sm text-white placeholder-slate-500 italic focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
           />
           <div className="absolute inset-y-0 right-0 flex items-center pr-2">
               <button onClick={handleMicClickAssistant} className="p-2 transition-colors" aria-label={t('modals.smartImport.assistant.aria.microphone')}>
