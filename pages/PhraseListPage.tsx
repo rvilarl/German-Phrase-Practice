@@ -1,5 +1,4 @@
-
-import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback, useLayoutEffect, useTransition } from 'react';
 import type { Phrase, PhraseCategory, Category, LanguageCode } from '../types';
 
 // Local type definitions for Speech Recognition API
@@ -45,7 +44,8 @@ import { useTranslation } from '../src/hooks/useTranslation';
 import { useLanguage } from '../src/contexts/languageContext';
 import { SPEECH_LOCALE_MAP } from '../constants/speechLocales';
 import { getLanguageLabel } from '../services/languageLabels';
-import { useDebounce } from '../src/hooks/useDebounce';
+const HEADER_ESTIMATE = 48;
+const PHRASE_ESTIMATE = 176;
 
 interface PhraseListPageProps {
     phrases: Phrase[];
@@ -118,7 +118,8 @@ export const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditP
     const { t } = useTranslation();
     const { profile } = useLanguage();
     const [searchTerm, setSearchTerm] = useState('');
-    const debouncedSearchTerm = useDebounce(searchTerm, 300);
+    const [filterTerm, setFilterTerm] = useState('');
+    const [, startTransition] = useTransition();
     const [categoryFilter, setCategoryFilter] = useState<'all' | PhraseCategory>('all');
     const [previewPhrase, setPreviewPhrase] = useState<Phrase | null>(null);
     const [isFindDuplicatesModalOpen, setIsFindDuplicatesModalOpen] = useState(false);
@@ -135,6 +136,30 @@ export const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditP
 
     const searchInputRef = useRef<HTMLInputElement>(null);
     const filterButtonsContainerRef = useRef<HTMLDivElement>(null);
+    const listWrapperRef = useRef<HTMLDivElement>(null);
+    const heightsRef = useRef<number[]>([]);
+    const offsetsRef = useRef<number[]>([]);
+    const totalHeightRef = useRef(0);
+    const scrollRafRef = useRef<number | null>(null);
+    const [, forceVirtualUpdate] = useState(0);
+    const [scrollTop, setScrollTop] = useState(0);
+    const [viewportHeight, setViewportHeight] = useState(0);
+
+    const updateSearchValue = useCallback((value: string, options?: { immediate?: boolean }) => {
+        const immediate =
+            options?.immediate ??
+            (isListening || value.length <= 2);
+
+        setSearchTerm(value);
+
+        if (immediate) {
+            setFilterTerm(value);
+        } else {
+            startTransition(() => {
+                setFilterTerm(value);
+            });
+        }
+    }, [isListening, startTransition]);
 
     useEffect(() => {
         const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -164,7 +189,7 @@ export const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditP
                         .trim();
 
                     if (transcript) {
-                        setSearchTerm(transcript);
+                        updateSearchValue(transcript, { immediate: true });
                     }
 
                     const lastResult = event.results[event.results.length - 1];
@@ -184,7 +209,7 @@ export const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditP
             nativeRecognitionRef.current = setupRecognizer(profile.native);
             learningRecognitionRef.current = setupRecognizer(profile.learning);
         }
-    }, [profile.native, profile.learning]);
+    }, [profile.native, profile.learning, updateSearchValue]);
 
     const handleLangChange = (lang: LanguageCode) => {
         if (lang === recognitionLang) return; // No change
@@ -213,7 +238,7 @@ export const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditP
         if (isListening) {
             recognizer.stop();
         } else {
-            setSearchTerm('');
+            updateSearchValue('', { immediate: true });
             setIsListening(true);
             try {
                 // Ensure the other recognizer is stopped
@@ -227,13 +252,13 @@ export const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditP
     };
     
     const handleClearSearch = useCallback(() => {
-        setSearchTerm('');
+        updateSearchValue('', { immediate: true });
         if (isListening) {
             nativeRecognitionRef.current?.stop();
             learningRecognitionRef.current?.stop();
             setIsListening(false);
         }
-    }, [isListening]);
+    }, [isListening, updateSearchValue]);
 
     const handleContextMenuClose = () => {
         setContextMenu(null);
@@ -270,11 +295,8 @@ export const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditP
 
 
     const effectiveSearchTerm = useMemo(() => {
-        if (isListening) {
-            return searchTerm;
-        }
-        return debouncedSearchTerm || searchTerm;
-    }, [searchTerm, debouncedSearchTerm, isListening]);
+        return isListening ? searchTerm : filterTerm;
+    }, [searchTerm, filterTerm, isListening]);
 
     const filteredPhrases = useMemo(() => {
         let baseList = phrases;
@@ -355,20 +377,185 @@ export const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditP
         return items;
     }, [filteredPhrases, t]);
 
+    const categoryMap = useMemo(() => {
+        const map = new Map<string, Category>();
+        categories.forEach(cat => map.set(cat.id, cat));
+        return map;
+    }, [categories]);
+
+    const initializeVirtualMetrics = useCallback(() => {
+        const estimates = listItems.map(item => item.type === 'header' ? HEADER_ESTIMATE : PHRASE_ESTIMATE);
+        heightsRef.current = estimates;
+        offsetsRef.current = new Array(estimates.length);
+        let runningOffset = 0;
+        for (let i = 0; i < estimates.length; i += 1) {
+            offsetsRef.current[i] = runningOffset;
+            runningOffset += estimates[i];
+        }
+        totalHeightRef.current = runningOffset;
+        forceVirtualUpdate(v => v + 1);
+    }, [listItems, forceVirtualUpdate]);
+
     useEffect(() => {
-        if (highlightedPhraseId) {
-            const element = document.getElementById(`phrase-item-${highlightedPhraseId}`);
-            if (element) {
-                element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                const timer = setTimeout(() => {
-                    onClearHighlight();
-                }, 3000);
-                return () => clearTimeout(timer);
+        initializeVirtualMetrics();
+        const container = listWrapperRef.current;
+        if (container) {
+            container.scrollTop = 0;
+        }
+        setScrollTop(0);
+    }, [initializeVirtualMetrics]);
+
+    useLayoutEffect(() => {
+        const container = listWrapperRef.current;
+        if (!container) {
+            return;
+        }
+
+        const updateHeight = () => {
+            setViewportHeight(container.clientHeight);
+        };
+
+        updateHeight();
+
+        if (typeof ResizeObserver !== 'undefined') {
+            const observer = new ResizeObserver(() => updateHeight());
+            observer.observe(container);
+            return () => observer.disconnect();
+        }
+
+        window.addEventListener('resize', updateHeight);
+        return () => {
+            window.removeEventListener('resize', updateHeight);
+        };
+    }, []);
+
+    useEffect(() => {
+        return () => {
+            if (scrollRafRef.current !== null) {
+                cancelAnimationFrame(scrollRafRef.current);
+            }
+        };
+    }, []);
+
+    const updateItemSize = useCallback((index: number, measuredSize: number) => {
+        const heights = heightsRef.current;
+        if (index < 0 || index >= heights.length) {
+            return;
+        }
+        if (!Number.isFinite(measuredSize) || measuredSize <= 0) {
+            return;
+        }
+        const previous = heights[index];
+        if (Math.abs(previous - measuredSize) < 1) {
+            return;
+        }
+        const delta = measuredSize - previous;
+        heights[index] = measuredSize;
+        totalHeightRef.current += delta;
+        const offsets = offsetsRef.current;
+        for (let i = index + 1; i < offsets.length; i += 1) {
+            offsets[i] += delta;
+        }
+        forceVirtualUpdate(v => v + 1);
+    }, [forceVirtualUpdate]);
+
+    const handleItemMeasurement = useCallback((index: number, node: HTMLDivElement | null) => {
+        if (!node) {
+            return;
+        }
+        updateItemSize(index, node.getBoundingClientRect().height);
+    }, [updateItemSize]);
+
+    const findStartIndex = useCallback((offset: number) => {
+        const offsets = offsetsRef.current;
+        const heights = heightsRef.current;
+        if (offsets.length === 0) {
+            return 0;
+        }
+        let low = 0;
+        let high = offsets.length - 1;
+        let answer = 0;
+        while (low <= high) {
+            const mid = Math.floor((low + high) / 2);
+            const start = offsets[mid];
+            const end = start + heights[mid];
+            if (end >= offset) {
+                answer = mid;
+                high = mid - 1;
+            } else {
+                low = mid + 1;
             }
         }
-    }, [highlightedPhraseId, onClearHighlight, listItems]);
+        return answer;
+    }, []);
 
-    // Прокрутка к активной кнопке фильтра
+    const findEndIndex = useCallback((offset: number) => {
+        const offsets = offsetsRef.current;
+        if (offsets.length === 0) {
+            return -1;
+        }
+        let low = 0;
+        let high = offsets.length - 1;
+        let answer = offsets.length - 1;
+        while (low <= high) {
+            const mid = Math.floor((low + high) / 2);
+            const start = offsets[mid];
+            if (start <= offset) {
+                answer = mid;
+                low = mid + 1;
+            } else {
+                high = mid - 1;
+            }
+        }
+        return answer;
+    }, []);
+
+    const handleScroll = useCallback(() => {
+        const container = listWrapperRef.current;
+        if (!container) {
+            return;
+        }
+        if (scrollRafRef.current !== null) {
+            cancelAnimationFrame(scrollRafRef.current);
+        }
+        scrollRafRef.current = window.requestAnimationFrame(() => {
+            setScrollTop(container.scrollTop);
+        });
+    }, []);
+
+    const scrollToIndex = useCallback((index: number) => {
+        const container = listWrapperRef.current;
+        if (!container) {
+            return;
+        }
+        const offsets = offsetsRef.current;
+        const heights = heightsRef.current;
+        if (index < 0 || index >= offsets.length) {
+            return;
+        }
+        const itemStart = offsets[index];
+        const itemHeight = heights[index];
+        const available = viewportHeight > 0 ? viewportHeight : container.clientHeight;
+        const target = Math.max(itemStart - Math.max((available - itemHeight) / 2, 0), 0);
+        container.scrollTo({ top: target, behavior: 'smooth' });
+    }, [viewportHeight]);
+
+    useEffect(() => {
+        if (!highlightedPhraseId) {
+            return;
+        }
+        const targetIndex = listItems.findIndex(item => item.type === 'phrase' && item.phrase.id === highlightedPhraseId);
+        if (targetIndex === -1) {
+            return;
+        }
+        scrollToIndex(targetIndex);
+        const timer = window.setTimeout(() => {
+            onClearHighlight();
+        }, 3000);
+        return () => window.clearTimeout(timer);
+    }, [highlightedPhraseId, listItems, onClearHighlight, scrollToIndex]);
+
+    // ????????????? ???????? ?????? ???????
     useEffect(() => {
         if (!filterButtonsContainerRef.current) return;
 
@@ -380,13 +567,11 @@ export const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditP
         const containerRect = container.getBoundingClientRect();
         const buttonRect = activeButton.getBoundingClientRect();
 
-        // Проверяем, видна ли кнопка полностью
         const isFullyVisible =
             buttonRect.left >= containerRect.left &&
             buttonRect.right <= containerRect.right;
 
         if (!isFullyVisible) {
-            // Если кнопка не полностью видна, прокручиваем к ней
             activeButton.scrollIntoView({
                 behavior: 'smooth',
                 block: 'nearest',
@@ -395,7 +580,20 @@ export const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditP
         }
     }, [categoryFilter]);
 
+    const overscanPx = 400;
+    const totalHeight = totalHeightRef.current;
+    const containerHeight = viewportHeight;
+    const itemCount = listItems.length;
+    const startOffset = Math.max(0, scrollTop - overscanPx);
+    const endOffset = scrollTop + containerHeight + overscanPx;
 
+    let startIndex = 0;
+    let endIndex = -1;
+
+    if (itemCount > 0) {
+        startIndex = Math.min(itemCount - 1, findStartIndex(startOffset));
+        endIndex = Math.min(itemCount - 1, Math.max(findEndIndex(Math.max(0, endOffset)), startIndex));
+    }
 
     return (
         <>
@@ -403,13 +601,13 @@ export const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditP
                 <div className="flex-shrink-0 sticky top-20 z-20">
                     <div className="backdrop-blur-lg rounded-xl">
                         
-                        {/* Поиск */}
+                        {/* ????? */}
                         <div className="relative group">
                             <input
                                 ref={searchInputRef}
                                 type="text"
                                 value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
+                                onChange={(e) => updateSearchValue(e.target.value)}
                                 placeholder={isListening ? t('phraseList.search.listening') : t('phraseList.search.placeholder')}
                                 className="w-full bg-slate-400/10 backdrop-blur-lg border border-white/20 rounded-full py-4 pl-5 pr-40 text-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
                             />
@@ -439,7 +637,7 @@ export const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditP
                             </div>
                         </div>
 
-                        {/* Кнопки фильтры категорий */}
+                        {/* ?????? ??????? ????????? */}
                         <div className="mt-4">
                             <div
                                 ref={filterButtonsContainerRef}
@@ -466,9 +664,9 @@ export const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditP
                             </div>
                         </div>
 
-                        {/* Количество карточек
-                            Работа с дубликатами
-                            Кнопка ассистента
+                        {/* ?????????? ????????
+                            ?????? ? ???????????
+                            ?????? ??????????
                         */}
                         <div className="flex justify-between items-end mt-3">
                             <span className="text-sm text-slate-400 pl-2">
@@ -494,40 +692,66 @@ export const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditP
                     </div>
                 </div>
 
-                <div className="flex-grow pt-2">
-                    <ul className="space-y-2">
-                        {listItems.map((item, index) => {
-                            if (item.type === 'header') {
-                                return (
-                                    <li key={`header-${item.title}`} className="px-4 py-1">
-                                        <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider">{item.title}</h2>
-                                    </li>
-                                );
-                            } else {
-                                const categoryInfo = categories.find(c => c.id === item.phrase.category);
-                                return (
-                                    <li key={item.phrase.id}>
-                                        <PhraseListItem
-                                            phrase={item.phrase}
-                                            onEdit={onEditPhrase}
-                                            onDelete={onDeletePhrase}
-                                            isDuplicate={false}
-                                            isHighlighted={highlightedPhraseId === item.phrase.id}
-                                            onPreview={setPreviewPhrase}
-                                            onStartPractice={onStartPractice}
-                                            onCategoryClick={setCategoryFilter}
-                                            categoryInfo={categoryInfo}
-                                            allCategories={categories}
-                                            onUpdatePhraseCategory={onUpdatePhraseCategory}
-                                            onOpenWordAnalysis={onOpenWordAnalysis}
-                                        />
-                                    </li>
-                                );
-                            }
-                        })}
-                    </ul>
+                <div
+                    ref={listWrapperRef}
+                    className="flex-grow pt-2 min-h-0 overflow-y-auto"
+                    onScroll={handleScroll}
+                >
+                    {itemCount === 0 ? (
+                        <div className="px-4 py-10 text-center text-slate-400">
+                            {t('phraseList.summary.count', { count: 0 })}
+                        </div>
+                    ) : (
+                        <div
+                            style={{ height: `${totalHeight}px`, position: 'relative' }}
+                        >
+                            {startIndex <= endIndex &&
+                                Array.from({ length: endIndex - startIndex + 1 }, (_, offsetIndex) => {
+                                    const listIndex = startIndex + offsetIndex;
+                                    const item = listItems[listIndex];
+                                    if (!item) {
+                                        return null;
+                                    }
+                                    const key = item.type === 'header' ? `header-${item.title}` : item.phrase.id;
+                                    const top = offsetsRef.current[listIndex];
+                                    return (
+                                        <div
+                                            key={key}
+                                            style={{ position: 'absolute', top, left: 0, right: 0 }}
+                                        >
+                                            <div
+                                                ref={(node) => handleItemMeasurement(listIndex, node)}
+                                                className="px-4 pb-2"
+                                            >
+                                                {item.type === 'header' ? (
+                                                    <div className="py-1">
+                                                        <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider">{item.title}</h2>
+                                                    </div>
+                                                ) : (
+                                                    <PhraseListItem
+                                                        phrase={item.phrase}
+                                                        onEdit={onEditPhrase}
+                                                        onDelete={onDeletePhrase}
+                                                        isDuplicate={false}
+                                                        isHighlighted={highlightedPhraseId === item.phrase.id}
+                                                        onPreview={setPreviewPhrase}
+                                                        onStartPractice={onStartPractice}
+                                                        onCategoryClick={setCategoryFilter}
+                                                        categoryInfo={categoryMap.get(item.phrase.category)}
+                                                        allCategories={categories}
+                                                        onUpdatePhraseCategory={onUpdatePhraseCategory}
+                                                        onOpenWordAnalysis={onOpenWordAnalysis}
+                                                    />
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                        </div>
+                    )}
                 </div>
             </div>
+
             {previewPhrase && (
                 <PhrasePreviewModal 
                     phrase={previewPhrase}
@@ -562,3 +786,4 @@ export const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditP
         </>
     );
 };
+
