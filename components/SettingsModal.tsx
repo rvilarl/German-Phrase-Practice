@@ -208,7 +208,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
               onClick={() => setView("analytics")}
               className="w-full flex items-center justify-between p-4 bg-slate-700/50 hover:bg-slate-700 rounded-lg transition-colors"
             >
-              <span className="text-slate-200">
+              <span className="text-left text-slate-200">
                 {t("settings.views.analytics")}
               </span>
               <ArrowRightIcon className="w-5 h-5 text-slate-400" />
@@ -217,7 +217,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
               onClick={() => setView("general")}
               className="w-full flex items-center justify-between p-4 bg-slate-700/50 hover:bg-slate-700 rounded-lg transition-colors"
             >
-              <span className="text-slate-200">
+              <span className="text-left text-slate-200">
                 {t("settings.views.general")}
               </span>
               <ArrowRightIcon className="w-5 h-5 text-slate-400" />
@@ -226,7 +226,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
               onClick={() => setView("automation")}
               className="w-full flex items-center justify-between p-4 bg-slate-700/50 hover:bg-slate-700 rounded-lg transition-colors"
             >
-              <span className="text-slate-200">
+              <span className="text-left text-slate-200">
                 {t("settings.views.automation")}
               </span>
               <ArrowRightIcon className="w-5 h-5 text-slate-400" />
@@ -235,7 +235,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
               onClick={() => setView("categories")}
               className="w-full flex items-center justify-between p-4 bg-slate-700/50 hover:bg-slate-700 rounded-lg transition-colors"
             >
-              <span className="text-slate-200">
+              <span className="text-left text-slate-200">
                 {t("settings.views.categories")}
               </span>
               <ArrowRightIcon className="w-5 h-5 text-slate-400" />
@@ -256,23 +256,25 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 <label htmlFor="autoSpeak" className="text-slate-200">
                   {t("settings.general.autoSpeak.label")}
                 </label>
-                <button
-                  id="autoSpeak"
-                  role="switch"
-                  aria-checked={settings.autoSpeak}
-                  onClick={() =>
-                    handleSettingChange("autoSpeak", !settings.autoSpeak)
-                  }
-                  className={`${
-                    settings.autoSpeak ? "bg-purple-600" : "bg-slate-600"
-                  } relative inline-flex h-6 w-11 items-center rounded-full transition-colors`}
-                >
-                  <span
+                <div>
+                  <button
+                    id="autoSpeak"
+                    role="switch"
+                    aria-checked={settings.autoSpeak}
+                    onClick={() =>
+                      handleSettingChange("autoSpeak", !settings.autoSpeak)
+                    }
                     className={`${
-                      settings.autoSpeak ? "translate-x-6" : "translate-x-1"
-                    } inline-block h-4 w-4 transform rounded-full bg-white transition-transform`}
-                  />
-                </button>
+                      settings.autoSpeak ? "bg-purple-600" : "bg-slate-600"
+                    } relative inline-flex h-6 w-11 items-center rounded-full transition-colors`}
+                  >
+                    <span
+                      className={`${
+                        settings.autoSpeak ? "translate-x-6" : "translate-x-1"
+                      } inline-block h-4 w-4 transform rounded-full bg-white transition-transform`}
+                    />
+                  </button>
+                </div>
               </div>
               <div className="flex items-center justify-between">
                 <label htmlFor="soundEffects" className="text-slate-200">
