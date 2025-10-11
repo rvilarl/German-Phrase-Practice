@@ -85,7 +85,7 @@ const LanguageOnboardingModal: React.FC<LanguageOnboardingModalProps> = ({
             <p className="text-gray-700 dark:text-gray-300 mb-6">
               Which language do you want to learn?
             </p>
-            <div className="space-y-2 mb-6 max-h-96 overflow-y-auto">
+            <div className="space-y-2 mb-6 max-h-96 overflow-y-auto hide-scrollbar pr-1">
               {availableLearningLanguages.map((lang) => (
                 <button
                   key={lang.code}

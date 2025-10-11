@@ -273,9 +273,19 @@ export const loadInitialData = async (): Promise<void> => {
 // --- User Profile API ---
 import type { LanguageProfile } from '../types';
 
-export const getUserProfile = async (): Promise<LanguageProfile> => {
+export const getUserProfile = async (): Promise<LanguageProfile | null> => {
     const response = await fetchWithRetry(`${API_BASE_URL}/user-profile`);
+
+    // A 404 means the user has no profile yet (brand new account)
+    if (response.status === 404) {
+        return null;
+    }
+
     const data = await handleResponse(response);
+
+    if (!data) {
+        return null;
+    }
 
     return {
         ui: data.ui_language,
