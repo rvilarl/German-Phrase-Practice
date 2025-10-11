@@ -1,6 +1,37 @@
 
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import type { Phrase, SpeechRecognition, SpeechRecognitionErrorEvent, SpeechRecognitionEvent, PhraseCategory, Category, LanguageCode } from '../types';
+import type { Phrase, PhraseCategory, Category, LanguageCode } from '../types';
+
+// Local type definitions for Speech Recognition API
+interface SpeechRecognitionErrorEvent extends Event {
+  error: string;
+  message?: string;
+}
+
+interface SpeechRecognitionEvent extends Event {
+  results: SpeechRecognitionResultList;
+}
+
+interface SpeechRecognition extends EventTarget {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  maxAlternatives: number;
+  start(): void;
+  stop(): void;
+  onend: ((this: SpeechRecognition, ev: Event) => any) | null;
+  onerror: ((this: SpeechRecognition, ev: SpeechRecognitionErrorEvent) => any) | null;
+  onresult: ((this: SpeechRecognition, ev: SpeechRecognitionEvent) => any) | null;
+}
+
+// Extend window interface for Speech Recognition API
+declare global {
+  interface Window {
+    SpeechRecognition: new () => SpeechRecognition;
+    webkitSpeechRecognition: new () => SpeechRecognition;
+  }
+}
+
 import PhraseListItem from '../components/PhraseListItem';
 import XCircleIcon from '../components/icons/XCircleIcon';
 import MicrophoneIcon from '../components/icons/MicrophoneIcon';
@@ -14,6 +45,7 @@ import { useTranslation } from '../src/hooks/useTranslation';
 import { useLanguage } from '../src/contexts/languageContext';
 import { SPEECH_LOCALE_MAP } from '../constants/speechLocales';
 import { getLanguageLabel } from '../services/languageLabels';
+import { useDebounce } from '../src/hooks/useDebounce';
 
 interface PhraseListPageProps {
     phrases: Phrase[];
@@ -38,12 +70,55 @@ type ListItem =
     | { type: 'header'; title: string }
     | { type: 'phrase'; phrase: Phrase };
 
+const DIACRITICS_REGEX = /[\u0300-\u036f]/g;
+const WORD_BOUNDARY_REGEX = /[\s.,!?;:'"()[\]{}\-]/;
+
+const normalizeForSearch = (value: string) => value.normalize('NFD').replace(DIACRITICS_REGEX, '');
+
+const computeMatchScore = (text: string | undefined | null, normalizedTerm: string): number => {
+    if (!text) {
+        return 0;
+    }
+
+    const normalizedText = normalizeForSearch(text.toLowerCase());
+    if (!normalizedText) {
+        return 0;
+    }
+
+    const termIndex = normalizedText.indexOf(normalizedTerm);
+    if (termIndex === -1) {
+        return 0;
+    }
+
+    let score = 100;
+
+    if (termIndex === 0) {
+        score += 50;
+    }
+
+    const endIndex = termIndex + normalizedTerm.length;
+    const charBefore = normalizedText.charAt(termIndex - 1);
+    const charAfter = normalizedText.charAt(endIndex);
+
+    const isStartBoundary = termIndex === 0 || WORD_BOUNDARY_REGEX.test(charBefore);
+    const isEndBoundary = endIndex >= normalizedText.length || WORD_BOUNDARY_REGEX.test(charAfter);
+
+    if (isStartBoundary && isEndBoundary) {
+        score += 20;
+    }
+
+    score -= Math.max(0, normalizedText.length - normalizedTerm.length) * 0.05;
+
+    return score;
+};
+
 
 // FIX: Changed to a named export to resolve "no default export" error in App.tsx.
 export const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditPhrase, onDeletePhrase, onFindDuplicates, updateAndSavePhrases, onStartPractice, highlightedPhraseId, onClearHighlight, onOpenSmartImport, categories, onUpdatePhraseCategory, onStartPracticeWithCategory, onEditCategory, onOpenAssistant, backendService, onOpenWordAnalysis }) => {
     const { t } = useTranslation();
     const { profile } = useLanguage();
     const [searchTerm, setSearchTerm] = useState('');
+    const debouncedSearchTerm = useDebounce(searchTerm, 300);
     const [categoryFilter, setCategoryFilter] = useState<'all' | PhraseCategory>('all');
     const [previewPhrase, setPreviewPhrase] = useState<Phrase | null>(null);
     const [isFindDuplicatesModalOpen, setIsFindDuplicatesModalOpen] = useState(false);
@@ -68,7 +143,8 @@ export const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditP
                 const recognition = new SpeechRecognitionAPI();
                 recognition.lang = SPEECH_LOCALE_MAP[langCode] || 'en-US';
                 recognition.continuous = false;
-                recognition.interimResults = false;
+                recognition.interimResults = true;
+                recognition.maxAlternatives = 1;
 
                 recognition.onend = () => {
                     setIsListening(false);
@@ -82,10 +158,23 @@ export const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditP
                 };
 
                 recognition.onresult = (event: SpeechRecognitionEvent) => {
-                    const result = event.results[0];
-                    const transcript = result?.[0]?.transcript;
-                    if (transcript && transcript.trim()) {
+                    const transcript = Array.from(event.results)
+                        .map(result => result[0]?.transcript ?? '')
+                        .join('')
+                        .trim();
+
+                    if (transcript) {
                         setSearchTerm(transcript);
+                    }
+
+                    const lastResult = event.results[event.results.length - 1];
+                    if (lastResult?.isFinal) {
+                        setIsListening(false);
+                        try {
+                            recognition.stop();
+                        } catch (error) {
+                            console.warn('Speech recognition could not be stopped cleanly:', error);
+                        }
                     }
                 };
 
@@ -140,8 +229,8 @@ export const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditP
     const handleClearSearch = useCallback(() => {
         setSearchTerm('');
         if (isListening) {
-            ruRecognitionRef.current?.stop();
-            deRecognitionRef.current?.stop();
+            nativeRecognitionRef.current?.stop();
+            learningRecognitionRef.current?.stop();
             setIsListening(false);
         }
     }, [isListening]);
@@ -180,10 +269,12 @@ export const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditP
     };
 
 
-    const detectedSearchLang = useMemo(() => {
-        if (!searchTerm) return 'ru';
-        return /[\u0400-\u04FF]/.test(searchTerm) ? 'ru' : 'de';
-    }, [searchTerm]);
+    const effectiveSearchTerm = useMemo(() => {
+        if (isListening) {
+            return searchTerm;
+        }
+        return debouncedSearchTerm || searchTerm;
+    }, [searchTerm, debouncedSearchTerm, isListening]);
 
     const filteredPhrases = useMemo(() => {
         let baseList = phrases;
@@ -192,83 +283,75 @@ export const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditP
             baseList = baseList.filter(p => p.category === categoryFilter);
         }
         
-        const lowercasedTerm = searchTerm.toLowerCase().trim();
-        if (!lowercasedTerm) return baseList;
+        const normalizedTermInput = effectiveSearchTerm.trim().toLowerCase();
+        if (!normalizedTermInput) return baseList;
+
+        const normalizedTerm = normalizeForSearch(normalizedTermInput);
+        if (!normalizedTerm) {
+            return baseList;
+        }
 
         const scoredPhrases = baseList
             .map(phrase => {
-                // FIX: Use phrase.text.native and phrase.text.learning
-                const phraseText = (detectedSearchLang === 'ru' ? phrase.text.native : phrase.text.learning).toLowerCase();
-                let score = 0;
+                const searchTargets: Array<{ text: string | undefined; weight: number }> = [
+                    { text: phrase.text.learning, weight: 1 },
+                    { text: phrase.text.native, weight: 1 },
+                    { text: phrase.romanization?.learning, weight: 0.7 },
+                    { text: phrase.context?.native, weight: 0.5 },
+                ];
 
-                if (!phraseText) {
-                    return { phrase, score };
-                }
-
-                const termIndex = phraseText.indexOf(lowercasedTerm);
-
-                // Main score: exact substring match
-                if (termIndex !== -1) {
-                    score += 100; // Base score for a match
-                    
-                    // Bonus for starting at the beginning of the string
-                    if (termIndex === 0) {
-                        score += 50;
+                const bestScore = searchTargets.reduce((currentBest, target) => {
+                    const score = computeMatchScore(target.text, normalizedTerm);
+                    if (score <= 0) {
+                        return currentBest;
                     }
-                    
-                    // Bonus for being a "whole word" match
-                    const isStartBoundary = termIndex === 0 || /\s/.test(phraseText.charAt(termIndex - 1));
-                    const endOfTermIndex = termIndex + lowercasedTerm.length;
-                    const isEndBoundary = endOfTermIndex === phraseText.length || /\s/.test(phraseText.charAt(endOfTermIndex));
-                    
-                    if (isStartBoundary && isEndBoundary) {
-                        score += 20;
-                    }
+                    const weightedScore = score * target.weight;
+                    return weightedScore > currentBest ? weightedScore : currentBest;
+                }, 0);
 
-                    // Penalty based on how much longer the phrase is than the search term
-                    score -= (phraseText.length - lowercasedTerm.length) * 0.1;
-                } else {
-                    // Fallback: Check for all search words being present, but not necessarily in order
-                    const searchWords = lowercasedTerm.split(/\s+/).filter(Boolean);
-                    if (searchWords.length > 1) {
-                        const allWordsIncluded = searchWords.every(word => phraseText.includes(word));
-                        if (allWordsIncluded) {
-                            score += 10; // Lower score for out-of-order or separated words
-                        }
-                    }
-                }
-
-                return { phrase, score };
+                return { phrase, score: bestScore };
             })
             .filter(item => item.score > 0)
             .sort((a, b) => b.score - a.score);
 
         return scoredPhrases.map(item => item.phrase);
-    }, [phrases, searchTerm, detectedSearchLang, categoryFilter]);
+    }, [phrases, categoryFilter, effectiveSearchTerm]);
 
     const listItems = useMemo((): ListItem[] => {
-        const inProgress: Phrase[] = [];
-        const mastered: Phrase[] = [];
-        const newPhrases: Phrase[] = [];
+        const sections = {
+            new: [] as Phrase[],
+            inProgress: [] as Phrase[],
+            mastered: [] as Phrase[]
+        };
 
+        // Single pass through filteredPhrases to categorize all phrases
         filteredPhrases.forEach(p => {
-            if (p.isMastered) mastered.push(p);
-            else if (p.lastReviewedAt === null) newPhrases.push(p);
-            else inProgress.push(p);
+            if (p.isMastered) {
+                sections.mastered.push(p);
+            } else if (p.lastReviewedAt === null) {
+                sections.new.push(p);
+            } else {
+                sections.inProgress.push(p);
+            }
         });
-        
+
         const items: ListItem[] = [];
-        const createSection = (title: string, phrases: Phrase[]) => {
+
+        // Create sections in order: new, inProgress, mastered
+        const sectionOrder: Array<{ key: keyof typeof sections; titleKey: string }> = [
+            { key: 'new', titleKey: 'phraseList.sections.new' },
+            { key: 'inProgress', titleKey: 'phraseList.sections.inProgress' },
+            { key: 'mastered', titleKey: 'phraseList.sections.mastered' }
+        ];
+
+        sectionOrder.forEach(({ key, titleKey }) => {
+            const phrases = sections[key];
             if (phrases.length > 0) {
-                items.push({ type: 'header', title: `${title} (${phrases.length})` });
+                items.push({ type: 'header', title: `${t(titleKey)} (${phrases.length})` });
                 phrases.forEach(p => items.push({ type: 'phrase', phrase: p }));
             }
-        };
-        
-        createSection(t('phraseList.sections.new'), newPhrases);
-        createSection(t('phraseList.sections.inProgress'), inProgress);
-        createSection(t('phraseList.sections.mastered'), mastered);
-        
+        });
+
         return items;
     }, [filteredPhrases, t]);
 
@@ -413,34 +496,35 @@ export const PhraseListPage: React.FC<PhraseListPageProps> = ({ phrases, onEditP
 
                 <div className="flex-grow pt-2">
                     <ul className="space-y-2">
-                       {listItems.map((item, index) => {
-                           if (item.type === 'header') {
-                               return (
-                                   <li key={`header-${item.title}`} className="px-4 py-1">
-                                       <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider">{item.title}</h2>
-                                   </li>
-                               );
-                           } else {
-                               const categoryInfo = categories.find(c => c.id === item.phrase.category);
-                               return (
-                                   <PhraseListItem
-                                       key={item.phrase.id}
-                                       phrase={item.phrase}
-                                       onEdit={onEditPhrase}
-                                       onDelete={onDeletePhrase}
-                                       isDuplicate={false}
-                                       isHighlighted={highlightedPhraseId === item.phrase.id}
-                                       onPreview={setPreviewPhrase}
-                                       onStartPractice={onStartPractice}
-                                       onCategoryClick={setCategoryFilter}
-                                       categoryInfo={categoryInfo}
-                                       allCategories={categories}
-                                       onUpdatePhraseCategory={onUpdatePhraseCategory}
-                                       onOpenWordAnalysis={onOpenWordAnalysis}
-                                   />
-                               );
-                           }
-                       })}
+                        {listItems.map((item, index) => {
+                            if (item.type === 'header') {
+                                return (
+                                    <li key={`header-${item.title}`} className="px-4 py-1">
+                                        <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider">{item.title}</h2>
+                                    </li>
+                                );
+                            } else {
+                                const categoryInfo = categories.find(c => c.id === item.phrase.category);
+                                return (
+                                    <li key={item.phrase.id}>
+                                        <PhraseListItem
+                                            phrase={item.phrase}
+                                            onEdit={onEditPhrase}
+                                            onDelete={onDeletePhrase}
+                                            isDuplicate={false}
+                                            isHighlighted={highlightedPhraseId === item.phrase.id}
+                                            onPreview={setPreviewPhrase}
+                                            onStartPractice={onStartPractice}
+                                            onCategoryClick={setCategoryFilter}
+                                            categoryInfo={categoryInfo}
+                                            allCategories={categories}
+                                            onUpdatePhraseCategory={onUpdatePhraseCategory}
+                                            onOpenWordAnalysis={onOpenWordAnalysis}
+                                        />
+                                    </li>
+                                );
+                            }
+                        })}
                     </ul>
                 </div>
             </div>
