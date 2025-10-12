@@ -57,7 +57,7 @@ const PhraseListItem: React.FC<PhraseListItemProps> = React.memo(({ phrase, onEd
         }
     };
 
-    const renderClickableGerman = (text: string) => {
+    const renderClickableLearning = (text: string) => {
         if (!onOpenWordAnalysis || !text) return <span>{text}</span>;
         return text.split(' ').map((word, i, arr) => (
             <span
@@ -105,7 +105,7 @@ const PhraseListItem: React.FC<PhraseListItemProps> = React.memo(({ phrase, onEd
                 <div className="flex items-center justify-between mb-1">
                     <p className="font-semibold text-slate-100">{phrase.text.native}</p>
                 </div>
-                <p className="text-sm text-slate-400">{renderClickableGerman(phrase.text.learning)}</p>
+                <p className="text-sm text-slate-400">{renderClickableLearning(phrase.text.learning)}</p>
                 <div className="mt-2">
                     <ProgressBar current={phrase.masteryLevel} max={srsService.MAX_MASTERY_LEVEL} />
                 </div>

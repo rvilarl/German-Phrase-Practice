@@ -34,12 +34,12 @@ const pronounList = ["ich", "du", "er", "sie", "es", "wir", "ihr", "sie", "mich"
  */
 export const assignInitialCategory = (phrase: Omit<Phrase, 'category' | 'id'>): PhraseCategory => {
     // FIX: Updated to use the new `text.learning` property.
-    const german = phrase.text.learning.toLowerCase().replace(/[?]/g, '').trim();
-    if (wFragenList.includes(german)) return 'w-fragen';
+    const learning = phrase.text.learning.toLowerCase().replace(/[?]/g, '').trim();
+    if (wFragenList.includes(learning)) return 'w-fragen';
     // Check against formal 'Sie' separately to avoid conflict with 'sie' (she/they)
     // FIX: Updated to use the new `text.learning` property.
     if (phrase.text.learning.trim() === 'Sie') return 'pronouns';
-    if (pronounList.includes(german)) return 'pronouns';
+    if (pronounList.includes(learning)) return 'pronouns';
     return 'general';
 };
 

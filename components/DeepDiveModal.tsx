@@ -102,7 +102,7 @@ const DeepDiveModal: React.FC<DeepDiveModalProps> = ({ isOpen, onClose, phrase, 
     }
   };
 
-  const renderClickableGerman = (text: string) => {
+  const renderClickableLearning = (text: string) => {
     if (!text) return null;
     return text.split(' ').map((word, i, arr) => (
         <span
@@ -149,7 +149,7 @@ const DeepDiveModal: React.FC<DeepDiveModalProps> = ({ isOpen, onClose, phrase, 
             <div className="text-lg font-semibold text-slate-100 mb-4 leading-relaxed flex flex-wrap items-center gap-x-1 gap-y-2">
               {analysis.chunks.map((chunk, index) => (
                 <div key={index} className={`px-2 py-1 rounded-md ring-1 ring-inset ${chunkColorMap[chunk.type] || chunkColorMap.Default}`}>
-                  {renderClickableGerman(chunk.text)}
+                  {renderClickableLearning(chunk.text)}
                 </div>
               ))}
             </div>

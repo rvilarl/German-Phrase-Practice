@@ -407,32 +407,32 @@
       "title": "",
       "headers": {
         "speak": "",
-        "german": "",
+        "learning": "",
         "russian": ""
       },
       "pronouns": [
         {
-          "german": "",
+          "learning": "",
           "russian": ""
         },
         {
-          "german": "",
+          "learning": "",
           "russian": ""
         },
         {
-          "german": "",
+          "learning": "",
           "russian": ""
         },
         {
-          "german": "",
+          "learning": "",
           "russian": ""
         },
         {
-          "german": "",
+          "learning": "",
           "russian": ""
         },
         {
-          "german": "",
+          "learning": "",
           "russian": ""
         }
       ]
@@ -722,7 +722,7 @@
       "title": "",
       "fields": {
         "russian": "",
-        "german": "",
+        "learning": "",
         "category": ""
       },
       "errors": {
@@ -914,40 +914,40 @@
       "title": "",
       "columns": {
         "play": "",
-        "german": "",
+        "learning": "",
         "translation": ""
       },
       "items": [
         {
-          "german": "",
+          "learning": "",
           "translation": ""
         },
         {
-          "german": "",
+          "learning": "",
           "translation": ""
         },
         {
-          "german": "",
+          "learning": "",
           "translation": ""
         },
         {
-          "german": "",
+          "learning": "",
           "translation": ""
         },
         {
-          "german": "",
+          "learning": "",
           "translation": ""
         },
         {
-          "german": "",
+          "learning": "",
           "translation": ""
         },
         {
-          "german": "",
+          "learning": "",
           "translation": ""
         },
         {
-          "german": "",
+          "learning": "",
           "translation": ""
         }
       ]

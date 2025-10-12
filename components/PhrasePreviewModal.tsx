@@ -32,7 +32,7 @@ const PhrasePreviewModal: React.FC<PhrasePreviewModalProps> = ({ phrase, onClose
                     {phrase.context?.native && <p className="text-slate-300 mt-3 text-base font-normal italic px-4">{phrase.context.native}</p>}
                 </div>
                 
-                {/* Back Side (German) */}
+                {/* Back Side (Learning) */}
                 <div className="card-face [transform:rotateY(180deg)] bg-gradient-to-br from-purple-600 to-blue-600 border border-purple-500">
                     <h2 className="text-3xl font-bold text-white">{phrase.text.learning}</h2>
                     {phrase.romanization?.learning && <p className="text-slate-200 mt-3 text-xl font-mono">{phrase.romanization.learning}</p>}

@@ -47,7 +47,7 @@ interface PracticePageProps {
   onOpenDeepDive: (phrase: Phrase) => void;
   onOpenMovieExamples: (phrase: Phrase) => void;
   onOpenWordAnalysis: (phrase: Phrase, word: string) => void;
-  onGetWordTranslation: (russianPhrase: string, germanPhrase: string, russianWord: string) => Promise<{ germanTranslation: string }>;
+  onGetWordTranslation: (russianPhrase: string, learningPhrase: string, russianWord: string) => Promise<{ learningTranslation: string }>;
   onOpenVerbConjugation: (infinitive: string) => void;
   onOpenNounDeclension: (noun: string, article: string) => void;
   onOpenAdjectiveDeclension: (adjective: string) => void;
@@ -65,7 +65,7 @@ interface PracticePageProps {
   };
   masteryButtonUsage: { know: number; forgot: number; dont_know: number };
   allPhrases: Phrase[];
-  onCreateCard: (phraseData: { german: string; russian: string; }) => void;
+  onCreateCard: (phraseData: { learning: string; russian: string; }) => void;
   onAnalyzeWord: (phrase: Phrase, word: string) => Promise<WordAnalysis | null>;
   isWordAnalysisLoading: boolean;
   cardActionUsage: { [key: string]: number };

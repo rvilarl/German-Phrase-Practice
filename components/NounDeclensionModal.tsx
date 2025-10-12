@@ -57,7 +57,7 @@ const NounDeclensionModal: React.FC<NounDeclensionModalProps> = ({ isOpen, onClo
     onOpenWordAnalysis(proxyPhrase as Phrase, word);
   };
   
-  const renderClickableGerman = (text: string) => {
+  const renderClickableLearning = (text: string) => {
       if (!text) return null;
       return text.split(' ').map((word, i, arr) => (
           <span
@@ -96,7 +96,7 @@ const NounDeclensionModal: React.FC<NounDeclensionModalProps> = ({ isOpen, onClo
     
     const renderCellContent = (text: string) => (
         <div className="flex items-center justify-between w-full gap-x-2">
-            <span className="flex-grow">{renderClickableGerman(text)}</span>
+            <span className="flex-grow">{renderClickableLearning(text)}</span>
             <AudioPlayer textToSpeak={text} />
         </div>
     );

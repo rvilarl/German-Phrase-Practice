@@ -2,7 +2,7 @@
 
 ## Overview
 
-This API provides endpoints for managing German phrases and categories for a language learning application. It uses Supabase as the database and is built with Express.js.
+This API provides endpoints for managing Learning phrases and categories for a language learning application. It uses Supabase as the database and is built with Express.js.
 
 **Base URL:** `http://localhost:3001/api` (or as configured in environment)
 
@@ -45,7 +45,7 @@ Retrieves all categories and phrases with additional frontend-specific fields fo
     {
       "id": 1,
       "russian": "привет",
-      "german": "hallo",
+      "learning": "hallo",
       "category": 1,
       "transcription": "halo",
       "context": "Greeting",
@@ -98,14 +98,14 @@ Creates a new phrase.
 ```json
 {
   "russian": "спасибо",
-  "german": "danke",
+  "learning": "danke",
   "category_id": 1
 }
 ```
 
 **Validation:**
 - `russian`: Required, non-empty string
-- `german`: Required, non-empty string
+- `learning`: Required, non-empty string
 - `category_id`: Required, number
 
 **Response (201 Created):**
@@ -113,7 +113,7 @@ Creates a new phrase.
 {
   "id": 1,
   "russian": "спасибо",
-  "german": "danke",
+  "learning": "danke",
   "category_id": 1
 }
 ```
@@ -144,14 +144,14 @@ Updates an existing phrase.
 ```json
 {
   "russian": "пожалуйста",
-  "german": "bitte",
+  "learning": "bitte",
   "category_id": 1
 }
 ```
 
 **Validation:**
 - `russian`: Required, non-empty string
-- `german`: Required, non-empty string
+- `learning`: Required, non-empty string
 - `category_id`: Required, number
 
 **Response (200 OK):**
@@ -159,7 +159,7 @@ Updates an existing phrase.
 {
   "id": 1,
   "russian": "пожалуйста",
-  "german": "bitte",
+  "learning": "bitte",
   "category_id": 1
 }
 ```
@@ -323,7 +323,7 @@ Deletes a category. If `migrationTargetId` is provided in the request body, asso
 ### Phrase
 - `id` (number): Unique identifier
 - `russian` (string): Russian text
-- `german` (string): German text
+- `learning` (string): Learning text
 - `category_id` (number): Reference to category
 - `transcription` (string, optional): Pronunciation guide
 - `context` (string, optional): Usage context
@@ -369,7 +369,7 @@ The API validates incoming request data to ensure data integrity. Validation is 
 
 #### Phrases (POST /api/phrases, PUT /api/phrases/:id)
 - `russian`: Required, must be a non-empty string
-- `german`: Required, must be a non-empty string
+- `learning`: Required, must be a non-empty string
 - `category_id`: Required, must be a number
 
 #### Categories (POST /api/categories, PUT /api/categories/:id)

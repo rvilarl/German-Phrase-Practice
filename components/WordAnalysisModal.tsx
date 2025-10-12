@@ -20,7 +20,7 @@ interface WordAnalysisModalProps {
   onOpenAdjectiveDeclension: (adjective: string) => void;
   onOpenWordAnalysis: (phrase: Phrase, word: string) => void;
   allPhrases: Phrase[];
-  onCreateCard: (phraseData: { german: string; russian: string; }) => void;
+  onCreateCard: (phraseData: { learning: string; russian: string; }) => void;
 }
 
 const WordAnalysisSkeleton: React.FC = () => (
@@ -58,7 +58,7 @@ const WordAnalysisModal: React.FC<WordAnalysisModalProps> = ({
     }
   }, [isOpen]);
   
-  const getCanonicalGerman = useCallback((): string | null => {
+  const getCanonicalLearning = useCallback((): string | null => {
     if (!analysis) return null;
     if (analysis.verbDetails?.infinitive) {
         return analysis.verbDetails.infinitive;
@@ -70,17 +70,17 @@ const WordAnalysisModal: React.FC<WordAnalysisModalProps> = ({
   }, [analysis]);
   
   const cardExists = useMemo(() => {
-    const canonicalGerman = getCanonicalGerman();
-    if (!canonicalGerman) return false;
-    return allPhrases.some(p => p.text.learning.trim().toLowerCase() === canonicalGerman.trim().toLowerCase());
-  }, [allPhrases, getCanonicalGerman]);
+    const canonicalLearning = getCanonicalLearning();
+    if (!canonicalLearning) return false;
+    return allPhrases.some(p => p.text.learning.trim().toLowerCase() === canonicalLearning.trim().toLowerCase());
+  }, [allPhrases, getCanonicalLearning]);
 
   const handleCreateCard = () => {
-    const canonicalGerman = getCanonicalGerman();
-    if (!analysis || !canonicalGerman) return;
+    const canonicalLearning = getCanonicalLearning();
+    if (!analysis || !canonicalLearning) return;
     
     onCreateCard({
-        german: canonicalGerman,
+        learning: canonicalLearning,
         russian: analysis.nativeTranslation,
     });
     setIsCardCreated(true);
@@ -94,7 +94,7 @@ const WordAnalysisModal: React.FC<WordAnalysisModalProps> = ({
     onOpenWordAnalysis(proxyPhrase, clickedWord);
   };
   
-  const renderClickableGerman = (text: string, russian: string) => {
+  const renderClickableLearning = (text: string, russian: string) => {
       if (!text) return null;
       return text.split(' ').map((word, i, arr) => (
           <span
@@ -169,7 +169,7 @@ const WordAnalysisModal: React.FC<WordAnalysisModalProps> = ({
              <div className="flex items-start space-x-3">
                 <AudioPlayer textToSpeak={analysis.exampleSentence} />
                 <div className="flex-1">
-                    <p className="text-slate-200 text-lg leading-relaxed">"{renderClickableGerman(analysis.exampleSentence, analysis.exampleSentenceNative)}"</p>
+                    <p className="text-slate-200 text-lg leading-relaxed">"{renderClickableLearning(analysis.exampleSentence, analysis.exampleSentenceNative)}"</p>
                     <p className="text-slate-400 italic mt-1">{t('modals.wordAnalysis.labels.exampleTranslation')} {analysis.exampleSentenceNative}</p>
                 </div>
             </div>

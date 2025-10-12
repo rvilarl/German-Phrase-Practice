@@ -135,7 +135,7 @@ const VerbConjugationModal: React.FC<VerbConjugationModalProps> = ({ isOpen, onC
     onOpenWordAnalysis(proxyPhrase as Phrase, word);
   };
   
-  const renderClickableGerman = (text: string) => {
+  const renderClickableLearning = (text: string) => {
       if (!text) return null;
       return text.split(' ').map((word, i, arr) => (
           <span
@@ -160,7 +160,7 @@ const VerbConjugationModal: React.FC<VerbConjugationModalProps> = ({ isOpen, onC
           {simpleData!.map((conj) => (
             <div key={conj.pronoun} className="grid grid-cols-[80px_1fr_auto] items-center gap-x-3 text-sm">
                 <span className="font-mono text-purple-300 text-right">{conj.pronoun}</span>
-                <p className="text-slate-100 font-medium truncate">{renderClickableGerman(conj.form)}</p>
+                <p className="text-slate-100 font-medium truncate">{renderClickableLearning(conj.form)}</p>
                 <AudioPlayer textToSpeak={conj.form} />
             </div>
           ))}
@@ -216,10 +216,10 @@ const VerbConjugationModal: React.FC<VerbConjugationModalProps> = ({ isOpen, onC
             <div key={conj.pronoun} className="grid grid-cols-[80px_1fr_auto] items-center gap-x-3 text-sm">
                 <span className="font-mono text-purple-300 text-right">{conj.pronoun}</span>
                 <div className="min-w-0">
-                    <p className="text-slate-100 font-medium truncate">{renderClickableGerman((conj as any).german)}</p>
+                    <p className="text-slate-100 font-medium truncate">{renderClickableLearning((conj as any).learning)}</p>
                     <p className="text-xs text-slate-400 italic truncate">«{(conj as any).russian}»</p>
                 </div>
-                <AudioPlayer textToSpeak={(conj as any).german} />
+                <AudioPlayer textToSpeak={(conj as any).learning} />
             </div>
           ))}
         </div>

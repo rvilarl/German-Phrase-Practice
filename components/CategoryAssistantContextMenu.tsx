@@ -12,10 +12,10 @@ import LanguagesIcon from './icons/LanguagesIcon';
 import { useTranslation } from '../src/hooks/useTranslation';
 
 interface CategoryAssistantContextMenuProps {
-  target: { sentence: { german: string; russian: string }; word: string };
+  target: { sentence: { learning: string; russian: string }; word: string };
   onClose: () => void;
   onAnalyzeWord: (phrase: Phrase, word: string) => Promise<WordAnalysis | null>;
-  onCreateCard: (data: { german: string; russian: string }) => void;
+  onCreateCard: (data: { learning: string; russian: string }) => void;
   onGenerateMore: (prompt: string) => void;
   onSpeak: (text: string) => void;
   onOpenVerbConjugation: (infinitive: string) => void;
@@ -23,7 +23,7 @@ interface CategoryAssistantContextMenuProps {
   onOpenAdjectiveDeclension: (adjective: string) => void;
   onOpenWordAnalysis: (phrase: Phrase, word: string) => void;
   allPhrases: Phrase[];
-  onTranslateGermanToRussian: (germanPhrase: string) => Promise<{ russian: string }>;
+  onTranslateLearningToRussian: (learningPhrase: string) => Promise<{ russian: string }>;
 }
 
 const CategoryAssistantContextMenu: React.FC<CategoryAssistantContextMenuProps> = ({
@@ -38,7 +38,7 @@ const CategoryAssistantContextMenu: React.FC<CategoryAssistantContextMenuProps> 
   onOpenAdjectiveDeclension,
   onOpenWordAnalysis,
   allPhrases,
-  onTranslateGermanToRussian,
+  onTranslateLearningToRussian,
 }) => {
   const { t } = useTranslation();
   const { sentence, word } = target;
@@ -49,7 +49,7 @@ const CategoryAssistantContextMenu: React.FC<CategoryAssistantContextMenuProps> 
 
   const proxyPhrase: Phrase = {
     id: `proxy_context_${Date.now()}`,
-    text: { learning: sentence.german, native: sentence.russian },
+    text: { learning: sentence.learning, native: sentence.russian },
     category: 'general',
     masteryLevel: 0,
     lastReviewedAt: null,
@@ -74,13 +74,13 @@ const CategoryAssistantContextMenu: React.FC<CategoryAssistantContextMenuProps> 
     return () => {
       isMounted = false;
     };
-  }, [word, sentence.german, onAnalyzeWord]);
+  }, [word, sentence.learning, onAnalyzeWord]);
 
   const handleTranslate = useCallback(async () => {
     if (isTranslating) return;
     setIsTranslating(true);
     try {
-      const result = await onTranslateGermanToRussian(sentence.german);
+      const result = await onTranslateLearningToRussian(sentence.learning);
       setTranslation(result.russian);
     } catch (error) {
       console.error("Translation failed", error);
@@ -88,9 +88,9 @@ const CategoryAssistantContextMenu: React.FC<CategoryAssistantContextMenuProps> 
     } finally {
       setIsTranslating(false);
     }
-  }, [sentence.german, onTranslateGermanToRussian, isTranslating]);
+  }, [sentence.learning, onTranslateLearningToRussian, isTranslating]);
 
-  const getCanonicalWordGerman = useCallback(() => {
+  const getCanonicalWordLearning = useCallback(() => {
     if (!analysis) return word;
     if (analysis.verbDetails?.infinitive) return analysis.verbDetails.infinitive;
     if (analysis.nounDetails?.article) return `${analysis.nounDetails.article} ${analysis.word}`;
@@ -100,11 +100,11 @@ const CategoryAssistantContextMenu: React.FC<CategoryAssistantContextMenuProps> 
   const phraseCardExists =
     !!sentence.russian &&
     allPhrases.some(
-      (p) => p.text.learning.trim().toLowerCase() === sentence.german.trim().toLowerCase()
+      (p) => p.text.learning.trim().toLowerCase() === sentence.learning.trim().toLowerCase()
     );
 
   const wordCardExists = allPhrases.some(
-    (p) => p.text.learning.trim().toLowerCase() === getCanonicalWordGerman().trim().toLowerCase()
+    (p) => p.text.learning.trim().toLowerCase() === getCanonicalWordLearning().trim().toLowerCase()
   );
 
   const handleAction = (e: React.MouseEvent, action: () => void) => {
@@ -121,15 +121,15 @@ const CategoryAssistantContextMenu: React.FC<CategoryAssistantContextMenuProps> 
 
   const menuItems = [
     { label: t('assistant.contextMenu.wordDetails'), icon: <InfoIcon />, action: () => onOpenWordAnalysis(proxyPhrase, word), condition: !!analysis },
-    { label: t('assistant.contextMenu.createWordCard'), icon: <PlusIcon />, action: () => { if (analysis) onCreateCard({ german: getCanonicalWordGerman(), russian: analysis.nativeTranslation }); }, condition: !wordCardExists && !!analysis },
+    { label: t('assistant.contextMenu.createWordCard'), icon: <PlusIcon />, action: () => { if (analysis) onCreateCard({ learning: getCanonicalWordLearning(), russian: analysis.nativeTranslation }); }, condition: !wordCardExists && !!analysis },
     { label: t('modals.wordAnalysis.actions.openVerb'), icon: <TableIcon />, action: () => { if (analysis?.verbDetails?.infinitive) onOpenVerbConjugation(analysis.verbDetails.infinitive); }, condition: !!analysis?.verbDetails },
     { label: t('modals.wordAnalysis.actions.openNoun'), icon: <TableIcon />, action: () => { if (analysis?.nounDetails) onOpenNounDeclension(analysis.word, analysis.nounDetails.article); }, condition: !!analysis?.nounDetails },
     { label: t('modals.wordAnalysis.actions.openAdjective'), icon: <TableIcon />, action: () => { if (analysis) onOpenAdjectiveDeclension(analysis.baseForm || analysis.word); }, condition: analysis?.partOfSpeech === 'Прилагательное' },
   ];
 
   const phraseMenuItems = [
-    { label: t('assistant.contextMenu.createPhraseCard'), icon: <CardPlusIcon />, action: () => onCreateCard({ german: sentence.german, russian: translation || sentence.russian }), condition: !!translation && !phraseCardExists },
-    { label: t('assistant.contextMenu.generateSimilar'), icon: <WandIcon />, action: () => onGenerateMore(t('assistant.prompts.generateSimilar', { phrase: sentence.german })), condition: true },
+    { label: t('assistant.contextMenu.createPhraseCard'), icon: <CardPlusIcon />, action: () => onCreateCard({ learning: sentence.learning, russian: translation || sentence.russian }), condition: !!translation && !phraseCardExists },
+    { label: t('assistant.contextMenu.generateSimilar'), icon: <WandIcon />, action: () => onGenerateMore(t('assistant.prompts.generateSimilar', { phrase: sentence.learning })), condition: true },
   ];
 
 
@@ -142,8 +142,8 @@ const CategoryAssistantContextMenu: React.FC<CategoryAssistantContextMenuProps> 
       >
         <div className="px-4 py-3">
             <div className="flex items-center justify-between">
-                <p className="text-base font-medium text-slate-200 break-words flex-grow">{sentence.german}</p>
-                <button onClick={(e) => { e.stopPropagation(); onSpeak(sentence.german); }} className="p-1 rounded-full hover:bg-white/10 ml-2 flex-shrink-0">
+                <p className="text-base font-medium text-slate-200 break-words flex-grow">{sentence.learning}</p>
+                <button onClick={(e) => { e.stopPropagation(); onSpeak(sentence.learning); }} className="p-1 rounded-full hover:bg-white/10 ml-2 flex-shrink-0">
                     <SoundIcon className="w-4 h-4 text-slate-300" />
                 </button>
             </div>

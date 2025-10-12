@@ -2,12 +2,12 @@ import { Phrase, ChatMessage, DeepDiveAnalysis, MovieExample, WordAnalysis, Verb
 
 export interface AiService {
   // FIX: Updated the return type to accurately reflect the shape of the data returned by the API call.
-  generatePhrases(prompt: string): Promise<{ german: string, russian: string }[]>;
-  generateSinglePhrase(russianPhrase: string): Promise<{ german: string; russian: string; }>;
-  translatePhrase(russianPhrase: string): Promise<{ german: string }>;
-  translateGermanToRussian(germanPhrase: string): Promise<{ russian: string }>;
-  getWordTranslation(russianPhrase: string, germanPhrase: string, russianWord: string): Promise<{ germanTranslation: string }>;
-  improvePhrase(originalRussian: string, currentGerman: string): Promise<{ suggestedGerman: string; explanation: string }>;
+  generatePhrases(prompt: string): Promise<{ learning: string, russian: string }[]>;
+  generateSinglePhrase(russianPhrase: string): Promise<{ learning: string; russian: string; }>;
+  translatePhrase(russianPhrase: string): Promise<{ learning: string }>;
+  translateLearningToRussian(learningPhrase: string): Promise<{ russian: string }>;
+  getWordTranslation(russianPhrase: string, learningPhrase: string, russianWord: string): Promise<{ learningTranslation: string }>;
+  improvePhrase(originalRussian: string, currentLearning: string): Promise<{ suggestedLearning: string; explanation: string }>;
   generateInitialExamples(phrase: Phrase): Promise<ChatMessage>;
   continueChat(phrase: Phrase, history: ChatMessage[], newMessage: string): Promise<ChatMessage>;
   practiceConversation(history: ChatMessage[], newMessage: string, allPhrases: Phrase[]): Promise<ChatMessage>;

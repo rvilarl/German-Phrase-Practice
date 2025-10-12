@@ -11,7 +11,7 @@ interface LanguageOnboardingModalProps {
 const LANGUAGE_OPTIONS: { code: LanguageCode; name: string; nativeName: string }[] = [
   { code: 'en', name: 'English', nativeName: 'English' },
   { code: 'ru', name: 'Russian', nativeName: 'Русский' },
-  { code: 'de', name: 'German', nativeName: 'Deutsch' },
+  { code: 'de', name: 'Learning', nativeName: 'Deutsch' },
   { code: 'fr', name: 'French', nativeName: 'Français' },
   { code: 'es', name: 'Spanish', nativeName: 'Español' },
   { code: 'it', name: 'Italian', nativeName: 'Italiano' },

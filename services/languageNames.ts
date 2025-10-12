@@ -6,7 +6,7 @@ import type { LanguageCode } from '../types';
  */
 export const LANGUAGE_NAMES: Record<LanguageCode, string> = {
   en: 'English',
-  de: 'German',
+  de: 'Learning',
   ru: 'Russian',
   fr: 'French',
   es: 'Spanish',
@@ -28,7 +28,7 @@ export const NEEDS_TRANSCRIPTION: LanguageCode[] = ['zh', 'ja', 'ar', 'ru'];
 /**
  * Get full language name for use in prompts
  * @param code - Language code (e.g., 'de')
- * @returns Full language name (e.g., 'German')
+ * @returns Full language name (e.g., 'Learning')
  */
 export function getLanguageName(code: LanguageCode): string {
   return LANGUAGE_NAMES[code] || code;
@@ -47,7 +47,7 @@ export function needsTranscription(code: LanguageCode): boolean {
  * Get language name for prompts, with optional article
  * @param code - Language code
  * @param includeArticle - Whether to include article "in"
- * @returns "German" or "in German"
+ * @returns "Learning" or "in Learning"
  */
 export function getLanguageNameForPrompt(code: LanguageCode, includeArticle = false): string {
   const name = getLanguageName(code);

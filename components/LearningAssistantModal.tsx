@@ -44,7 +44,7 @@ const ChatMessageContent: React.FC<{
     };
 
     // FIX: Updated to pass the translation to handleWordClick.
-    const renderClickableGerman = (part: ContentPart) => {
+    const renderClickableLearning = (part: ContentPart) => {
         if (!part.text) return null;
         return part.text.split(' ').map((word, i, arr) => (
             <span
@@ -67,7 +67,7 @@ const ChatMessageContent: React.FC<{
                 {contentParts.map((part, index) =>
                     part.type === 'learning' ? (
                         <span key={index} className="inline-flex items-center align-middle bg-slate-600/50 px-1.5 py-0.5 rounded-md mx-0.5">
-                            <span className="font-medium text-purple-300">{renderClickableGerman(part)}</span>
+                            <span className="font-medium text-purple-300">{renderClickableLearning(part)}</span>
                             <button
                                 onClick={() => onSpeak(part.text)}
                                 className="p-0.5 rounded-full hover:bg-white/20 flex-shrink-0 ml-1.5"

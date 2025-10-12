@@ -28,7 +28,7 @@ interface PhraseCardProps {
   onOpenDeepDive: (phrase: Phrase) => void;
   onOpenMovieExamples: (phrase: Phrase) => void;
   onWordClick: (phrase: Phrase, word: string) => void;
-  onGetWordTranslation: (russianPhrase: string, germanPhrase: string, russianWord: string) => Promise<{ germanTranslation: string }>;
+  onGetWordTranslation: (russianPhrase: string, learningPhrase: string, russianWord: string) => Promise<{ learningTranslation: string }>;
   onOpenSentenceChain: (phrase: Phrase) => void;
   onOpenImprovePhrase: (phrase: Phrase) => void;
   onOpenContextMenu: (target: { phrase: Phrase, word?: string }) => void;
@@ -150,8 +150,8 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
     setWordHint({ word, translation: null, position, isLoading: true });
     
     try {
-      const { germanTranslation } = await onGetWordTranslation(phrase.text.native, phrase.text.learning, word);
-      setWordHint(prev => (prev?.word === word ? { ...prev, translation: germanTranslation, isLoading: false } : prev));
+      const { learningTranslation } = await onGetWordTranslation(phrase.text.native, phrase.text.learning, word);
+      setWordHint(prev => (prev?.word === word ? { ...prev, translation: learningTranslation, isLoading: false } : prev));
     } catch (error) {
       console.error("Failed to get word translation:", error);
       setWordHint(prev => (prev?.word === word ? { ...prev, translation: '???', isLoading: false } : prev));
@@ -218,7 +218,7 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
     onOpenImprovePhrase(phrase);
   }
 
-  const handleGermanWordClick = (e: React.MouseEvent, word: string) => {
+  const handleLearningWordClick = (e: React.MouseEvent, word: string) => {
     e.stopPropagation();
     if (isWordAnalysisLoading) return;
     const cleanedWord = word.replace(/[.,!?]/g, '');
@@ -374,7 +374,7 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
             <div ref={flashRef} className="flash-container"></div>
         </div>
 
-        {/* Back Side (German) */}
+        {/* Back Side (Learning) */}
         <div className="card-face [transform:rotateY(180deg)] bg-gradient-to-br from-purple-500/20 to-blue-500/20 backdrop-blur-xl transition-colors duration-500">
             <div className="flex-grow flex flex-col items-center justify-center w-full">
                 <button
@@ -389,7 +389,7 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
                       <span 
                         key={index} 
                         className={`cursor-pointer hover:bg-white/20 px-1 py-0.5 rounded-md transition-colors ${isWordAnalysisLoading ? 'opacity-50 pointer-events-none' : ''}`}
-                        onClick={(e) => handleGermanWordClick(e, word)}
+                        onClick={(e) => handleLearningWordClick(e, word)}
                         onPointerDown={(e) => handleWordPointerDown(e, word)}
                         onPointerUp={clearWordLongPress}
                         onPointerLeave={clearWordLongPress}

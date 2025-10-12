@@ -16,7 +16,7 @@ interface PracticePageContextMenuProps {
   onDelete: (phraseId: string) => void;
   onDiscuss: (phrase: Phrase) => void;
   onAnalyzeWord: (phrase: Phrase, word: string) => Promise<WordAnalysis | null>;
-  onCreateCard: (data: { german: string; russian: string }) => void;
+  onCreateCard: (data: { learning: string; russian: string }) => void;
   onOpenWordAnalysis: (phrase: Phrase, word: string) => void;
   onOpenVerbConjugation: (infinitive: string) => void;
   onOpenNounDeclension: (noun: string, article: string) => void;
@@ -66,7 +66,7 @@ const PracticePageContextMenu: React.FC<PracticePageContextMenuProps> = ({
     setTimeout(action, 100);
   };
 
-  const getCanonicalGerman = useCallback((): string | null => {
+  const getCanonicalLearning = useCallback((): string | null => {
     if (!analysis) return null;
     if (analysis.verbDetails?.infinitive) return analysis.verbDetails.infinitive;
     if (analysis.nounDetails?.article) return `${analysis.nounDetails.article} ${analysis.word}`;
@@ -76,14 +76,14 @@ const PracticePageContextMenu: React.FC<PracticePageContextMenuProps> = ({
   const handleCreateCard = useCallback(async () => {
     if (!analysis) return;
     setIsCreatingCard(true);
-    const canonicalGerman = getCanonicalGerman();
-    if (canonicalGerman) {
-      onCreateCard({ german: canonicalGerman, russian: analysis.nativeTranslation });
+    const canonicalLearning = getCanonicalLearning();
+    if (canonicalLearning) {
+      onCreateCard({ learning: canonicalLearning, russian: analysis.nativeTranslation });
     }
     // No need to set isCreatingCard to false, the modal will close.
     // However, if the action is quick, we can keep it for visual feedback.
     setTimeout(() => setIsCreatingCard(false), 1000);
-  }, [analysis, getCanonicalGerman, onCreateCard]);
+  }, [analysis, getCanonicalLearning, onCreateCard]);
 
   const renderMenuItems = () => {
     const wordSpecificItems = word ? [

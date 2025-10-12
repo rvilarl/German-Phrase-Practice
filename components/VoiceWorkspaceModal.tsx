@@ -236,9 +236,9 @@ export const VoiceWorkspaceModal: React.FC<VoiceWorkspaceModalProps> = ({
         if (correctPrefix && constructedWords.length >= 2) {
           if (hintCount < 2) {
             const nextWordIndex = constructedWords.length;
-            const germanWords = phrase.text.learning.split(' ');
-            if (nextWordIndex < germanWords.length) {
-              const nextCorrectWord = germanWords[nextWordIndex];
+            const learningWords = phrase.text.learning.split(' ');
+            if (nextWordIndex < learningWords.length) {
+              const nextCorrectWord = learningWords[nextWordIndex];
               const hintedWord = availableWords.find(aw => normalizeString(aw.text) === normalizeString(nextCorrectWord));
               if (hintedWord) {
                 setHintWordId(hintedWord.id);

@@ -13,9 +13,9 @@ import { getLanguageLabel } from '../services/languageLabels';
 interface AddPhraseModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onGenerate: (russianPhrase: string) => Promise<{ german: string; russian: string }>;
-  onTranslateGerman: (germanPhrase: string) => Promise<{ russian: string }>;
-  onPhraseCreated: (phraseData: { german: string; russian: string }) => void;
+  onGenerate: (russianPhrase: string) => Promise<{ learning: string; russian: string }>;
+  onTranslateLearning: (learningPhrase: string) => Promise<{ russian: string }>;
+  onPhraseCreated: (phraseData: { learning: string; russian: string }) => void;
   language: LanguageCode;
   autoSubmit: boolean;
 }
@@ -24,7 +24,7 @@ const AddPhraseModal: React.FC<AddPhraseModalProps> = ({
   isOpen,
   onClose,
   onGenerate,
-  onTranslateGerman,
+  onTranslateLearning,
   onPhraseCreated,
   language,
   autoSubmit,
@@ -57,13 +57,13 @@ const AddPhraseModal: React.FC<AddPhraseModalProps> = ({
       setError(null);
 
       try {
-        let newPhraseData: { german: string; russian: string };
+        let newPhraseData: { learning: string; russian: string };
         // Check if the input language is the native language
         if (language === profile.native) {
           newPhraseData = await onGenerate(trimmedText);
         } else {
-          const { russian } = await onTranslateGerman(trimmedText);
-          newPhraseData = { german: trimmedText, russian };
+          const { russian } = await onTranslateLearning(trimmedText);
+          newPhraseData = { learning: trimmedText, russian };
         }
         await onPhraseCreated(newPhraseData);
       } catch (err) {
@@ -72,7 +72,7 @@ const AddPhraseModal: React.FC<AddPhraseModalProps> = ({
       }
       // Parent component closes the modal, which resets `isLoading` on success.
     },
-    [isLoading, onGenerate, onPhraseCreated, language, onTranslateGerman, t, profile],
+    [isLoading, onGenerate, onPhraseCreated, language, onTranslateLearning, t, profile],
   );
 
   useEffect(() => {

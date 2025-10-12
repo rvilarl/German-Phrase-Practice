@@ -32,12 +32,12 @@ interface CategoryAssistantModalProps {
   // Props for interactivity
   onOpenWordAnalysis: (phrase: Phrase, word: string) => void;
   allPhrases: Phrase[];
-  onCreateCard: (phraseData: { german: string; russian: string; }) => void;
+  onCreateCard: (phraseData: { learning: string; russian: string; }) => void;
   onAnalyzeWord: (phrase: Phrase, word: string) => Promise<WordAnalysis | null>;
   onOpenVerbConjugation: (infinitive: string) => void;
   onOpenNounDeclension: (noun: string, article: string) => void;
   onOpenAdjectiveDeclension: (adjective: string) => void;
-  onTranslateGermanToRussian: (germanPhrase: string) => Promise<{ russian: string }>;
+  onTranslateLearningToRussian: (learningPhrase: string) => Promise<{ russian: string }>;
   onGoToList: () => void;
 }
 
@@ -50,7 +50,7 @@ const AssistantChatMessageContent: React.FC<{
     // Interactivity props
     onSpeak: (text: string) => void;
     onOpenWordAnalysis: (phrase: Phrase, word: string) => void;
-    onOpenContextMenu: (target: { sentence: { german: string, russian: string }, word: string }) => void;
+    onOpenContextMenu: (target: { sentence: { learning: string, russian: string }, word: string }) => void;
 }> = ({ msg, category, onAddCards, onGoToList, onClose, onSpeak, onOpenWordAnalysis, onOpenContextMenu }) => {
     const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
     const [addedInfo, setAddedInfo] = useState<{ count: number } | null>(null);
@@ -74,7 +74,7 @@ const AssistantChatMessageContent: React.FC<{
         setIsAdding(false);
     };
     
-    const handleWordPointerDown = (e: React.PointerEvent<HTMLSpanElement>, sentence: { german: string, russian: string }, word: string) => {
+    const handleWordPointerDown = (e: React.PointerEvent<HTMLSpanElement>, sentence: { learning: string, russian: string }, word: string) => {
         if (e.pointerType === 'mouse' && e.button !== 0) return;
         e.stopPropagation();
         const cleanedWord = word.replace(/[.,!?()"“”:;]/g, '');
@@ -104,16 +104,16 @@ const AssistantChatMessageContent: React.FC<{
         onOpenWordAnalysis(proxyPhrase, word);
     };
 
-    const renderClickableGerman = (part: ContentPart) => {
+    const renderClickableLearning = (part: ContentPart) => {
         if (!part.text) return null;
         return part.text.split(' ').map((word, i, arr) => (
             <span
                 key={i}
                 onClick={(e) => { e.stopPropagation(); const cleaned = word.replace(/[.,!?()"“”:;]/g, ''); if (cleaned) handleWordClick(part.text, cleaned, part.translation || ''); }}
-                onPointerDown={(e) => handleWordPointerDown(e, { german: part.text, russian: part.translation || '' }, word)}
+                onPointerDown={(e) => handleWordPointerDown(e, { learning: part.text, russian: part.translation || '' }, word)}
                 onPointerUp={clearWordLongPress}
                 onPointerLeave={clearWordLongPress}
-                onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); const cleaned = word.replace(/[.,!?()"“”:;]/g, ''); if(cleaned) onOpenContextMenu({ sentence: { german: part.text, russian: part.translation || '' }, word: cleaned }); }}
+                onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); const cleaned = word.replace(/[.,!?()"“”:;]/g, ''); if(cleaned) onOpenContextMenu({ sentence: { learning: part.text, russian: part.translation || '' }, word: cleaned }); }}
                 className="cursor-pointer hover:bg-white/20 px-1 py-0.5 rounded-md transition-colors"
             >
                 {word}{i < arr.length - 1 ? ' ' : ''}
@@ -128,9 +128,9 @@ const AssistantChatMessageContent: React.FC<{
             <div className="space-y-3">
                  <div className="prose prose-invert prose-sm max-w-none prose-p:my-2 prose-headings:my-3">
                     {responseParts.map((part, index) =>
-                        part.type === 'learning' || part.type === 'german' ? (
+                        part.type === 'learning' || part.type === 'learning' ? (
                             <span key={index} className="inline-flex items-center align-middle bg-slate-600/50 px-1.5 py-0.5 rounded-md mx-0.5">
-                                <span className="font-medium text-purple-300 not-prose">{renderClickableGerman(part)}</span>
+                                <span className="font-medium text-purple-300 not-prose">{renderClickableLearning(part)}</span>
                                 <button
                                     onClick={() => onSpeak(part.text)}
                                     className="p-0.5 rounded-full hover:bg-white/20 flex-shrink-0 ml-1.5"
@@ -198,7 +198,7 @@ const CategoryAssistantModal: React.FC<CategoryAssistantModalProps> = (props) =>
     const [input, setInput] = useState('');
     const [isListening, setIsListening] = useState(false);
     const [promptSuggestions, setPromptSuggestions] = useState<string[]>([]);
-    const [contextMenuTarget, setContextMenuTarget] = useState<{ sentence: { german: string, russian: string }, word: string } | null>(null);
+    const [contextMenuTarget, setContextMenuTarget] = useState<{ sentence: { learning: string, russian: string }, word: string } | null>(null);
 
     const recognitionRef = useRef<any>(null);
     const chatEndRef = useRef<HTMLDivElement>(null);
@@ -241,8 +241,8 @@ const CategoryAssistantModal: React.FC<CategoryAssistantModalProps> = (props) =>
                 setPromptSuggestions(response.promptSuggestions);
             }
             if (response?.responseType === 'phrases_to_delete' && response.phrasesForDeletion) {
-                const germanTextsToDelete = new Set(response.phrasesForDeletion.map(p => p.learning.toLowerCase().trim()));
-                const phrasesToDelete = phrases.filter(p => germanTextsToDelete.has(p.text.learning.toLowerCase().trim()));
+                const learningTextsToDelete = new Set(response.phrasesForDeletion.map(p => p.learning.toLowerCase().trim()));
+                const phrasesToDelete = phrases.filter(p => learningTextsToDelete.has(p.text.learning.toLowerCase().trim()));
                 if (phrasesToDelete.length > 0) {
                     onOpenConfirmDeletePhrases(phrasesToDelete, category);
                 }

@@ -25,12 +25,12 @@ interface ChatModalProps {
   apiProviderType: ApiProviderType;
   onOpenWordAnalysis: (phrase: Phrase, word: string) => void;
   allPhrases: Phrase[];
-  onCreateCard: (phraseData: { german: string; russian: string; }) => void;
+  onCreateCard: (phraseData: { learning: string; russian: string; }) => void;
   onAnalyzeWord: (phrase: Phrase, word: string) => Promise<WordAnalysis | null>;
   onOpenVerbConjugation: (infinitive: string) => void;
   onOpenNounDeclension: (noun: string, article: string) => void;
   onOpenAdjectiveDeclension: (adjective: string) => void;
-  onTranslateGermanToRussian: (germanPhrase: string) => Promise<{ russian: string }>;
+  onTranslateLearningToRussian: (learningPhrase: string) => Promise<{ russian: string }>;
 }
 
 const ChatMessageContent: React.FC<{
@@ -38,12 +38,12 @@ const ChatMessageContent: React.FC<{
     onSpeak: (text: string) => void;
     basePhrase?: Phrase;
     onOpenWordAnalysis?: (phrase: Phrase, word: string) => void;
-    onOpenContextMenu: (target: { sentence: { german: string, russian: string }, word: string }) => void;
+    onOpenContextMenu: (target: { sentence: { learning: string, russian: string }, word: string }) => void;
 }> = ({ message, onSpeak, basePhrase, onOpenWordAnalysis, onOpenContextMenu }) => {
     const { text, examples, suggestions, contentParts } = message;
     const wordLongPressTimer = useRef<number | null>(null);
 
-    const handleWordPointerDown = (e: React.PointerEvent<HTMLSpanElement>, sentence: { german: string, russian: string }, word: string) => {
+    const handleWordPointerDown = (e: React.PointerEvent<HTMLSpanElement>, sentence: { learning: string, russian: string }, word: string) => {
         if (e.pointerType === 'mouse' && e.button !== 0) return;
         e.stopPropagation();
         const cleanedWord = word.replace(/[.,!?()"“”:;]/g, '');
@@ -72,15 +72,15 @@ const ChatMessageContent: React.FC<{
         onOpenWordAnalysis(proxyPhrase, word);
     };
 
-    const renderClickableGerman = (sentence: { german: string, russian: string }) => {
-        if (!sentence.german) return null;
-        return sentence.german.split(' ').map((word, i, arr) => (
+    const renderClickableLearning = (sentence: { learning: string, russian: string }) => {
+        if (!sentence.learning) return null;
+        return sentence.learning.split(' ').map((word, i, arr) => (
             <span
                 key={i}
                 onClick={(e) => {
                     e.stopPropagation();
                     const cleanedWord = word.replace(/[.,!?()"“”:;]/g, '');
-                    if (cleanedWord) handleWordClick(sentence.german, cleanedWord, sentence.russian);
+                    if (cleanedWord) handleWordClick(sentence.learning, cleanedWord, sentence.russian);
                 }}
                 onPointerDown={(e) => handleWordPointerDown(e, sentence, word)}
                 onPointerUp={clearWordLongPress}
@@ -103,9 +103,9 @@ const ChatMessageContent: React.FC<{
         return (
             <div className="whitespace-pre-wrap leading-relaxed">
                 {contentParts.map((part, index) =>
-                    part.type === 'learning' || part.type === 'german' ? (
+                    part.type === 'learning' || part.type === 'learning' ? (
                         <span key={index} className="inline-flex items-center align-middle bg-slate-600/50 px-1.5 py-0.5 rounded-md mx-0.5">
-                            <span className="font-medium text-purple-300">{renderClickableGerman({ german: part.text, russian: part.translation || '' })}</span>
+                            <span className="font-medium text-purple-300">{renderClickableLearning({ learning: part.text, russian: part.translation || '' })}</span>
                             <button
                                 onClick={() => onSpeak(part.text)}
                                 className="p-0.5 rounded-full hover:bg-white/20 flex-shrink-0 ml-1.5"
@@ -140,7 +140,7 @@ const ChatMessageContent: React.FC<{
                                     >
                                         <SoundIcon className="w-4 h-4 text-slate-300" />
                                     </button>
-                                    <p className="flex-1 text-slate-100 leading-relaxed">{renderClickableGerman({ german: example.learning, russian: example.native })}</p>
+                                    <p className="flex-1 text-slate-100 leading-relaxed">{renderClickableLearning({ learning: example.learning, russian: example.native })}</p>
                                 </div>
                                 <p className="pl-7 text-sm text-slate-400 italic">{example.native}</p>
                             </div>
@@ -155,9 +155,9 @@ const ChatMessageContent: React.FC<{
                                 <h4 className="font-semibold text-purple-300 mb-1">{suggestion.title}</h4>
                                 <div className="whitespace-pre-wrap leading-relaxed text-slate-300">
                                     {suggestion.contentParts && suggestion.contentParts.map((part, partIndex) =>
-                                        part.type === 'learning' || part.type === 'german' ? (
+                                        part.type === 'learning' || part.type === 'learning' ? (
                                             <span key={partIndex} className="inline-flex items-center align-middle bg-slate-500/50 px-1.5 py-0.5 rounded-md mx-0.5">
-                                                <span className="font-medium text-purple-200">{renderClickableGerman({ german: part.text, russian: part.translation || '' })}</span>
+                                                <span className="font-medium text-purple-200">{renderClickableLearning({ learning: part.text, russian: part.translation || '' })}</span>
                                                 <button
                                                     onClick={() => onSpeak(part.text)}
                                                     className="p-0.5 rounded-full hover:bg-white/20 flex-shrink-0 ml-1.5"
@@ -200,7 +200,7 @@ const ChatSkeleton: React.FC = () => (
 );
 
 
-const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, phrase, onGenerateInitialExamples, onContinueChat, apiProviderType, onOpenWordAnalysis, allPhrases, onCreateCard, onAnalyzeWord, onOpenVerbConjugation, onOpenNounDeclension, onOpenAdjectiveDeclension, onTranslateGermanToRussian }) => {
+const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, phrase, onGenerateInitialExamples, onContinueChat, apiProviderType, onOpenWordAnalysis, allPhrases, onCreateCard, onAnalyzeWord, onOpenVerbConjugation, onOpenNounDeclension, onOpenAdjectiveDeclension, onTranslateLearningToRussian }) => {
   const { t } = useTranslation();
   const { profile } = useLanguage();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -213,7 +213,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, phrase, onGenera
   const [speechSupported, setSpeechSupported] = useState(false);
   const recognitionRef = useRef<any>(null);
 
-  const [contextMenuTarget, setContextMenuTarget] = useState<{ sentence: { german: string, russian: string }, word: string } | null>(null);
+  const [contextMenuTarget, setContextMenuTarget] = useState<{ sentence: { learning: string, russian: string }, word: string } | null>(null);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -480,7 +480,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, phrase, onGenera
             onOpenAdjectiveDeclension={onOpenAdjectiveDeclension}
             onOpenWordAnalysis={onOpenWordAnalysis}
             allPhrases={allPhrases}
-            onTranslateGermanToRussian={onTranslateGermanToRussian}
+            onTranslateLearningToRussian={onTranslateLearningToRussian}
         />
       )}
     </div>

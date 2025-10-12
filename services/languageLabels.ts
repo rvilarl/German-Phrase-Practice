@@ -28,7 +28,7 @@ export function getLanguageLabel(languageCode: LanguageCode): string {
 export function getLanguageNameInEnglish(languageCode: LanguageCode): string {
   const names: Record<LanguageCode, string> = {
     en: 'English',
-    de: 'German',
+    de: 'Learning',
     ru: 'Russian',
     fr: 'French',
     es: 'Spanish',

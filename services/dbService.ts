@@ -9,7 +9,7 @@ interface AppDB extends DBSchema {
   };
 }
 
-const DB_NAME = 'GermanSRSLibraryDB';
+const DB_NAME = 'LearningSRSLibraryDB';
 const DB_VERSION = 1;
 const STORE_NAME = 'books';
 

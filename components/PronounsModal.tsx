@@ -12,12 +12,12 @@ interface PronounsModalProps {
 }
 
 const pronouns = [
-    { german: 'ich', russian: 'I' },
-    { german: 'du', russian: 'you (informal)' },
-    { german: 'er / sie / es', russian: 'he / she / it' },
-    { german: 'wir', russian: 'we' },
-    { german: 'ihr', russian: 'you (plural informal)' },
-    { german: 'sie / Sie', russian: 'they / you (formal)' },
+    { learning: 'ich', russian: 'I' },
+    { learning: 'du', russian: 'you (informal)' },
+    { learning: 'er / sie / es', russian: 'he / she / it' },
+    { learning: 'wir', russian: 'we' },
+    { learning: 'ihr', russian: 'you (plural informal)' },
+    { learning: 'sie / Sie', russian: 'they / you (formal)' },
 ];
 
 const PronounsModal: React.FC<PronounsModalProps> = ({ isOpen, onClose, onOpenWordAnalysis }) => {
@@ -38,7 +38,7 @@ const PronounsModal: React.FC<PronounsModalProps> = ({ isOpen, onClose, onOpenWo
     onOpenWordAnalysis(proxyPhrase as Phrase, word);
   };
   
-  const renderClickableGerman = (text: string, russian: string) => {
+  const renderClickableLearning = (text: string, russian: string) => {
       if (!text) return null;
       return text.split(' ').map((word, i, arr) => {
           if (word === '/') return <span key={i}> / </span>;
@@ -80,17 +80,17 @@ const PronounsModal: React.FC<PronounsModalProps> = ({ isOpen, onClose, onOpenWo
                     <thead>
                         <tr className="border-b border-slate-600">
                             <th className="p-3 w-1/6"><span className="sr-only">{t('modals.pronouns.headers.speak')}</span></th>
-                            <th className="p-3 text-sm font-semibold text-slate-400">{t('modals.pronouns.headers.german')}</th>
+                            <th className="p-3 text-sm font-semibold text-slate-400">{t('modals.pronouns.headers.learning')}</th>
                             <th className="p-3 text-sm font-semibold text-slate-400">{t('modals.pronouns.headers.russian')}</th>
                         </tr>
                     </thead>
                     <tbody>
                         {pronouns.map(p => (
-                            <tr key={p.german} className="border-b border-slate-700 last:border-b-0">
+                            <tr key={p.learning} className="border-b border-slate-700 last:border-b-0">
                                 <td className="p-3">
-                                  <AudioPlayer textToSpeak={p.german.replace(/ \/ /g, ', ')} />
+                                  <AudioPlayer textToSpeak={p.learning.replace(/ \/ /g, ', ')} />
                                 </td>
-                                <td className="p-3 text-slate-100 font-semibold text-lg whitespace-nowrap">{renderClickableGerman(p.german, p.russian)}</td>
+                                <td className="p-3 text-slate-100 font-semibold text-lg whitespace-nowrap">{renderClickableLearning(p.learning, p.russian)}</td>
                                 <td className="p-3 text-slate-300 text-lg">{p.russian}</td>
                             </tr>
                         ))}

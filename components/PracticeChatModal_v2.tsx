@@ -33,11 +33,11 @@ interface Props {
   };
   onOpenWordAnalysis: (phrase: Phrase, word: string) => void;
   onAnalyzeWord: (phrase: Phrase, word: string) => Promise<WordAnalysis | null>;
-  onCreateCard: (phraseData: { german: string; russian: string }) => void;
+  onCreateCard: (phraseData: { learning: string; russian: string }) => void;
   onOpenVerbConjugation: (infinitive: string) => void;
   onOpenNounDeclension: (noun: string, article: string) => void;
   onOpenAdjectiveDeclension: (adjective: string) => void;
-  onTranslateGermanToRussian: (germanPhrase: string) => Promise<{ russian: string }>;
+  onTranslateLearningToRussian: (learningPhrase: string) => Promise<{ russian: string }>;
   onSessionComplete?: (session: PracticeChatSessionRecord) => void;
 }
 
@@ -49,7 +49,7 @@ const MessageBubble: React.FC<{
   onSpeak?: (text: string) => void;
   isUser: boolean;
   onOpenWordAnalysis?: (phrase: Phrase, word: string) => void;
-  onOpenContextMenu?: (target: { sentence: { german: string, russian: string }, word: string }) => void;
+  onOpenContextMenu?: (target: { sentence: { learning: string, russian: string }, word: string }) => void;
   messageIndex?: number;
   revealedTranslations?: Set<number>;
   onRevealTranslation?: (messageIndex: number) => void;
@@ -74,7 +74,7 @@ const MessageBubble: React.FC<{
     onOpenWordAnalysis(proxyPhrase, word);
   };
 
-  const handleWordPointerDown = (e: React.PointerEvent<HTMLSpanElement>, sentence: { german: string, russian: string }, word: string) => {
+  const handleWordPointerDown = (e: React.PointerEvent<HTMLSpanElement>, sentence: { learning: string, russian: string }, word: string) => {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     e.stopPropagation();
     const cleanedWord = word.replace(/[.,!?()""":;]/g, '');
@@ -93,7 +93,7 @@ const MessageBubble: React.FC<{
     }
   };
 
-  const renderClickableGerman = (text: string, translation: string) => {
+  const renderClickableLearning = (text: string, translation: string) => {
     if (!text || !onOpenWordAnalysis) return text;
     return text.split(' ').map((word, i, arr) => (
       <span
@@ -103,14 +103,14 @@ const MessageBubble: React.FC<{
           const cleaned = word.replace(/[.,!?()""":;]/g, '');
           if (cleaned) handleWordClick(text, cleaned, translation);
         }}
-        onPointerDown={(e) => handleWordPointerDown(e, { german: text, russian: translation }, word)}
+        onPointerDown={(e) => handleWordPointerDown(e, { learning: text, russian: translation }, word)}
         onPointerUp={clearWordLongPress}
         onPointerLeave={clearWordLongPress}
         onContextMenu={(e) => {
           e.preventDefault();
           e.stopPropagation();
           const cleaned = word.replace(/[.,!?()""":;]/g, '');
-          if (cleaned && onOpenContextMenu) onOpenContextMenu({ sentence: { german: text, russian: translation }, word: cleaned });
+          if (cleaned && onOpenContextMenu) onOpenContextMenu({ sentence: { learning: text, russian: translation }, word: cleaned });
         }}
         className="cursor-pointer hover:bg-white/20 px-1 py-0.5 rounded-md transition-colors"
       >
@@ -139,7 +139,7 @@ const MessageBubble: React.FC<{
         <div className="px-4 py-3 rounded-2xl rounded-bl-lg bg-slate-700 text-slate-200 border border-slate-600">
           <div className="flex items-start justify-between gap-2">
             <p className="text-base flex-1 font-medium text-purple-300">
-              {renderClickableGerman(message.content.primary.text, message.content.primary.translation || '')}
+              {renderClickableLearning(message.content.primary.text, message.content.primary.translation || '')}
             </p>
             {onSpeak && (
               <button
@@ -250,7 +250,7 @@ export const PracticeChatModal_v2: React.FC<Props> = ({
   onOpenVerbConjugation,
   onOpenNounDeclension,
   onOpenAdjectiveDeclension,
-  onTranslateGermanToRussian,
+  onTranslateLearningToRussian,
   onSessionComplete
 }) => {
   const { t } = useTranslation();
@@ -261,7 +261,7 @@ export const PracticeChatModal_v2: React.FC<Props> = ({
   const [error, setError] = useState<string | null>(null);
   const [isListening, setIsListening] = useState(false);
   const [revealedTranslations, setRevealedTranslations] = useState<Set<number>>(new Set());
-  const [contextMenuTarget, setContextMenuTarget] = useState<{ sentence: { german: string, russian: string }, word: string } | null>(null);
+  const [contextMenuTarget, setContextMenuTarget] = useState<{ sentence: { learning: string, russian: string }, word: string } | null>(null);
 
   // Session stats
   const [stats, setStats] = useState<PracticeChatSessionStats>(() => buildInitialStats());
@@ -456,7 +456,7 @@ export const PracticeChatModal_v2: React.FC<Props> = ({
     if (!primaryContent?.text) return message;
 
     try {
-      const translationResult = await onTranslateGermanToRussian(primaryContent.text);
+      const translationResult = await onTranslateLearningToRussian(primaryContent.text);
       const normalized = translationResult?.russian?.trim();
 
       if (normalized && normalized !== primaryContent.translation?.trim()) {
@@ -476,7 +476,7 @@ export const PracticeChatModal_v2: React.FC<Props> = ({
     }
 
     return message;
-  }, [onTranslateGermanToRussian]);
+  }, [onTranslateLearningToRussian]);
 
   // Handle sending message
   const handleSendMessage = useCallback(async (text: string) => {
@@ -715,7 +715,7 @@ export const PracticeChatModal_v2: React.FC<Props> = ({
           onOpenVerbConjugation={onOpenVerbConjugation}
           onOpenNounDeclension={onOpenNounDeclension}
           onOpenAdjectiveDeclension={onOpenAdjectiveDeclension}
-          onTranslateGermanToRussian={onTranslateGermanToRussian}
+          onTranslateLearningToRussian={onTranslateLearningToRussian}
         />
       )}
     </div>

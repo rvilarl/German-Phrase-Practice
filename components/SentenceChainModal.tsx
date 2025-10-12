@@ -33,7 +33,7 @@ const SkeletonLoader: React.FC = () => {
 const SentenceChainModal: React.FC<SentenceChainModalProps> = ({ isOpen, onClose, phrase, onGenerateContinuations, onWordClick }) => {
   const { t } = useTranslation();
   const [history, setHistory] = useState<string[]>([]);
-  const [currentGerman, setCurrentGerman] = useState('');
+  const [currentLearning, setCurrentLearning] = useState('');
   const [continuations, setContinuations] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -59,7 +59,7 @@ const SentenceChainModal: React.FC<SentenceChainModalProps> = ({ isOpen, onClose
   const fetchContinuations = useCallback(async (russianPhrase: string) => {
     if (cacheRef.current.has(russianPhrase)) {
       const cachedData = cacheRef.current.get(russianPhrase)!;
-      setCurrentGerman(cachedData.learning);
+      setCurrentLearning(cachedData.learning);
       setContinuations(cachedData.continuations);
       setIsLoading(false);
       setError(null);
@@ -73,7 +73,7 @@ const SentenceChainModal: React.FC<SentenceChainModalProps> = ({ isOpen, onClose
       const result = await onGenerateContinuations(russianPhrase);
       cacheRef.current.set(russianPhrase, result);
       // FIX: Use `result.learning` to match the `SentenceContinuation` type.
-      setCurrentGerman(result.learning);
+      setCurrentLearning(result.learning);
       setContinuations(result.continuations);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
@@ -114,7 +114,7 @@ const SentenceChainModal: React.FC<SentenceChainModalProps> = ({ isOpen, onClose
     const newHistory = [...history, continuation];
     setHistory(newHistory);
     // The useEffect listening to `history` will trigger the fetch
-    setCurrentGerman('...');
+    setCurrentLearning('...');
   };
   
   const handleAddContinuation = (text: string) => {
@@ -129,7 +129,7 @@ const SentenceChainModal: React.FC<SentenceChainModalProps> = ({ isOpen, onClose
     const newHistory = history.slice(0, Math.max(0, blockIndex - 1));
     setHistory(newHistory);
     // The useEffect listening to `history` will trigger the fetch
-    setCurrentGerman('...');
+    setCurrentLearning('...');
   };
   
   const handleGoBackOneStep = () => {
@@ -142,7 +142,7 @@ const SentenceChainModal: React.FC<SentenceChainModalProps> = ({ isOpen, onClose
     e.stopPropagation();
     const cleanedWord = word.replace(/[.,!?]/g, '');
     if (cleanedWord) {
-      const proxyPhrase: Phrase = { ...phrase, text: { learning: currentGerman, native: getFullRussianPhrase(history) } };
+      const proxyPhrase: Phrase = { ...phrase, text: { learning: currentLearning, native: getFullRussianPhrase(history) } };
       onWordClick(proxyPhrase, cleanedWord);
     }
   };
@@ -204,9 +204,9 @@ const SentenceChainModal: React.FC<SentenceChainModalProps> = ({ isOpen, onClose
                   {renderPhraseBlocks()}
                 </div>
                 <div className="flex items-center justify-center gap-x-2 border-t border-slate-600/50 pt-3">
-                  <AudioPlayer textToSpeak={currentGerman} />
+                  <AudioPlayer textToSpeak={currentLearning} />
                   <div className="text-lg font-bold text-purple-300 text-left flex flex-wrap justify-center items-center gap-x-1">
-                      {currentGerman.split(' ').map((word, index) => (
+                      {currentLearning.split(' ').map((word, index) => (
                           <span key={index} onClick={(e) => handleWordClick(e, word)} className="cursor-pointer hover:bg-white/20 px-1 py-0.5 rounded-md transition-colors">
                               {word}
                           </span>
