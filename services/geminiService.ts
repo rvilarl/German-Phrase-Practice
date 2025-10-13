@@ -1232,7 +1232,7 @@ const translationChatResponseSchema = () => {
     return {
         type: Type.OBJECT,
         properties: {
-            ...chatResponseSchema().properties, // Inherit responseParts and promptSuggestions
+            ...chatResponseSchema().properties, // Inherit contentParts and promptSuggestions
             suggestion: {
                 type: Type.OBJECT,
                 description: `An optional suggested improvement for the ${lang.native} and ${lang.learning} phrases.`,
@@ -1243,7 +1243,7 @@ const translationChatResponseSchema = () => {
                 required: [lang.nativeCode, lang.learningCode]
             }
         },
-        required: ["responseParts", "promptSuggestions"]
+        required: ["contentParts", "promptSuggestions"]
     };
 };
 
@@ -1261,7 +1261,7 @@ const discussTranslation: AiService['discussTranslation'] = async (request) => {
 1.  Ответь на запрос пользователя, помогая ему найти лучший перевод. Общайся на ${lang.native}.
 2.  Если в ходе диалога ты приходишь к выводу, что фразу можно улучшить, ОБЯЗАТЕЛЬНО включи в свой JSON-ответ поле \`suggestion\`. Это поле должно содержать объект с ключами \`${lang.nativeCode}\` и \`${lang.learningCode}\` с финальным, улучшенным вариантом. Возможно, для лучшего перевода придется немного изменить и ${lang.native} фразу.
 3.  Если ты не предлагаешь конкретного изменения, НЕ включай поле \`suggestion\`.
-4.  Твой ответ ДОЛЖЕН быть ТОЛЬКО в формате JSON, строго соответствующем предоставленной схеме. Не добавляй никакого текста до или после JSON. Всегда разбивай свой текстовый ответ на массив \`responseParts\` и предлагай новые вопросы в \`promptSuggestions\`.
+4.  Твой ответ ДОЛЖЕН быть ТОЛЬКО в формате JSON, строго соответствующем предоставленной схеме. Не добавляй никакого текста до или после JSON. Всегда разбивай свой текстовый ответ на массив \`contentParts\` и предлагай новые вопросы в \`promptSuggestions\`. В массиве \`contentParts\` используй 'type': 'text' для обычного текста и 'type': 'learning' для ${lang.learning} слов/фраз (с обязательным полем 'translation').
 5.  Будь краток и по делу.`;
     
     const formattedHistory = request.history.map(msg => ({
@@ -1272,7 +1272,7 @@ const discussTranslation: AiService['discussTranslation'] = async (request) => {
     try {
         const response = await api.models.generateContent({
             model: model,
-            contents: [...formattedHistory, { role: 'user', parts: [{ text: request.userRequest }] }],
+            contents: formattedHistory,
             config: {
                 systemInstruction,
                 responseMimeType: "application/json",
@@ -1284,7 +1284,7 @@ const discussTranslation: AiService['discussTranslation'] = async (request) => {
         const jsonText = response.text.trim();
         const parsedResponse = JSON.parse(jsonText);
 
-        if (!parsedResponse || !Array.isArray(parsedResponse.responseParts) || !Array.isArray(parsedResponse.promptSuggestions)) {
+        if (!parsedResponse || !Array.isArray(parsedResponse.contentParts) || !Array.isArray(parsedResponse.promptSuggestions)) {
             console.error("Invalid response structure from Gemini discussTranslation:", parsedResponse);
             const textFallback = (parsedResponse && typeof parsedResponse === 'object')
                 ? JSON.stringify(parsedResponse)
@@ -1294,8 +1294,8 @@ const discussTranslation: AiService['discussTranslation'] = async (request) => {
 
         return {
             role: 'model',
-            contentParts: parsedResponse.responseParts.length > 0
-                ? parsedResponse.responseParts
+            contentParts: parsedResponse.contentParts.length > 0
+                ? parsedResponse.contentParts
                 : [{ type: 'text', text: 'AI не предоставил текстовый ответ.' }],
             suggestion: parsedResponse.suggestion ? { learning: parsedResponse.suggestion[lang.learningCode], native: parsedResponse.suggestion[lang.nativeCode] } : undefined,
             promptSuggestions: parsedResponse.promptSuggestions || [],

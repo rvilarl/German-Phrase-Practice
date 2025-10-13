@@ -1248,6 +1248,7 @@ const [practiceChatHistory, setPracticeChatHistory] = useState<ChatMessage[]>([]
     
     proposedCards.forEach(proposed => {
         // FIX: Use `proposed.learning` instead of `proposed.german`
+        // Use `proposed.learning` instead of `proposed.german`
         const normalizedProposed = proposed.learning.trim().toLowerCase();
         const existingPhrase = normalizedExistingPhrases.get(normalizedProposed);
         
@@ -1664,6 +1665,7 @@ const [practiceChatHistory, setPracticeChatHistory] = useState<ChatMessage[]>([]
             const errorMessage = (err as Error).message;
             console.error("Failed to create a card during bulk add:", errorMessage);
             // FIX: Use `phrase.text.learning` to display the correct property in the toast message
+            // Use `phrase.text.learning` to display the correct property in the toast message
             showToast({ message: t('notifications.cards.addFailed', { phrase: phrase.text.learning, error: errorMessage }) });
             
             // If rate-limited, stop trying to add more cards.
