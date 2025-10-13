@@ -9,6 +9,7 @@ import AudioPlayer from './AudioPlayer';
 import { useTranslation } from '../src/hooks/useTranslation';
 import { useLanguage } from '../src/contexts/languageContext';
 import { getNativeSpeechLocale } from '../services/speechService';
+import { getLanguageNameInEnglish } from '../services/languageLabels';
 
 interface EditPhraseModalProps {
     isOpen: boolean;
@@ -121,6 +122,16 @@ const EditPhraseModal: React.FC<EditPhraseModalProps> = ({ isOpen, onClose, phra
 
     if (!isOpen) return null;
 
+    // Определяем динамические метки языков на основе текущего профиля
+    const nativeNameRaw = t(`languages.names.${profile.native}`);
+    const learningNameRaw = t(`languages.names.${profile.learning}`);
+    const nativeLabel = nativeNameRaw && nativeNameRaw !== `languages.names.${profile.native}`
+        ? nativeNameRaw
+        : getLanguageNameInEnglish(profile.native as any);
+    const learningLabel = learningNameRaw && learningNameRaw !== `languages.names.${profile.learning}`
+        ? learningNameRaw
+        : getLanguageNameInEnglish(profile.learning as any);
+
     return (
         <>
             <div className="fixed inset-0 bg-black/60 z-[80] flex justify-center items-center p-4" onClick={onClose}>
@@ -135,7 +146,7 @@ const EditPhraseModal: React.FC<EditPhraseModalProps> = ({ isOpen, onClose, phra
                         {error && <div className="text-center bg-red-900/50 text-red-300 p-2 rounded-md text-sm">{t('modals.editPhrase.errors.translation')}</div>}
                         
                         <div>
-                            <label className="block text-sm font-medium text-slate-400 mb-1">{t('modals.editPhrase.fields.russian')}</label>
+                            <label className="block text-sm font-medium text-slate-400 mb-1">{nativeLabel}</label>
                             <div className="relative">
                                 <input
                                     type="text"
@@ -157,7 +168,7 @@ const EditPhraseModal: React.FC<EditPhraseModalProps> = ({ isOpen, onClose, phra
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-slate-400 mb-1">{t('modals.editPhrase.fields.german')}</label>
+                            <label className="block text-sm font-medium text-slate-400 mb-1">{learningLabel}</label>
                              <div className="relative">
                                 <input
                                     type="text"
