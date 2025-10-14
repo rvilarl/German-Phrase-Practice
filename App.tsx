@@ -3722,7 +3722,7 @@ const App: React.FC = () => {
           />
         );
       })()}
-      <AutoFixModal state={autoFixState.state} onDismiss={autoFixState.reset} />
+      {/* <AutoFixModal state={autoFixState.state} onDismiss={autoFixState.reset} /> */}
     </div>
   );
 };
