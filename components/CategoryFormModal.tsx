@@ -47,20 +47,20 @@ const CategoryFormModal: React.FC<CategoryFormModalProps> = ({ isOpen, onClose, 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/70 z-[70] flex justify-center items-center backdrop-blur-sm p-4 animate-fade-in" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/70 z-[70] flex justify-center items-center backdrop-blur-sm p-0 animate-fade-in" onClick={onClose}>
       <form
         onSubmit={handleSubmit}
         className="bg-slate-800 rounded-lg shadow-2xl w-full max-w-sm m-4"
         onClick={e => e.stopPropagation()}
       >
-        <header className="flex items-center justify-between p-4 border-b border-slate-700">
+        <header className="flex items-center justify-between px-2 py-2 border-b border-slate-700">
           <h2 className="text-lg font-bold text-slate-100">{initialData ? t('categories.form.editTitle') : t('categories.form.createTitle')}</h2>
           <button type="button" onClick={onClose} className="p-2 rounded-full hover:bg-slate-700">
             <CloseIcon className="w-6 h-6 text-slate-400" />
           </button>
         </header>
 
-        <div className="p-6 space-y-6">
+        <div className="p-2 space-y-2">
           <div>
             <label htmlFor="category-name" className="block text-sm font-medium text-slate-300 mb-2">{t('categories.form.fields.nameLabel')}</label>
             <input
@@ -92,7 +92,7 @@ const CategoryFormModal: React.FC<CategoryFormModalProps> = ({ isOpen, onClose, 
           </div>
         </div>
         
-        <div className="p-4 border-t border-slate-700">
+        <div className="p-2 border-t border-slate-700">
           <button
             type="submit"
             disabled={!name.trim()}

@@ -151,9 +151,9 @@ const ChatMessageContent: React.FC<{
                 {suggestions && suggestions.length > 0 && (
                     <div className="space-y-3 pt-3 border-t border-slate-600/50">
                         {suggestions.map((suggestion, index) => (
-                            <div key={`sug-${index}`} className="bg-slate-600/50 p-3 rounded-lg">
-                                <h4 className="font-semibold text-purple-300 mb-1">{suggestion.title}</h4>
-                                <div className="whitespace-pre-wrap leading-relaxed text-slate-300">
+                            <div key={`sug-${index}`} className="italic bg-slate-600/10 p-2 rounded-lg">
+                                <h5 className="font-semibold text-purple-300 mb-1">{suggestion.title}</h5>
+                                <div className="whitespace-pre-wrap leading-relaxed text-slate-400">
                                     {suggestion.contentParts && suggestion.contentParts.map((part, partIndex) =>
                                         part.type === 'learning' || part.type === 'german' ? (
                                             <span key={partIndex} className="inline-flex items-center align-middle bg-slate-500/50 px-1.5 py-0.5 rounded-md mx-0.5">
@@ -393,11 +393,11 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, phrase, onGenera
         </header>
 
         {/* Chat Body */}
-        <div className="flex-grow p-4 overflow-y-auto hide-scrollbar">
+        <div className="flex-grow p-0 overflow-y-auto hide-scrollbar">
           <div className="space-y-6">
             {messages.map((msg, index) => (
               <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[85%] px-4 py-3 rounded-2xl break-words ${msg.role === 'user' ? 'bg-purple-600 text-white rounded-br-lg' : 'bg-slate-700 text-slate-200 rounded-bl-lg'}`}>
+                <div className={`max-w-[85%] px-2 py-2 rounded-2xl break-words bg l${msg.role === 'user' ? 'bg-purple-600 text-white rounded-br-lg' : 'bg-slate-700 text-slate-200 rounded-bl-lg'}`}>
                    <ChatMessageContent message={msg} onSpeak={onSpeak} basePhrase={phrase} onOpenWordAnalysis={onOpenWordAnalysis} onOpenContextMenu={setContextMenuTarget} />
                 </div>
               </div>
@@ -419,15 +419,15 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, phrase, onGenera
         </div>
 
         {/* Input Area */}
-        <div className="p-4 border-t border-slate-700 flex-shrink-0 bg-slate-800/80 backdrop-blur-sm">
+        <div className="p-4 pt-2 border-t border-slate-700 flex-shrink-0 bg-slate-800/80 backdrop-blur-sm">
           {promptSuggestions.length > 0 && (
-            <div className="flex space-x-2 overflow-x-auto pb-3 mb-2 -mx-4 px-4 hide-scrollbar">
+            <div className="flex space-x-2 overflow-x-auto pb-0 mb-2 -mx-4 px-4 hide-scrollbar">
                 {promptSuggestions.map(prompt => (
                     <button 
                         key={prompt} 
                         onClick={() => handleSuggestionClick(prompt)} 
                         disabled={isLoading} 
-                        className={`text-nowrap px-4 py-2 bg-slate-700/80 hover:bg-slate-600/80 text-slate-300 text-sm font-medium rounded-full transition-all duration-300 disabled:opacity-50 ${usedSuggestions.includes(prompt) ? 'opacity-40' : ''}`}
+                        className={`text-nowrap px-3 py-1 bg-slate-700/80 hover:bg-slate-600/60 text-slate-300 text-sm font-medium rounded-full transition-all duration-300 disabled:opacity-50 ${usedSuggestions.includes(prompt) ? 'opacity-40' : ''}`}
                     >
                         {prompt}
                     </button>

@@ -82,6 +82,13 @@ const getLang = () => {
     };
 };
 
+/**
+ * Determines if a language requires romanization/transcription
+ */
+const requiresRomanization = (languageCode: LanguageCode): boolean => {
+    return ['ar', 'hi', 'zh', 'ja'].includes(languageCode);
+};
+
 const buildLocalePrompt = (languageLabel: string) => [
   {
     role: 'user',
@@ -184,14 +191,20 @@ const phraseSchema = () => {
             properties: {
                 [lang.learningCode]: {
                     type: Type.STRING,
-                    description: `The phrase in ${lang.learning}.`,
+                    description: `The phrase in ${lang.learning}. NEVER include romanization/transcription in parentheses here - use the separate romanization field.`,
                 },
                 [lang.nativeCode]: {
                     type: Type.STRING,
                     description: `The phrase in ${lang.native}.`,
                 },
+                ...(requiresRomanization(lang.learningCode) ? {
+                    romanization: {
+                        type: Type.STRING,
+                        description: `Romanization/transcription of the ${lang.learning} phrase (e.g., Pinyin for Chinese, Romaji for Japanese, Devanagari transliteration for Hindi, Arabic transliteration for Arabic). This field is REQUIRED.`
+                    }
+                } : {})
             },
-            required: [lang.learningCode, lang.nativeCode],
+            required: [lang.learningCode, lang.nativeCode, ...(requiresRomanization(lang.learningCode) ? ['romanization'] : [])],
         },
     };
 };
@@ -417,14 +430,20 @@ const cardsFromTranscriptSchema = () => {
             properties: {
                 [lang.learningCode]: {
                     type: Type.STRING,
-                    description: `The phrase in ${lang.learning}.`,
+                    description: `The phrase in ${lang.learning}. NEVER include romanization/transcription in parentheses here - use the separate romanization field.`,
                 },
                 [lang.nativeCode]: {
                     type: Type.STRING,
                     description: `The phrase in ${lang.native}.`,
                 },
+                ...(requiresRomanization(lang.learningCode) ? {
+                    romanization: {
+                        type: Type.STRING,
+                        description: `Romanization/transcription of the ${lang.learning} phrase (e.g., Pinyin for Chinese, Romaji for Japanese, Devanagari transliteration for Hindi, Arabic transliteration for Arabic). This field is REQUIRED.`
+                    }
+                } : {})
             },
-            required: [lang.learningCode, lang.nativeCode],
+            required: [lang.learningCode, lang.nativeCode, ...(requiresRomanization(lang.learningCode) ? ['romanization'] : [])],
         },
     };
 };
@@ -473,7 +492,11 @@ Example Output Format:
         
         const jsonText = response.text.trim();
         const parsed = JSON.parse(jsonText);
-        return parsed.map((p: any) => ({ learning: p[lang.learningCode], native: p[lang.nativeCode] }));
+        return parsed.map((p: any) => ({
+            learning: p[lang.learningCode],
+            native: p[lang.nativeCode],
+            ...(p.romanization ? { romanization: p.romanization } : {})
+        }));
 
     } catch (error) {
         console.error("Error generating cards from transcript with Gemini:", error);
@@ -492,10 +515,13 @@ const imageCardsWithCategorySchema = () => {
                 items: {
                     type: Type.OBJECT,
                     properties: {
-                        [lang.learningCode]: { type: Type.STRING, description: `The phrase in ${lang.learning}.` },
+                        [lang.learningCode]: { type: Type.STRING, description: `The phrase in ${lang.learning}. NEVER include romanization/transcription in parentheses here - use the separate romanization field.` },
                         [lang.nativeCode]: { type: Type.STRING, description: `The phrase in ${lang.native}.` },
+                        ...(requiresRomanization(lang.learningCode) ? {
+                            romanization: { type: Type.STRING, description: `Romanization/transcription of the ${lang.learning} phrase (e.g., Pinyin for Chinese, Romaji for Japanese, Devanagari transliteration for Hindi, Arabic transliteration for Arabic). This field is REQUIRED.` }
+                        } : {})
                     },
-                    required: [lang.learningCode, lang.nativeCode],
+                    required: [lang.learningCode, lang.nativeCode, ...(requiresRomanization(lang.learningCode) ? ['romanization'] : [])],
                 },
             },
             categoryName: {
@@ -560,7 +586,11 @@ Return EXCLUSIVELY the JSON object matching the provided schema.`;
         }
         
         return {
-            cards: parsedResult.cards.map((c: any) => ({ learning: c[lang.learningCode], native: c[lang.nativeCode] })),
+            cards: parsedResult.cards.map((c: any) => ({
+                learning: c[lang.learningCode],
+                native: c[lang.nativeCode],
+                ...(c.romanization ? { romanization: c.romanization } : {})
+            })),
             categoryName: parsedResult.categoryName,
         };
 
@@ -608,8 +638,12 @@ const generateTopicCards: AiService['generateTopicCards'] = async (topic, refine
         if (!Array.isArray(parsedCards)) {
             throw new Error("API did not return an array of cards.");
         }
-        
-        return parsedCards.map((card: any) => ({ learning: card[lang.learningCode], native: card[lang.nativeCode] }));
+
+        return parsedCards.map((card: any) => ({
+            learning: card[lang.learningCode],
+            native: card[lang.nativeCode],
+            ...(card.romanization ? { romanization: card.romanization } : {})
+        }));
 
     } catch (error) {
         console.error("Error generating topic cards with Gemini:", error);
@@ -1527,10 +1561,14 @@ const pronounConjugationSchema = () => {
         type: Type.OBJECT,
         properties: {
             pronoun: { type: Type.STRING, description: 'The personal pronoun (e.g., "ich", "du", "er/sie/es").' },
+            // Canonical keys (language-agnostic)
+            learning: { type: Type.STRING, description: `Full sentence in the learning language (${lang.learning}).` },
+            native: { type: Type.STRING, description: `Translation in the native language (${lang.native}).` },
+            // Dynamic keys (backward compatibility)
             [lang.learningCode]: { type: Type.STRING, description: `The full example sentence in ${lang.learning} for this pronoun.` },
             [lang.nativeCode]: { type: Type.STRING, description: `The ${lang.native} translation of the ${lang.learning} sentence.` },
         },
-        required: ["pronoun", lang.learningCode, lang.nativeCode],
+        required: ["pronoun", 'learning', 'native'],
     };
 };
 
@@ -1592,12 +1630,29 @@ const conjugateVerb: AiService['conjugateVerb'] = async (infinitive) => {
         const jsonText = response.text.trim();
         const parsed = JSON.parse(jsonText);
 
-        // Mapper function to convert dynamic keys back to static keys
-        const mapConjugation = (item: any) => ({
-            pronoun: item.pronoun,
-            german: item[lang.learningCode],
-            russian: item[lang.nativeCode],
-        });
+        // Helper to pick first non-empty value by keys
+        const pickFirst = (obj: any, keys: string[]) => {
+            for (const k of keys) {
+                const v = obj?.[k];
+                if (typeof v === 'string' && v.trim().length > 0) return v;
+            }
+            return undefined;
+        };
+
+        // Mapper: include both canonical (learning/native) and legacy (german/russian) keys
+        const mapConjugation = (item: any) => {
+            const learningVal = pickFirst(item, [lang.learningCode, 'de', 'german', 'learning']);
+            const nativeVal = pickFirst(item, [lang.nativeCode, 'ru', 'russian', 'native']);
+            return {
+                pronoun: item.pronoun,
+                // canonical
+                learning: learningVal,
+                native: nativeVal,
+                // legacy (for backward compatibility)
+                german: learningVal,
+                russian: nativeVal,
+            };
+        };
 
         const mapTenseForms = (tense: any) => ({
             statement: tense.statement.map(mapConjugation),
@@ -1625,10 +1680,11 @@ const simpleVerbConjugationSchema = {
     items: {
         type: Type.OBJECT,
         properties: {
-            pronoun: { type: Type.STRING, description: 'The personal pronoun (e.g., "ich", "du").' },
-            form: { type: Type.STRING, description: 'The conjugated verb form in Präsens.' },
+            pronoun: { type: Type.STRING, description: 'Pronoun in the learning language.' },
+            pronounNative: { type: Type.STRING, description: 'Pronoun in the native language.' },
+            form: { type: Type.STRING, description: 'Conjugated verb form in the learning language (present/simple present).' },
         },
-        required: ["pronoun", "form"],
+        required: ["pronoun", "pronounNative", "form"],
     },
 };
 
@@ -2101,14 +2157,17 @@ const categoryAssistantResponseSchema = () => {
             },
             proposedCards: {
                 type: Type.ARRAY,
-                description: 'A list of new cards. Only for responseType "proposed_cards".',
+                description: `A list of new cards. Only for responseType "proposed_cards". ${requiresRomanization(lang.learningCode) ? `Each card MUST include romanization (transcription) for ${lang.learning} text.` : ''}`,
                 items: {
                     type: Type.OBJECT,
                     properties: {
-                        [lang.learningCode]: { type: Type.STRING },
-                        [lang.nativeCode]: { type: Type.STRING }
+                        [lang.learningCode]: { type: Type.STRING, description: `The phrase in ${lang.learning}. NEVER include romanization/transcription in parentheses here - use the separate romanization field.` },
+                        [lang.nativeCode]: { type: Type.STRING, description: `The ${lang.native} translation.` },
+                        ...(requiresRomanization(lang.learningCode) ? {
+                            romanization: { type: Type.STRING, description: `Romanization/transcription of the ${lang.learning} phrase (e.g., Pinyin for Chinese, Romaji for Japanese, Devanagari transliteration for Hindi, Arabic transliteration for Arabic). This field is REQUIRED.` }
+                        } : {})
                     },
-                    required: [lang.learningCode, lang.nativeCode]
+                    required: [lang.learningCode, lang.nativeCode, ...(requiresRomanization(lang.learningCode) ? ['romanization'] : [])]
                 }
             },
             phrasesToReview: {
@@ -2156,6 +2215,10 @@ const getCategoryAssistantResponse: AiService['getCategoryAssistantResponse'] = 
         user_text: `Пользователь написал: "${request.text}". Ответь на его запрос.`
     };
 
+    const romanizationRule = requiresRomanization(lang.learningCode)
+        ? `\n- **ТРАНСКРИПЦИЯ**: Для языка ${lang.learning} ОБЯЗАТЕЛЬНО предоставляй отдельное поле "romanization" с транскрипцией (Pinyin для китайского, Romaji для японского, транслитерацию для хинди/арабского). НИКОГДА не включай транскрипцию в скобках в само поле "${lang.learningCode}" - используй отдельное поле "romanization".`
+        : '';
+
     const prompt = `Ты — AI-ассистент в приложении для изучения ${lang.learning}. Ты находишься внутри категории "${categoryName}".
 Существующие фразы в категории: ${existingPhrasesText || "пока нет"}.
 
@@ -2167,7 +2230,7 @@ const getCategoryAssistantResponse: AiService['getCategoryAssistantResponse'] = 
 - **responseType**: Тип ответа ('text', 'proposed_cards', 'phrases_to_review', 'phrases_to_delete').
 - **responseParts**: Твой основной текстовый ответ, разбитый на части. Используй 'type':'german' для ${lang.learning} слов с переводом. Для диалогов используй Markdown-форматирование (например, \`**Собеседник А:** ...\`) внутри частей с 'type':'text'.
 - **promptSuggestions**: ВСЕГДА предлагай 3-4 релевантных вопроса для продолжения диалога.
-- **proposedCards / phrasesToReview**: Заполняй эти поля только если тип ответа соответствующий.
+- **proposedCards / phrasesToReview**: Заполняй эти поля только если тип ответа соответствующий.${romanizationRule}
 - **УДАЛЕНИЕ ФРАЗ**: Если пользователь просит удалить, убрать, очистить фразы (например, "удали половину", "оставь только времена года"), выполни следующие действия:
   1. Определи, какие именно фразы из списка существующих нужно удалить.
   2. Установи \`responseType: 'phrases_to_delete'\`.
@@ -2190,7 +2253,11 @@ const getCategoryAssistantResponse: AiService['getCategoryAssistantResponse'] = 
 
         const assistantResponse: CategoryAssistantResponse = {
             ...parsedResult,
-            proposedCards: parsedResult.proposedCards?.map((c: any) => ({ native: c[lang.nativeCode], learning: c[lang.learningCode] })),
+            proposedCards: parsedResult.proposedCards?.map((c: any) => ({
+                native: c[lang.nativeCode],
+                learning: c[lang.learningCode],
+                ...(c.romanization ? { romanization: c.romanization } : {})
+            })),
             phrasesToReview: parsedResult.phrasesToReview?.map((p: any) => ({ learning: p[lang.learningCode], reason: p.reason })),
             phrasesForDeletion: parsedResult.phrasesForDeletion?.map((p: any) => ({ learning: p[lang.learningCode], reason: p.reason })),
         };

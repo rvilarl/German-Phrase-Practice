@@ -186,9 +186,10 @@ export const createPhrase = async (phraseData: Omit<Phrase, 'id' | 'masteryLevel
 
 export const updatePhrase = async (phrase: Phrase): Promise<Phrase> => {
     // Map frontend's nested object structure to the flat properties expected by the backend.
+    // Support legacy fields (russian/german) for backward compatibility
     const beData = {
-        native_text: phrase.text.native,
-        learning_text: phrase.text.learning,
+        native_text: phrase.text?.native || (phrase as any).russian,
+        learning_text: phrase.text?.learning || (phrase as any).german,
         category_id: parseInt(phrase.category, 10),
         transcription: phrase.romanization?.learning,
         context: phrase.context?.native,

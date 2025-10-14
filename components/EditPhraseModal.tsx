@@ -136,13 +136,13 @@ const EditPhraseModal: React.FC<EditPhraseModalProps> = ({ isOpen, onClose, phra
         <>
             <div className="fixed inset-0 bg-black/60 z-[80] flex justify-center items-center p-4" onClick={onClose}>
                 <div className="bg-slate-800 rounded-lg shadow-2xl w-full max-w-lg" onClick={e => e.stopPropagation()}>
-                    <header className="flex items-center justify-between p-4 border-b border-slate-700">
+                    <header className="flex items-center justify-between px-2 border-b border-slate-700">
                         <h2 className="text-lg font-bold text-slate-100">{t('modals.editPhrase.title')}</h2>
                         <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-700">
                             <CloseIcon className="w-6 h-6 text-slate-400" />
                         </button>
                     </header>
-                    <div className="p-6 space-y-4">
+                    <div className="p-2 space-y-2">
                         {error && <div className="text-center bg-red-900/50 text-red-300 p-2 rounded-md text-sm">{t('modals.editPhrase.errors.translation')}</div>}
                         
                         <div>
@@ -194,7 +194,7 @@ const EditPhraseModal: React.FC<EditPhraseModalProps> = ({ isOpen, onClose, phra
                                 id="category-select"
                                 value={selectedCategory}
                                 onChange={(e) => setSelectedCategory(e.target.value)}
-                                className="w-full bg-slate-700 border border-slate-600 rounded-md p-3 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                className="w-full bg-slate-700 border border-slate-600 rounded-md p-2  text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                             >
                                 {categories.map(cat => (
                                     <option key={cat.id} value={cat.id}>{cat.name}</option>
@@ -202,17 +202,17 @@ const EditPhraseModal: React.FC<EditPhraseModalProps> = ({ isOpen, onClose, phra
                             </select>
                         </div>
                         
-                        <div className="pt-2 flex justify-between items-center">
+                        <div className=" flex justify-between items-center w-full h-full gap-2 pt-4">
                             <button
                                 onClick={() => setIsDiscussModalOpen(true)}
-                                className="px-4 py-2 text-sm rounded-md bg-slate-600 hover:bg-slate-700 transition-colors font-semibold text-white"
+                                className="w-full px-1 py-1 text-sm rounded-md  hover: transition-colors font-light text-white"
                             >
                                 {t('modals.editPhrase.actions.discuss')}
                             </button>
                             <button
                                 onClick={handleSave}
                                 disabled={!russian.trim() || !german.trim()}
-                                className="px-6 py-2 rounded-md bg-purple-600 hover:bg-purple-700 transition-colors font-semibold text-white shadow-md disabled:opacity-50"
+                                className="w-full px-1 py-1 rounded-md bg-purple-600 hover:bg-purple-700 transition-colors font-light text-white shadow-md disabled:opacity-50"
                             >
                                 {t('modals.editPhrase.actions.save')}
                             </button>

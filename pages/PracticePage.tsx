@@ -322,7 +322,7 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
                     <button
                         onClick={onSwipeRight}
                         disabled={cardHistoryLength === 0}
-                        className="hidden md:flex absolute top-1/2 left-0 -translate-y-1/2 w-12 h-12 bg-slate-800/50 hover:bg-slate-700/80 rounded-full items-center justify-center transition-colors text-slate-300 hover:text-white z-10 disabled:opacity-30 disabled:cursor-not-allowed"
+                        className="hidden md:flex absolute top-1/2- left-0 -translate-y-1/2 w-12 h-12 bg-slate-800/50 hover:bg-slate-700/80 rounded-full items-center justify-center transition-colors text-slate-300 hover:text-white z-10 disabled:opacity-30 disabled:cursor-not-allowed"
                         aria-label="Предыдущая карта"
                     >
                         <ArrowLeftIcon className="w-6 h-6" />
@@ -330,7 +330,7 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
                     <button
                         onClick={onContinue}
                         disabled={unmasteredCount <= 1}
-                        className="hidden md:flex absolute top-1/2 right-0 -translate-y-1/2 w-12 h-12 bg-slate-800/50 hover:bg-slate-700/80 rounded-full items-center justify-center transition-colors text-slate-300 hover:text-white z-10 disabled:opacity-30 disabled:cursor-not-allowed"
+                        className="hidden md:flex absolute top-1/2- right-0 -translate-y-1/2 w-12 h-12 bg-slate-800/50 hover:bg-slate-700/80 rounded-full items-center justify-center transition-colors text-slate-300 hover:text-white z-10 disabled:opacity-30 disabled:cursor-not-allowed"
                         aria-label="Следующая карта"
                     >
                         <ArrowRightIcon className="w-6 h-6" />
@@ -370,20 +370,20 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
                     </div>
                 </div>
 
-                <div className="flex justify-center items-center mt-8 h-12">
+                <div className="flex justify-center items-center mt-3 h-12 max-w-md w-full">
                     {!isAnswerRevealed && currentPhrase && (
-                        <div className="flex items-center justify-center space-x-4 animate-fade-in w-full max-w-sm">
+                        <div className="flex items-center justify-center space-x-4 animate-fade-in w-full">
                             <button
                                 onClick={onContinue}
                                 disabled={isExiting}
-                                className="px-8 py-3 rounded-lg font-semibold text-slate-300 shadow-md transition-colors bg-slate-600 hover:bg-slate-500"
+                                className="flex-grow p-2 rounded-3xl font-light text-sm text-slate-300 shadow-md transition-colors bg-slate-800 hover:bg-slate-500"
                             >
                                 {t('practice.actions.skip')}
                             </button>
                             <button
                                 onClick={handleKnowClick}
                                 disabled={isExiting}
-                                className="px-10 py-3 rounded-lg font-semibold text-white shadow-md transition-colors bg-green-600 hover:bg-green-700"
+                                className="flex-grow p-2 rounded-3xl font-light text-sm text-white shadow-md transition-colors bg-green-600 hover:bg-green-700"
                             >
                                 {t('practice.actions.know')}
                             </button>
@@ -394,7 +394,7 @@ const PracticePage: React.FC<PracticePageProps> = (props) => {
                         <button
                             onClick={onContinue}
                             disabled={isExiting}
-                            className="px-10 py-3 rounded-lg font-semibold text-white shadow-md transition-all duration-300 bg-purple-600 hover:bg-purple-700 animate-fade-in"
+                            className="p-2 rounded-lg font-semibold text-white shadow-md transition-all duration-300 bg-purple-600 hover:bg-purple-700 animate-fade-in"
                         >
                             {t('practice.states.continue')}
                         </button>

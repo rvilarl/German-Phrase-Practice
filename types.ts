@@ -46,6 +46,7 @@ export interface Phrase {
 export type ProposedCard = {
   native: string;
   learning: string;
+  romanization?: string;
 };
 
 export interface MovieExample {
@@ -97,17 +98,19 @@ export interface VerbConjugation {
 
 export interface NounDeclension {
   noun: string;
+  // NOTE: Keys use German case labels for compatibility with current AI schema.
+  // UI texts are localized via i18n; data remains language-agnostic strings.
   singular: {
-    nominative: string;
-    accusative: string;
-    dative: string;
-    genitive: string;
+    nominativ: string;
+    akkusativ: string;
+    dativ: string;
+    genitiv: string;
   };
   plural: {
-    nominative: string;
-    accusative: string;
-    dative: string;
-    genitive: string;
+    nominativ: string;
+    akkusativ: string;
+    dativ: string;
+    genitiv: string;
   };
 }
 

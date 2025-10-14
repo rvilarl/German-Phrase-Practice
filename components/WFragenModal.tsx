@@ -97,7 +97,7 @@ const WFragenModal: React.FC<WFragenModalProps> = ({ isOpen, onClose, onOpenWord
             <CloseIcon className="w-6 h-6 text-slate-400" />
           </button>
         </header>
-        <div className="p-6 overflow-y-auto">
+        <div className="p-2 overflow-y-auto">
           <div className="bg-slate-700/50 p-4 rounded-lg">
             <table className="w-full text-left">
               <thead>

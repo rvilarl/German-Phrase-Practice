@@ -28,7 +28,7 @@ const Header: React.FC<HeaderProps> = ({ view, onSetView, onOpenSettings, onOpen
     };
 
     return (
-        <header className="w-full fixed top-0 left-0 p-4 flex justify-between items-center z-30 h-20 backdrop-blur-sm border-b border-slate-700/50">
+        <header className="w-full fixed top-0 left-0 p-4 py-2 flex justify-between items-center z-30 py-2 backdrop-blur-sm border-b border-slate-700/50">
             <div className="text-left">
                 <h1 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-cyan-400">{t('header.title')}</h1>
             </div>

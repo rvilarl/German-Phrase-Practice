@@ -6,6 +6,8 @@ import BookIcon from './BookIcon';
 import { useTranslation } from '../src/hooks/useTranslation.ts';
 import { LanguageContext } from '../src/contexts/languageContext.tsx';
 import type { LanguageCode } from '../types.ts';
+import { BiSolidUserVoice } from "react-icons/bi";
+
 
 interface ExpandingFabProps {
   onAddPhrase: (options: { language: LanguageCode; autoSubmit: boolean }) => void;

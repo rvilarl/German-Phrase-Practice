@@ -136,7 +136,7 @@ const MessageBubble: React.FC<{
     <div className="flex justify-start mb-4">
       <div className="max-w-[85%] space-y-2">
         {/* Main dialogue in learning language */}
-        <div className="px-4 py-3 rounded-2xl rounded-bl-lg bg-slate-700 text-slate-200 border border-slate-600">
+        <div className="px-2 py-2 rounded-2xl rounded-bl-lg bg-slate-700 text-slate-200 border border-slate-600">
           <div className="flex items-start justify-between gap-2">
             <p className="text-base flex-1 font-medium text-purple-300">
               {renderClickableGerman(message.content.primary.text, message.content.primary.translation || '')}
@@ -198,12 +198,12 @@ const QuickReplies: React.FC<{
   if (!suggestions || suggestions.length === 0) return null;
 
   return (
-    <div className="flex space-x-2 overflow-x-auto pb-3 mb-2 hide-scrollbar">
+    <div className="flex space-x-2 overflow-x-auto pb-2 mb-0 hide-scrollbar">
       {suggestions.map((suggestion, index) => (
         <button
           key={index}
           onClick={() => onSelect(suggestion)}
-          className="text-nowrap px-4 py-2 bg-slate-700/80 hover:bg-slate-600/80 text-slate-300 text-sm font-medium rounded-full transition-colors"
+          className="text-nowrap px-3 py-1 bg-slate-700/80 hover:bg-slate-600/80 text-slate-300 text-sm font-medium rounded-full transition-colors"
         >
           {suggestion}
         </button>
@@ -582,11 +582,11 @@ export const PracticeChatModal_v2: React.FC<Props> = ({
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <header className="flex items-center justify-between p-4 border-b border-slate-700 flex-shrink-0">
+        <header className="flex items-center justify-between p-2 border-b border-slate-700 flex-shrink-0">
           <div className="flex items-center space-x-3">
             <MessageQuestionIcon className="w-7 h-7 text-purple-400" />
             <div>
-              <h2 className="text-lg font-bold text-slate-100">{t('practice.chat.title')}</h2>
+              <h3 className="text-lg font-bold text-slate-100">{t('practice.chat.title')}</h3>
               <p className="text-xs text-slate-400">
                 {t('practice.chat.stats.phrasesUsed', {
                   count: stats.phrasesUsedIds.length,
@@ -636,7 +636,7 @@ export const PracticeChatModal_v2: React.FC<Props> = ({
         </div>
 
         {/* Input Area */}
-        <div className="p-4 border-t border-slate-700 flex-shrink-0 bg-slate-800/80 backdrop-blur-sm">
+        <div className="p-2 border-t border-slate-700 flex-shrink-0 bg-slate-800/80 backdrop-blur-sm">
           {/* Quick Replies */}
           {lastAssistantMessage?.actions?.suggestions && !isLoading && (
             <QuickReplies

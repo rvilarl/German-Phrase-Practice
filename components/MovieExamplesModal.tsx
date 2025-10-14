@@ -137,7 +137,7 @@ const MovieExamplesModal: React.FC<MovieExamplesModalProps> = ({ isOpen, onClose
             <CloseIcon className="w-6 h-6 text-slate-400"/>
           </button>
         </header>
-        <div className="flex-grow p-6 overflow-y-auto hide-scrollbar">
+        <div className="flex-grow p-2 overflow-y-auto hide-scrollbar">
           {renderContent()}
         </div>
       </div>

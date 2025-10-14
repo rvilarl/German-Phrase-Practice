@@ -23,12 +23,12 @@ const CategoryManagerModal: React.FC<CategoryManagerModalProps> = ({ isOpen, onC
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/70 z-[60] flex justify-center items-center backdrop-blur-sm p-4 animate-fade-in" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/70 z-[60] flex justify-center items-center backdrop-blur-sm p-0 animate-fade-in" onClick={onClose}>
       <div className="bg-slate-800 rounded-lg shadow-2xl w-full max-w-md m-4 flex flex-col" onClick={e => e.stopPropagation()}>
-        <header className="flex items-center justify-between p-4 border-b border-slate-700">
+        <header className="flex items-center justify-between p-2 border-b border-slate-700">
           <div className="flex items-center space-x-3">
             <FolderIcon className="w-6 h-6 text-purple-400" />
-            <h2 className="text-sm text-slate-400">{t('categories.manager.title')}</h2>
+            <h2 className="text-m text-slate-400">{t('categories.manager.title')}</h2>
           </div>
           <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-700">
             <CloseIcon className="w-6 h-6 text-slate-400" />
@@ -39,7 +39,7 @@ const CategoryManagerModal: React.FC<CategoryManagerModalProps> = ({ isOpen, onC
           {categories.map(category => (
             <div
               key={category.id}
-              className="group flex items-center justify-between p-3 bg-slate-700/50 hover:bg-slate-700 rounded-lg transition-colors"
+              className="group flex items-center justify-between px-3 p-1 bg-slate-700/50 hover:bg-slate-700 rounded-lg transition-colors"
             >
               <button onClick={() => onViewCategory(category)} className="flex items-center flex-grow text-left">
                 <span className={`w-4 h-4 rounded-full mr-3 flex-shrink-0 ${category.color}`}></span>
@@ -59,7 +59,7 @@ const CategoryManagerModal: React.FC<CategoryManagerModalProps> = ({ isOpen, onC
           ))}
         </div>
         
-        <div className="p-4 border-t border-slate-700">
+        <div className="p-1 border-t border-slate-700">
             <button
                 onClick={onAddCategory}
                 className="w-full flex items-center justify-center px-4 py-3 rounded-lg bg-purple-600 hover:bg-purple-700 transition-colors font-semibold text-white shadow-md"

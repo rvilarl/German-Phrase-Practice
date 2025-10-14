@@ -171,7 +171,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 bg-black/70 z-50 flex justify-center items-center backdrop-blur-sm p-4 animate-fade-in"
+      className="fixed inset-0 bg-black/70 z-50 flex justify-center items-center backdrop-blur-sm p-0 animate-fade-in"
       onClick={handleClose}
     >
       <div
@@ -200,7 +200,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         <div className="relative h-[480px] overflow-hidden">
           {/* Main Settings View */}
           <div
-            className={`absolute inset-0 p-3 space-y-4 transition-transform duration-300 ease-in-out ${
+            className={`absolute inset-0 p-2 space-y-2 transition-transform duration-300 ease-in-out ${
               view === "main" ? "translate-x-0" : "-translate-x-full"
             }`}
           >

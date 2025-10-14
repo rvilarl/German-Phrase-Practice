@@ -37,48 +37,88 @@ export const useLanguageOnboarding = (userId: string | null): UseLanguageOnboard
   const [detectedLanguage, setDetectedLanguage] = useState<LanguageCode>(detectBrowserLanguage());
 
   useEffect(() => {
+    console.log('🔍 [useLanguageOnboarding] useEffect triggered, userId:', userId);
+
     if (!userId) {
+      console.log('⚠️ [useLanguageOnboarding] No userId, skipping onboarding check');
       setIsLoading(false);
       setNeedsOnboarding(false);
       return;
     }
 
     const checkProfile = async () => {
+      console.log('🔍 [useLanguageOnboarding] Starting profile check...');
+
       // Re-check detected language at the start (for DEV mode updates)
       setDetectedLanguage(detectBrowserLanguage());
       try {
         setIsLoading(true);
 
         // Try to get existing profile from backend
+        console.log('📡 [useLanguageOnboarding] Fetching user profile...');
         const profile = await backendService.getUserProfile();
+        console.log('✅ [useLanguageOnboarding] Profile fetched:', profile);
 
         // If profile is null, user is brand new - needs onboarding
         if (!profile) {
-          console.log('No profile found - new user needs onboarding');
+          console.log('🆕 [useLanguageOnboarding] No profile found - new user needs onboarding');
           setNeedsOnboarding(true);
           setIsLoading(false);
           return;
         }
 
         // Check if user has any data
+        console.log('📡 [useLanguageOnboarding] Fetching initial data...');
         const initialData = await backendService.fetchInitialData();
+        console.log('✅ [useLanguageOnboarding] Initial data fetched:', {
+          categoriesCount: initialData.categories.length,
+          phrasesCount: initialData.phrases.length,
+        });
+
         const hasData = initialData.categories.length > 0 || initialData.phrases.length > 0;
+        console.log('🔍 [useLanguageOnboarding] Has data?', hasData);
 
         // User needs onboarding if they have no data
         if (!hasData) {
-          console.log('No data found - user needs onboarding');
+          console.log('❌ [useLanguageOnboarding] No data found - user needs onboarding');
+          console.log('🧹 [useLanguageOnboarding] Clearing localStorage to ensure fresh start...');
+
+          // Clear localStorage data for this user to avoid stale cache
+          // This ensures that when data is regenerated, we start from scratch
+          let clearedKeys = 0;
+          Object.keys(localStorage).forEach(key => {
+            if (key.includes(userId) && (key.includes('Phrases') || key.includes('Categories'))) {
+              console.log(`🗑️ [useLanguageOnboarding] Removing stale localStorage key: ${key}`);
+              localStorage.removeItem(key);
+              clearedKeys++;
+            }
+          });
+          console.log(`🧹 [useLanguageOnboarding] Cleared ${clearedKeys} localStorage keys`);
+
           setNeedsOnboarding(true);
+          console.log('✅ [useLanguageOnboarding] needsOnboarding set to TRUE');
         } else {
-          console.log('User has profile and data - no onboarding needed');
+          console.log('✅ [useLanguageOnboarding] User has profile and data - no onboarding needed');
           setNeedsOnboarding(false);
+          console.log('✅ [useLanguageOnboarding] needsOnboarding set to FALSE');
         }
       } catch (error) {
-        console.error('Error checking user profile:', error);
-        // If there's an error, DON'T show onboarding - it might be a temporary network issue
-        // Better to let them use the app without onboarding than to force them through it
-        setNeedsOnboarding(false);
+        console.error('❌ [useLanguageOnboarding] Error checking user profile:', error);
+        // If the error is a 404 (no data found), show onboarding
+        // Otherwise, it might be a temporary network issue - don't force onboarding
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.log('🔍 [useLanguageOnboarding] Error message:', errorMessage);
+
+        if (errorMessage.includes('404') || errorMessage.includes('not found')) {
+          console.log('🆕 [useLanguageOnboarding] Data not found error - user needs onboarding');
+          setNeedsOnboarding(true);
+        } else {
+          console.log('⚠️ [useLanguageOnboarding] Network error - skipping onboarding');
+          setNeedsOnboarding(false);
+        }
       } finally {
         setIsLoading(false);
+        console.log('🏁 [useLanguageOnboarding] Check complete');
       }
     };
 

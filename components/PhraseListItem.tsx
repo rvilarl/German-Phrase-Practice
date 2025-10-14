@@ -93,7 +93,7 @@ const PhraseListItem: React.FC<PhraseListItemProps> = React.memo(({ phrase, onEd
     return (
         <li 
             id={`phrase-item-${phrase.id}`}
-            className={`relative bg-slate-400/10 backdrop-blur-xl border border-white/20 p-2 rounded-lg flex items-start space-x-4 cursor-pointer hover:bg-slate-400/20 transition-all duration-300 ${getRingClass()} ${isCategoryPopoverOpen ? 'z-30' : 'z-10'}`}
+            className={`relative bg-slate-400/10 backdrop-blur-xl border border-white/20 px-2 pt-0 rounded-lg flex items-start space-x-4 cursor-pointer hover:bg-slate-400/20 transition-all duration-300 ${getRingClass()} ${isCategoryPopoverOpen ? 'z-30' : 'z-10'}`}
             onClick={() => onPreview(phrase)}
         >
             {phrase.isNew && (
@@ -106,7 +106,7 @@ const PhraseListItem: React.FC<PhraseListItemProps> = React.memo(({ phrase, onEd
                     <p className="font-semibold text-slate-100">{phrase.text.native}</p>
                 </div>
                 <p className="text-sm text-slate-400">{renderClickableGerman(phrase.text.learning)}</p>
-                <div className="mt-2">
+                <div className="mt-2 mb-1">
                     <ProgressBar current={phrase.masteryLevel} max={srsService.MAX_MASTERY_LEVEL} />
                 </div>
 
@@ -154,13 +154,13 @@ const PhraseListItem: React.FC<PhraseListItemProps> = React.memo(({ phrase, onEd
                 </div>
 
 
-                <div className="mt-2 relative flex justify-end flex-grow items-end" ref={popoverRef}>
+                <div className="relative flex justify-end flex-grow items-center " ref={popoverRef}>
                     <button
                         onClick={(e) => {
                             e.stopPropagation();
                             setIsCategoryPopoverOpen(prev => !prev);
                         }}
-                        className={`px-2 py-0.5 text-xs font-medium text-white rounded-full ${info.color} transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-white max-w-32 truncate whitespace-nowrap`}
+                        className={`px-2 py-0.5 text-xs font-light text-white rounded-full ${info.color} transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-white max-w-32 truncate whitespace-nowrap`}
                         aria-label={t('phraseList.item.categoryButton', { name: info.name })}
                     >
                         {info.name}

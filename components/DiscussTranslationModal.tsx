@@ -217,7 +217,7 @@ const DiscussTranslationModal: React.FC<DiscussTranslationModalProps> = ({ isOpe
                 className={`bg-slate-800 w-full max-w-2xl h-[80%] max-h-[80vh] rounded-t-2xl shadow-2xl flex flex-col transition-transform duration-300 ease-out ${isOpen ? 'translate-y-0' : 'translate-y-full'}`}
                 onClick={e => e.stopPropagation()}
             >
-                <header className="flex items-center justify-between p-4 border-b border-slate-700 flex-shrink-0">
+                <header className="flex items-center justify-between px-2 p-1 border-b border-slate-700 flex-shrink-0">
                     <div className="flex items-center space-x-3">
                         <GeminiLogo className="w-7 h-7" />
                         <h2 className="text-lg font-bold text-slate-100">{t('modals.discussTranslation.title')}</h2>
@@ -247,7 +247,7 @@ const DiscussTranslationModal: React.FC<DiscussTranslationModalProps> = ({ isOpe
                     <div ref={chatEndRef} />
                 </div>
 
-                <div className="p-4 border-t border-slate-700 flex-shrink-0 bg-slate-800/80 backdrop-blur-sm">
+                <div className="p-1 border-t border-slate-700 flex-shrink-0 bg-slate-800/80 backdrop-blur-sm">
                     {latestSuggestion && (
                         <div className="bg-slate-700/50 p-3 rounded-lg mb-3">
                             <p className="text-sm text-slate-400">{t('modals.discussTranslation.suggestion')}:</p>
@@ -258,20 +258,20 @@ const DiscussTranslationModal: React.FC<DiscussTranslationModalProps> = ({ isOpe
                             </button>
                         </div>
                     )}
-                    <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(input); }} className="flex items-center space-x-2">
+                    <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(input); }} className="flex items-center space-x-1 pb-1">
                         <input
                             type="text"
                             value={input}
                             onChange={e => setInput(e.target.value)}
                             placeholder={isListening ? t('modals.chat.placeholders.listening') : t('modals.discussTranslation.placeholder')}
-                            className="flex-grow bg-slate-700 rounded-lg p-3 text-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            className="flex-grow bg-slate-700 rounded-lg p-2 text-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500"
                             disabled={isLoading}
                         />
                         <button type="button" onClick={handleMicClick} className={`p-3 rounded-lg flex-shrink-0 ${isListening ? 'bg-red-600 animate-pulse' : 'bg-slate-600'} hover:bg-slate-500`} disabled={isLoading}>
-                             <MicrophoneIcon className="w-6 h-6 text-white" />
+                             <MicrophoneIcon className="w-4 h-4 text-white" />
                         </button>
                         <button type="submit" disabled={!input.trim() || isLoading} className="p-3 bg-purple-600 rounded-lg hover:bg-purple-700 disabled:bg-slate-600">
-                            <SendIcon className="w-6 h-6 text-white" />
+                            <SendIcon className="w-4 h-4 text-white" />
                         </button>
                     </form>
                 </div>

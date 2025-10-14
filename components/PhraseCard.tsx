@@ -267,8 +267,8 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
     const ref = theme === 'front' ? buttonContainerRefFront : buttonContainerRefBack;
 
     const themeClasses = theme === 'front' 
-      ? 'bg-black/20 hover:bg-black/30 text-slate-200'
-      : 'bg-black/20 hover:bg-black/30 text-white';
+      ? 'bg-black/5 hover:bg-black/10 text-slate-200'
+      : 'bg-black/10 hover:bg-black/10 text-white';
 
     return (
       <div ref={ref} className="relative w-full flex justify-center items-center flex-wrap gap-2 z-10">
@@ -326,7 +326,7 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
         >
             <button
                 onClick={handleOpenImprovePhrase}
-                className="absolute top-3 right-3 p-2 rounded-full text-slate-300 hover:bg-white/20 hover:text-white transition-colors z-10"
+                className="absolute top-3 right-3 p-0 rounded-full text-slate-500 hover:bg-white/20 hover:text-white transition-colors z-10"
                 aria-label={t('phraseCard.aria.openSettings')}
             >
                 <SettingsIcon className="w-5 h-5" />

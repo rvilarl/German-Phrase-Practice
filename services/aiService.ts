@@ -17,7 +17,7 @@ export interface AiService {
   generateMovieExamples(phrase: Phrase): Promise<MovieExample[]>;
   analyzeWordInPhrase(phrase: Phrase, word: string): Promise<WordAnalysis>;
   conjugateVerb(infinitive: string): Promise<VerbConjugation>;
-  conjugateVerbSimple(infinitive: string): Promise<{ pronoun: string; form: string; }[]>;
+  conjugateVerbSimple(infinitive: string): Promise<{ pronoun: string; form: string; pronounNative?: string; }[]>;
   declineNoun(noun: string, article: string): Promise<NounDeclension>;
   declineAdjective(adjective: string): Promise<AdjectiveDeclension>;
   generateSentenceContinuations(russianPhrase: string): Promise<SentenceContinuation>;

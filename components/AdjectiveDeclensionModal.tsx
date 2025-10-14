@@ -131,7 +131,7 @@ const AdjectiveDeclensionModal: React.FC<AdjectiveDeclensionModalProps> = ({
       <h3 className="text-lg font-semibold text-purple-300 mb-3">
         {t(`modals.adjectiveDeclension.labels.${variant}`)}
       </h3>
-      <div className="bg-slate-700/50 p-4 rounded-lg overflow-x-auto hide-scrollbar">
+      <div className="bg-slate-700/50 p-2 rounded-lg overflow-x-auto hide-scrollbar">
         <table className="w-full min-w-[600px] text-left">
           <thead>
             <tr className="border-b border-slate-600">
@@ -272,7 +272,7 @@ const AdjectiveDeclensionModal: React.FC<AdjectiveDeclensionModalProps> = ({
             <CloseIcon className="w-6 h-6 text-slate-400" />
           </button>
         </header>
-        <div className="p-6 overflow-y-auto hide-scrollbar">{renderContent()}</div>
+        <div className="p-2 overflow-y-auto hide-scrollbar">{renderContent()}</div>
       </div>
     </div>
   );

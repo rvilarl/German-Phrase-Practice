@@ -57,7 +57,7 @@ const NounDeclensionModal: React.FC<NounDeclensionModalProps> = ({ isOpen, onClo
     onOpenWordAnalysis(proxyPhrase as Phrase, word);
   };
   
-  const renderClickableGerman = (text: string) => {
+  const renderClickableLearning = (text: string) => {
       if (!text) return null;
       return text.split(' ').map((word, i, arr) => (
           <span
@@ -96,13 +96,13 @@ const NounDeclensionModal: React.FC<NounDeclensionModalProps> = ({ isOpen, onClo
     
     const renderCellContent = (text: string) => (
         <div className="flex items-center justify-between w-full gap-x-2">
-            <span className="flex-grow">{renderClickableGerman(text)}</span>
+            <span className="flex-grow">{renderClickableLearning(text)}</span>
             <AudioPlayer textToSpeak={text} />
         </div>
     );
 
     return (
-        <div className="bg-slate-700/50 p-4 rounded-lg overflow-x-auto hide-scrollbar">
+        <div className="bg-slate-700/50 p-0 rounded-lg overflow-x-auto hide-scrollbar">
             <table className="w-full min-w-[500px] text-left">
                 <thead>
                     <tr className="border-b border-slate-600">
@@ -147,7 +147,7 @@ const NounDeclensionModal: React.FC<NounDeclensionModalProps> = ({ isOpen, onClo
             <CloseIcon className="w-6 h-6 text-slate-400"/>
           </button>
         </header>
-        <div className="p-6 overflow-y-auto">
+        <div className="p-2 overflow-y-auto">
           {renderContent()}
         </div>
       </div>
