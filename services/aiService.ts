@@ -1,4 +1,4 @@
-import { Phrase, ChatMessage, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, AdjectiveDeclension, SentenceContinuation, TranslationChatRequest, TranslationChatResponse, PhraseBuilderOptions, PhraseEvaluation, CategoryAssistantRequest, CategoryAssistantResponse, ProposedCard } from '../types';
+import { Phrase, ChatMessage, DeepDiveAnalysis, MovieExample, WordAnalysis, VerbConjugation, NounDeclension, AdjectiveDeclension, SentenceContinuation, TranslationChatRequest, TranslationChatResponse, PhraseBuilderOptions, PhraseEvaluation, CategoryAssistantRequest, CategoryAssistantResponse, ProposedCard, Pronoun } from '../types';
 
 export interface AiService {
   // FIX: Updated the return type to accurately reflect the shape of the data returned by the API call.
@@ -18,6 +18,7 @@ export interface AiService {
   analyzeWordInPhrase(phrase: Phrase, word: string): Promise<WordAnalysis>;
   conjugateVerb(infinitive: string): Promise<VerbConjugation>;
   conjugateVerbSimple(infinitive: string): Promise<{ pronoun: string; form: string; pronounNative?: string; }[]>;
+  generatePronouns(): Promise<Pronoun[]>;
   declineNoun(noun: string, article: string): Promise<NounDeclension>;
   declineAdjective(adjective: string): Promise<AdjectiveDeclension>;
   generateSentenceContinuations(russianPhrase: string): Promise<SentenceContinuation>;

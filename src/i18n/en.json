@@ -699,8 +699,11 @@
       "headers": {
         "speak": "Speak",
         "german": "German",
-        "russian": "Russian"
+        "russian": "Russian",
+        "learning": "Learning Language",
+        "native": "Native Language"
       },
+      "error": "Failed to load pronouns",
       "pronouns": [
         {
           "german": "ich",

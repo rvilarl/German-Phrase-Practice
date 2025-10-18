@@ -3563,11 +3563,15 @@ const App: React.FC = () => {
           />
         </AiErrorBoundary>
       )}
-      <PronounsModal
-        isOpen={isPronounsModalOpen}
-        onClose={() => setIsPronounsModalOpen(false)}
-        onOpenWordAnalysis={handleOpenWordAnalysis}
-      />
+      {apiProvider && (
+        <PronounsModal
+          isOpen={isPronounsModalOpen}
+          onClose={() => setIsPronounsModalOpen(false)}
+          onOpenWordAnalysis={handleOpenWordAnalysis}
+          languageProfile={languageProfile}
+          aiService={apiProvider}
+        />
+      )}
       <WFragenModal
         isOpen={isWFragenModalOpen}
         onClose={() => setIsWFragenModalOpen(false)}

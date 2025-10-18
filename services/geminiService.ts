@@ -1764,23 +1764,27 @@ const conjugateVerb: AiService['conjugateVerb'] = async (infinitive) => {
     if (!api) throw new Error("Gemini API key not configured.");
 
     const lang = getLang();
-    const prompt = `Ты — эксперт по грамматике ${lang.learning} языка. Предоставь полную матрицу спряжения для глагола "${infinitive}".
+    const prompt = `You are an expert in ${lang.learning} grammar. Provide a complete conjugation matrix for the verb "${infinitive}".
 
-Матрица должна включать три времени (прошедшее, настоящее, будущее) и три формы (утвердительная, вопросительная, отрицательная).
+The matrix should include three tenses (past, present, future) and three forms (statement, question, negative).
 
-**КЛЮЧЕВОЕ ТРЕБОВАНИЕ:** Для каждой ячейки матрицы (например, "Настоящее время, Утверждение") предоставь полный список спряжений для ВСЕХ личных местоимений: ich, du, er/sie/es, wir, ihr, sie/Sie.
+**KEY REQUIREMENT:** For each matrix cell (e.g., "Present tense, Statement"), provide a complete list of conjugations for ALL personal pronouns used in ${lang.learning} language.
 
-Правила:
-1.  Для каждого местоимения в каждой ячейке предоставь:
-    - 'pronoun': само местоимение (например, "ich", "du"). Для 'er/sie/es' и 'sie/Sie' используй именно такую запись.
-    - '${lang.learningCode}': полный, грамматически верный пример предложения.
-    - '${lang.nativeCode}': точный перевод этого предложения на ${lang.native}.
-2.  Для прошедшего времени используй Perfekt (например, "ich habe gesagt").
-3.  Для будущего времени используй Futur I (например, "ich werde sagen").
-4.  Отрицание строй с помощью "nicht" в правильной позиции.
-5.  Вопросительное предложение начинай с глагола (Ja/Nein-Frage).
+Rules:
+1.  For each pronoun in each cell provide:
+    - 'pronoun': the pronoun itself in ${lang.learning} (e.g., for Spanish: "yo", "tú", "él/ella", "nosotros", "vosotros", "ellos/ellas"; for Hindi: "मैं", "तुम", "वह", "हम", "तुम सब", "वे").
+    - 'pronounNative': the same pronoun translated to ${lang.native}.
+    - '${lang.learningCode}': a complete, grammatically correct example sentence in ${lang.learning}.
+    - '${lang.nativeCode}': an exact translation of that sentence into ${lang.native}.
+2.  For past tense, use the standard past tense form appropriate for ${lang.learning}.
+3.  For future tense, use the standard future tense form appropriate for ${lang.learning}.
+4.  For negation, use the standard negation pattern for ${lang.learning}.
+5.  For questions, use the standard question formation pattern for ${lang.learning}.
 
-Верни результат в виде JSON-объекта, соответствующего предоставленной схеме.`;
+IMPORTANT: Do NOT use German pronouns (ich, du, er/sie/es, wir, ihr, sie/Sie). Use pronouns appropriate for ${lang.learning}.
+IMPORTANT: Do NOT use German tense names (Präsens, Perfekt, Futur). Use grammatical structures appropriate for ${lang.learning}.
+
+Return the result as a JSON object matching the provided schema.`;
 
     try {
         const response = await api.models.generateContent({
@@ -1811,6 +1815,7 @@ const conjugateVerb: AiService['conjugateVerb'] = async (infinitive) => {
             const nativeVal = pickFirst(item, [lang.nativeCode, 'ru', 'russian', 'native']);
             return {
                 pronoun: item.pronoun,
+                pronounNative: item.pronounNative,
                 // canonical
                 learning: learningVal,
                 native: nativeVal,
@@ -1858,7 +1863,15 @@ const conjugateVerbSimple: AiService['conjugateVerbSimple'] = async (infinitive)
     const api = initializeApi();
     if (!api) throw new Error("Gemini API key not configured.");
 
-    const prompt = `Спрягай глагол "${infinitive}" в настоящем времени (Präsens) для всех личных местоимений: ich, du, er/sie/es, wir, ihr, sie/Sie. Верни JSON-массив объектов, где каждый объект содержит только два ключа: "pronoun" (местоимение) и "form" (спряженная форма глагола, без дополнительных слов).`;
+    const lang = getLang();
+    const prompt = `You are an expert in ${lang.learning} grammar. Conjugate the verb "${infinitive}" in the present tense for all personal pronouns used in ${lang.learning}.
+
+Return a JSON array of objects, where each object contains three keys:
+- "pronoun": the pronoun in ${lang.learning} (e.g., for Spanish: "yo", "tú", "él/ella", etc.; for Hindi: "मैं", "तुम", "वह", etc.)
+- "pronounNative": the same pronoun translated to ${lang.native}
+- "form": the conjugated verb form in ${lang.learning} (only the verb form, no additional words)
+
+IMPORTANT: Do NOT use German pronouns (ich, du, er/sie/es, wir, ihr, sie/Sie). Use pronouns appropriate for ${lang.learning}.`;
 
     try {
         const response = await api.models.generateContent({
@@ -1880,6 +1893,52 @@ const conjugateVerbSimple: AiService['conjugateVerbSimple'] = async (infinitive)
     }
 };
 
+
+const pronounsSchema = {
+    type: Type.ARRAY,
+    items: {
+        type: Type.OBJECT,
+        properties: {
+            learning: { type: Type.STRING, description: 'Personal pronoun in the learning language' },
+            native: { type: Type.STRING, description: 'Translation of the pronoun in the native language' },
+        },
+        required: ["learning", "native"],
+    },
+};
+
+const generatePronouns: AiService['generatePronouns'] = async () => {
+    const api = initializeApi();
+    if (!api) throw new Error("Gemini API key not configured.");
+
+    const lang = getLang();
+    const prompt = `You are an expert in ${lang.learning} grammar. Provide a complete list of personal pronouns used in ${lang.learning}.
+
+Return a JSON array of objects, where each object contains:
+- "learning": the personal pronoun in ${lang.learning} (e.g., for Spanish: "yo", "tú", "él", "ella", "nosotros", "vosotros", "ellos", "ellas"; for Hindi: "मैं", "तुम", "वह", "हम", "आप", "वे")
+- "native": the translation of that pronoun in ${lang.native}
+
+IMPORTANT: Include ALL personal pronouns commonly used in ${lang.learning}, including variations (like él/ella for Spanish, or formal/informal forms).
+IMPORTANT: Do NOT use German pronouns (ich, du, er/sie/es). Use pronouns appropriate for ${lang.learning}.`;
+
+    try {
+        const response = await api.models.generateContent({
+            model: model,
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: pronounsSchema,
+                temperature: 0.1,
+            },
+        });
+
+        const jsonText = response.text.trim();
+        return JSON.parse(jsonText);
+    } catch (error) {
+        console.error("Error generating pronouns with Gemini:", error);
+        const errorMessage = (error as any)?.message || 'Unknown error';
+        throw new Error(`Failed to call the Gemini API: ${errorMessage}`);
+    }
+};
 
 const nounDeclensionSchema = {
     type: Type.OBJECT,
@@ -2454,6 +2513,7 @@ export const geminiService: AiService = {
     analyzeWordInPhrase,
     conjugateVerb,
     conjugateVerbSimple,
+    generatePronouns,
     declineNoun,
     declineAdjective,
     generateSentenceContinuations,

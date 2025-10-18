@@ -79,8 +79,14 @@ export interface WordAnalysis {
 
 export interface PronounConjugation {
     pronoun: string;
+    pronounNative?: string;
     learning: string;
     native: string;
+}
+
+export interface Pronoun {
+    learning: string; // pronoun in learning language
+    native: string; // translation in native language
 }
 
 export interface TenseForms {
