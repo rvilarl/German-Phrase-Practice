@@ -1487,13 +1487,35 @@ const generateMovieExamples: AiService['generateMovieExamples'] = async (phrase)
 };
 
 // FIX: Update schema to match WordAnalysis type in types.ts
+/**
+ * Returns person/number example based on language code
+ */
+const getPersonNumberExample = (languageCode: LanguageCode): string => {
+    const examples: Record<LanguageCode, string> = {
+        'ru': '1-е лицо, ед.ч.',
+        'en': '1st person, singular',
+        'de': '1. Person, Singular',
+        'es': '1ª persona, singular',
+        'fr': '1ère personne, singulier',
+        'it': '1ª persona, singolare',
+        'pt': '1ª pessoa, singular',
+        'pl': '1. osoba, liczba pojedyncza',
+        'zh': '第一人称，单数',
+        'ja': '一人称、単数',
+        'ar': 'المتكلم، المفرد',
+        'hi': 'प्रथम पुरुष, एकवचन'
+    };
+    return examples[languageCode] || examples['en'];
+};
+
 const wordAnalysisSchema = () => {
     const lang = getLang();
+    const personExample = getPersonNumberExample(lang.nativeCode);
     return {
         type: Type.OBJECT,
         properties: {
             word: { type: Type.STRING },
-            partOfSpeech: { type: Type.STRING, description: `The part of speech (e.g., "Существительное", "Глагол", "Прилагательное") in ${lang.native}.` },
+            partOfSpeech: { type: Type.STRING, description: `The part of speech in ${lang.native}.` },
             nativeTranslation: { type: Type.STRING, description: `The ${lang.native} translation of the word.` },
             baseForm: { type: Type.STRING, description: 'The base form, especially for adjectives (e.g., "gut" for "guten").' },
             nounDetails: {
@@ -1508,7 +1530,7 @@ const wordAnalysisSchema = () => {
                 properties: {
                     infinitive: { type: Type.STRING, description: 'The infinitive form.' },
                     tense: { type: Type.STRING, description: 'The tense (e.g., "Präsens").' },
-                    person: { type: Type.STRING, description: `The person and number (e.g., "1-е лицо, ед.ч.") in ${lang.native}.` },
+                    person: { type: Type.STRING, description: `The person and number (e.g., "${personExample}") in ${lang.native}.` },
                 },
             },
             exampleSentence: { type: Type.STRING, description: `A new example sentence in ${lang.learning} using the word.` },
@@ -1518,21 +1540,165 @@ const wordAnalysisSchema = () => {
     };
 };
 
+/**
+ * Returns word analysis prompt in the appropriate language
+ */
+const getWordAnalysisPrompt = (
+    languageCode: LanguageCode,
+    learningLang: string,
+    nativeLang: string,
+    word: string,
+    phraseText: string
+): string => {
+    const prompts: Record<LanguageCode, string> = {
+        'ru': `Проведи лингвистический анализ ${learningLang} слова "${word}" в контексте фразы "${phraseText}".
+Верни JSON-объект со следующей информацией:
+1.  **word**: анализируемое слово.
+2.  **partOfSpeech**: часть речи на ${nativeLang}.
+3.  **nativeTranslation**: перевод слова на ${nativeLang}.
+4.  **baseForm**: если слово — прилагательное, укажи его базовую (словарную) форму.
+5.  **nounDetails**: если слово — существительное, укажи его артикль ('article') и форму множественного числа ('plural'). Если нет, пропусти это поле.
+6.  **verbDetails**: если слово — глагол, укажи его инфинитив ('infinitive'), время ('tense') и лицо/число ('person'). Если нет, пропусти это поле.
+7.  **exampleSentence**: новое предложение-пример на ${learningLang}, использующее это слово.
+8.  **exampleSentenceNative**: перевод предложения-примера на ${nativeLang}.`,
+
+        'en': `Perform a linguistic analysis of the ${learningLang} word "${word}" in the context of the phrase "${phraseText}".
+Return a JSON object with the following information:
+1.  **word**: the analyzed word.
+2.  **partOfSpeech**: part of speech in ${nativeLang}.
+3.  **nativeTranslation**: translation of the word to ${nativeLang}.
+4.  **baseForm**: if the word is an adjective, provide its base (dictionary) form.
+5.  **nounDetails**: if the word is a noun, provide its article ('article') and plural form ('plural'). If not, omit this field.
+6.  **verbDetails**: if the word is a verb, provide its infinitive ('infinitive'), tense ('tense'), and person/number ('person'). If not, omit this field.
+7.  **exampleSentence**: a new example sentence in ${learningLang} using this word.
+8.  **exampleSentenceNative**: translation of the example sentence to ${nativeLang}.`,
+
+        'de': `Führe eine linguistische Analyse des ${learningLang} Wortes "${word}" im Kontext des Satzes "${phraseText}" durch.
+Gib ein JSON-Objekt mit den folgenden Informationen zurück:
+1.  **word**: das analysierte Wort.
+2.  **partOfSpeech**: Wortart auf ${nativeLang}.
+3.  **nativeTranslation**: Übersetzung des Wortes ins ${nativeLang}.
+4.  **baseForm**: wenn das Wort ein Adjektiv ist, gib seine Grundform an.
+5.  **nounDetails**: wenn das Wort ein Substantiv ist, gib seinen Artikel ('article') und Pluralform ('plural') an. Wenn nicht, lass dieses Feld weg.
+6.  **verbDetails**: wenn das Wort ein Verb ist, gib seinen Infinitiv ('infinitive'), Zeitform ('tense') und Person/Zahl ('person') an. Wenn nicht, lass dieses Feld weg.
+7.  **exampleSentence**: ein neuer Beispielsatz auf ${learningLang} mit diesem Wort.
+8.  **exampleSentenceNative**: Übersetzung des Beispielsatzes ins ${nativeLang}.`,
+
+        'es': `Realiza un análisis lingüístico de la palabra "${word}" en ${learningLang} en el contexto de la frase "${phraseText}".
+Devuelve un objeto JSON con la siguiente información:
+1.  **word**: la palabra analizada.
+2.  **partOfSpeech**: parte del discurso en ${nativeLang}.
+3.  **nativeTranslation**: traducción de la palabra al ${nativeLang}.
+4.  **baseForm**: si la palabra es un adjetivo, proporciona su forma base (diccionario).
+5.  **nounDetails**: si la palabra es un sustantivo, proporciona su artículo ('article') y forma plural ('plural'). Si no, omite este campo.
+6.  **verbDetails**: si la palabra es un verbo, proporciona su infinitivo ('infinitive'), tiempo ('tense') y persona/número ('person'). Si no, omite este campo.
+7.  **exampleSentence**: una nueva oración de ejemplo en ${learningLang} usando esta palabra.
+8.  **exampleSentenceNative**: traducción de la oración de ejemplo al ${nativeLang}.`,
+
+        'fr': `Effectue une analyse linguistique du mot "${word}" en ${learningLang} dans le contexte de la phrase "${phraseText}".
+Renvoie un objet JSON avec les informations suivantes:
+1.  **word**: le mot analysé.
+2.  **partOfSpeech**: partie du discours en ${nativeLang}.
+3.  **nativeTranslation**: traduction du mot en ${nativeLang}.
+4.  **baseForm**: si le mot est un adjectif, fournis sa forme de base (dictionnaire).
+5.  **nounDetails**: si le mot est un nom, fournis son article ('article') et forme plurielle ('plural'). Sinon, omets ce champ.
+6.  **verbDetails**: si le mot est un verbe, fournis son infinitif ('infinitive'), temps ('tense') et personne/nombre ('person'). Sinon, omets ce champ.
+7.  **exampleSentence**: une nouvelle phrase d'exemple en ${learningLang} utilisant ce mot.
+8.  **exampleSentenceNative**: traduction de la phrase d'exemple en ${nativeLang}.`,
+
+        'it': `Esegui un'analisi linguistica della parola "${word}" in ${learningLang} nel contesto della frase "${phraseText}".
+Restituisci un oggetto JSON con le seguenti informazioni:
+1.  **word**: la parola analizzata.
+2.  **partOfSpeech**: parte del discorso in ${nativeLang}.
+3.  **nativeTranslation**: traduzione della parola in ${nativeLang}.
+4.  **baseForm**: se la parola è un aggettivo, fornisci la sua forma base (dizionario).
+5.  **nounDetails**: se la parola è un sostantivo, fornisci il suo articolo ('article') e forma plurale ('plural'). Se no, ometti questo campo.
+6.  **verbDetails**: se la parola è un verbo, fornisci il suo infinito ('infinitive'), tempo ('tense') e persona/numero ('person'). Se no, ometti questo campo.
+7.  **exampleSentence**: una nuova frase di esempio in ${learningLang} usando questa parola.
+8.  **exampleSentenceNative**: traduzione della frase di esempio in ${nativeLang}.`,
+
+        'pt': `Realize uma análise linguística da palavra "${word}" em ${learningLang} no contexto da frase "${phraseText}".
+Retorne um objeto JSON com as seguintes informações:
+1.  **word**: a palavra analisada.
+2.  **partOfSpeech**: classe gramatical em ${nativeLang}.
+3.  **nativeTranslation**: tradução da palavra para ${nativeLang}.
+4.  **baseForm**: se a palavra é um adjetivo, forneça sua forma base (dicionário).
+5.  **nounDetails**: se a palavra é um substantivo, forneça seu artigo ('article') e forma plural ('plural'). Se não, omita este campo.
+6.  **verbDetails**: se a palavra é um verbo, forneça seu infinitivo ('infinitive'), tempo ('tense') e pessoa/número ('person'). Se não, omita este campo.
+7.  **exampleSentence**: uma nova frase de exemplo em ${learningLang} usando esta palavra.
+8.  **exampleSentenceNative**: tradução da frase de exemplo para ${nativeLang}.`,
+
+        'pl': `Przeprowadź analizę lingwistyczną słowa "${word}" w języku ${learningLang} w kontekście zdania "${phraseText}".
+Zwróć obiekt JSON z następującymi informacjami:
+1.  **word**: analizowane słowo.
+2.  **partOfSpeech**: część mowy w języku ${nativeLang}.
+3.  **nativeTranslation**: tłumaczenie słowa na język ${nativeLang}.
+4.  **baseForm**: jeśli słowo jest przymiotnikiem, podaj jego formę podstawową (słownikową).
+5.  **nounDetails**: jeśli słowo jest rzeczownikiem, podaj jego rodzajnik ('article') i formę liczby mnogiej ('plural'). Jeśli nie, pomiń to pole.
+6.  **verbDetails**: jeśli słowo jest czasownikiem, podaj jego bezokolicznik ('infinitive'), czas ('tense') i osobę/liczbę ('person'). Jeśli nie, pomiń to pole.
+7.  **exampleSentence**: nowe zdanie przykładowe w języku ${learningLang} używające tego słowa.
+8.  **exampleSentenceNative**: tłumaczenie zdania przykładowego na język ${nativeLang}.`,
+
+        'zh': `对短语"${phraseText}"中的${learningLang}单词"${word}"进行语言分析。
+返回一个包含以下信息的JSON对象：
+1.  **word**：分析的单词。
+2.  **partOfSpeech**：${nativeLang}中的词性。
+3.  **nativeTranslation**：单词的${nativeLang}翻译。
+4.  **baseForm**：如果单词是形容词，提供其基本（词典）形式。
+5.  **nounDetails**：如果单词是名词，提供其冠词（'article'）和复数形式（'plural'）。如果不是，省略此字段。
+6.  **verbDetails**：如果单词是动词，提供其不定式（'infinitive'）、时态（'tense'）和人称/数（'person'）。如果不是，省略此字段。
+7.  **exampleSentence**：使用此单词的${learningLang}新例句。
+8.  **exampleSentenceNative**：例句的${nativeLang}翻译。`,
+
+        'ja': `フレーズ「${phraseText}」における${learningLang}の単語「${word}」の言語分析を行ってください。
+次の情報を含むJSONオブジェクトを返してください：
+1.  **word**：分析された単語。
+2.  **partOfSpeech**：${nativeLang}での品詞。
+3.  **nativeTranslation**：単語の${nativeLang}訳。
+4.  **baseForm**：単語が形容詞の場合、基本（辞書）形式を提供してください。
+5.  **nounDetails**：単語が名詞の場合、冠詞（'article'）と複数形（'plural'）を提供してください。そうでない場合は、このフィールドを省略してください。
+6.  **verbDetails**：単語が動詞の場合、不定形（'infinitive'）、時制（'tense'）、人称/数（'person'）を提供してください。そうでない場合は、このフィールドを省略してください。
+7.  **exampleSentence**：この単語を使った${learningLang}の新しい例文。
+8.  **exampleSentenceNative**：例文の${nativeLang}訳。`,
+
+        'ar': `قم بإجراء تحليل لغوي للكلمة "${word}" بلغة ${learningLang} في سياق العبارة "${phraseText}".
+قم بإرجاع كائن JSON بالمعلومات التالية:
+1.  **word**: الكلمة المحللة.
+2.  **partOfSpeech**: نوع الكلمة بلغة ${nativeLang}.
+3.  **nativeTranslation**: ترجمة الكلمة إلى ${nativeLang}.
+4.  **baseForm**: إذا كانت الكلمة صفة، قدم شكلها الأساسي (القاموس).
+5.  **nounDetails**: إذا كانت الكلمة اسمًا، قدم أداة التعريف ('article') والصيغة الجمع ('plural'). إذا لم تكن كذلك، احذف هذا الحقل.
+6.  **verbDetails**: إذا كانت الكلمة فعلًا، قدم المصدر ('infinitive')، الزمن ('tense')، والشخص/العدد ('person'). إذا لم تكن كذلك، احذف هذا الحقل.
+7.  **exampleSentence**: جملة مثال جديدة بلغة ${learningLang} باستخدام هذه الكلمة.
+8.  **exampleSentenceNative**: ترجمة جملة المثال إلى ${nativeLang}.`,
+
+        'hi': `वाक्यांश "${phraseText}" के संदर्भ में ${learningLang} शब्द "${word}" का भाषाई विश्लेषण करें।
+निम्नलिखित जानकारी के साथ एक JSON ऑब्जेक्ट लौटाएं:
+1.  **word**: विश्लेषण किया गया शब्द।
+2.  **partOfSpeech**: ${nativeLang} में शब्द भेद।
+3.  **nativeTranslation**: शब्द का ${nativeLang} में अनुवाद।
+4.  **baseForm**: यदि शब्द विशेषण है, तो इसका मूल (शब्दकोश) रूप प्रदान करें।
+5.  **nounDetails**: यदि शब्द संज्ञा है, तो इसका आर्टिकल ('article') और बहुवचन रूप ('plural') प्रदान करें। यदि नहीं, तो इस फ़ील्ड को छोड़ दें।
+6.  **verbDetails**: यदि शब्द क्रिया है, तो इसका मूल रूप ('infinitive'), काल ('tense') और पुरुष/वचन ('person') प्रदान करें। यदि नहीं, तो इस फ़ील्ड को छोड़ दें।
+7.  **exampleSentence**: इस शब्द का उपयोग करते हुए ${learningLang} में एक नया उदाहरण वाक्य।
+8.  **exampleSentenceNative**: उदाहरण वाक्य का ${nativeLang} में अनुवाद।`
+    };
+
+    return prompts[languageCode] || prompts['en'];
+};
+
 const analyzeWordInPhrase: AiService['analyzeWordInPhrase'] = async (phrase, word) => {
     const api = initializeApi();
     if (!api) throw new Error("Gemini API key not configured.");
     const lang = getLang();
 
-    const prompt = `Проведи лингвистический анализ ${lang.learning} слова "${word}" в контексте фразы "${phrase.text.learning}".
-Верни JSON-объект со следующей информацией:
-1.  **word**: анализируемое слово.
-2.  **partOfSpeech**: часть речи на ${lang.native} (например, "Существительное", "Глагол", "Прилагательное").
-3.  **nativeTranslation**: перевод слова на ${lang.native}.
-4.  **baseForm**: если слово — прилагательное, укажи его базовую (словарную) форму. Например, для "guten" это будет "gut".
-5.  **nounDetails**: если слово — существительное, укажи его артикль ('article') и форму множественного числа ('plural'). Если нет, пропусти это поле.
-6.  **verbDetails**: если слово — глагол, укажи его инфинитив ('infinitive'), время ('tense') и лицо/число ('person'). Если нет, пропусти это поле.
-7.  **exampleSentence**: новое предложение-пример на ${lang.learning}, использующее это слово.
-8.  **exampleSentenceNative**: перевод предложения-примера на ${lang.native}.`;
+    const prompt = getWordAnalysisPrompt(
+        lang.nativeCode,
+        lang.learning,
+        lang.native,
+        word,
+        phrase.text.learning
+    );
 
     try {
         const response = await api.models.generateContent({
@@ -1544,7 +1710,7 @@ const analyzeWordInPhrase: AiService['analyzeWordInPhrase'] = async (phrase, wor
                 temperature: 0.5,
             },
         });
-        
+
         const jsonText = response.text.trim();
         return JSON.parse(jsonText) as WordAnalysis;
 

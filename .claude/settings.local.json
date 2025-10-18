@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:private-user-images.githubusercontent.com)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
