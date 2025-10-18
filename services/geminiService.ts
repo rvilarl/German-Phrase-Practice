@@ -1726,7 +1726,8 @@ const pronounConjugationSchema = () => {
     return {
         type: Type.OBJECT,
         properties: {
-            pronoun: { type: Type.STRING, description: 'The personal pronoun (e.g., "ich", "du", "er/sie/es").' },
+            pronoun: { type: Type.STRING, description: `The personal pronoun in ${lang.learning} (e.g., for Spanish: "yo", "tú"; for Hindi: "मैं", "तुम").` },
+            pronounNative: { type: Type.STRING, description: `The same pronoun translated to ${lang.native}.` },
             // Canonical keys (language-agnostic)
             learning: { type: Type.STRING, description: `Full sentence in the learning language (${lang.learning}).` },
             native: { type: Type.STRING, description: `Translation in the native language (${lang.native}).` },
@@ -1734,7 +1735,7 @@ const pronounConjugationSchema = () => {
             [lang.learningCode]: { type: Type.STRING, description: `The full example sentence in ${lang.learning} for this pronoun.` },
             [lang.nativeCode]: { type: Type.STRING, description: `The ${lang.native} translation of the ${lang.learning} sentence.` },
         },
-        required: ["pronoun", 'learning', 'native'],
+        required: ["pronoun", "pronounNative", 'learning', 'native'],
     };
 };
 
