@@ -1,35 +1,60 @@
-import React from 'react';
-import { Phrase } from '../types';
+import React, { useEffect, useState } from 'react';
+import { Phrase, LanguageProfile, Pronoun } from '../types';
 import CloseIcon from './icons/CloseIcon';
 import UsersIcon from './icons/UsersIcon';
 import AudioPlayer from './AudioPlayer';
+import Spinner from './Spinner';
 import { useTranslation } from '../src/hooks/useTranslation';
 
 interface PronounsModalProps {
   isOpen: boolean;
   onClose: () => void;
   onOpenWordAnalysis: (phrase: Phrase, word: string) => void;
+  languageProfile: LanguageProfile;
+  aiService: {
+    generatePronouns: () => Promise<Pronoun[]>;
+  };
 }
 
-const pronouns = [
-    { german: 'ich', russian: 'I' },
-    { german: 'du', russian: 'you (informal)' },
-    { german: 'er / sie / es', russian: 'he / she / it' },
-    { german: 'wir', russian: 'we' },
-    { german: 'ihr', russian: 'you (plural informal)' },
-    { german: 'sie / Sie', russian: 'they / you (formal)' },
-];
-
-const PronounsModal: React.FC<PronounsModalProps> = ({ isOpen, onClose, onOpenWordAnalysis }) => {
+const PronounsModal: React.FC<PronounsModalProps> = ({
+  isOpen,
+  onClose,
+  onOpenWordAnalysis,
+  languageProfile,
+  aiService
+}) => {
   const { t } = useTranslation();
+  const [pronouns, setPronouns] = useState<Pronoun[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const loadPronouns = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const generated = await aiService.generatePronouns();
+        setPronouns(generated);
+      } catch (err) {
+        console.error('Failed to generate pronouns:', err);
+        setError(t('modals.pronouns.error') || 'Failed to load pronouns');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadPronouns();
+  }, [isOpen, languageProfile.learning, languageProfile.native, aiService, t]);
 
   if (!isOpen) return null;
 
-  const handleWordClick = (contextText: string, word: string, russianText: string) => {
-    // FIX: Updated proxy phrase creation to match the new `Phrase` type with a nested `text` object.
+  const handleWordClick = (contextText: string, word: string, nativeText: string) => {
+    // Create proxy phrase for word analysis
     const proxyPhrase: Omit<Phrase, 'id'> & { id?: string } = {
         id: `proxy_pronoun_${word}`,
-        text: { learning: contextText, native: russianText },
+        text: { learning: contextText, native: nativeText },
         category: 'pronouns',
         masteryLevel: 0, lastReviewedAt: null, nextReviewAt: Date.now(),
         knowCount: 0, knowStreak: 0, isMastered: false,
@@ -37,18 +62,18 @@ const PronounsModal: React.FC<PronounsModalProps> = ({ isOpen, onClose, onOpenWo
     };
     onOpenWordAnalysis(proxyPhrase as Phrase, word);
   };
-  
-  const renderClickableGerman = (text: string, russian: string) => {
+
+  const renderClickableLearning = (text: string, native: string) => {
       if (!text) return null;
-      return text.split(' ').map((word, i, arr) => {
+      return text.split(' ').map((word, i) => {
           if (word === '/') return <span key={i}> / </span>;
           return (
               <span
                   key={i}
                   onClick={(e) => {
                       e.stopPropagation();
-                      const cleanedWord = word.replace(/[.,!?()"“”:;]/g, '');
-                      if (cleanedWord) handleWordClick(text, cleanedWord, russian);
+                      const cleanedWord = word.replace(/[.,!?()""":;]/g, '');
+                      if (cleanedWord) handleWordClick(text, cleanedWord, native);
                   }}
                   className="cursor-pointer hover:bg-white/20 px-1 py-0.5 rounded-md transition-colors"
               >
@@ -58,10 +83,9 @@ const PronounsModal: React.FC<PronounsModalProps> = ({ isOpen, onClose, onOpenWo
       });
   };
 
-
   return (
     <div className="fixed inset-0 bg-black/60 z-[70] flex justify-center items-center" onClick={onClose}>
-      <div 
+      <div
         className="bg-slate-800 w-full max-w-sm m-4 rounded-2xl shadow-2xl flex flex-col"
         onClick={e => e.stopPropagation()}
       >
@@ -75,28 +99,40 @@ const PronounsModal: React.FC<PronounsModalProps> = ({ isOpen, onClose, onOpenWo
            </button>
          </header>
         <div className="p-2 overflow-y-auto">
-           <div className="bg-slate-700/50 p-4 rounded-lg">
+           {loading ? (
+             <div className="flex items-center justify-center py-12">
+               <Spinner />
+             </div>
+           ) : error ? (
+             <div className="p-4 text-center text-red-400">
+               {error}
+             </div>
+           ) : (
+             <div className="bg-slate-700/50 p-4 rounded-lg">
                 <table className="w-full text-left">
                     <thead>
                         <tr className="border-b border-slate-600">
                             <th className="p-3 w-1/6"><span className="sr-only">{t('modals.pronouns.headers.speak')}</span></th>
-                            <th className="p-3 text-sm font-semibold text-slate-400">{t('modals.pronouns.headers.german')}</th>
-                            <th className="p-3 text-sm font-semibold text-slate-400">{t('modals.pronouns.headers.russian')}</th>
+                            <th className="p-3 text-sm font-semibold text-slate-400">{t('modals.pronouns.headers.learning')}</th>
+                            <th className="p-3 text-sm font-semibold text-slate-400">{t('modals.pronouns.headers.native')}</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {pronouns.map(p => (
-                            <tr key={p.german} className="border-b border-slate-700 last:border-b-0">
+                        {pronouns.map((p, idx) => (
+                            <tr key={`${p.learning}-${idx}`} className="border-b border-slate-700 last:border-b-0">
                                 <td className="p-3">
-                                  <AudioPlayer textToSpeak={p.german.replace(/ \/ /g, ', ')} />
+                                  <AudioPlayer textToSpeak={p.learning.replace(/ \/ /g, ', ')} />
                                 </td>
-                                <td className="p-3 text-slate-100 font-semibold text-lg whitespace-nowrap">{renderClickableGerman(p.german, p.russian)}</td>
-                                <td className="p-3 text-slate-300 text-lg">{p.russian}</td>
+                                <td className="p-3 text-slate-100 font-semibold text-lg whitespace-nowrap">
+                                  {renderClickableLearning(p.learning, p.native)}
+                                </td>
+                                <td className="p-3 text-slate-300 text-lg">{p.native}</td>
                             </tr>
                         ))}
                     </tbody>
                 </table>
             </div>
+           )}
         </div>
       </div>
     </div>

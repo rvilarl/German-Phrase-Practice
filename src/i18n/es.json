@@ -406,8 +406,11 @@
       "headers": {
         "speak": "Hablar",
         "german": "Alemán",
-        "russian": "Ruso"
+        "russian": "Ruso",
+        "learning": "Idioma de aprendizaje",
+        "native": "Idioma nativo"
       },
+      "error": "Error al cargar pronombres",
       "pronouns": [
         {
           "german": "ich",
